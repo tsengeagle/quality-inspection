@@ -470,6 +470,50 @@ revision 不構成案件 reopen，也不應直接改變案件主狀態。
 
 ---
 
+## D-013 retry 沿用原 batch snapshot，不使用後續新發布 version
+
+### Status
+`accepted`
+
+### Category
+`sampling-retry-semantics`
+
+### Decision
+當 `FAILED` batch 執行 retry 時，新的 retry batch 必須沿用原 batch 的 snapshot 基礎，不得改用 retry 發生當下後續新發布的 project version 或 score sheet version。
+
+### Rationale
+- retry 的語意是「重做原失敗執行」，而不是「以新規則重新跑一次抽選」
+- 若 retry 自動改用新 version，會造成：
+  - retry 與 re-execute 語意混淆
+  - 舊 batch 與新 batch 難以比較
+  - traceability 失真
+  - retry 結果受版本漂移污染
+- 若業務要使用新規則重跑，應走新的正式抽選，而不是 retry
+
+### Affected Artifacts
+- `specification-by-example.md`
+- `test-scenarios.md`
+- `domain-model.md`
+- `application-service.md`
+- `api-spec.md`
+- `persistence-model.md`
+
+### Consequences
+- `RetrySamplingBatchUseCase` 應以原 batch snapshot 作為 retry 基礎
+- retry 建立的新 batch 應保留：
+  - 新 `batchId`
+  - `retryOfBatchId = oldBatchId`
+  - 與原 batch 相同或等價的 snapshot 參照
+- retry batch **不應** 因為之後有新發布 version，而自動改吃新規則
+- 若要使用最新 published version，應重新執行新的正式抽選流程，而非 retry
+
+### Non-Goals
+- 本決策不處理 batch 原始失敗原因的分類
+- 本決策不定義「重新正式抽選」的 command 細節
+- 本決策不代表 retry 必須重用完全相同的技術執行環境；它只固定業務規則基礎必須一致
+
+---
+
 ## 5. 已收斂但不列為 domain invariant 的決策
 
 下列事項雖已決定，但屬 access / view / scope，不應寫成 domain invariant：

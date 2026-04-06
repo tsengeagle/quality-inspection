@@ -175,6 +175,29 @@
 
 ---
 
+## TS-SM-002A 正式抽選會完整發布核心 batch / selection 事件
+
+### Objective
+驗證正式抽選不只建立資料，也完整形成核心 domain event。
+
+### Preconditions
+- actor = `HOSPITAL_MANAGER`
+- 專案為 active
+- published version 存在
+- 母體可正常取得
+
+### Steps
+1. 執行正式抽選
+
+### Expected
+- 產生 `SamplingBatchStarted`
+- 產生 `ReviewCasesSelected`
+- 產生 `SamplingBatchCompleted`
+- 三者的 `batchId` 一致
+- `selectedCount` 與 selected case refs 一致
+
+---
+
 ## TS-SM-003 專案未啟用不得抽選
 
 ### Objective
@@ -248,6 +271,33 @@
 - 新 batch `retryOfBatchId = old batchId`
 - 舊 batch 保留原錯誤紀錄
 - 不覆寫舊 batch 為 completed
+
+---
+
+## TS-SM-007 retry 必須沿用原 batch snapshot，而非最新 version
+
+### Objective
+驗證 retry 的語意是重做原失敗執行，因此必須沿用原 batch snapshot，而不是吃到後續新發布版本。
+
+### Preconditions
+- batch A 狀態 = `FAILED`
+- batch A 使用 project version 1 / snapshot 1
+- batch A 失敗後，又發布了 project version 2
+- actor = `HOSPITAL_MANAGER`
+
+### Steps
+1. 呼叫 `POST /sampling-batches/{batchId}/retry`
+2. 取得新 batch B
+3. 查詢 batch A 與 batch B 的 snapshot / version 參照
+
+### Expected
+- 建立新的 batch B
+- batch B 的 `retryOfBatchId = batch A`
+- batch B 沿用與 batch A 相同的 snapshot 基礎
+- batch B **不應** 使用 version 2 的 snapshot
+- batch A 維持 `FAILED`
+- retry 不覆寫原 batch
+- retry 之後的 batch start / complete 或 fail 事件屬於 batch B，而非 batch A
 
 ---
 
@@ -382,6 +432,36 @@
 - case status -> `INITIAL_REVIEW_COMPLETED`
 - 隨後 -> `PENDING_REREVIEW`
 - `ReviewCaseEscalatedToRereview` event 成立
+
+---
+
+## TS-BD-001 等於品質線時案件直接結案
+
+### Objective
+驗證品質線邊界值：當 `totalScore == qualityThreshold` 時，案件應直接結案，而不是進入複審。
+
+### Preconditions
+- actor = assigned `REVIEWER`
+- case status = `INITIAL_REVIEW_IN_PROGRESS`
+- case 綁定合法 project version / score sheet snapshot
+- `qualityThreshold = 80`
+
+### Steps
+1. reviewer 提交初審結果
+2. 提交分數 = `80`
+
+### Expected
+- submission status = `SUBMITTED`
+- case 不進入 `PENDING_REREVIEW`
+- case status = `CLOSED`
+- response 中：
+  - `caseStatus = CLOSED`
+  - `rereviewRequired = false`
+- 產生：
+  - `ReviewSubmissionSubmitted`
+  - `InitialReviewCompleted`
+  - `ReviewCaseClosed`
+- **不應** 產生 `ReviewCaseEscalatedToRereview`
 
 ---
 
@@ -637,6 +717,70 @@
 
 ---
 
+## TS-RV-009 第二次 revision 後應形成完整 superseded 鏈
+
+### Objective
+驗證多次 revision 時，submission revision 鏈保持 append-only，且 latest 版本認定正確。
+
+### Preconditions
+- case status != `CLOSED`
+- case status != `CANCELLED`
+- 已存在：
+  - revision 1 = `SUPERSEDED`
+  - revision 2 = `SUBMITTED`
+- actor 為合法責任人
+  - `INITIAL` 時為 original reviewer
+  - `REREVIEW` 時為 assigned rereviewer
+
+### Steps
+1. actor 對 revision 2 再次發起 revise
+2. 查詢 revision history
+3. 查詢 latest submission pointer
+
+### Expected
+- 建立 revision 3
+- revision 1 維持 `SUPERSEDED`
+- revision 2 轉為 `SUPERSEDED`
+- revision 3 狀態 = `SUBMITTED`
+- case 主狀態不自動改變
+- latest submission pointer 指向 revision 3
+- 產生新的 `ReviewSubmissionRevised`
+- 舊資料不被覆寫
+
+---
+
+## TS-RV-010 revision history 查詢必須正確標示 latest 與 superseded
+
+### Objective
+驗證 revision history 查詢結果不只列出歷史版本，還能正確標示：
+- 哪些版本為 `SUPERSEDED`
+- 哪個版本是目前 latest / effective submission
+
+### Preconditions
+- 同一 case / stage 已存在 revision 1、2、3
+- revision 1、2 狀態 = `SUPERSEDED`
+- revision 3 狀態 = `SUBMITTED`
+- latest submission pointer 指向 revision 3
+- actor 具有合法查詢權限
+
+### Steps
+1. 呼叫 `GET /review-cases/{caseId}/revisions`
+2. 比對 revision history 與 latest submission pointer
+3. 驗證排序與狀態標示
+
+### Expected
+- revision history 穩定輸出完整版本鏈
+- revision 1、2 顯示 `SUPERSEDED`
+- revision 3 顯示 latest / current effective submission
+- latest submission pointer 與 revision history 一致
+- 不因時間排序或資料查詢順序造成 latest 判定漂移
+
+### Non-goals
+- 不驗 revision 建立流程本身
+- 不驗不同角色的 masking 差異
+
+---
+
 ## 9. Permission / Visibility Scenarios
 
 ---
@@ -660,6 +804,28 @@
 
 ---
 
+## TS-PM-001A manager 查詢 case / submission detail 時應取得 full detail view
+
+### Objective
+驗證 manager 的 detail response shape，而不只驗證可否查詢。
+
+### Preconditions
+- actor = `HOSPITAL_MANAGER`
+- 資料屬於本院
+- submission 含 answers / comment / attachments
+
+### Steps
+1. 查詢 case detail
+2. 查詢 submission detail
+
+### Expected
+- response 含 answers
+- response 含 full comments
+- response 含 attachments metadata
+- 不被降級成 metadata only
+
+---
+
 ## TS-PM-002 manager 不可查看他院完整明細
 
 ### Objective
@@ -673,7 +839,7 @@
 1. 查詢 detail API
 
 ### Expected
-- 回傳 `403 FORBIDDEN` 或查無資料（依統一策略）
+- 回傳 `403 FORBIDDEN` 或查無資料
 - 不可取得 full detail
 
 ---
@@ -693,6 +859,27 @@
 ### Expected
 - 僅回 metadata view
 - 不含 answers / full comments / attachment content
+
+---
+
+## TS-PM-003A system admin 查詢 detail 時應被遮罩為 metadata view
+
+### Objective
+驗證 sysadmin 的 response masking。
+
+### Preconditions
+- actor = `SYSTEM_ADMIN`
+- 存在 case / submission detail
+
+### Steps
+1. 查詢 case detail
+2. 查詢 submission detail
+
+### Expected
+- response 不含 answers
+- response 不含 full comments
+- response 不含 attachment content
+- 僅含 id / status / timestamps / assigned actors 等 metadata
 
 ---
 
@@ -717,6 +904,27 @@
 
 ---
 
+## TS-PM-004A auditor 查詢 detail 時同時受 scope 與 detail view 規則限制
+
+### Objective
+驗證 auditor 不僅有院區授權限制，且在授權範圍內可取得合法 detail。
+
+### Preconditions
+- actor = `AUDITOR`
+- 有院區 A 授權
+- 無院區 B 授權
+
+### Steps
+1. 查 A 的 case / submission detail
+2. 查 B 的 case / submission detail
+
+### Expected
+- A 成功
+- B 被拒絕或查無資料
+- 不可默認 global scope
+
+---
+
 ## TS-PM-005 reviewer 只能看自己合法範圍內案件
 
 ### Objective
@@ -733,8 +941,81 @@
 
 ### Expected
 - A 可查
-- B 不可查或僅極小 metadata（依實作策略）
+- B 不可查或僅極小 metadata
 - 不可取得他人 submission 明細
+
+---
+
+## TS-PM-006 同一 detail API 對不同角色回不同視圖
+
+### Objective
+驗證同一個 detail endpoint 會依角色與 scope 回傳不同 response shape，而不只是單純 allow / deny。
+
+### Preconditions
+- 存在同一筆 case / submission
+- 該資料屬於 hospital A
+- manager 屬於 hospital A
+- system admin 為平台角色
+- auditor 對 hospital A 未授權，或只對其他 hospital 授權
+
+### Steps
+1. `HOSPITAL_MANAGER` 查 `/review-cases/{caseId}`
+2. `SYSTEM_ADMIN` 查同一 endpoint
+3. `AUDITOR` 查同一 endpoint
+
+### Expected
+- manager：
+  - 200
+  - response 含 answers
+  - response 含 comments
+  - response 含 attachments metadata
+- system admin：
+  - 200
+  - 僅回 metadata view
+  - 不含 answers
+  - 不含 full comments
+  - 不含 attachment content
+- auditor：
+  - 若未授權，403 或查無資料
+  - 不得預設具有 global scope
+
+### Notes
+- 本例固定的是同 endpoint 的角色視圖差異
+- 不驗 reviewer / rereviewer 自己案件視角
+
+---
+
+## TS-PM-007 list API 也必須遵守 scope 與 metadata / detail 邊界
+
+### Objective
+驗證 list API 不會因為是清單查詢，就放寬 detail API 已定義的 scope 與 visibility 規則。
+
+### Preconditions
+- 系統存在多筆跨院區案件
+- 包含不同 reviewer / rereviewer / case status
+- actor 分別為：
+  - `HOSPITAL_MANAGER`
+  - `SYSTEM_ADMIN`
+  - `AUDITOR`
+  - `REVIEWER`
+
+### Steps
+1. manager 查 case list API
+2. sysadmin 查同一 list API
+3. auditor 查授權內與未授權院區資料
+4. reviewer 查自己與他人案件
+
+### Expected
+- manager：僅可見本院資料
+- sysadmin：僅可見 metadata 欄位集
+- auditor：僅可見授權院區資料
+- reviewer：僅可見自己合法範圍資料
+- list API 不得外露 detail-only 欄位
+- list API 不得默認擴張 scope
+
+### Non-goals
+- 不驗單筆 detail payload
+- 不驗 export
 
 ---
 
@@ -783,6 +1064,275 @@
 
 ---
 
+## TS-TR-002A submission snapshot 追溯需同時可驗 version、checksum 與 snapshot ref / content
+
+### Objective
+驗證 submission 的計分依據可被完整追溯。
+
+### Preconditions
+- 已存在一筆 submission
+- submission 綁定 score sheet snapshot
+
+### Steps
+1. 查 submission detail
+2. 查 snapshot ref 或 snapshot content
+
+### Expected
+- 可找到 `basedOnScoreSheetVersionId`
+- 可找到 snapshot checksum
+- 可找到 snapshot schema version
+- 可取得 snapshot ref 或內容
+
+---
+
+## TS-VP-001 新版發布後既有案件仍沿用原 version / snapshot
+
+### Objective
+驗證新 version 發布後，不污染既有案件與既有 submission 的規則基礎。
+
+### Preconditions
+- project version 1 已發布
+- score sheet version 1 已發布
+- batch A 使用 version 1 建立 case A
+- case A 已存在 submission A
+- 後續又發布：
+  - project version 2
+  - score sheet version 2
+
+### Steps
+1. 查詢 case A 的追溯資訊
+2. 查詢 submission A 的 snapshot 資訊
+3. 再建立新的 batch B / case B
+4. 查詢 batch B / case B 的 version / snapshot
+
+### Expected
+- case A 仍引用 version 1 / snapshot 1
+- submission A 仍引用 score sheet snapshot 1
+- batch B / case B 才使用 version 2 / snapshot 2
+- 新版本發布不改寫 case A / submission A 的歷史紀錄
+- case A 與 submission A 的 checksum / version ref 維持不變
+
+---
+
+## TS-VP-002 project version 與 score sheet version 綁定必須一致
+
+### Objective
+驗證正式抽選與後續案件 / 提交所使用的 score sheet version，必須來自 project version 當時正式綁定的版本，不可在執行時臨時混搭。
+
+### Preconditions
+- project version 1 綁定 score sheet version 1
+- project version 2 綁定 score sheet version 2
+- 系統同時存在多個已發布版本
+- actor = `HOSPITAL_MANAGER`
+
+### Steps
+1. 以 project version 1 執行抽選並建立 batch / case
+2. 對該 case 建立 submission
+3. 查詢 case 與 submission 的 version / snapshot 參照
+
+### Expected
+- case 只能引用 project version 1 對應的 score sheet version 1
+- submission 只能引用 score sheet snapshot 1
+- 不可在 submission 時跳成 version 2
+- snapshot checksum 與 project version 1 對應一致
+
+### Non-goals
+- 不驗 publish 流程本身
+- 不驗新版本發布後的污染問題，該情境由 TS-VP-001 處理
+
+---
+
+## TS-AT-001 submission 附件關聯應隨 revision 正確保留與隔離
+
+### Objective
+驗證 submission attachment 關聯在 revision 後不會污染舊版，也不會遺失新版本關聯。
+
+### Preconditions
+- 已存在 submitted submission，關聯 attachment A
+- case 未 `CLOSED`
+- case 未 `CANCELLED`
+- actor 為合法責任人
+- 新 revision 將關聯 attachment B
+
+### Steps
+1. 發起 revision
+2. 查詢舊版 submission detail
+3. 查詢新版 submission detail
+4. 查 revision history
+
+### Expected
+- 舊版 submission 仍只關聯 attachment A
+- 新版 submission 關聯 attachment B
+- 不發生舊版附件集合被覆寫
+- revision history 可分辨不同版本附件關聯
+- revision 建立後，舊版 status = `SUPERSEDED`，新版 status = `SUBMITTED`
+
+### Non-goals
+- 不驗實際檔案上傳機制
+- 不驗 object storage / ECM 技術細節
+
+---
+
+## TS-AT-002 同一案件不同階段附件不得交叉污染
+
+### Objective
+
+驗證 INITIAL 與 REREVIEW 兩個 stage 的附件關聯彼此隔離，不可因同一 case 而互相混用。
+
+### Primary Rule
+
+submission 附件關聯屬於 submission version 與 stage，不應因同 case 多階段存在而混淆。需求書已明定評分作業支援附件上傳，且需保留初審與複審紀錄。
+
+### Authority
+
+```yaml id="ixev9w"
+authority:
+  requirement:
+    - "8.6 評分規則與評分作業管理"
+    - "8.7 複審管理"
+  examples:
+    - EX-035
+```
+
+### Level
+
+```yaml id="0o3b7u"
+level:
+  primary: L4
+  secondary:
+    - L3
+```
+
+### Actors
+
+* `REVIEWER`
+* `REREVIEWER`
+
+### Preconditions
+
+* 同一 case 已有：
+
+  * INITIAL submission with attachment A
+  * REREVIEW submission with attachment B
+
+### Steps
+
+1. 查 initial submission detail
+2. 查 rereview submission detail
+3. 查 revision history / attachments relation
+
+### Expected
+
+* INITIAL 只顯示 attachment A
+* REREVIEW 只顯示 attachment B
+* 不會因同 case 而混出跨 stage 附件
+* revision / stage query 能穩定分辨附件歸屬
+
+### Non-goals
+
+* 不驗檔案內容本身
+* 不驗實際檔案上傳流程
+
+---
+
+## TS-EV-001 核心事件與持久化結果必須一致，不可只有 event 沒有資料或反之
+
+### Objective
+驗證關鍵流程中，domain event、audit 與持久化結果彼此一致。
+
+### Preconditions
+- 選定一條核心流程：
+  - 初審直接結案
+  - 初審進複審
+  - 複審完成
+  - revision 成功
+  - sampling 成功
+- 對應 persistence 與 audit / event 查詢能力可用
+
+### Steps
+1. 執行選定流程
+2. 查詢 domain event / audit trail
+3. 查詢持久化結果
+4. 比對 event 與資料一致性
+
+### Expected
+- `InitialReviewCompleted` 存在時，對應 submission 與 case 狀態已正確寫入
+- `ReviewCaseClosed` 存在時，case 已為 `CLOSED`
+- `ReviewSubmissionRevised` 存在時，新 revision 已存在、舊版已 `SUPERSEDED`
+- `SamplingBatchCompleted` 存在時，batch / snapshot / selected case 已存在
+- 不應存在：
+  - event 有、資料沒有
+  - 資料有、事件缺失
+  - audit trail 與 domain 事實互相矛盾
+
+### Non-goals
+- 不驗 message broker / outbox 發送重試細節
+- 不驗外部訂閱者行為
+
+---
+
+## TS-EV-002 失敗流程不得產生成功事件或成功審計語意
+
+### Objective
+
+驗證當流程失敗時，不會留下誤導性的成功事件或成功狀態 audit。
+
+### Primary Rule
+
+domain event 應只在業務事實成立後發布；若 transaction 失敗，不應留下成功語意。這與 domain event catalog 的發布原則一致。
+
+### Authority
+
+```yaml id="w42g8e"
+authority:
+  examples:
+    - EX-036
+```
+
+### Level
+
+```yaml id="6y0rjp"
+level:
+  primary: L2
+  secondary:
+    - L4
+```
+
+### Actors
+
+* 視流程而定
+
+### Preconditions
+
+* 選定一條會在中途失敗的流程，例如：
+
+  * sampling execute fail
+  * submit initial fail
+  * revise fail due to guard
+* audit / event persistence 可查
+
+### Steps
+
+1. 執行失敗流程
+2. 查詢 event / audit / persistence
+
+### Expected
+
+* 不應出現成功事件，例如：
+
+  * 不應有 `SamplingBatchCompleted`
+  * 不應有 `ReviewCaseClosed`
+  * 不應有 `ReviewSubmissionRevised`
+* 不應留下與實際結果矛盾的成功 audit 語意
+* 失敗狀態 / 失敗訊息應與資料現況一致
+
+### Non-goals
+
+* 不驗 message broker 發送失敗補償
+* 不驗監控告警系統
+
+---
+
 ## TS-TR-003 revision 歷程完整保留
 
 ### Objective
@@ -818,6 +1368,78 @@
 - 舊 batch 保留 failed 記錄
 - 新 batch 有 `retryOfBatchId`
 - 不發生原紀錄被覆寫
+
+---
+
+## TS-TR-005 case lifecycle 查詢必須完整呈現退回、改派、複審與結案路徑
+
+### Objective
+
+驗證 lifecycle query 不只顯示最終狀態，而要保留關鍵路徑事件。
+
+### Primary Rule
+
+系統需保留案件分派、改派、退回、初審、複審、結案等完整歷程。
+
+### Authority
+
+```yaml id="o4g813"
+authority:
+  requirement:
+    - "8.9 稽核與歷程追蹤"
+  examples:
+    - EX-016
+    - EX-036
+```
+
+### Level
+
+```yaml id="6ir8i9"
+level:
+  primary: L3
+  secondary:
+    - L5
+```
+
+### Actors
+
+* `HOSPITAL_MANAGER`
+* `AUDITOR`
+
+### Preconditions
+
+* 存在一筆經過：
+
+  * 指派
+  * 退回
+  * 重新待初審
+  * 初審完成
+  * 進複審
+  * 複審完成
+  * 結案
+    的案件
+
+### Steps
+
+1. 查 `GET /review-cases/{caseId}/lifecycle`
+
+### Expected
+
+* 可看見完整關鍵節點，而非只看最終 `CLOSED`
+* 可分辨至少：
+
+  * assign
+  * return
+  * reopen to pending initial review
+  * initial review completed
+  * escalated to rereview
+  * rereview completed
+  * closed
+
+### Non-goals
+
+* 不要求 lifecycle 顯示所有低階技術事件
+* 不驗 UI timeline 呈現樣式
 
 ---
 
@@ -879,6 +1501,226 @@
 ### Expected
 - 授權範圍成功
 - 未授權範圍被拒絕
+
+---
+
+## TS-RP-004 export / report 不得繞過 detail visibility 規則
+
+### Objective
+驗證 export / report 不能成為繞過 detail visibility 與 scope 規則的旁路。
+
+### Preconditions
+- actor 分別為：
+  - `HOSPITAL_MANAGER`
+  - `SYSTEM_ADMIN`
+  - `AUDITOR`
+- 報表資料中可推得 detail content
+- system admin 僅能看 metadata
+- auditor 僅授權部分院區
+
+### Steps
+1. manager 匯出本院報表
+2. sysadmin 匯出相同主題報表
+3. auditor 匯出授權 / 未授權院區報表
+
+### Expected
+- manager：可取得本院合法範圍報表
+- sysadmin：僅取得 aggregated / metadata 級別輸出
+- auditor：僅能匯出授權院區內容
+- 未授權範圍匯出被拒絕
+- export / report 不得外露 detail API 原本不允許的敏感欄位
+
+### Non-goals
+- 不驗 dashboard UI 呈現
+- 不驗檔案格式細節
+
+---
+
+## TS-RP-005 統計報表中的案件數、複審率、完成率需與交易資料一致
+
+### Objective
+
+驗證報表計算結果與實際交易資料一致，不可因 read model / projection 偏差而失真。
+
+### Primary Rule
+
+系統需提供審查完成率、複審率、評分分布與統計報表，且這些指標應建立在可追溯、可驗證的交易資料之上。
+
+### Authority
+
+```yaml id="3bqzsl"
+authority:
+  requirement:
+    - "8.8 查詢、統計與報表"
+  examples:
+    - EX-034
+    - EX-036
+```
+
+### Level
+
+```yaml id="jlwm1u"
+level:
+  primary: L5
+  secondary:
+    - L3
+```
+
+### Actors
+
+* `HOSPITAL_MANAGER`
+* `AUDITOR`
+* `SYSTEM_ADMIN`（aggregated only）
+
+### Preconditions
+
+* 已有可人工計算的小樣本資料集
+* 包含：
+
+  * direct close cases
+  * rereview cases
+  * overdue / completed cases
+
+### Steps
+
+1. 查 dashboard summary
+2. 匯出統計報表
+3. 與交易資料人工比對
+
+### Expected
+
+* completed count、rereview count、completion rate、rereview rate、score distribution 與交易資料一致
+* aggregated output 不因 masking / scope 規則而算錯
+* 同一 filter 條件下 dashboard 與 export 的統計口徑一致
+
+### Non-goals
+
+* 不驗圖表前端呈現
+* 不驗報表檔案格式排版
+
+---
+
+## TS-QR-001 查詢條件切換時不得跨 scope 洩漏案件
+
+### Objective
+
+驗證查詢 API 在切換 `hospitalId`、`projectId`、`reviewerId`、`status` 等 filter 時，不會因條件組合而跨出既定 scope 洩漏資料。
+
+### Primary Rule
+
+使用者僅可存取其權限範圍內的院區與案件資料；查詢條件不應成為繞過 scope 的手段。
+
+### Authority
+
+```yaml id="1p0y6x"
+authority:
+  requirement:
+    - "11.1 權限與安全"
+  examples:
+    - EX-033
+    - EX-034
+```
+
+### Level
+
+```yaml id="vq1l9w"
+level:
+  primary: L3
+  secondary:
+    - L5
+```
+
+### Actors
+
+* `HOSPITAL_MANAGER`
+* `AUDITOR`
+* `REVIEWER`
+
+### Preconditions
+
+* 系統存在跨院區、多專案、多 reviewer 的案件資料
+* actor 僅有部分院區 / 部分案件 scope
+
+### Steps
+
+1. 以合法 scope 查詢 list API
+2. 切換不同 `hospitalId` / `projectId` / `reviewerId` 組合查詢
+3. 嘗試用排序、分頁、複合條件查詢未授權範圍資料
+
+### Expected
+
+* 查詢結果永遠不超出 actor scope
+* 不因複合條件或分頁造成未授權資料洩漏
+* 未授權範圍要嘛被過濾掉，要嘛直接拒絕，策略需一致
+
+### Non-goals
+
+* 不驗單筆 detail payload
+* 不驗報表匯出
+
+---
+
+## TS-QR-002 已結案案件的查詢結果不得仍顯示為可操作狀態
+
+### Objective
+
+驗證查詢 / detail / lifecycle API 對 `CLOSED` 案件的輸出，不會暗示仍可 revision、reopen 或重新提交。
+
+### Primary Rule
+
+`CLOSED` 為 terminal state；結案後不允許 revision，且查詢面不應傳遞錯誤可操作訊號。
+
+### Authority
+
+```yaml id="xufk7u"
+authority:
+  requirement:
+    - "10. 狀態需求"
+    - "11.2 可追溯性"
+  decision_log:
+    - D-001
+  examples:
+    - EX-007
+```
+
+### Level
+
+```yaml id="yjlwmx"
+level:
+  primary: L3
+  secondary:
+    - L2
+```
+
+### Actors
+
+* `HOSPITAL_MANAGER`
+* `REVIEWER`
+* `REREVIEWER`
+* `AUDITOR`
+
+### Preconditions
+
+* 存在 `CLOSED` 案件
+* 存在至少一筆 submitted submission
+
+### Steps
+
+1. 查 case detail
+2. 查 lifecycle
+3. 查 revision history
+4. 查 UI / API 可操作欄位或 action metadata（若有）
+
+### Expected
+
+* case status = `CLOSED`
+* revision history 可查，但不可標示仍可 revise
+* lifecycle 顯示終止狀態
+* 若 API 有 action hints / flags，應顯示不可操作
+
+### Non-goals
+
+* 不驗真正發起 revise command 的拒絕，那已由 revision 類 scenario 覆蓋
 
 ---
 
@@ -962,7 +1804,7 @@
 - 已存在 submitted submission
 
 ### Steps
-1. 嘗試呼叫 generic update submission API（若實作不存在則直接驗證無此 API）
+1. 嘗試呼叫 generic update submission API
 2. 或嘗試以 update 語義覆寫提交
 
 ### Expected
@@ -1003,7 +1845,7 @@
 
 若要建立最小可信回歸集，至少必跑以下案例：
 
-```yaml id="gzbj4g"
+```yaml id="c2n1hz"
 minimum_regression_suite:
   - TS-PV-003
   - TS-SM-002
