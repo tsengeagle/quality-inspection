@@ -33,9 +33,9 @@
 
 這些內容應分別放在：
 
-- `.github/copilot-instructions.md`
-- `ai/project-context.yaml`
-- `.github/instructions/*.instructions.md`
+- `.ai/rules/repo-hard-rules.md`（canonical hard rules）
+- `.ai/project-context.yaml`
+- per-agent instructions（`CLAUDE.md` / `.github/copilot-instructions.md` / `.cursor/rules/*.mdc` / `.windsurfrules`）
 - `docs/01-requirements`
 - `docs/02-ddd`
 - `docs/03-contracts`
@@ -591,8 +591,8 @@ assumptions:
 * frontend implementation skeleton 已存在
 * Spring Boot / Angular / 其他技術棧已確認
 * build / test / run / lint / CI gate 已確認
-* `.github/copilot-instructions.md` 已存在
-* `.github/instructions/*.instructions.md` 已存在
+* `.ai/rules/repo-hard-rules.md` 已存在
+* per-agent instructions（`CLAUDE.md` / `.github/copilot-instructions.md` / etc.）已存在
 
 以下事項已確認存在：
 

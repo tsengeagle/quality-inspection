@@ -1,6 +1,6 @@
 # solution-init-prompt.md
 
-請根據我提供的 `.ai/bootstrap/solution-bootstrap.yaml`，初始化此 repository 的 **solution-level GitHub Copilot / agent mode 治理文件**。
+請根據我提供的 `.ai/bootstrap/solution-bootstrap.yaml`，初始化此 repository 的 **solution-level coding agent 治理文件**。
 
 這是一個 **solution-level repository init** 任務。  
 你的目標不是直接開始寫 backend 或 frontend 程式碼，也不是只根據想像中的技術棧生成通用模板，而是要根據：
@@ -124,23 +124,11 @@
 
 本次 solution-level init 至少應固定產出以下共通文件。
 
-### 3.1 `.github/copilot-instructions.md`
-角色：
-- repository-wide 全域硬規則
-- solution-level repository hard rules
-- 不重複 domain / UI / API 細節全文
-- 不把 archive 當 authority
-- 要求依 docs 分層落點正確修改
+### 3.1 Agent-neutral governance files（必須產出）
 
-至少應包含：
-- backward compatibility
-- no incidental refactor
-- cannot verify → cannot claim done
-- change placement discipline
-- document authority precedence
-- solution-level completion format
+以下文件為所有 coding agent 共用的 canonical source，不綁定特定 agent：
 
-### 3.2 `AGENTS.md`
+#### 3.1.1 `AGENTS.md`
 角色：
 - repo operating guide
 - repository map
@@ -154,7 +142,7 @@
 
 若某些 build/test/gate 無法確認，必須揭露。
 
-### 3.3 `ai/project-context.yaml`
+#### 3.1.2 `.ai/project-context.yaml`
 角色：
 - repository 內第一優先的 authoritative project context
 - 收斂 bootstrap、repo 結構、docs authority、solution-level implementation areas
@@ -166,9 +154,55 @@
   - tech stack confirmation status
   - gate inventory confirmation status
 
-### 3.4 path-specific instructions【僅在 evidence 足夠時】
-若 repo evidence 足夠支持某些 solution-level common instructions，可產出最小必要 instructions。  
-若 evidence 不足，寧可保留 pending confirmation，也不要虛構 stack-specific 規則。
+#### 3.1.3 `.ai/rules/repo-hard-rules.md`
+角色：
+- repository-wide 全域硬規則的 **canonical source**
+- solution-level repository hard rules
+- 不重複 domain / UI / API 細節全文
+- 不把 archive 當 authority
+- 要求依 docs 分層落點正確修改
+
+至少應包含：
+- backward compatibility
+- no incidental refactor
+- cannot verify → cannot claim done
+- change placement discipline
+- document authority precedence
+- solution-level completion format
+
+此文件是硬規則的唯一真相來源。各 agent 的 instructions 文件應引用或 include 此檔，
+不得各自維護獨立版本造成 authority 分裂。
+
+### 3.2 Per-agent instructions materialization（按需產出）
+
+不同 coding agent 有各自的 instructions 入口。
+以下為目前已知的主要 agent 及其對應文件：
+
+| Agent | Repo-level entry | Path-specific entry |
+|---|---|---|
+| Claude Code | `CLAUDE.md` | 子目錄下的 `CLAUDE.md` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `.github/instructions/*.instructions.md` |
+| Cursor | `.cursor/rules/*.mdc` | 同上（可含 glob pattern） |
+| Windsurf | `.windsurfrules` | — |
+
+#### 產出原則
+
+1. 每個 per-agent instructions 文件的**硬規則內容**必須來自 `.ai/rules/repo-hard-rules.md`，
+   可以是直接引用、include、或精簡摘要，但不得與 canonical source 矛盾
+2. 每個 per-agent instructions 文件可額外包含該 agent 特有的格式要求或行為指引
+3. 若 repo 中僅使用一種 agent，至少產出該 agent 的 instructions 文件
+4. 若 repo 中使用多種 agent，應盡量同步產出，避免規則漂移
+5. path-specific instructions（如 backend / frontend 子目錄規則）僅在 evidence 足夠時產出
+6. 若 evidence 不足，寧可保留 pending confirmation，也不要虛構 stack-specific 規則
+
+#### 各 agent instructions 的最小內容
+
+每個 per-agent repo-level instructions 至少應包含：
+- 指向 `AGENTS.md` 作為 repo operating guide
+- 指向 `.ai/project-context.yaml` 作為 project authority context
+- 指向 `.ai/rules/repo-hard-rules.md` 作為硬規則來源（或直接 inline 其內容）
+- docs authority precedence 摘要
+- 不得自行發明與 canonical source 矛盾的規則
 
 ---
 
@@ -176,18 +210,20 @@
 
 請依下列原則決定規則落點：
 
-- repository-wide hard rules -> `.github/copilot-instructions.md`
+- repository-wide hard rules (canonical) -> `.ai/rules/repo-hard-rules.md`
 - repo operating guide -> `AGENTS.md`
-- project authority context -> `ai/project-context.yaml`
-- stack/path-specific rules -> `.github/instructions/*.instructions.md`【僅在 evidence 足夠時】
+- project authority context -> `.ai/project-context.yaml`
+- per-agent repo-level instructions -> `CLAUDE.md` / `.github/copilot-instructions.md` / `.cursor/rules/*.mdc` / `.windsurfrules`
+- stack/path-specific rules -> 各 agent 的 path-specific 機制【僅在 evidence 足夠時】
 
 以下內容 **不得** 錯放：
 
 - 詳細 domain invariant -> 不進 `AGENTS.md`
 - 詳細 API schema -> 不進 `AGENTS.md`
-- UI page spec 詳細內容 -> 不進 `.github/copilot-instructions.md`
+- UI page spec 詳細內容 -> 不進 per-agent instructions
 - archive 歷史稿 -> 不得當作現行 authority
 - 未確認的技術棧 -> 不得進 path-specific instructions 當成 confirmed rule
+- 硬規則的唯一真相 -> 不得分散在各 agent instructions 中各自維護
 
 ---
 
@@ -280,9 +316,10 @@ docs
 
 先說明：
 
-* 哪些內容應進 `.github/copilot-instructions.md`
+* 哪些內容應進 `.ai/rules/repo-hard-rules.md`（canonical hard rules）
 * 哪些內容應進 `AGENTS.md`
-* 哪些內容應進 `ai/project-context.yaml`
+* 哪些內容應進 `.ai/project-context.yaml`
+* 哪些 per-agent instructions 應產出（依 repo 實際使用的 agent 決定）
 * 哪些內容暫不應產出
 
 ### Step 4. Minimal Init Output

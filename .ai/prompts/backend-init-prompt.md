@@ -1,6 +1,6 @@
 # backend-init-prompt.md
 
-請根據我提供的 `.ai/bootstrap/backend-bootstrap.yaml`，初始化此 repository 中 backend implementation area 的 GitHub Copilot / agent mode 治理文件與最小必要工程入口。
+請根據我提供的 `.ai/bootstrap/backend-bootstrap.yaml`，初始化此 repository 中 backend implementation area 的 coding agent 治理文件與最小必要工程入口。
 
 這是一個 **backend implementation area init** 任務。  
 你的目標不是直接完成整個業務系統，也不是重新初始化 solution-level repo，而是要根據：
@@ -132,12 +132,15 @@
   - gate inventory confirmation status
   - backend assumptions / pending confirmations
 
-### 3.2 `.github/instructions/*backend*.instructions.md`【僅在 evidence 足夠時】
-僅當 repo evidence 足以支持 backend-specific instructions 時才產出。  
-例如可視情況產出：
+### 3.2 backend path-specific instructions【僅在 evidence 足夠時】
+僅當 repo evidence 足以支持 backend-specific instructions 時才產出。
+各 coding agent 有不同的 path-specific 機制：
 
-- `backend-common.instructions.md`
-- `backend-layering.instructions.md`
+| Agent | Backend path-specific entry |
+|---|---|
+| Claude Code | `services/quality-inspection-service/CLAUDE.md` |
+| GitHub Copilot | `.github/instructions/*backend*.instructions.md` |
+| Cursor | `.cursor/rules/*backend*.mdc` |
 
 但若技術棧未確認，不得假裝已有 framework-specific instructions。
 
@@ -161,11 +164,12 @@
 
 請依下列原則決定規則落點：
 
-- repository-wide hard rules -> `.github/copilot-instructions.md`
+- repository-wide hard rules (canonical) -> `.ai/rules/repo-hard-rules.md`
+- per-agent repo-level instructions -> `CLAUDE.md` / `.github/copilot-instructions.md` / etc.
 - repo operating guide -> `AGENTS.md`
 - backend implementation area guide -> `services/quality-inspection-service/README.md`
-- project authority context -> `ai/project-context.yaml`
-- backend path-specific instructions -> `.github/instructions/*.instructions.md`
+- project authority context -> `.ai/project-context.yaml`
+- backend path-specific instructions -> 各 agent 對應機制【僅在 evidence 足夠時】
 
 以下內容 **不得** 錯放：
 

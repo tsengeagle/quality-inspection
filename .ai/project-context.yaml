@@ -196,7 +196,13 @@ constraints:
 quality_and_governance:
   project_context_role: authoritative_project_context
   operating_guide_role: repo_operating_guide
+  hard_rules_canonical_source: .ai/rules/repo-hard-rules.md
   hard_rules_role: repository_wide_hard_rules
+  per_agent_instructions:
+    claude_code: CLAUDE.md
+    github_copilot: .github/copilot-instructions.md
+    cursor: .cursor/rules/*.mdc
+    windsurf: .windsurfrules
   path_specific_rules_role: stack_or_path_specific_instructions
   init_and_continue_rules:
     - continue_work_must_respect_existing_file_boundaries
