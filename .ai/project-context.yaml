@@ -323,8 +323,7 @@ assumptions_and_pending_confirmation:
     action_required: 待正式 init 執行時確認 baseline 可讀性與收斂程度
 
 uncovered_scope:
-  - repository_wide_hard_rules_file_not_yet_materialized
-  - path_specific_instructions_not_yet_materialized
-  - backend_engineering_skeleton_not_yet_materialized
-  - frontend_engineering_skeleton_not_yet_materialized
+  - backend_tech_stack_not_yet_confirmed
+  - frontend_tech_stack_not_yet_confirmed
+  - build_test_lint_ci_gates_not_yet_confirmed
   - actual_build_and_test_commands_not_verified

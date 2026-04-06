@@ -591,14 +591,14 @@ assumptions:
 * frontend implementation skeleton 已存在
 * Spring Boot / Angular / 其他技術棧已確認
 * build / test / run / lint / CI gate 已確認
-* `.ai/rules/repo-hard-rules.md` 已存在
-* per-agent instructions（`CLAUDE.md` / `.github/copilot-instructions.md` / etc.）已存在
 
 以下事項已確認存在：
 
+* `.ai/rules/repo-hard-rules.md` — canonical hard rules source 已存在
 * `.ai/bootstrap/*` — solution / backend / frontend bootstrap 均已存在
 * `.ai/prompts/*` — solution / backend / frontend init prompt 均已存在
 * `.ai/project-context.yaml` — solution-level authoritative project context 已存在
 * `AGENTS.md` — repo operating guide 已存在
+* `CLAUDE.md` — Claude Code repo-level instructions 已存在
 
 其餘待後續依實際 repo evidence 再確認。
