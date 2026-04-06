@@ -1,6 +1,6 @@
 # backend-init-prompt.md
 
-請根據我提供的 `.ai/bootstrap/backend-bootstrap.yaml`，初始化此 repository 中 backend implementation area 的 GitHub Copilot / agent mode 治理文件與最小必要工程入口。
+請根據我提供的 `.ai/bootstrap/backend-bootstrap.yaml`，初始化此 repository 中 backend implementation area 的 coding agent 治理文件與最小必要工程入口。
 
 這是一個 **backend implementation area init** 任務。  
 你的目標不是直接完成整個業務系統，也不是重新初始化 solution-level repo，而是要根據：
@@ -8,7 +8,7 @@
 1. `.ai/bootstrap/backend-bootstrap.yaml`
 2. repository 實際結構
 3. `services/quality-inspection-service/README.md`
-4. `品質審查系統/docs` 下既有 authority 文件
+4. `docs` 下既有 authority 文件
 5. backend implementation area 的已知 responsibility / assumptions
 
 共同收斂出此 backend area 的第一版治理與工程入口。
@@ -41,34 +41,34 @@
 必須先讀取並辨識以下文件。
 
 #### requirements
-- `品質審查系統/docs/01-requirements/0_品質審查系統規格草案.md`
-- `品質審查系統/docs/01-requirements/decision-log.md`
-- `品質審查系統/docs/01-requirements/glossary.md`
+- `docs/01-requirements/0_品質審查系統規格草案.md`
+- `docs/01-requirements/decision-log.md`
+- `docs/01-requirements/glossary.md`
 
 #### ddd
-- `品質審查系統/docs/02-ddd/context-map.md`
-- `品質審查系統/docs/02-ddd/domain-model.md`
-- `品質審查系統/docs/02-ddd/state-machine.md`
-- `品質審查系統/docs/02-ddd/permission-matrix.md`
-- `品質審查系統/docs/02-ddd/domain-events.md`
-- `品質審查系統/docs/02-ddd/application-service.md`
+- `docs/02-ddd/context-map.md`
+- `docs/02-ddd/domain-model.md`
+- `docs/02-ddd/state-machine.md`
+- `docs/02-ddd/permission-matrix.md`
+- `docs/02-ddd/domain-events.md`
+- `docs/02-ddd/application-service.md`
 
 #### contracts
-- `品質審查系統/docs/03-contracts/api-spec.md`
-- `品質審查系統/docs/03-contracts/persistence-model.md`
+- `docs/03-contracts/api-spec.md`
+- `docs/03-contracts/persistence-model.md`
 
 #### testing
-- `品質審查系統/docs/04-testing/specification-by-example.md`
-- `品質審查系統/docs/04-testing/test-scenarios.md`
-- `品質審查系統/docs/04-testing/test-scenario-template-and-guidelines.md`
+- `docs/04-testing/specification-by-example.md`
+- `docs/04-testing/test-scenarios.md`
+- `docs/04-testing/test-scenario-template-and-guidelines.md`
 
 #### ui reference
-- `品質審查系統/docs/05-ui/*`
+- `docs/05-ui/*`
 只作 backend query shape、command timing、互動語意參考，  
 不是 backend domain / contract 第一 authority。
 
 ### E. archive
-- `品質審查系統/docs/99-archive/*`
+- `docs/99-archive/*`
 只作歷史參考，不作現行 authority，除非現行文件不足且需追溯演進脈絡。
 
 ### F. 資訊不足時的處理
@@ -132,12 +132,15 @@
   - gate inventory confirmation status
   - backend assumptions / pending confirmations
 
-### 3.2 `.github/instructions/*backend*.instructions.md`【僅在 evidence 足夠時】
-僅當 repo evidence 足以支持 backend-specific instructions 時才產出。  
-例如可視情況產出：
+### 3.2 backend path-specific instructions【僅在 evidence 足夠時】
+僅當 repo evidence 足以支持 backend-specific instructions 時才產出。
+各 coding agent 有不同的 path-specific 機制：
 
-- `backend-common.instructions.md`
-- `backend-layering.instructions.md`
+| Agent | Backend path-specific entry |
+|---|---|
+| Claude Code | `services/quality-inspection-service/CLAUDE.md` |
+| GitHub Copilot | `.github/instructions/*backend*.instructions.md` |
+| Cursor | `.cursor/rules/*backend*.mdc` |
 
 但若技術棧未確認，不得假裝已有 framework-specific instructions。
 
@@ -161,11 +164,12 @@
 
 請依下列原則決定規則落點：
 
-- repository-wide hard rules -> `.github/copilot-instructions.md`
+- repository-wide hard rules (canonical) -> `.ai/rules/repo-hard-rules.md`
+- per-agent repo-level instructions -> `CLAUDE.md` / `.github/copilot-instructions.md` / etc.
 - repo operating guide -> `AGENTS.md`
 - backend implementation area guide -> `services/quality-inspection-service/README.md`
-- project authority context -> `ai/project-context.yaml`
-- backend path-specific instructions -> `.github/instructions/*.instructions.md`
+- project authority context -> `.ai/project-context.yaml`
+- backend path-specific instructions -> 各 agent 對應機制【僅在 evidence 足夠時】
 
 以下內容 **不得** 錯放：
 

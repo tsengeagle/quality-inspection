@@ -23,7 +23,7 @@
 - test scenarios
 - UI page spec
 
-若本文件與上述 authority 衝突，應優先回頭檢查 `品質審查系統/docs` 下對應文件。
+若本文件與上述 authority 衝突，應優先回頭檢查 `docs` 下對應文件。
 
 ---
 
@@ -58,32 +58,32 @@
 backend 開發前，必須先讀取並遵守下列文件。
 
 ### 3.1 需求與決策
-- `品質審查系統/docs/01-requirements/0_品質審查系統規格草案.md`
-- `品質審查系統/docs/01-requirements/decision-log.md`
-- `品質審查系統/docs/01-requirements/glossary.md`
+- `docs/01-requirements/0_品質審查系統規格草案.md`
+- `docs/01-requirements/decision-log.md`
+- `docs/01-requirements/glossary.md`
 
 ### 3.2 DDD
-- `品質審查系統/docs/02-ddd/context-map.md`
-- `品質審查系統/docs/02-ddd/domain-model.md`
-- `品質審查系統/docs/02-ddd/state-machine.md`
-- `品質審查系統/docs/02-ddd/permission-matrix.md`
-- `品質審查系統/docs/02-ddd/domain-events.md`
-- `品質審查系統/docs/02-ddd/application-service.md`
+- `docs/02-ddd/context-map.md`
+- `docs/02-ddd/domain-model.md`
+- `docs/02-ddd/state-machine.md`
+- `docs/02-ddd/permission-matrix.md`
+- `docs/02-ddd/domain-events.md`
+- `docs/02-ddd/application-service.md`
 
 ### 3.3 Contracts
-- `品質審查系統/docs/03-contracts/api-spec.md`
-- `品質審查系統/docs/03-contracts/persistence-model.md`
+- `docs/03-contracts/api-spec.md`
+- `docs/03-contracts/persistence-model.md`
 
 ### 3.4 Testing
-- `品質審查系統/docs/04-testing/specification-by-example.md`
-- `品質審查系統/docs/04-testing/test-scenarios.md`
-- `品質審查系統/docs/04-testing/test-scenario-template-and-guidelines.md`
+- `docs/04-testing/specification-by-example.md`
+- `docs/04-testing/test-scenarios.md`
+- `docs/04-testing/test-scenario-template-and-guidelines.md`
 
 ### 3.5 backend 不直接作為 authority 的文件
 以下文件可作參考，但不是 backend domain / contract 的第一 authority：
 
-- `品質審查系統/docs/05-ui/*`
-- `品質審查系統/docs/99-archive/*`
+- `docs/05-ui/*`
+- `docs/99-archive/*`
 
 ---
 

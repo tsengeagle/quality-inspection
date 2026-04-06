@@ -23,7 +23,7 @@
 - test scenarios
 - UI page specs
 
-若本文件與上述 authority 衝突，應優先回頭檢查 `品質審查系統/docs` 下對應文件。
+若本文件與上述 authority 衝突，應優先回頭檢查 `docs` 下對應文件。
 
 ---
 
@@ -57,40 +57,40 @@
 frontend 開發前，必須先讀取並遵守下列文件。
 
 ### 3.1 需求與決策
-- `品質審查系統/docs/01-requirements/0_品質審查系統規格草案.md`
-- `品質審查系統/docs/01-requirements/decision-log.md`
-- `品質審查系統/docs/01-requirements/glossary.md`
+- `docs/01-requirements/0_品質審查系統規格草案.md`
+- `docs/01-requirements/decision-log.md`
+- `docs/01-requirements/glossary.md`
 
 ### 3.2 DDD / 規則邊界
-- `品質審查系統/docs/02-ddd/domain-model.md`
-- `品質審查系統/docs/02-ddd/state-machine.md`
-- `品質審查系統/docs/02-ddd/permission-matrix.md`
-- `品質審查系統/docs/02-ddd/application-service.md`
+- `docs/02-ddd/domain-model.md`
+- `docs/02-ddd/state-machine.md`
+- `docs/02-ddd/permission-matrix.md`
+- `docs/02-ddd/application-service.md`
 
 ### 3.3 對接契約
-- `品質審查系統/docs/03-contracts/api-spec.md`
+- `docs/03-contracts/api-spec.md`
 
 ### 3.4 測試
-- `品質審查系統/docs/04-testing/specification-by-example.md`
-- `品質審查系統/docs/04-testing/test-scenarios.md`
+- `docs/04-testing/specification-by-example.md`
+- `docs/04-testing/test-scenarios.md`
 
 ### 3.5 UI authority
-- `品質審查系統/docs/05-ui/ui-information-architecture.md`
-- `品質審查系統/docs/05-ui/ui-page-inventory.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui006抽選執行頁.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui007抽選批次列表頁.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui009案件列表頁.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui010案件詳情頁.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui011案件分派頁.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui012初審作業頁.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui013複審作業頁.md`
-- `品質審查系統/docs/05-ui/ui-page-spec-ui014revision歷程頁.md`
+- `docs/05-ui/ui-information-architecture.md`
+- `docs/05-ui/ui-page-inventory.md`
+- `docs/05-ui/ui-page-spec-ui006抽選執行頁.md`
+- `docs/05-ui/ui-page-spec-ui007抽選批次列表頁.md`
+- `docs/05-ui/ui-page-spec-ui009案件列表頁.md`
+- `docs/05-ui/ui-page-spec-ui010案件詳情頁.md`
+- `docs/05-ui/ui-page-spec-ui011案件分派頁.md`
+- `docs/05-ui/ui-page-spec-ui012初審作業頁.md`
+- `docs/05-ui/ui-page-spec-ui013複審作業頁.md`
+- `docs/05-ui/ui-page-spec-ui014revision歷程頁.md`
 
 ### 3.6 frontend 不直接作為 authority 的文件
 以下文件可作補充參考，但不是前端頁面行為的第一 authority：
 
-- `品質審查系統/docs/03-contracts/persistence-model.md`
-- `品質審查系統/docs/99-archive/*`
+- `docs/03-contracts/persistence-model.md`
+- `docs/99-archive/*`
 
 ---
 
