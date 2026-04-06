@@ -1,6 +1,6 @@
 project:
   system: 品質審查系統
-  repo_name: quality-inspection-solution
+  repo_name: quality-inspection
   module_name: solution
   role: solution-architecture
   description: >
@@ -20,7 +20,7 @@ organization:
   cross_repo_assumption: forbidden
 
 repository:
-  authority_root: 品質審查系統/docs
+  authority_root: docs
   operating_guide: AGENTS.md
   implementation_areas:
     backend:
@@ -33,10 +33,10 @@ repository:
       role: frontend-implementation-area
 
 docs_authority:
-  root: 品質審查系統/docs
+  root: docs
   structure:
     requirements:
-      path: 品質審查系統/docs/01-requirements
+      path: docs/01-requirements
       files:
         - 0_品質審查系統規格草案.md
         - decision-log.md
@@ -44,7 +44,7 @@ docs_authority:
       role: requirements-and-decision-authority
 
     ddd:
-      path: 品質審查系統/docs/02-ddd
+      path: docs/02-ddd
       files:
         - application-service.md
         - context-map.md
@@ -55,14 +55,14 @@ docs_authority:
       role: domain-and-application-design-authority
 
     contracts:
-      path: 品質審查系統/docs/03-contracts
+      path: docs/03-contracts
       files:
         - api-spec.md
         - persistence-model.md
       role: api-and-persistence-contract-authority
 
     testing:
-      path: 品質審查系統/docs/04-testing
+      path: docs/04-testing
       files:
         - example-to-test-case-skeleton.md
         - example-to-test-level-matrix.md
@@ -72,7 +72,7 @@ docs_authority:
       role: testing-authority
 
     ui:
-      path: 品質審查系統/docs/05-ui
+      path: docs/05-ui
       files:
         - ui-information-architecture.md
         - ui-page-inventory.md
@@ -87,7 +87,7 @@ docs_authority:
       role: ui-and-page-spec-authority
 
     archive:
-      path: 品質審查系統/docs/99-archive
+      path: docs/99-archive
       files:
         - aggregate-design-notes-v1.md
       role: historical-reference-only
@@ -165,9 +165,9 @@ architecture:
   ui_governance:
     status: partial
     authority:
-      - 品質審查系統/docs/05-ui/ui-information-architecture.md
-      - 品質審查系統/docs/05-ui/ui-page-inventory.md
-      - 品質審查系統/docs/05-ui/ui-page-spec-*.md
+      - docs/05-ui/ui-information-architecture.md
+      - docs/05-ui/ui-page-inventory.md
+      - docs/05-ui/ui-page-spec-*.md
     note: >
       UI authority 已存在，但企業元件庫、design token、wrapper pattern、
       microfrontend 與 framework evidence 尚未由 source tree 證實。
@@ -249,10 +249,9 @@ assumptions_and_pending_confirmation:
   - id: PC-001
     category: repo_identity
     item: exact repository name
-    status: assumption
-    basis: solution 主題已知，但正式 repo name 未見 source evidence
-    current_value: quality-inspection-solution
-    action_required: 以實際 repository name 覆蓋
+    status: confirmed
+    basis: git remote 顯示為 tsengeagle/quality-inspection
+    current_value: quality-inspection
 
   - id: PC-002
     category: backend_stack

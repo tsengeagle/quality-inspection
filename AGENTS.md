@@ -78,18 +78,26 @@
 
 ## 3. Repository Map
 
-目前 repository 的 docs 結構以 `品質審查系統/docs` 為 authority 中心。
+目前 repository 的 docs 結構以 `docs` 為 authority 中心。
 
 ```text
-品質審查系統/
-└─ docs/
-   ├─ 01-requirements/
-   ├─ 02-ddd/
-   ├─ 03-contracts/
-   ├─ 04-testing/
-   ├─ 05-ui/
-   ├─ 99-archive/
-   └─ README.md
+quality-inspection/          ← repo root
+├─ .ai/
+│  ├─ bootstrap/
+│  └─ prompts/
+├─ AGENTS.md
+├─ docs/
+│  ├─ 01-requirements/
+│  ├─ 02-ddd/
+│  ├─ 03-contracts/
+│  ├─ 04-testing/
+│  ├─ 05-ui/
+│  ├─ 99-archive/
+│  └─ README.md
+├─ services/
+│  └─ quality-inspection-service/
+└─ frontends/
+   └─ quality-inspection-frontend/
 ```
 
 ### 3.1 目錄責任
@@ -583,10 +591,14 @@ assumptions:
 * frontend implementation skeleton 已存在
 * Spring Boot / Angular / 其他技術棧已確認
 * build / test / run / lint / CI gate 已確認
-* `.ai/bootstrap/*` 已存在
-* `.ai/prompts/*` 已存在
 * `.github/copilot-instructions.md` 已存在
 * `.github/instructions/*.instructions.md` 已存在
-* `ai/project-context.yaml` 已存在
 
-這些都需要後續依實際 repo evidence 再確認。
+以下事項已確認存在：
+
+* `.ai/bootstrap/*` — solution / backend / frontend bootstrap 均已存在
+* `.ai/prompts/*` — solution / backend / frontend init prompt 均已存在
+* `.ai/project-context.yaml` — solution-level authoritative project context 已存在
+* `AGENTS.md` — repo operating guide 已存在
+
+其餘待後續依實際 repo evidence 再確認。

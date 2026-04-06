@@ -8,7 +8,7 @@
 1. `.ai/bootstrap/backend-bootstrap.yaml`
 2. repository 實際結構
 3. `services/quality-inspection-service/README.md`
-4. `品質審查系統/docs` 下既有 authority 文件
+4. `docs` 下既有 authority 文件
 5. backend implementation area 的已知 responsibility / assumptions
 
 共同收斂出此 backend area 的第一版治理與工程入口。
@@ -41,34 +41,34 @@
 必須先讀取並辨識以下文件。
 
 #### requirements
-- `品質審查系統/docs/01-requirements/0_品質審查系統規格草案.md`
-- `品質審查系統/docs/01-requirements/decision-log.md`
-- `品質審查系統/docs/01-requirements/glossary.md`
+- `docs/01-requirements/0_品質審查系統規格草案.md`
+- `docs/01-requirements/decision-log.md`
+- `docs/01-requirements/glossary.md`
 
 #### ddd
-- `品質審查系統/docs/02-ddd/context-map.md`
-- `品質審查系統/docs/02-ddd/domain-model.md`
-- `品質審查系統/docs/02-ddd/state-machine.md`
-- `品質審查系統/docs/02-ddd/permission-matrix.md`
-- `品質審查系統/docs/02-ddd/domain-events.md`
-- `品質審查系統/docs/02-ddd/application-service.md`
+- `docs/02-ddd/context-map.md`
+- `docs/02-ddd/domain-model.md`
+- `docs/02-ddd/state-machine.md`
+- `docs/02-ddd/permission-matrix.md`
+- `docs/02-ddd/domain-events.md`
+- `docs/02-ddd/application-service.md`
 
 #### contracts
-- `品質審查系統/docs/03-contracts/api-spec.md`
-- `品質審查系統/docs/03-contracts/persistence-model.md`
+- `docs/03-contracts/api-spec.md`
+- `docs/03-contracts/persistence-model.md`
 
 #### testing
-- `品質審查系統/docs/04-testing/specification-by-example.md`
-- `品質審查系統/docs/04-testing/test-scenarios.md`
-- `品質審查系統/docs/04-testing/test-scenario-template-and-guidelines.md`
+- `docs/04-testing/specification-by-example.md`
+- `docs/04-testing/test-scenarios.md`
+- `docs/04-testing/test-scenario-template-and-guidelines.md`
 
 #### ui reference
-- `品質審查系統/docs/05-ui/*`
+- `docs/05-ui/*`
 只作 backend query shape、command timing、互動語意參考，  
 不是 backend domain / contract 第一 authority。
 
 ### E. archive
-- `品質審查系統/docs/99-archive/*`
+- `docs/99-archive/*`
 只作歷史參考，不作現行 authority，除非現行文件不足且需追溯演進脈絡。
 
 ### F. 資訊不足時的處理

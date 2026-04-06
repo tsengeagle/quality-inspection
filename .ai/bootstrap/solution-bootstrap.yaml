@@ -1,6 +1,6 @@
 project:
   system: 品質審查系統
-  repo_name: quality-inspection-solution
+  repo_name: quality-inspection
   module_name: solution
   role: solution-architecture
   description: >
@@ -17,69 +17,69 @@ organization:
   cross_repo_assumption: forbidden
 
 solution_structure:
-  authority_root: 品質審查系統/docs
-  docs_readme: 品質審查系統/docs/README.md
+  authority_root: docs
+  docs_readme: docs/README.md
   sections:
     - id: 01-requirements
-      path: 品質審查系統/docs/01-requirements
+      path: docs/01-requirements
       purpose: requirements-authority
     - id: 02-ddd
-      path: 品質審查系統/docs/02-ddd
+      path: docs/02-ddd
       purpose: domain-design-authority
     - id: 03-contracts
-      path: 品質審查系統/docs/03-contracts
+      path: docs/03-contracts
       purpose: api-and-persistence-contracts
     - id: 04-testing
-      path: 品質審查系統/docs/04-testing
+      path: docs/04-testing
       purpose: testing-authority
     - id: 05-ui
-      path: 品質審查系統/docs/05-ui
+      path: docs/05-ui
       purpose: ui-design-authority
     - id: 99-archive
-      path: 品質審查系統/docs/99-archive
+      path: docs/99-archive
       purpose: historical-reference-only
 
 requirements_authority:
-  primary_spec: 品質審查系統/docs/01-requirements/0_品質審查系統規格草案.md
-  decision_log: 品質審查系統/docs/01-requirements/decision-log.md
-  glossary: 品質審查系統/docs/01-requirements/glossary.md
+  primary_spec: docs/01-requirements/0_品質審查系統規格草案.md
+  decision_log: docs/01-requirements/decision-log.md
+  glossary: docs/01-requirements/glossary.md
 
 ddd_authority:
-  context_map: 品質審查系統/docs/02-ddd/context-map.md
-  domain_model: 品質審查系統/docs/02-ddd/domain-model.md
-  state_machine: 品質審查系統/docs/02-ddd/state-machine.md
-  permission_matrix: 品質審查系統/docs/02-ddd/permission-matrix.md
-  domain_events: 品質審查系統/docs/02-ddd/domain-events.md
-  application_service: 品質審查系統/docs/02-ddd/application-service.md
+  context_map: docs/02-ddd/context-map.md
+  domain_model: docs/02-ddd/domain-model.md
+  state_machine: docs/02-ddd/state-machine.md
+  permission_matrix: docs/02-ddd/permission-matrix.md
+  domain_events: docs/02-ddd/domain-events.md
+  application_service: docs/02-ddd/application-service.md
 
 contract_authority:
-  api_spec: 品質審查系統/docs/03-contracts/api-spec.md
-  persistence_model: 品質審查系統/docs/03-contracts/persistence-model.md
+  api_spec: docs/03-contracts/api-spec.md
+  persistence_model: docs/03-contracts/persistence-model.md
 
 testing_authority:
-  specification_by_example: 品質審查系統/docs/04-testing/specification-by-example.md
-  test_scenarios: 品質審查系統/docs/04-testing/test-scenarios.md
-  example_to_test_case_skeleton: 品質審查系統/docs/04-testing/example-to-test-case-skeleton.md
-  example_to_test_level_matrix: 品質審查系統/docs/04-testing/example-to-test-level-matrix.md
-  test_scenario_template_and_guidelines: 品質審查系統/docs/04-testing/test-scenario-template-and-guidelines.md
+  specification_by_example: docs/04-testing/specification-by-example.md
+  test_scenarios: docs/04-testing/test-scenarios.md
+  example_to_test_case_skeleton: docs/04-testing/example-to-test-case-skeleton.md
+  example_to_test_level_matrix: docs/04-testing/example-to-test-level-matrix.md
+  test_scenario_template_and_guidelines: docs/04-testing/test-scenario-template-and-guidelines.md
 
 ui_authority:
-  information_architecture: 品質審查系統/docs/05-ui/ui-information-architecture.md
-  page_inventory: 品質審查系統/docs/05-ui/ui-page-inventory.md
+  information_architecture: docs/05-ui/ui-information-architecture.md
+  page_inventory: docs/05-ui/ui-page-inventory.md
   page_specs:
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui006抽選執行頁.md
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui007抽選批次列表頁.md
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui009案件列表頁.md
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui010案件詳情頁.md
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui011案件分派頁.md
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui012初審作業頁.md
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui013複審作業頁.md
-    - 品質審查系統/docs/05-ui/ui-page-spec-ui014revision歷程頁.md
+    - docs/05-ui/ui-page-spec-ui006抽選執行頁.md
+    - docs/05-ui/ui-page-spec-ui007抽選批次列表頁.md
+    - docs/05-ui/ui-page-spec-ui009案件列表頁.md
+    - docs/05-ui/ui-page-spec-ui010案件詳情頁.md
+    - docs/05-ui/ui-page-spec-ui011案件分派頁.md
+    - docs/05-ui/ui-page-spec-ui012初審作業頁.md
+    - docs/05-ui/ui-page-spec-ui013複審作業頁.md
+    - docs/05-ui/ui-page-spec-ui014revision歷程頁.md
 
 archive_policy:
-  archive_root: 品質審查系統/docs/99-archive
+  archive_root: docs/99-archive
   current_archive_files:
-    - 品質審查系統/docs/99-archive/aggregate-design-notes-v1.md
+    - docs/99-archive/aggregate-design-notes-v1.md
   usage_rule: >
     archive 僅供歷史參考，不作現行 authority。
     若 archive 與現行文件衝突，現行 requirements / ddd / contracts / testing / ui 文件優先。
@@ -184,6 +184,6 @@ assumptions_and_pending_confirmation:
   - id: SB-006
     category: repo_identity
     item: exact repository name
-    status: assumption
-    basis: 目前僅知 solution 主題為品質審查系統，未見正式 repo name
-    action_required: 以實際 repository name 覆蓋 quality-inspection-solution
+    status: confirmed
+    basis: git remote 顯示為 tsengeagle/quality-inspection
+    current_value: quality-inspection

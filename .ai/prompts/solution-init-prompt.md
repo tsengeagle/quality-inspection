@@ -25,7 +25,7 @@
 ### B. repository 實際結構
 至少盤點：
 - repo root
-- `品質審查系統/docs`
+- `docs`
 - `services/quality-inspection-service`【若存在】
 - `frontends/quality-inspection-frontend`【若存在】
 - 其他能反映 solution-level 結構的代表性檔案或資料夾
@@ -107,7 +107,7 @@
 在輸出任何文件前，先明確整理：
 
 1. 目前 repo 是否已有 solution-level docs authority
-2. docs authority root 是否為 `品質審查系統/docs`
+2. docs authority root 是否為 `docs`
 3. backend implementation area 是否位於：
    - `services/quality-inspection-service`
 4. frontend implementation area 是否位於：
@@ -196,7 +196,7 @@
 本 repo 的 docs authority 結構已存在，必須以其真實分層為準：
 
 ```text
-品質審查系統/docs
+docs
 ├─ 01-requirements
 ├─ 02-ddd
 ├─ 03-contracts
