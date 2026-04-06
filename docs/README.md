@@ -81,6 +81,7 @@
   - aggregate 設計推導稿 / 歷史設計筆記
   - **不是正式 aggregate authority**
   - 正式 aggregate 設計以 `02-ddd/domain-model.md` 為準
+  - **注意：本檔已移至 `99-archive/`，不在 `01-requirements/` 中**
 
 ---
 

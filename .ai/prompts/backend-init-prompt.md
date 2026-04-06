@@ -121,7 +121,7 @@
 
 ## 3. backend init 至少應產出的內容
 
-### 3.1 `ai/project-context.yaml`【若 solution-level 尚未建立或需最小必要補充】
+### 3.1 `.ai/project-context.yaml`【若 solution-level 尚未建立或需最小必要補充】
 角色：
 - repository 內第一優先的 authoritative project context
 - 若 solution-level project context 已存在，則本次只做 backend 相關最小必要補充
@@ -263,7 +263,7 @@ backend area 必須以以下 authority chain 為準：
 
 ### Step 3. Placement Decision
 先說明：
-- 哪些內容應進 `ai/project-context.yaml`
+- 哪些內容應進 `.ai/project-context.yaml`
 - 哪些內容應進 backend-specific instructions
 - 哪些內容暫不應產出
 - 若要建立工程入口，為何這樣放置

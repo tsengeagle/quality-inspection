@@ -75,7 +75,7 @@
 若有任何事無法從 bootstrap、repo 或 docs authority 證實，必須：
 - 標示為 `assumption`
 - 或標示為 `pending confirmation`
-- 寫入 `ai/project-context.yaml`
+- 寫入 `.ai/project-context.yaml`
 - 在 summary 中揭露
 
 不得自行補造已確認事實。
