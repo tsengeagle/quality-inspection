@@ -1,0 +1,264 @@
+project:
+  system: 品質審查系統
+  repo_name: quality-inspection-solution
+  module_name: quality-inspection-frontend
+  role: frontend-implementation
+  description: >
+    品質審查系統 frontend implementation area bootstrap。
+    本模組預期承接管理端 UI、頁面流程、query/command 對接、權限與可見性呈現、以及前端測試。
+  criticality: high
+  legacy: false
+
+organization:
+  architecture_style:
+    - frontend-application
+    - document-driven
+    - ui-spec-driven
+  repo_scope: monorepo-frontend-area
+  cross_repo_assumption: forbidden
+
+module_structure:
+  module_root: frontends/quality-inspection-frontend
+  readme: frontends/quality-inspection-frontend/README.md
+  source_status: pending_confirmation
+  expected_layers:
+    - shell
+    - pages
+    - features
+    - components
+    - services
+    - models
+    - guards
+    - state
+
+solution_authority:
+  docs_root: 品質審查系統/docs
+  requirements_root: 品質審查系統/docs/01-requirements
+  ddd_root: 品質審查系統/docs/02-ddd
+  contracts_root: 品質審查系統/docs/03-contracts
+  testing_root: 品質審查系統/docs/04-testing
+  ui_root: 品質審查系統/docs/05-ui
+  archive_root: 品質審查系統/docs/99-archive
+
+requirements_authority:
+  primary_spec: 品質審查系統/docs/01-requirements/0_品質審查系統規格草案.md
+  decision_log: 品質審查系統/docs/01-requirements/decision-log.md
+  glossary: 品質審查系統/docs/01-requirements/glossary.md
+
+ddd_reference:
+  domain_model: 品質審查系統/docs/02-ddd/domain-model.md
+  state_machine: 品質審查系統/docs/02-ddd/state-machine.md
+  permission_matrix: 品質審查系統/docs/02-ddd/permission-matrix.md
+  application_service: 品質審查系統/docs/02-ddd/application-service.md
+  note: >
+    DDD 文件是前端頁面流程、按鈕可用性、terminal state 呈現、revision 能否操作的重要上游，
+    但 frontend 不應自行重算 domain invariant。
+
+contract_authority:
+  api_spec: 品質審查系統/docs/03-contracts/api-spec.md
+  note: >
+    API spec 是 frontend query/command 對接的第一契約 authority。
+
+testing_authority:
+  specification_by_example: 品質審查系統/docs/04-testing/specification-by-example.md
+  test_scenarios: 品質審查系統/docs/04-testing/test-scenarios.md
+  example_to_test_case_skeleton: 品質審查系統/docs/04-testing/example-to-test-case-skeleton.md
+  example_to_test_level_matrix: 品質審查系統/docs/04-testing/example-to-test-level-matrix.md
+  test_scenario_template_and_guidelines: 品質審查系統/docs/04-testing/test-scenario-template-and-guidelines.md
+
+ui_authority:
+  information_architecture: 品質審查系統/docs/05-ui/ui-information-architecture.md
+  page_inventory: 品質審查系統/docs/05-ui/ui-page-inventory.md
+  page_specs:
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui006抽選執行頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui007抽選批次列表頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui009案件列表頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui010案件詳情頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui011案件分派頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui012初審作業頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui013複審作業頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui014revision歷程頁.md
+
+archive_policy:
+  archive_is_authority: false
+  archive_root: 品質審查系統/docs/99-archive
+  note: >
+    archive 僅供歷史參考，不作現行 frontend implementation authority。
+
+business_scope:
+  core_capabilities:
+    - 抽選執行頁
+    - 抽選批次列表頁
+    - 案件列表頁
+    - 案件詳情頁
+    - 案件分派頁
+    - 初審作業頁
+    - 複審作業頁
+    - revision 歷程頁
+    - 權限與可見性呈現
+    - query/command 與 API 對接
+    - frontend testing
+  ui_areas:
+    - sampling
+    - batch-management
+    - case-management
+    - review-workflow
+    - revision-history
+  key_rules_to_reflect:
+    - hospital_manager_can_view_full_detail_within_hospital
+    - system_admin_metadata_only
+    - auditor_authorized_scope_only
+    - closed_and_cancelled_disable_revision
+    - initial_revision_only_for_original_reviewer
+    - rereview_revision_only_for_rereviewer
+
+frontend_responsibilities:
+  must_implement:
+    - route_and_page_structure
+    - page_level_query_and_command_flow
+    - permission_aware_ui
+    - action_visibility_and_disable_rules
+    - metadata_only_vs_full_detail_rendering
+    - api_contract_integration
+    - frontend_tests
+  must_not_replace_authority:
+    - requirements_authority
+    - decision_log
+    - domain_and_state_truth
+    - api_contract_truth
+  anti_patterns:
+    - ui_invents_new_case_status
+    - ui_relaxes_permission_scope
+    - component_state_replaces_domain_truth
+    - page_spec_overrides_api_contract
+    - local_state_overrides_server_terminal_state
+
+expected_code_placement:
+  shell:
+    purpose:
+      - layout
+      - navigation
+      - route_container
+  pages:
+    purpose:
+      - page_entry
+      - page_composition
+  features:
+    purpose:
+      - business_feature_modules
+      - workflow_specific_ui
+  components:
+    purpose:
+      - reusable_ui_components
+  services:
+    purpose:
+      - api_clients
+      - dto_mapping
+      - page_orchestration
+  models:
+    purpose:
+      - frontend_view_models
+      - dto_types
+  guards:
+    purpose:
+      - route_guard
+      - permission_aware_navigation
+  state:
+    purpose:
+      - client_state_if_needed
+      - ui_coordination_only
+
+working_conventions:
+  document_precedence:
+    - decision-log
+    - primary-spec
+    - glossary
+    - permission-matrix
+    - state-machine
+    - api-spec
+    - ui-documents
+    - testing
+    - archive
+  placement_rules:
+    - page_structure_goes_to_pages
+    - api_calls_go_to_services
+    - reusable_ui_goes_to_components
+    - route_access_goes_to_guards
+    - client_state_must_not_replace_server_truth
+  cannot_claim_verified_without_evidence: true
+  archive_is_not_authority: true
+  no_incidental_refactor: true
+
+ai_governance:
+  pilot_scope: frontend-bootstrap
+  use_shared_rules: true
+  workflows:
+    - init
+    - continue
+    - implement-change
+    - fix-bug
+    - review-code
+  commit_protocol: pending_confirmation
+  required_output:
+    - authority-source-summary
+    - frontend-placement-decision
+    - assumptions-and-pending-confirmation
+    - minimal-change-summary
+    - validation-summary
+
+assumptions_and_pending_confirmation:
+  - id: FB-001
+    category: source_tree
+    item: actual frontend source root under module
+    status: pending_confirmation
+    basis: module path 已確認，但 src/、route structure、page folders 尚未提供
+    action_required: 待 frontend implementation skeleton 建立後確認
+
+  - id: FB-002
+    category: tech_stack
+    item: frontend framework
+    status: pending_confirmation
+    basis: 尚未看到 framework evidence
+    action_required: 待 source files 或 build files 出現後確認
+
+  - id: FB-003
+    category: build_tool
+    item: build tool and package manager
+    status: pending_confirmation
+    basis: 尚未看到 package/build files
+    action_required: 待工程骨架建立後確認
+
+  - id: FB-004
+    category: test_tooling
+    item: component/integration/e2e test tooling
+    status: pending_confirmation
+    basis: testing authority 已存在，但 frontend test tooling 尚未有工程 evidence
+    action_required: 待 test skeleton 建立後確認
+
+  - id: FB-005
+    category: gate_inventory
+    item: lint / formatter / static analysis / ci entrypoints
+    status: pending_confirmation
+    basis: 尚未提供任何 frontend gate 入口 evidence
+    action_required: 待工程骨架建立後盤點
+
+  - id: FB-006
+    category: ui_library
+    item: actual component library / design system implementation
+    status: pending_confirmation
+    basis: UI 文件已存在，但實際前端元件庫與落地方式尚未驗證
+    action_required: 待 frontend skeleton 或 design system 接入策略確認後補齊
+
+  - id: FB-007
+    category: state_management
+    item: frontend state management strategy
+    status: pending_confirmation
+    basis: 頁面與流程已存在，但尚未有工程 evidence 決定是否需要集中狀態管理
+    action_required: 待 frontend skeleton 或 feature implementation strategy 確認後補齊
+
+  - id: FB-008
+    category: repo_identity
+    item: exact repository name
+    status: assumption
+    basis: solution 主題已知，但正式 repo name 未見 evidence
+    action_required: 以實際 repository name 覆蓋 quality-inspection-solution

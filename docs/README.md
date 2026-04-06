@@ -1,470 +1,344 @@
 # 品質審查系統設計文件索引
 
-本目錄收斂品質審查系統的需求、DDD 設計、API / Persistence 設計與 UI 設計文件。  
+本目錄收斂品質審查系統的需求、DDD 設計、契約設計、測試設計與 UI 設計文件。  
 目標是提供一套可追溯、可驗證、可落地的設計基線，供以下用途使用：
 
 - 業務需求對齊
 - DDD 設計與實作
-- API / DB 設計
+- API / Persistence 契約設計
+- 測試設計與驗證
 - UI / UX 設計
-- 測試案例設計
 - AI agent / 開發人員 onboarding
 
 ---
 
 ## 1. 建議閱讀順序
 
-若是第一次接觸本系統，建議依以下順序閱讀：
+若是第一次接觸本系統，建議依以下順序閱讀。
 
 ### A. 先理解需求與決策
-1. 系統需求書
-2. `decision-log.md`
-3. `glossary.md`
+1. `01-requirements/0_品質審查系統規格草案.md`
+2. `01-requirements/decision-log.md`
+3. `01-requirements/glossary.md`
 
 ### B. 再理解 DDD 核心模型
-4. `context-map.md`
-5. `domain-model.md`
-6. `state-machine.md`
-7. `domain-events.md`
-8. `application-service.md`
+4. `02-ddd/context-map.md`
+5. `02-ddd/domain-model.md`
+6. `02-ddd/state-machine.md`
+7. `02-ddd/domain-events.md`
+8. `02-ddd/application-service.md`
+9. `02-ddd/permission-matrix.md`
 
-### C. 再看授權、API 與資料模型
-9. `permission-matrix.md`
-10. `api-spec.md`
-11. `persistence-model.md`
+### C. 再看契約與持久化
+10. `03-contracts/api-spec.md`
+11. `03-contracts/persistence-model.md`
 
-### D. 最後看驗證與 UI
-12. `test-scenarios.md`
-13. `ui-page-inventory.md`
-14. `ui-information-architecture.md`
-15. `ui-page-spec.md`
+### D. 再看測試與驗證
+12. `04-testing/specification-by-example.md`
+13. `04-testing/test-scenarios.md`
+14. `04-testing/example-to-test-level-matrix.md`
+15. `04-testing/example-to-test-case-skeleton.md`
+16. `04-testing/test-scenario-template-and-guidelines.md`
 
----
-
-## 2. 文件總覽
-
----
-
-## 2.1 需求與決策層
-
-### 系統需求書
-**用途**  
-定義品質審查系統的業務需求、角色、流程、規則與範圍。
-
-**建議讀者**  
-PM、BA、架構師、開發、測試
-
-**說明**  
-本系統所有設計文件都應以需求書為最上游依據。
+### E. 最後看 UI 設計
+17. `05-ui/ui-page-inventory.md`
+18. `05-ui/ui-information-architecture.md`
+19. 各頁面規格：
+   - `05-ui/ui-page-spec-ui006抽選執行頁.md`
+   - `05-ui/ui-page-spec-ui007抽選批次列表頁.md`
+   - `05-ui/ui-page-spec-ui009案件列表頁.md`
+   - `05-ui/ui-page-spec-ui010案件詳情頁.md`
+   - `05-ui/ui-page-spec-ui011案件分派頁.md`
+   - `05-ui/ui-page-spec-ui012初審作業頁.md`
+   - `05-ui/ui-page-spec-ui013複審作業頁.md`
+   - `05-ui/ui-page-spec-ui014revision歷程頁.md`
 
 ---
 
-### `decision-log.md`
-**用途**  
-記錄已正式定稿的關鍵設計決策，避免不同文件各自解讀。
+## 2. 目錄分層說明
 
-**主要內容**
-- 結案後不允許 revision
-- 初審 revision 僅原審查醫師
-- 複審 revision 僅複審醫師
-- 重複抽選限制為同批次
-- manager / auditor / sysadmin 的資料可見性決策
+### `01-requirements/`
+需求與決策層。
 
-**建議讀者**  
-架構師、開發、測試、AI agent
+放置：
+- 需求草案
+- 已定案 decision log
+- 共用詞彙 glossary
 
-**重要性**  
-高。  
-若其他文件與實作有衝突，應先回頭檢查這份。
+#### 本層文件
+- `0_品質審查系統規格草案.md`
+  - 系統需求與業務範圍來源文件
 
----
+- `decision-log.md`
+  - 已正式定稿的關鍵決策索引
+  - 影響 domain、API、persistence、testing 與 UI
 
-### `glossary.md`
-**用途**  
-統一系統中的共用詞彙，避免不同文件中的術語歧義。
+- `glossary.md`
+  - 共用詞彙表
+  - 用於統一需求、DDD、API、測試、UI 文件中的語意
 
-**主要內容**
-- 審查專案
-- 抽選批次
-- 案件
-- 初審 / 複審
-- revision
-- snapshot
-- project version
-- domain event
-- metadata view / full detail view
-
-**建議讀者**  
-全角色
+- `aggregate-design-notes-v1.md`
+  - aggregate 設計推導稿 / 歷史設計筆記
+  - **不是正式 aggregate authority**
+  - 正式 aggregate 設計以 `02-ddd/domain-model.md` 為準
 
 ---
 
-## 2.2 DDD 戰略與戰術設計層
+### `02-ddd/`
+DDD 戰術設計層。
 
-### `context-map.md`
-**用途**  
-定義 bounded context 劃分、上下游關係與外部 supporting context。
+放置：
+- bounded context
+- domain model
+- state machine
+- application service
+- domain events
+- permission matrix
 
-**主要內容**
-- Review Project Configuration
-- Sampling
-- Assignment and Review
-- Audit and Reporting
-- Medical Record Source / IAM / Notification 等 supporting context
+#### 本層文件
+- `context-map.md`
+  - bounded context 劃分、上下游關係與整合邊界
 
-**建議讀者**  
-架構師、後端開發、AI agent
+- `domain-model.md`
+  - 核心 aggregate / entity / value object / invariant 的正式 authority
 
----
+- `state-machine.md`
+  - 案件、提交與批次狀態機
 
-### `domain-model.md`
-**用途**  
-定義核心 aggregate、entity、value object 與 invariant。
+- `domain-events.md`
+  - domain event catalog
+  - 僅處理業務事實事件，不混入 notification / reporting 類事件
 
-**主要內容**
-- `ReviewProject`
-- `ScoreSheetDefinition`
-- `SamplingBatch`
-- `ReviewCase`
-- `ReviewSubmission`
-- revision model
-- snapshot model
+- `application-service.md`
+  - application layer use case 與 orchestration 邊界
 
-**建議讀者**  
-後端開發、架構師、測試
-
-**重要性**  
-高。  
-是 domain truth 的核心文件之一。
+- `permission-matrix.md`
+  - 角色、scope、內容可見性與操作邊界
 
 ---
 
-### `state-machine.md`
-**用途**  
-定義案件與 submission 的合法狀態轉移。
+### `03-contracts/`
+契約與持久化層。
 
-**主要內容**
-- `ReviewCase` 狀態機
-- `ReviewSubmission` 子狀態機
-- `SamplingBatch` 狀態機
-- terminal state 規則
-- revision 與 state 的關係
+放置：
+- 對外 API 契約
+- persistence model
 
-**建議讀者**  
-後端開發、測試、前端開發
+#### 本層文件
+- `api-spec.md`
+  - command / query API 契約草稿
 
----
-
-### `domain-events.md`
-**用途**  
-定義 domain event catalog 與業務事實事件。
-
-**主要內容**
-- project / version events
-- sampling events
-- case lifecycle events
-- submission events
-- revision events
-
-**建議讀者**  
-後端開發、整合開發、架構師
+- `persistence-model.md`
+  - aggregate 與持久化模型映射
+  - version / snapshot / revision 策略
 
 ---
 
-### `application-service.md`
-**用途**  
-定義 application layer 的 use case 與 orchestration 邊界。
+### `04-testing/`
+測試與驗證設計層。
 
-**主要內容**
-- Project Configuration use cases
-- Sampling use cases
-- Assignment / Initial Review use cases
-- Re-review use cases
-- Revision use cases
-- Platform boundary
+放置：
+- Specification by Example
+- test scenarios
+- example 與 test case 映射輔助文件
 
-**建議讀者**  
-後端開發、架構師
+#### 本層文件
+- `specification-by-example.md`
+  - 以具體業務案例固定規則
 
----
+- `test-scenarios.md`
+  - 將已定稿規則轉成可驗證情境
 
-## 2.3 權限、API 與資料模型層
+- `example-to-test-level-matrix.md`
+  - example 與測試層級映射
 
-### `permission-matrix.md`
-**用途**  
-定義角色可做什麼、可看什麼、scope 到哪裡。
+- `example-to-test-case-skeleton.md`
+  - example 到 test case 的骨架範本
 
-**主要內容**
-- SYSTEM_ADMIN
-- HOSPITAL_MANAGER
-- REVIEWER
-- REREVIEWER
-- AUDITOR
-- metadata only / full detail 規則
-- revision 權限邊界
-
-**建議讀者**  
-後端開發、前端開發、測試、資安 / 權限設計
+- `test-scenario-template-and-guidelines.md`
+  - test scenario 撰寫模板與指引
 
 ---
 
-### `api-spec.md`
-**用途**  
-定義 HTTP API 契約與 command / query 邊界。
+### `05-ui/`
+UI 設計層。
 
-**主要內容**
-- review projects APIs
-- score sheets APIs
-- sampling APIs
-- review cases APIs
-- initial review / rereview APIs
-- revision APIs
-- audit / reports APIs
-- error code 模型
+放置：
+- UI information architecture
+- page inventory
+- page-level specs
 
-**建議讀者**  
-後端開發、前端開發、整合開發、測試
+#### 本層文件
+- `ui-page-inventory.md`
+  - 頁面盤點與責任邊界
 
----
+- `ui-information-architecture.md`
+  - 導航、角色入口與頁面結構
 
-### `persistence-model.md`
-**用途**  
-定義 transaction model、version / snapshot 持久化策略、主要資料表與約束。
-
-**主要內容**
-- review_project / review_project_version
-- score_sheet / score_sheet_version
-- sampling_batch / snapshot / selected_case
-- review_case / snapshot_ref
-- review_submission / answer / snapshot / attachment
-- audit_trail / outbox_event
-- unique keys / FK / index 建議
-
-**建議讀者**  
-後端開發、DBA、架構師
+- `ui-page-spec-*.md`
+  - 個別頁面規格
+  - 用於前端 route / page / interaction / API integration 設計
 
 ---
 
-## 2.4 驗證層
+## 3. Authority 優先順序
 
-### `test-scenarios.md`
-**用途**  
-把需求、決策與 DDD 規則轉成可驗證測試情境。
+若文件之間出現衝突，建議依以下順序判斷：
 
-**主要內容**
-- project / version scenarios
-- sampling scenarios
-- initial review scenarios
-- re-review scenarios
-- revision scenarios
-- permission / visibility scenarios
-- traceability / audit scenarios
-- negative / conflict scenarios
-
-**建議讀者**  
-測試、後端開發、前端開發、AI agent
-
-**重要性**  
-高。  
-是 test-first 與 regression 設計的重要基線。
+1. `01-requirements/0_品質審查系統規格草案.md`
+2. `01-requirements/decision-log.md`
+3. `01-requirements/glossary.md`
+4. `02-ddd/context-map.md`
+5. `02-ddd/domain-model.md`
+6. `02-ddd/state-machine.md`
+7. `02-ddd/permission-matrix.md`
+8. `02-ddd/application-service.md`
+9. `02-ddd/domain-events.md`
+10. `03-contracts/api-spec.md`
+11. `03-contracts/persistence-model.md`
+12. `04-testing/specification-by-example.md`
+13. `04-testing/test-scenarios.md`
+14. `05-ui/ui-information-architecture.md`
+15. `05-ui/ui-page-spec-*.md`
 
 ---
 
-## 2.5 UI 設計層
-
-### `ui-page-inventory.md`
-**用途**  
-盤點系統需要的功能頁與頁面責任。
-
-**主要內容**
-- 專案與規則管理頁
-- 抽選作業頁
-- 案件與審查作業頁
-- 查詢與報表頁
-
-**建議讀者**  
-前端開發、PM、UX、架構師
-
----
-
-### `ui-information-architecture.md`
-**用途**  
-定義 UI 主導航、頁面層級、角色入口與主要使用路徑。
-
-**主要內容**
-- 主導航模組
-- 頁面樹狀結構
-- manager / reviewer / rereviewer / auditor / sysadmin 視角
-- route 群組建議
-
-**建議讀者**  
-前端開發、UX、PM
-
----
-
-### `ui-page-spec.md`
-**用途**  
-定義核心頁面的 UI 規格。
-
-**目前已完成頁面**
-- `UI-006 抽選執行頁`
-- `UI-007 抽選批次列表頁`
-- `UI-009 案件列表頁`
-- `UI-010 案件詳情頁`
-- `UI-011 案件分派頁`
-- `UI-012 初審作業頁`
-- `UI-013 複審作業頁`
-- `UI-014 Revision 歷程頁`
-
-**建議讀者**  
-前端開發、UX、測試、後端開發
-
----
-
-## 3. 文件之間的依賴關係
-
-可用以下方式理解文件關係：
+## 4. 文件之間的依賴關係
 
 ```text
-需求書
-  -> decision-log.md
-  -> glossary.md
-  -> context-map.md
-  -> domain-model.md
-      -> state-machine.md
-      -> domain-events.md
-      -> application-service.md
-      -> permission-matrix.md
-      -> api-spec.md
-      -> persistence-model.md
-      -> test-scenarios.md
-      -> ui-page-inventory.md
-          -> ui-information-architecture.md
-          -> ui-page-spec.md
+需求草案
+  -> decision-log
+  -> glossary
+  -> context-map
+  -> domain-model
+      -> state-machine
+      -> domain-events
+      -> application-service
+      -> permission-matrix
+      -> api-spec
+      -> persistence-model
+      -> specification-by-example
+      -> test-scenarios
+      -> ui-page-inventory
+          -> ui-information-architecture
+          -> ui-page-specs
 ```
 
 ---
 
-## 4. 不同角色建議優先閱讀文件
+## 5. 給不同角色的建議閱讀入口
 
 ### PM / BA
 
-* 需求書
-* `decision-log.md`
-* `glossary.md`
-* `ui-page-inventory.md`
-* `ui-information-architecture.md`
+* `01-requirements/0_品質審查系統規格草案.md`
+* `01-requirements/decision-log.md`
+* `01-requirements/glossary.md`
+* `05-ui/ui-page-inventory.md`
+* `05-ui/ui-information-architecture.md`
 
-### 架構師
+### 架構師 / 後端開發
 
-* 需求書
-* `decision-log.md`
-* `context-map.md`
-* `domain-model.md`
-* `state-machine.md`
-* `application-service.md`
-* `persistence-model.md`
-
-### 後端開發
-
-* `decision-log.md`
-* `domain-model.md`
-* `state-machine.md`
-* `application-service.md`
-* `domain-events.md`
-* `permission-matrix.md`
-* `api-spec.md`
-* `persistence-model.md`
-* `test-scenarios.md`
+* `01-requirements/decision-log.md`
+* `02-ddd/context-map.md`
+* `02-ddd/domain-model.md`
+* `02-ddd/state-machine.md`
+* `02-ddd/application-service.md`
+* `03-contracts/api-spec.md`
+* `03-contracts/persistence-model.md`
+* `04-testing/test-scenarios.md`
 
 ### 前端開發
 
-* `decision-log.md`
-* `permission-matrix.md`
-* `api-spec.md`
-* `ui-page-inventory.md`
-* `ui-information-architecture.md`
-* `ui-page-spec.md`
-* `test-scenarios.md`
+* `01-requirements/decision-log.md`
+* `02-ddd/permission-matrix.md`
+* `03-contracts/api-spec.md`
+* `04-testing/test-scenarios.md`
+* `05-ui/ui-page-inventory.md`
+* `05-ui/ui-information-architecture.md`
+* 各 `ui-page-spec-*.md`
 
-### 測試
+### AI Agent
 
-* 需求書
-* `decision-log.md`
-* `state-machine.md`
-* `permission-matrix.md`
-* `api-spec.md`
-* `test-scenarios.md`
-* `ui-page-spec.md`
+* 先讀本檔
+* 再讀：
 
-### AI Agent / 自動化輔助開發
-
-* `decision-log.md`
-* `glossary.md`
-* `context-map.md`
-* `domain-model.md`
-* `state-machine.md`
-* `permission-matrix.md`
-* `application-service.md`
-* `api-spec.md`
-* `persistence-model.md`
-* `test-scenarios.md`
+  * `01-requirements/decision-log.md`
+  * `01-requirements/glossary.md`
+  * `02-ddd/domain-model.md`
+  * `02-ddd/state-machine.md`
+  * `02-ddd/permission-matrix.md`
+  * `03-contracts/api-spec.md`
+  * `03-contracts/persistence-model.md`
+  * `04-testing/test-scenarios.md`
+  * `05-ui/ui-page-spec-*.md`
 
 ---
 
-## 5. 現階段文件完成度
+## 6. 目前目錄結構評價
 
-### 已完成核心文件
+目前 `docs/` 分層已具備下列優點：
 
-* [x] `decision-log.md`
-* [x] `glossary.md`
-* [x] `context-map.md`
-* [x] `permission-matrix.md`
-* [x] `domain-model.md`
-* [x] `state-machine.md`
-* [x] `domain-events.md`
-* [x] `application-service.md`
-* [x] `api-spec.md`
-* [x] `persistence-model.md`
-* [x] `test-scenarios.md`
-* [x] `ui-page-inventory.md`
-* [x] `ui-information-architecture.md`
-* [x] `ui-page-spec.md`
+* 需求、DDD、contracts、testing、UI 已分層
+* authority 來源大致清楚
+* 已具備 implementation baseline 所需主文件
+* 可直接支援 backend / frontend / testing 三方工作
 
-### 後續可補文件
+目前建議的最小優化為：
 
-* [ ] `openapi.yaml`
-* [ ] `ddl-spec.sql` / migration 草稿
-* [ ] `ui-state-actions-matrix.md`
-* [ ] `ui-page-spec.md` 其餘頁面
-* [ ] `ui-wireframe.md` 或 Figma 對照文件
+1. 重新定位 `aggregate-design-notes-v1.md`
+
+   * 建議視為設計推導稿，而非正式 authority
+   * 正式 aggregate authority 仍以 `02-ddd/domain-model.md` 為準
+
+2. 後續若 UI page spec 持續增加，可考慮再細分 page spec 子目錄
+
+   * 目前尚非必要
 
 ---
 
-## 6. 維護原則
+## 7. 維護原則
 
 1. 若需求或決策改變，優先更新：
 
-   * 需求書
-   * `decision-log.md`
+   * `01-requirements/0_品質審查系統規格草案.md`
+   * `01-requirements/decision-log.md`
 
 2. 若 domain 規則改變，至少同步更新：
 
-   * `domain-model.md`
-   * `state-machine.md`
-   * `application-service.md`
-   * `api-spec.md`
-   * `persistence-model.md`
-   * `test-scenarios.md`
+   * `02-ddd/domain-model.md`
+   * `02-ddd/state-machine.md`
+   * `02-ddd/application-service.md`
+   * `03-contracts/api-spec.md`
+   * `03-contracts/persistence-model.md`
+   * `04-testing/test-scenarios.md`
 
-3. 若權限或資料可見性改變，至少同步更新：
+3. 若權限或內容可見性改變，至少同步更新：
 
-   * `permission-matrix.md`
-   * `api-spec.md`
-   * UI 相關文件
+   * `02-ddd/permission-matrix.md`
+   * `03-contracts/api-spec.md`
+   * 相關 UI page spec
+   * 相關 test scenarios
 
-4. 若頁面或導航改變，至少同步更新：
+4. 若頁面流程或導航改變，至少同步更新：
 
-   * `ui-page-inventory.md`
-   * `ui-information-architecture.md`
-   * `ui-page-spec.md`
+   * `05-ui/ui-page-inventory.md`
+   * `05-ui/ui-information-architecture.md`
+   * 對應 `ui-page-spec-*.md`
+
+---
+
+## 8. 現階段定位
+
+這套文件目前已具備：
+
+* 需求 authority
+* DDD tactical design baseline
+* API / persistence 契約
+* Specification by Example 與 test scenarios
+* UI page-level 設計
+
+可作為：
+
+* monorepo implementation baseline
+* backend / frontend 初始化基線
+* AI agent 輔助開發 authority

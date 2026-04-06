@@ -1,0 +1,325 @@
+project:
+  system: 品質審查系統
+  repo_name: quality-inspection-solution
+  module_name: solution
+  role: solution-architecture
+  description: >
+    品質審查系統的 solution-level authoritative project context。
+    本檔為 repository 內第一優先的 project authority context，
+    收斂目前已確認的 docs authority、implementation area 規劃、
+    核心業務語意、bounded contexts、以及 assumptions / pending confirmations。
+  criticality: high
+  legacy: false
+
+organization:
+  architecture_style:
+    - solution-level
+    - document-driven
+    - ddd-oriented
+  repo_scope: single-solution-repository
+  cross_repo_assumption: forbidden
+
+repository:
+  authority_root: 品質審查系統/docs
+  operating_guide: AGENTS.md
+  implementation_areas:
+    backend:
+      path: services/quality-inspection-service
+      status: confirmed
+      role: backend-implementation-area
+    frontend:
+      path: frontends/quality-inspection-frontend
+      status: confirmed
+      role: frontend-implementation-area
+
+docs_authority:
+  root: 品質審查系統/docs
+  structure:
+    requirements:
+      path: 品質審查系統/docs/01-requirements
+      files:
+        - 0_品質審查系統規格草案.md
+        - decision-log.md
+        - glossary.md
+      role: requirements-and-decision-authority
+
+    ddd:
+      path: 品質審查系統/docs/02-ddd
+      files:
+        - application-service.md
+        - context-map.md
+        - domain-events.md
+        - domain-model.md
+        - permission-matrix.md
+        - state-machine.md
+      role: domain-and-application-design-authority
+
+    contracts:
+      path: 品質審查系統/docs/03-contracts
+      files:
+        - api-spec.md
+        - persistence-model.md
+      role: api-and-persistence-contract-authority
+
+    testing:
+      path: 品質審查系統/docs/04-testing
+      files:
+        - example-to-test-case-skeleton.md
+        - example-to-test-level-matrix.md
+        - specification-by-example.md
+        - test-scenario-template-and-guidelines.md
+        - test-scenarios.md
+      role: testing-authority
+
+    ui:
+      path: 品質審查系統/docs/05-ui
+      files:
+        - ui-information-architecture.md
+        - ui-page-inventory.md
+        - ui-page-spec-ui006抽選執行頁.md
+        - ui-page-spec-ui007抽選批次列表頁.md
+        - ui-page-spec-ui009案件列表頁.md
+        - ui-page-spec-ui010案件詳情頁.md
+        - ui-page-spec-ui011案件分派頁.md
+        - ui-page-spec-ui012初審作業頁.md
+        - ui-page-spec-ui013複審作業頁.md
+        - ui-page-spec-ui014revision歷程頁.md
+      role: ui-and-page-spec-authority
+
+    archive:
+      path: 品質審查系統/docs/99-archive
+      files:
+        - aggregate-design-notes-v1.md
+      role: historical-reference-only
+      authority: false
+
+document_precedence:
+  - docs/01-requirements/decision-log.md
+  - docs/01-requirements/0_品質審查系統規格草案.md
+  - docs/01-requirements/glossary.md
+  - docs/02-ddd/*
+  - docs/03-contracts/*
+  - docs/04-testing/*
+  - docs/05-ui/*
+  - docs/99-archive/*
+
+business_domain:
+  core_capabilities:
+    - 審查專案管理
+    - 評分表版本管理
+    - 抽選執行
+    - 抽選批次管理
+    - 案件管理
+    - 案件分派
+    - 初審作業
+    - 複審作業
+    - revision 歷程追蹤
+    - 權限與可見性控制
+    - API 契約
+    - persistence 設計
+    - 測試情境設計
+    - 稽核與報表
+
+  core_domain_concepts:
+    - ReviewProject
+    - ScoreSheetDefinition
+    - SamplingBatch
+    - ReviewCase
+    - ReviewSubmission
+    - RuleSnapshot
+    - Revision
+
+  bounded_contexts:
+    - name: Review Project Configuration
+      role: 專案設定、規則、生效與版本
+    - name: Sampling
+      role: 一次抽選執行、規則快照、抽選結果與重跑關聯
+    - name: Assignment and Review
+      role: 案件生命週期、初審、複審、revision
+    - name: Audit and Reporting
+      role: 查詢、統計、報表、稽核與歷程投影
+
+  supporting_contexts:
+    - Medical Record Source
+    - Identity and Access
+    - Notification
+
+architecture:
+  style:
+    - solution-level
+    - layered-per-implementation-area
+    - document-driven
+  backend:
+    module_root: services/quality-inspection-service
+    status: planned-path-confirmed
+    source_tree_status: pending_confirmation
+    tech_stack_status: pending_confirmation
+  frontend:
+    module_root: frontends/quality-inspection-frontend
+    status: planned-path-confirmed
+    source_tree_status: pending_confirmation
+    tech_stack_status: pending_confirmation
+  microfrontend:
+    status: not_verifiable_in_this_run
+    basis: no frontend source evidence yet
+  ui_governance:
+    status: partial
+    authority:
+      - 品質審查系統/docs/05-ui/ui-information-architecture.md
+      - 品質審查系統/docs/05-ui/ui-page-inventory.md
+      - 品質審查系統/docs/05-ui/ui-page-spec-*.md
+    note: >
+      UI authority 已存在，但企業元件庫、design token、wrapper pattern、
+      microfrontend 與 framework evidence 尚未由 source tree 證實。
+
+constraints:
+  must_follow:
+    - ai/project-context.yaml_is_first_priority_project_context
+    - respect_existing_document_roles
+    - archive_is_not_current_authority
+    - cannot_claim_verified_without_evidence
+    - no_incidental_refactor
+    - backward_compatibility_first_if_conflict
+  placement_rules:
+    - requirements_and_decisions_go_to_01_requirements
+    - domain_and_application_design_go_to_02_ddd
+    - api_and_persistence_contracts_go_to_03_contracts
+    - testing_material_go_to_04_testing
+    - ui_ia_and_page_specs_go_to_05_ui
+    - historical_notes_go_to_99_archive
+  anti_patterns:
+    - inventing_new_governance_logic_outside_existing_structure
+    - treating_archive_as_current_authority
+    - claiming_stack_or_gates_without_source_evidence
+    - using_ui_spec_to_override_domain_or_api_truth
+
+quality_and_governance:
+  project_context_role: authoritative_project_context
+  operating_guide_role: repo_operating_guide
+  hard_rules_role: repository_wide_hard_rules
+  path_specific_rules_role: stack_or_path_specific_instructions
+  init_and_continue_rules:
+    - continue_work_must_respect_existing_file_boundaries
+    - bootstrap_only_supplements_original_governance_source
+    - do_not_turn_continue_into_reinit
+    - reveal_assumptions_and_pending_confirmation_explicitly
+
+gate_inventory:
+  build:
+    status: pending_confirmation
+    evidence: no verified build entrypoint in provided source tree
+  test:
+    status: pending_confirmation
+    evidence: no verified runnable test entrypoint in provided source tree
+  run:
+    status: pending_confirmation
+    evidence: no verified runnable application entrypoint in provided source tree
+  lint:
+    status: pending_confirmation
+    evidence: no verified lint entrypoint in provided source tree
+  static_analysis:
+    status: pending_confirmation
+    evidence: no verified static analysis entrypoint in provided source tree
+  ci:
+    status: pending_confirmation
+    evidence: no verified CI pipeline entrypoint in provided source tree
+
+testing_alignment:
+  specification_by_example_role: fixed_shared_understanding_and_rule_examples
+  test_scenarios_role: executable_validation_scenarios
+  priorities:
+    - domain_invariant_validation
+    - state_transition_and_terminal_state_validation
+    - revision_and_traceability_validation
+    - permission_and_visibility_validation
+    - reporting_and_query_consistency_validation
+
+known_rules_from_docs:
+  - CLOSED_after_case_is_terminal
+  - CANCELLED_after_case_is_terminal
+  - revision_is_append_only
+  - initial_revision_only_for_original_reviewer
+  - rereview_revision_only_for_assigned_rereviewer
+  - duplicate_sampling_rule_is_same_batch_only
+  - hospital_manager_can_view_full_detail_within_hospital
+  - system_admin_metadata_only
+  - auditor_scope_is_authorized_hospitals_only
+
+assumptions_and_pending_confirmation:
+  - id: PC-001
+    category: repo_identity
+    item: exact repository name
+    status: assumption
+    basis: solution 主題已知，但正式 repo name 未見 source evidence
+    current_value: quality-inspection-solution
+    action_required: 以實際 repository name 覆蓋
+
+  - id: PC-002
+    category: backend_stack
+    item: backend language
+    status: pending_confirmation
+    basis: backend module path 已確認，但無 source/build evidence
+    action_required: 待 backend skeleton 或 build files 出現後確認
+
+  - id: PC-003
+    category: backend_stack
+    item: backend framework
+    status: pending_confirmation
+    basis: backend module path 已確認，但無 framework evidence
+    action_required: 待 backend skeleton 或 build files 出現後確認
+
+  - id: PC-004
+    category: frontend_stack
+    item: frontend framework
+    status: pending_confirmation
+    basis: frontend module path 已確認，但無 source/build evidence
+    action_required: 待 frontend skeleton 或 build files 出現後確認
+
+  - id: PC-005
+    category: frontend_governance
+    item: microfrontend applicability
+    status: not_verifiable_in_this_run
+    basis: 目前僅有 UI docs，缺乏 frontend source evidence
+    action_required: 待 frontend source tree 建立後判定
+
+  - id: PC-006
+    category: frontend_governance
+    item: enterprise UI component source / design token / wrapper pattern
+    status: pending_confirmation
+    basis: UI page spec 已存在，但缺乏工程實作 evidence
+    action_required: 待 frontend skeleton 或 component strategy 確認後補齊
+
+  - id: PC-007
+    category: gate_inventory
+    item: build/test/run/lint/static-analysis/ci entrypoints
+    status: pending_confirmation
+    basis: 目前未提供任何可執行工程入口 evidence
+    action_required: 待 implementation skeleton 建立後盤點
+
+  - id: PC-008
+    category: source_tree
+    item: backend actual source layout
+    status: pending_confirmation
+    basis: module path 已確認，但 src/main、src/test、config、migration layout 未見 evidence
+    action_required: 待 backend skeleton 建立後確認
+
+  - id: PC-009
+    category: source_tree
+    item: frontend actual source layout
+    status: pending_confirmation
+    basis: module path 已確認，但 src/pages/features/components/services layout 未見 evidence
+    action_required: 待 frontend skeleton 建立後確認
+
+  - id: PC-010
+    category: governance_baseline
+    item: governance / workflow / shared baseline fully readable from bootstrap
+    status: pending_confirmation
+    basis: bootstrap and baseline reading has not been fully evidenced in this run
+    action_required: 待正式 init 執行時確認 baseline 可讀性與收斂程度
+
+uncovered_scope:
+  - repository_wide_hard_rules_file_not_yet_materialized
+  - path_specific_instructions_not_yet_materialized
+  - backend_engineering_skeleton_not_yet_materialized
+  - frontend_engineering_skeleton_not_yet_materialized
+  - actual_build_and_test_commands_not_verified

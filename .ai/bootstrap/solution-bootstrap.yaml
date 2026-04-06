@@ -1,0 +1,189 @@
+project:
+  system: 品質審查系統
+  repo_name: quality-inspection-solution
+  module_name: solution
+  role: solution-architecture
+  description: >
+    品質審查系統 solution-level repository bootstrap。
+    目前已建立 docs authority 結構，涵蓋 requirements、DDD、contracts、testing、UI 與 archive。
+  criticality: high
+  legacy: false
+
+organization:
+  architecture_style:
+    - solution-level
+    - document-driven
+  repo_scope: single-solution-repository
+  cross_repo_assumption: forbidden
+
+solution_structure:
+  authority_root: 品質審查系統/docs
+  docs_readme: 品質審查系統/docs/README.md
+  sections:
+    - id: 01-requirements
+      path: 品質審查系統/docs/01-requirements
+      purpose: requirements-authority
+    - id: 02-ddd
+      path: 品質審查系統/docs/02-ddd
+      purpose: domain-design-authority
+    - id: 03-contracts
+      path: 品質審查系統/docs/03-contracts
+      purpose: api-and-persistence-contracts
+    - id: 04-testing
+      path: 品質審查系統/docs/04-testing
+      purpose: testing-authority
+    - id: 05-ui
+      path: 品質審查系統/docs/05-ui
+      purpose: ui-design-authority
+    - id: 99-archive
+      path: 品質審查系統/docs/99-archive
+      purpose: historical-reference-only
+
+requirements_authority:
+  primary_spec: 品質審查系統/docs/01-requirements/0_品質審查系統規格草案.md
+  decision_log: 品質審查系統/docs/01-requirements/decision-log.md
+  glossary: 品質審查系統/docs/01-requirements/glossary.md
+
+ddd_authority:
+  context_map: 品質審查系統/docs/02-ddd/context-map.md
+  domain_model: 品質審查系統/docs/02-ddd/domain-model.md
+  state_machine: 品質審查系統/docs/02-ddd/state-machine.md
+  permission_matrix: 品質審查系統/docs/02-ddd/permission-matrix.md
+  domain_events: 品質審查系統/docs/02-ddd/domain-events.md
+  application_service: 品質審查系統/docs/02-ddd/application-service.md
+
+contract_authority:
+  api_spec: 品質審查系統/docs/03-contracts/api-spec.md
+  persistence_model: 品質審查系統/docs/03-contracts/persistence-model.md
+
+testing_authority:
+  specification_by_example: 品質審查系統/docs/04-testing/specification-by-example.md
+  test_scenarios: 品質審查系統/docs/04-testing/test-scenarios.md
+  example_to_test_case_skeleton: 品質審查系統/docs/04-testing/example-to-test-case-skeleton.md
+  example_to_test_level_matrix: 品質審查系統/docs/04-testing/example-to-test-level-matrix.md
+  test_scenario_template_and_guidelines: 品質審查系統/docs/04-testing/test-scenario-template-and-guidelines.md
+
+ui_authority:
+  information_architecture: 品質審查系統/docs/05-ui/ui-information-architecture.md
+  page_inventory: 品質審查系統/docs/05-ui/ui-page-inventory.md
+  page_specs:
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui006抽選執行頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui007抽選批次列表頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui009案件列表頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui010案件詳情頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui011案件分派頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui012初審作業頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui013複審作業頁.md
+    - 品質審查系統/docs/05-ui/ui-page-spec-ui014revision歷程頁.md
+
+archive_policy:
+  archive_root: 品質審查系統/docs/99-archive
+  current_archive_files:
+    - 品質審查系統/docs/99-archive/aggregate-design-notes-v1.md
+  usage_rule: >
+    archive 僅供歷史參考，不作現行 authority。
+    若 archive 與現行文件衝突，現行 requirements / ddd / contracts / testing / ui 文件優先。
+
+business_scope:
+  core_capabilities:
+    - 抽選執行
+    - 抽選批次管理
+    - 案件列表與案件詳情
+    - 案件分派
+    - 初審作業
+    - 複審作業
+    - revision 歷程追蹤
+    - 權限與可見性控制
+    - API 契約
+    - persistence 設計
+    - 測試案例設計
+  core_domain_concepts:
+    - ReviewProject
+    - ScoreSheetDefinition
+    - SamplingBatch
+    - ReviewCase
+    - ReviewSubmission
+  bounded_contexts:
+    - Review Project Configuration
+    - Sampling
+    - Assignment and Review
+    - Audit and Reporting
+
+working_conventions:
+  document_precedence:
+    - decision-log
+    - primary-spec
+    - glossary
+    - ddd-documents
+    - contracts
+    - testing
+    - ui
+    - archive
+  placement_rules:
+    - requirements_and_business_scope_go_to_01_requirements
+    - domain_rules_and_state_go_to_02_ddd
+    - api_and_persistence_contracts_go_to_03_contracts
+    - examples_and_test_scenarios_go_to_04_testing
+    - ia_and_page_specs_go_to_05_ui
+    - superseded_notes_go_to_99_archive
+  archive_is_not_authority: true
+  cannot_claim_verified_without_evidence: true
+
+implementation_areas:
+  backend_area:
+    status: pending_confirmation
+    note: backend implementation area 尚未在本 bootstrap 中視為已確認存在
+  frontend_area:
+    status: pending_confirmation
+    note: frontend implementation area 尚未在本 bootstrap 中視為已確認存在
+  source_code_layout:
+    status: pending_confirmation
+    note: 尚未確認實際 source root、build tool、test runner、lint tool 與 CI layout
+
+ai_governance:
+  pilot_scope: solution-level-bootstrap
+  use_shared_rules: true
+  workflows:
+    - init
+    - continue
+    - review-code
+    - implement-change
+  commit_protocol: pending_confirmation
+  required_output:
+    - authority-source-summary
+    - assumptions-and-pending-confirmation
+    - placement-decision
+    - minimal-change-summary
+
+confirmed_now:
+  - SB-001 backend_area_path = services/quality-inspection-service
+  - SB-002 frontend_area_path = frontends/quality-inspection-frontend
+
+assumptions_and_pending_confirmation:
+  - id: SB-003
+    category: tech_stack
+    item: backend stack
+    status: pending_confirmation
+    basis: 目前僅能確認文件 authority，無 source evidence 可驗證實際後端技術棧
+    action_required: 待 backend implementation skeleton 或 build files 出現後確認
+
+  - id: SB-004
+    category: tech_stack
+    item: frontend stack
+    status: pending_confirmation
+    basis: 目前僅能確認文件 authority，無 source evidence 可驗證實際前端技術棧
+    action_required: 待 frontend implementation skeleton 或 package/build files 出現後確認
+
+  - id: SB-005
+    category: gate_inventory
+    item: build/test/run/lint/static-analysis/ci entrypoints
+    status: pending_confirmation
+    basis: 目前未提供任何可執行 gate 入口 evidence
+    action_required: 待 implementation area 與工程骨架建立後盤點
+
+  - id: SB-006
+    category: repo_identity
+    item: exact repository name
+    status: assumption
+    basis: 目前僅知 solution 主題為品質審查系統，未見正式 repo name
+    action_required: 以實際 repository name 覆蓋 quality-inspection-solution
