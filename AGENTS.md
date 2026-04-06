@@ -494,15 +494,27 @@ confirmed:
     framework: Spring Boot
     build_tool: Gradle (Groovy DSL)
     integration_baseline: must integrate with organization existing api-gateway
+    commands:
+      build: "./gradlew build"
+      test: "./gradlew test"
+      run: "./gradlew bootRun"
   frontend:
     framework: Angular 14
     architecture: microfrontend
     package_manager: npm
     build_dev_tool: Angular CLI
     state_management: NgRx
-    test_baseline: Karma + Jasmine
+    unit_test_baseline: Karma + Jasmine
+    e2e_test_baseline: Playwright
     module_federation_reference: "@angular-architects/module-federation"
     integration_baseline: must integrate with organization existing MFE shell
+    commands:
+      install: "npm install"
+      start: "npm start"
+      start_standalone: "npm run start:standalone"
+      build: "npm run build"
+      test: "npm test"
+      e2e: "npm run e2e"
   ui_governance:
     organization_ui_style: must align with organization existing UI style
     shared_ui_library: portal51-lib@0.0.16
@@ -519,6 +531,7 @@ confirmed:
 ```
 
 文件設計樹已存在且分層清楚。
+Backend / frontend 工程骨架已建立。
 
 ### 9.2 尚未確認
 
@@ -526,15 +539,12 @@ confirmed:
 
 ```yaml
 pending_confirmation:
-  - build_script_and_run_command
-  - test_script_and_run_command
   - lint_command
   - formatter_command
   - static_analysis_gate
   - ci_pipeline_entry
   - packaging_entry
-  - actual_backend_source_layout
-  - actual_frontend_source_layout
+  - backend_migration_tool
   - portal51_lib_component_level_usage_detail
   - organization_api_gateway_technical_detail_beyond_base_path
   - organization_mfe_shell_technical_detail_beyond_module_federation
@@ -546,7 +556,6 @@ pending_confirmation:
 
 ```yaml
 assumptions:
-  - implementation_skeleton_not_verified: true
   - organization_api_gateway_detail_beyond_base_path_not_to_be_fabricated: true
   - organization_mfe_shell_detail_beyond_module_federation_not_to_be_fabricated: true
   - portal51_lib_component_level_detail_not_to_be_fabricated: true
@@ -656,14 +665,16 @@ assumptions:
 
 本文件目前 **不宣稱** 以下事項已完成：
 
-* backend implementation skeleton 已存在
-* frontend implementation skeleton 已存在
-* build / test / run / lint / CI gate 已確認
+* build / test / run 已經過完整驗證（骨架已建立，但尚未在 CI 中確認）
+* lint / static analysis gate 已確認
 * organization existing api-gateway 的具體技術實作已確認
 * organization existing MFE shell 的具體技術實作已確認
 * organization existing UI component system 的具體細節已確認
 
 以下事項已確認：
+
+* backend implementation skeleton 已存在（Gradle + Spring Boot + layered packages）
+* frontend implementation skeleton 已存在（Angular 14 + NgRx + Karma/Jasmine + Playwright）
 
 * backend tech stack: Java + Spring Boot + Gradle (Groovy DSL)（已確認）
 * frontend tech stack: Angular 14 + microfrontend + npm + Angular CLI + NgRx + Karma/Jasmine（已確認）

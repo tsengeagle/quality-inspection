@@ -33,10 +33,22 @@
 - Backend: `services/quality-inspection-service/` — Java + Spring Boot + Gradle (Groovy DSL)
 - Frontend: `frontends/quality-inspection-frontend/` — Angular 14 (microfrontend) + npm + NgRx
 
-兩個 area 目前均有 README.md 與 CLAUDE.md，但 source tree 僅含 .gitkeep placeholder。
-Tech stack 已確認，build/test/lint/ci gates 尚未有 source evidence。
+兩個 area 均有 README.md、CLAUDE.md 與最小工程骨架。
+Tech stack 已確認，build/test/run 指令已建立。lint/static analysis/CI gates 尚未有 source evidence。
 
 ## Build / test / lint
 
-Backend: Gradle (Groovy DSL)。Frontend: npm + Angular CLI。Test baseline: Karma + Jasmine。
-目前無已確認的可執行 build、test、lint 指令。待工程骨架建立後更新。
+Backend:
+- Build: `cd services/quality-inspection-service && ./gradlew build`
+- Test: `cd services/quality-inspection-service && ./gradlew test`
+- Run: `cd services/quality-inspection-service && ./gradlew bootRun`
+
+Frontend:
+- Install: `cd frontends/quality-inspection-frontend && npm install`
+- Start: `cd frontends/quality-inspection-frontend && npm start`
+- Standalone: `cd frontends/quality-inspection-frontend && npm run start:standalone`
+- Build: `cd frontends/quality-inspection-frontend && npm run build`
+- Unit test: `cd frontends/quality-inspection-frontend && npm test`
+- E2E test: `cd frontends/quality-inspection-frontend && npm run e2e`
+
+Lint / formatter / static analysis 尚未設定。

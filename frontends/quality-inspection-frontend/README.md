@@ -135,29 +135,29 @@ frontend 實作應至少對應以下頁面或功能區：
 
 ---
 
-## 6. 預期前端分層
+## 6. 前端分層（實際骨架）
 
-以下是建議的 frontend 分層方向。  
-這是 implementation guide，不是已確認的 source tree 事實。
+工程骨架已建立，目前目錄結構：
 
 ```text
 frontends/quality-inspection-frontend
 ├─ src/
-│  ├─ app/ 或其他 frontend root
+│  ├─ app/
 │  │  ├─ shell/                 # layout / navigation / route container
-│  │  ├─ pages/                 # page-level screens
-│  │  ├─ features/              # business feature modules
-│  │  ├─ components/            # reusable ui components
-│  │  ├─ services/              # api clients / ui orchestration
-│  │  ├─ models/                # frontend DTO / view model
-│  │  ├─ guards/                # route / permission guard
-│  │  ├─ state/                 # client state if needed
-│  │  └─ utils/                 # formatters / helpers
-│  └─ test/
-│     ├─ unit/
-│     ├─ component/
-│     ├─ integration/
-│     └─ e2e/
+│  │  ├─ core/                  # singleton services / interceptors / guards
+│  │  ├─ shared/                # reusable UI components / pipes / directives
+│  │  └─ features/              # business feature modules (lazy-loaded)
+│  ├─ environments/             # environment configs (standalone / production)
+│  └─ assets/                   # static assets
+├─ e2e/
+│  └─ src/                      # Playwright e2e test files
+├─ package.json
+├─ angular.json
+├─ tsconfig.json
+├─ proxy.conf.json              # gateway-layer substitute (dev proxy)
+├─ karma.conf.js                # Karma + Jasmine unit test config
+├─ playwright.config.ts         # Playwright e2e config
+├─ webpack.config.js            # module federation config
 └─ README.md
 ```
 
@@ -310,9 +310,17 @@ confirmed:
   package_manager: npm
   build_dev_tool: Angular CLI
   state_management: NgRx
-  test_baseline: Karma + Jasmine
+  unit_test_baseline: Karma + Jasmine
+  e2e_test_baseline: Playwright
   module_federation_reference: "@angular-architects/module-federation"
   integration_baseline: must integrate with organization existing MFE shell
+  commands:
+    install: "npm install"
+    start: "npm start"
+    start_standalone: "npm run start:standalone"
+    build: "npm run build"
+    test: "npm test"
+    e2e: "npm run e2e"
   ui_governance:
     organization_ui_style: must align with organization existing UI style
     shared_ui_library: portal51-lib@0.0.16
@@ -347,12 +355,10 @@ confirmed:
 
 ```yaml
 pending_confirmation:
-  - e2e_test_tool
   - lint_tool
   - formatter
   - static_analysis_gate
   - ci_pipeline
-  - actual_source_layout
   - portal51_lib_component_level_usage_detail
   - exact_design_token_mechanism
   - organization_mfe_shell_technical_detail_beyond_module_federation
@@ -420,11 +426,10 @@ pending_confirmation:
 
 本 README 目前 **不宣稱** 以下事項已完成：
 
-* build / run / test 指令已確認
 * lint / static analysis gate 已確認
-* source tree 已落檔
+* CI pipeline 已確認
 * component library usage detail 已確認
-* route structure 已確認
-* framework-specific instructions 已存在
+* route structure 已完整
+* framework-specific instructions 已完整
 
-這些都待後續 implementation skeleton 建立後，再以 evidence 更新。
+工程骨架已建立，可使用 `npm install`、`npm start`、`npm test`、`npm run e2e`。

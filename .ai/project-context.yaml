@@ -152,27 +152,61 @@ architecture:
   backend:
     module_root: services/quality-inspection-service
     status: planned-path-confirmed
-    source_tree_status: pending_confirmation
+    source_tree_status: confirmed
     language: Java
     framework: Spring Boot
     build_tool: Gradle
     build_dsl: Groovy DSL
     tech_stack_status: confirmed
     integration_baseline: must integrate with organization existing api-gateway
+    skeleton:
+      build_file: build.gradle
+      settings_file: settings.gradle
+      gradle_wrapper: gradle/wrapper/gradle-wrapper.properties
+      application_entry: src/main/java/com/example/qualityinspection/QualityInspectionApplication.java
+      application_config: src/main/resources/application.yml
+      test_entry: src/test/java/com/example/qualityinspection/QualityInspectionApplicationTests.java
+      layers: [domain, application, interfaces, infrastructure, reporting]
+      package_root: com.example.qualityinspection
+    commands:
+      build: "./gradlew build"
+      test: "./gradlew test"
+      run: "./gradlew bootRun"
   frontend:
     module_root: frontends/quality-inspection-frontend
     status: planned-path-confirmed
-    source_tree_status: pending_confirmation
+    source_tree_status: confirmed
     framework: Angular
     baseline_version: Angular 14
     architecture_style: microfrontend
     package_manager: npm
     build_dev_tool: Angular CLI
     state_management: NgRx
-    test_baseline: Karma + Jasmine
+    unit_test_baseline: Karma + Jasmine
+    e2e_test_baseline: Playwright
     module_federation_reference: "@angular-architects/module-federation"
     tech_stack_status: confirmed
     integration_baseline: must integrate with organization existing MFE shell
+    skeleton:
+      package_json: package.json
+      angular_json: angular.json
+      tsconfig: tsconfig.json
+      proxy_config: proxy.conf.json
+      webpack_config: webpack.config.js
+      karma_config: karma.conf.js
+      playwright_config: playwright.config.ts
+      app_module: src/app/app.module.ts
+      app_component: src/app/app.component.ts
+      environments: [src/environments/environment.ts, src/environments/environment.prod.ts]
+      modules: [core, shared, features, shell]
+      e2e_root: e2e/src
+    commands:
+      install: "npm install"
+      start: "npm start"
+      start_standalone: "npm run start:standalone"
+      build: "npm run build"
+      test: "npm test"
+      e2e: "npm run e2e"
   microfrontend:
     status: confirmed
     basis: user confirmed Angular microfrontend architecture
@@ -283,14 +317,40 @@ quality_and_governance:
 
 gate_inventory:
   build:
-    status: pending_confirmation
-    evidence: no verified build entrypoint in provided source tree
+    backend:
+      status: confirmed
+      command: "./gradlew build"
+      evidence: build.gradle exists with Spring Boot 2.7.18 and Gradle 7.6.4
+    frontend:
+      status: confirmed
+      command: "npm run build"
+      evidence: package.json + angular.json exist with Angular 14 baseline
   test:
-    status: pending_confirmation
-    evidence: no verified runnable test entrypoint in provided source tree
+    backend:
+      status: confirmed
+      command: "./gradlew test"
+      evidence: QualityInspectionApplicationTests.java exists as smoke test
+    frontend_unit:
+      status: confirmed
+      command: "npm test"
+      evidence: karma.conf.js + src/test.ts + app.component.spec.ts exist
+    frontend_e2e:
+      status: confirmed
+      command: "npm run e2e"
+      evidence: playwright.config.ts + e2e/src/app.e2e-spec.ts exist
   run:
-    status: pending_confirmation
-    evidence: no verified runnable application entrypoint in provided source tree
+    backend:
+      status: confirmed
+      command: "./gradlew bootRun"
+      evidence: QualityInspectionApplication.java with @SpringBootApplication
+    frontend:
+      status: confirmed
+      command: "npm start"
+      evidence: angular.json serve target with proxy config
+    frontend_standalone:
+      status: confirmed
+      command: "npm run start:standalone"
+      evidence: angular.json standalone configuration exists
   lint:
     status: pending_confirmation
     evidence: no verified lint entrypoint in provided source tree
@@ -373,26 +433,40 @@ assumptions_and_pending_confirmation:
   - id: PC-007
     category: gate_inventory
     item: build/test/run/lint/static-analysis/ci entrypoints
-    status: pending_confirmation
+    status: partial
     basis: >
-      build 方向已確認（backend: Gradle, frontend: npm + Angular CLI），
-      test baseline 已確認（backend: 待 Spring Boot 預設, frontend: Karma + Jasmine），
-      但目前未有任何可執行工程入口的 source evidence
-    action_required: 待 implementation skeleton 建立後盤點
+      build / test / run gates 已透過 skeleton 建立 evidence。
+      backend: ./gradlew build / test / bootRun。
+      frontend: npm run build / test / start / start:standalone / e2e。
+      lint / static analysis / CI 仍無 evidence。
+    action_required: 待 lint / static analysis / CI 建立後完成盤點
 
   - id: PC-008
     category: source_tree
     item: backend actual source layout
-    status: pending_confirmation
-    basis: module path 已確認，但 src/main、src/test、config、migration layout 未見 evidence
-    action_required: 待 backend skeleton 建立後確認
+    status: confirmed
+    basis: >
+      skeleton 已建立：build.gradle, settings.gradle, application.yml,
+      QualityInspectionApplication.java, package-info.java for domain/application/interfaces/infrastructure/reporting,
+      QualityInspectionApplicationTests.java (context loads smoke test)
+    current_value: >
+      com.example.qualityinspection with layers: domain, application, interfaces, infrastructure, reporting.
+      Spring Boot 2.7.18, Java 11, Gradle 7.6.4.
 
   - id: PC-009
     category: source_tree
     item: frontend actual source layout
-    status: pending_confirmation
-    basis: module path 已確認，但 src/pages/features/components/services layout 未見 evidence
-    action_required: 待 frontend skeleton 建立後確認
+    status: confirmed
+    basis: >
+      skeleton 已建立：package.json, angular.json, tsconfig.json, proxy.conf.json,
+      karma.conf.js, playwright.config.ts, webpack.config.js,
+      src/app with modules: core, shared, features, shell,
+      src/environments with standalone/production flags,
+      e2e/src with smoke test
+    current_value: >
+      Angular 14 workspace with app modules: core, shared, features, shell.
+      NgRx store, module federation config, proxy for /api/quality-inspection/**,
+      Karma+Jasmine unit tests, Playwright e2e tests.
 
   - id: PC-010
     category: governance_baseline
@@ -524,11 +598,17 @@ assumptions_and_pending_confirmation:
     basis: user confirmed
     current_value: development substitute must simulate required auth header (api-key)
 
+  - id: PC-028
+    category: frontend_testing
+    item: frontend e2e test baseline
+    status: confirmed
+    basis: user confirmed
+    current_value: Playwright
+
 uncovered_scope:
-  - actual_build_and_test_scripts_not_yet_in_source_tree
   - lint_formatter_static_analysis_ci_not_yet_confirmed
   - organization_api_gateway_technical_details_beyond_base_path_and_auth_header_not_to_be_fabricated
   - organization_mfe_shell_technical_details_beyond_module_federation_reference_not_to_be_fabricated
   - portal51_lib_component_level_usage_detail_pending
-  - actual_backend_source_layout_not_yet_in_source_tree
-  - actual_frontend_source_layout_not_yet_in_source_tree
+  - backend_migration_tool_not_yet_confirmed
+  - backend_package_root_may_need_org_specific_adjustment

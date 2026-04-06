@@ -1,0 +1,11 @@
+{
+  "/api/quality-inspection": {
+    "target": "http://localhost:8080",
+    "secure": false,
+    "changeOrigin": true,
+    "headers": {
+      "api-key": "dev-local-api-key"
+    },
+    "logLevel": "debug"
+  }
+}

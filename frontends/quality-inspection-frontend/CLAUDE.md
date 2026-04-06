@@ -62,7 +62,7 @@ state/           # client state (不得冒充 domain truth)
 ## Build / test / lint
 
 Frontend tech stack 已確認為 Angular 14 (microfrontend) + npm + Angular CLI。
-State management: NgRx。Test baseline: Karma + Jasmine。
+State management: NgRx。Unit test baseline: Karma + Jasmine。E2E test baseline: Playwright。
 Module federation reference: @angular-architects/module-federation。
 Shared UI lib baseline: portal51-lib@0.0.16（wrapper/style 優先參考來源）。
 Integration baseline 為 organization existing MFE shell。
@@ -71,4 +71,16 @@ Formal API base path: `/api/quality-inspection/**`，required auth header: `api-
 開發期可使用 standalone mode 作為 shell-layer substitute（需模擬 user context），
 local dev proxy 作為 gateway-layer substitute（需模擬 api-key header）。
 component-level 使用細節（wrapper pattern、design token）待確認。
-目前無已確認的可執行 build、test、lint 指令（待工程骨架建立後確認）。
+
+Commands:
+- Install: `npm install`
+- Start: `npm start`
+- Standalone: `npm run start:standalone`
+- Build: `npm run build`
+- Unit test: `npm test`
+- E2E test: `npm run e2e`
+
+App modules: core, shared, features, shell
+Environments: standalone (development) / production (integrated)
+
+Lint / formatter / static analysis 尚未設定。

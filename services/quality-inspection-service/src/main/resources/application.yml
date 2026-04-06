@@ -1,0 +1,22 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/quality-inspection
+
+spring:
+  application:
+    name: quality-inspection-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+---
+# Local development profile
+spring:
+  config:
+    activate:
+      on-profile: local
+
+# NOTE: In production, this service sits behind the organization existing API Gateway.
+# The API Gateway enforces auth via api-key header.
+# In local development mode, direct calls or a local dev proxy may be used
+# as a gateway-layer substitute. See AGENTS.md §9.4 for layered substitute strategy.

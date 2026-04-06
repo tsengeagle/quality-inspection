@@ -138,27 +138,29 @@ backend 實作應至少對應以下 bounded contexts：
 
 ---
 
-## 6. 預期後端分層
+## 6. 後端分層（實際骨架）
 
-以下是建議的 backend 分層方向。  
-這是 implementation guide，不是已確認的 source tree 事實。
+工程骨架已建立，目前目錄結構：
 
 ```text
 services/quality-inspection-service
 ├─ src/
 │  ├─ main/
-│  │  ├─ java/... 或其他 backend 語言 root
+│  │  ├─ java/com/example/qualityinspection/
+│  │  │  ├─ QualityInspectionApplication.java   # Spring Boot entry
 │  │  │  ├─ interfaces/         # controller / web / dto / authorization entry
 │  │  │  ├─ application/        # use cases / orchestration / command handlers
 │  │  │  ├─ domain/             # aggregates / entities / value objects / policies
 │  │  │  ├─ infrastructure/     # persistence / external adapters / config
 │  │  │  └─ reporting/          # read model / query projection / report support
 │  │  └─ resources/
+│  │     └─ application.yml     # server config (context-path: /api/quality-inspection)
 │  └─ test/
-│     ├─ unit/
-│     ├─ integration/
-│     ├─ contract/
-│     └─ acceptance/
+│     └─ java/com/example/qualityinspection/
+│        └─ QualityInspectionApplicationTests.java  # context loads smoke test
+├─ build.gradle                 # Spring Boot 2.7.18, Java 11
+├─ settings.gradle
+├─ gradle/wrapper/gradle-wrapper.properties  # Gradle 7.6.4
 └─ README.md
 ```
 
@@ -287,9 +289,18 @@ confirmed:
   backend_language: Java
   backend_framework: Spring Boot
   build_tool: Gradle (Groovy DSL)
+  spring_boot_version: 2.7.18
+  java_version: 11
+  gradle_version: 7.6.4
   integration_baseline: must integrate with organization existing api-gateway
   api_base_path: "/api/quality-inspection/**"
   required_auth_header: api-key
+  package_root: com.example.qualityinspection
+  layers: [domain, application, interfaces, infrastructure, reporting]
+  commands:
+    build: "./gradlew build"
+    test: "./gradlew test"
+    run: "./gradlew bootRun"
   development_mode:
     gateway_layer_substitute: >
       local dev proxy 可模擬 api-gateway，須至少模擬 api-key header。
@@ -306,13 +317,11 @@ confirmed:
 
 ```yaml
 pending_confirmation:
-  - test_runner
   - lint_tool
   - formatter
   - static_analysis_gate
   - ci_pipeline
   - migration_tool
-  - actual_package_layout
   - organization_api_gateway_technical_detail_beyond_base_path_and_auth_header
 ```
 
@@ -377,10 +386,9 @@ pending_confirmation:
 
 本 README 目前 **不宣稱** 以下事項已完成：
 
-* build / test / run 指令已確認
 * lint / static analysis gate 已確認
-* source tree 已落檔
 * migration / DB tool 已確認
-* framework-specific instructions 已存在
+* CI pipeline 已確認
+* framework-specific instructions 已完整
 
-這些都待後續 implementation skeleton 建立後，再以 evidence 更新。
+工程骨架已建立，可使用 `./gradlew build`、`./gradlew test`、`./gradlew bootRun`。
