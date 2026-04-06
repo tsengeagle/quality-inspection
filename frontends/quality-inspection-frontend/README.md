@@ -301,13 +301,38 @@ frontend 實作應以 docs/04-testing 為上游，建立至少以下測試層級
 
 ## 11. Build / Test / Run / Gate Status
 
-目前以下事項 **尚未確認**，不得在本 README 中宣稱已存在：
+### 11.1 已確認
 
-```yaml id="qajc7h"
+```yaml
+confirmed:
+  frontend_framework: Angular
+  frontend_architecture: microfrontend
+  integration_baseline: must integrate with organization existing MFE shell
+  ui_guidance: must align with organization existing UI style
+  development_mode:
+    shell_layer_substitute: >
+      standalone mode 作為 MFE shell 開發期替身。
+      frontend 同時考慮 standalone mode 與 future MFE integrated mode。
+      standalone mode 不代表正式架構非 MFE。
+    gateway_layer_substitute: >
+      local dev proxy 模擬 api-gateway。
+      frontend 仍使用正式 gateway-style API path，不得寫死 backend 直連 URL。
+  ui_component_detail:
+    status: pending_confirmation
+    note: >
+      frontend 必須參考組織內既有 UI 風格，但具體元件庫、design token、
+      wrapper pattern 尚無 source evidence。
+      若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
+```
+
+### 11.2 尚未確認
+
+以下事項 **尚未確認**，不得在本 README 中宣稱已存在：
+
+```yaml
 pending_confirmation:
-  - frontend_framework
+  - package_manager (npm / yarn / pnpm)
   - build_tool
-  - package_manager
   - test_runner
   - component_test_tool
   - e2e_test_tool
@@ -316,6 +341,11 @@ pending_confirmation:
   - static_analysis_gate
   - ci_pipeline
   - actual_source_layout
+  - concrete_component_library_detail
+  - exact_design_token_mechanism
+  - state_management_library
+  - organization_mfe_shell_technical_detail
+  - organization_ui_component_system_technical_detail
 ```
 
 若後續 source tree 建立並證實上述項目，應再回來更新本文件。

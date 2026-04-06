@@ -217,9 +217,9 @@ assumptions_and_pending_confirmation:
   - id: FB-002
     category: tech_stack
     item: frontend framework
-    status: pending_confirmation
-    basis: 尚未看到 framework evidence
-    action_required: 待 source files 或 build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Angular
 
   - id: FB-003
     category: build_tool
@@ -246,8 +246,12 @@ assumptions_and_pending_confirmation:
     category: ui_library
     item: actual component library / design system implementation
     status: pending_confirmation
-    basis: UI 文件已存在，但實際前端元件庫與落地方式尚未驗證
-    action_required: 待 frontend skeleton 或 design system 接入策略確認後補齊
+    basis: >
+      UI 文件已存在，frontend 必須參考組織內既有 UI 風格，
+      但實際元件庫、design token、wrapper pattern 尚未驗證
+    action_required: >
+      若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
+      待 frontend skeleton 或 design system 接入策略確認後補齊。
 
   - id: FB-007
     category: state_management
@@ -262,3 +266,44 @@ assumptions_and_pending_confirmation:
     status: confirmed
     basis: git remote 顯示為 tsengeagle/quality-inspection
     current_value: quality-inspection
+
+  - id: FB-009
+    category: frontend_architecture
+    item: microfrontend architecture
+    status: confirmed
+    basis: user confirmed
+    current_value: microfrontend
+
+  - id: FB-010
+    category: frontend_integration
+    item: frontend integration baseline
+    status: confirmed
+    basis: user confirmed
+    current_value: must integrate with organization existing MFE shell
+
+  - id: FB-011
+    category: development_mode
+    item: shell-layer substitute (standalone mode)
+    status: confirmed
+    basis: user confirmed
+    current_value: >
+      開發期 frontend 可使用 standalone mode 作為 MFE shell 替身。
+      frontend 同時考慮 standalone mode 與 future MFE integrated mode。
+
+  - id: FB-012
+    category: development_mode
+    item: gateway-layer substitute (proxy)
+    status: confirmed
+    basis: user confirmed
+    current_value: >
+      開發期可使用 local dev proxy 模擬 api-gateway。
+      frontend 仍使用正式 gateway-style API path。
+
+  - id: FB-013
+    category: ui_guidance
+    item: organization UI style alignment
+    status: confirmed
+    basis: user confirmed
+    current_value: >
+      frontend 必須參考組織內既有 UI 風格。
+      具體元件庫、design token、wrapper pattern 細節仍為 pending confirmation (FB-006)。

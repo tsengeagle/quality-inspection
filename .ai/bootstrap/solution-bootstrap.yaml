@@ -131,14 +131,20 @@ working_conventions:
 
 implementation_areas:
   backend_area:
-    status: pending_confirmation
-    note: backend implementation area 尚未在本 bootstrap 中視為已確認存在
+    status: confirmed
+    path: services/quality-inspection-service
+    language: Java
+    framework: Spring Boot
+    integration_baseline: must integrate with organization existing api-gateway
   frontend_area:
-    status: pending_confirmation
-    note: frontend implementation area 尚未在本 bootstrap 中視為已確認存在
+    status: confirmed
+    path: frontends/quality-inspection-frontend
+    framework: Angular
+    architecture: microfrontend
+    integration_baseline: must integrate with organization existing MFE shell
   source_code_layout:
     status: pending_confirmation
-    note: 尚未確認實際 source root、build tool、test runner、lint tool 與 CI layout
+    note: 實際 source root、build tool、test runner、lint tool 與 CI layout 尚未確認
 
 ai_governance:
   pilot_scope: solution-level-bootstrap
@@ -158,21 +164,27 @@ ai_governance:
 confirmed_now:
   - SB-001 backend_area_path = services/quality-inspection-service
   - SB-002 frontend_area_path = frontends/quality-inspection-frontend
+  - SB-003 backend_stack = Java + Spring Boot
+  - SB-004 frontend_stack = Angular (microfrontend)
+  - SB-007 backend_integration = organization existing api-gateway
+  - SB-008 frontend_integration = organization existing MFE shell
+  - SB-009 development_mode = proxy + standalone mode
+  - SB-010 ui_guidance = must align with organization existing UI style
 
 assumptions_and_pending_confirmation:
   - id: SB-003
     category: tech_stack
     item: backend stack
-    status: pending_confirmation
-    basis: 目前僅能確認文件 authority，無 source evidence 可驗證實際後端技術棧
-    action_required: 待 backend implementation skeleton 或 build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Java + Spring Boot
 
   - id: SB-004
     category: tech_stack
     item: frontend stack
-    status: pending_confirmation
-    basis: 目前僅能確認文件 authority，無 source evidence 可驗證實際前端技術棧
-    action_required: 待 frontend implementation skeleton 或 package/build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Angular (microfrontend)
 
   - id: SB-005
     category: gate_inventory

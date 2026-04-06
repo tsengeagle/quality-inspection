@@ -207,16 +207,16 @@ assumptions_and_pending_confirmation:
   - id: BB-002
     category: tech_stack
     item: backend language
-    status: pending_confirmation
-    basis: 尚未看到 source files 或 build files
-    action_required: 待 source 或 build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Java
 
   - id: BB-003
     category: tech_stack
     item: backend framework
-    status: pending_confirmation
-    basis: 尚未看到 framework evidence
-    action_required: 待 source 或 build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Spring Boot
 
   - id: BB-004
     category: build_tool
@@ -259,3 +259,28 @@ assumptions_and_pending_confirmation:
     status: confirmed
     basis: git remote 顯示為 tsengeagle/quality-inspection
     current_value: quality-inspection
+
+  - id: BB-010
+    category: backend_integration
+    item: backend integration baseline
+    status: confirmed
+    basis: user confirmed
+    current_value: must integrate with organization existing api-gateway
+
+  - id: BB-011
+    category: development_mode
+    item: gateway-layer substitute
+    status: confirmed
+    basis: user confirmed
+    current_value: >
+      開發期可使用 local dev proxy 模擬 api-gateway。
+      正式 service boundary 不變，proxy 僅作 development substitute。
+
+  - id: BB-012
+    category: development_mode
+    item: upstream-service substitute
+    status: confirmed
+    basis: user confirmed
+    current_value: >
+      upstream service 不足時可採 adapter-level stub / mock provider。
+      interface / adapter boundary 保持不變，production 與 dev stub 分離。

@@ -30,10 +30,11 @@
 
 ## Implementation areas
 
-- Backend: `services/quality-inspection-service/`
-- Frontend: `frontends/quality-inspection-frontend/`
+- Backend: `services/quality-inspection-service/` — Java + Spring Boot
+- Frontend: `frontends/quality-inspection-frontend/` — Angular (microfrontend)
 
-兩個 area 目前均僅有 README.md，tech stack 與 build/test/lint/ci gates 尚未確認。
+兩個 area 目前均有 README.md 與 CLAUDE.md，但 source tree 僅含 .gitkeep placeholder。
+Tech stack 已確認（Java/Spring Boot、Angular/microfrontend），build/test/lint/ci gates 尚未確認。
 
 ## Build / test / lint
 

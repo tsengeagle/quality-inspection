@@ -61,5 +61,7 @@ state/           # client state (不得冒充 domain truth)
 
 ## Build / test / lint
 
-目前 tech stack 尚未確認。無已確認的 build、test、lint 指令。
-待工程骨架建立後更新本文件。
+Frontend tech stack 已確認為 Angular (microfrontend)，integration baseline 為 organization existing MFE shell。
+開發期可使用 standalone mode 作為 shell-layer substitute，local dev proxy 作為 gateway-layer substitute。
+Frontend 必須參考組織內既有 UI 風格；具體元件庫、design token 細節待確認。
+目前無已確認的 build、test、lint 指令（package manager / test runner / lint tool 待工程骨架建立後確認）。

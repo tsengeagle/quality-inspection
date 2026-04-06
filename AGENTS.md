@@ -485,7 +485,26 @@ revision 歷程頁規格。
 
 ### 9.1 已確認狀態
 
-目前依你提供的實際結構，可確認的是 **文件設計樹已存在且分層清楚**。
+目前已確認的 tech stack 與 integration baseline：
+
+```yaml
+confirmed:
+  backend:
+    language: Java
+    framework: Spring Boot
+    integration_baseline: must integrate with organization existing api-gateway
+  frontend:
+    framework: Angular
+    architecture: microfrontend
+    integration_baseline: must integrate with organization existing MFE shell
+  ui_guidance: must align with organization existing UI style
+  development_mode:
+    gateway_layer_substitute: local dev proxy
+    shell_layer_substitute: standalone mode
+    upstream_substitute: adapter-level stub / mock provider
+```
+
+文件設計樹已存在且分層清楚。
 
 ### 9.2 尚未確認
 
@@ -493,8 +512,6 @@ revision 歷程頁規格。
 
 ```yaml
 pending_confirmation:
-  - backend_source_root
-  - frontend_source_root
   - build_command
   - test_command
   - run_command
@@ -503,6 +520,15 @@ pending_confirmation:
   - static_analysis_gate
   - ci_pipeline_entry
   - packaging_entry
+  - actual_backend_source_layout
+  - actual_frontend_source_layout
+  - build_tool (Maven / Gradle)
+  - package_manager (npm / yarn / pnpm)
+  - component_library_detail
+  - design_token_mechanism
+  - state_management_library
+  - organization_api_gateway_technical_detail
+  - organization_mfe_shell_technical_detail
 ```
 
 ### 9.3 不得自行假設
@@ -511,11 +537,38 @@ pending_confirmation:
 
 ```yaml
 assumptions:
-  - backend_stack_unknown: true
-  - frontend_stack_unknown: true
   - monorepo_runtime_layout_unknown: true
   - implementation_skeleton_not_verified: true
+  - organization_api_gateway_detail_not_to_be_fabricated: true
+  - organization_mfe_shell_detail_not_to_be_fabricated: true
+  - organization_ui_component_detail_not_to_be_fabricated: true
 ```
+
+### 9.4 分層替身策略
+
+正式拓樸不因開發便利而改變。開發期若正式 shell / gateway / upstream services 尚未齊備，
+採用分層替身策略。原則：
+
+1. 正式 contract 與 integration boundary 不變
+2. 以可控替身模擬缺的那一層
+3. 替身僅限 development / non-production
+4. 不得讓替身策略污染正式 architecture 描述
+
+替身配置：
+
+| Layer | 正式目標 | 開發期替身 | 限制 |
+|-------|----------|-----------|------|
+| Gateway | organization existing API Gateway | local dev proxy | 不得寫死 backend 直連 URL |
+| Shell | organization existing MFE shell | standalone mode | 不代表正式架構非 MFE |
+| Upstream | 正式 upstream services | adapter-level stub / mock | 不得把 stub 寫成業務真相 |
+
+開發模式：
+
+| Mode | 用途 | 拓樸 |
+|------|------|------|
+| Backend-only | 後端先行開發 | test client → local service |
+| Frontend standalone | 前端先行開發 | Browser → Angular standalone → dev proxy → local service |
+| Integrated | 正式整合驗證 | Browser → MFE shell → API Gateway → service |
 
 ---
 
@@ -589,11 +642,19 @@ assumptions:
 
 * backend implementation skeleton 已存在
 * frontend implementation skeleton 已存在
-* Spring Boot / Angular / 其他技術棧已確認
 * build / test / run / lint / CI gate 已確認
+* organization existing api-gateway 的具體技術實作已確認
+* organization existing MFE shell 的具體技術實作已確認
+* organization existing UI component system 的具體細節已確認
 
-以下事項已確認存在：
+以下事項已確認：
 
+* backend tech stack: Java + Spring Boot（已確認）
+* frontend tech stack: Angular + microfrontend（已確認）
+* backend integration baseline: must integrate with organization existing api-gateway（已確認）
+* frontend integration baseline: must integrate with organization existing MFE shell（已確認）
+* development mode: proxy + standalone mode（已確認）
+* UI guidance: must align with organization existing UI style（已確認）
 * `.ai/rules/repo-hard-rules.md` — canonical hard rules source 已存在
 * `.ai/bootstrap/*` — solution / backend / frontend bootstrap 均已存在
 * `.ai/prompts/*` — solution / backend / frontend init prompt 均已存在

@@ -153,28 +153,71 @@ architecture:
     module_root: services/quality-inspection-service
     status: planned-path-confirmed
     source_tree_status: pending_confirmation
-    tech_stack_status: pending_confirmation
+    language: Java
+    framework: Spring Boot
+    tech_stack_status: confirmed
+    integration_baseline: must integrate with organization existing api-gateway
   frontend:
     module_root: frontends/quality-inspection-frontend
     status: planned-path-confirmed
     source_tree_status: pending_confirmation
-    tech_stack_status: pending_confirmation
+    framework: Angular
+    architecture_style: microfrontend
+    tech_stack_status: confirmed
+    integration_baseline: must integrate with organization existing MFE shell
   microfrontend:
-    status: not_verifiable_in_this_run
-    basis: no frontend source evidence yet
+    status: confirmed
+    basis: user confirmed Angular microfrontend architecture
   ui_governance:
     status: partial
     authority:
       - docs/05-ui/ui-information-architecture.md
       - docs/05-ui/ui-page-inventory.md
       - docs/05-ui/ui-page-spec-*.md
+    organization_ui_style: must align with organization existing UI style
     note: >
-      UI authority 已存在，但企業元件庫、design token、wrapper pattern、
-      microfrontend 與 framework evidence 尚未由 source tree 證實。
+      UI authority 已存在。frontend 必須參考組織內既有 UI 風格。
+      企業元件庫、design token、wrapper pattern 細節尚未由 source tree 證實，
+      保留為 pending confirmation。若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
+  development_mode:
+    formal_topology:
+      frontend: Angular microfrontend -> organization existing MFE shell
+      backend: Java Spring Boot service -> organization existing API Gateway
+      note: 正式拓樸不因開發便利而改變。
+    layered_substitute_strategy:
+      principle: >
+        開發期若正式 shell / gateway / upstream services 尚未齊備，
+        採用分層替身策略：正式 contract 與 integration boundary 不變，
+        以可控替身模擬缺的那一層，替身僅限 development / non-production。
+      gateway_layer_substitute:
+        method: local dev proxy
+        rule: >
+          frontend 仍使用正式 gateway-style API path，不得寫死 backend service 直連 URL。
+          proxy 僅作 development substitute，不得寫成正式 topology。
+      shell_layer_substitute:
+        method: standalone mode
+        rule: >
+          frontend 同時考慮 standalone mode 與 future MFE integrated mode。
+          standalone mode 是開發期替身，不代表正式架構不是 MFE。
+      upstream_service_substitute:
+        method: adapter-level stub / mock provider
+        rule: >
+          interface / adapter boundary 保持不變，production 與 dev stub 分離。
+          不得把 stub 行為寫成正式業務真相。
+    modes:
+      - name: backend-only mode
+        purpose: 後端先行開發 domain / application / API / persistence / tests
+        topology: test client -> local quality-inspection-service
+      - name: frontend standalone mode
+        purpose: 前端先行開發 page flow / UI state / API integration
+        topology: Browser -> Angular standalone app -> local dev proxy -> local quality-inspection-service
+      - name: integrated mode
+        purpose: 驗證 MFE shell + API Gateway + backend service 的正式整合
+        topology: Browser -> organization MFE shell -> API Gateway -> quality-inspection-service
 
 constraints:
   must_follow:
-    - ai/project-context.yaml_is_first_priority_project_context
+    - .ai/project-context.yaml_is_first_priority_project_context
     - respect_existing_document_roles
     - archive_is_not_current_authority
     - cannot_claim_verified_without_evidence
@@ -262,37 +305,41 @@ assumptions_and_pending_confirmation:
   - id: PC-002
     category: backend_stack
     item: backend language
-    status: pending_confirmation
-    basis: backend module path 已確認，但無 source/build evidence
-    action_required: 待 backend skeleton 或 build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Java
 
   - id: PC-003
     category: backend_stack
     item: backend framework
-    status: pending_confirmation
-    basis: backend module path 已確認，但無 framework evidence
-    action_required: 待 backend skeleton 或 build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Spring Boot
 
   - id: PC-004
     category: frontend_stack
     item: frontend framework
-    status: pending_confirmation
-    basis: frontend module path 已確認，但無 source/build evidence
-    action_required: 待 frontend skeleton 或 build files 出現後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Angular
 
   - id: PC-005
     category: frontend_governance
     item: microfrontend applicability
-    status: not_verifiable_in_this_run
-    basis: 目前僅有 UI docs，缺乏 frontend source evidence
-    action_required: 待 frontend source tree 建立後判定
+    status: confirmed
+    basis: user confirmed Angular microfrontend architecture
+    current_value: microfrontend
 
   - id: PC-006
     category: frontend_governance
     item: enterprise UI component source / design token / wrapper pattern
     status: pending_confirmation
-    basis: UI page spec 已存在，但缺乏工程實作 evidence
-    action_required: 待 frontend skeleton 或 component strategy 確認後補齊
+    basis: >
+      UI page spec 已存在，frontend 必須參考組織內既有 UI 風格，
+      但具體元件庫、design token、wrapper pattern 尚無 source evidence
+    action_required: >
+      若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
+      待 frontend skeleton 或 component strategy 確認後補齊。
 
   - id: PC-007
     category: gate_inventory
@@ -318,12 +365,51 @@ assumptions_and_pending_confirmation:
   - id: PC-010
     category: governance_baseline
     item: governance / workflow / shared baseline fully readable from bootstrap
-    status: pending_confirmation
-    basis: bootstrap and baseline reading has not been fully evidenced in this run
-    action_required: 待正式 init 執行時確認 baseline 可讀性與收斂程度
+    status: confirmed
+    basis: solution / backend / frontend init convergence completed
+    current_value: governance baseline readable and converged
+
+  - id: PC-011
+    category: backend_integration
+    item: backend integration baseline
+    status: confirmed
+    basis: user confirmed
+    current_value: must integrate with organization existing api-gateway
+
+  - id: PC-012
+    category: frontend_integration
+    item: frontend integration baseline
+    status: confirmed
+    basis: user confirmed
+    current_value: must integrate with organization existing MFE shell
+
+  - id: PC-013
+    category: development_mode
+    item: gateway-layer substitute (proxy)
+    status: confirmed
+    basis: user confirmed
+    current_value: local dev proxy may simulate api-gateway during development
+
+  - id: PC-014
+    category: development_mode
+    item: shell-layer substitute (standalone mode)
+    status: confirmed
+    basis: user confirmed
+    current_value: frontend supports standalone mode during development
+
+  - id: PC-015
+    category: ui_guidance
+    item: organization UI style alignment
+    status: confirmed
+    basis: user confirmed
+    current_value: frontend must align with organization existing UI style
+    note: >
+      具體 UI component / design token / wrapper pattern 細節仍為 pending confirmation (PC-006)。
+      若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
 
 uncovered_scope:
-  - backend_tech_stack_not_yet_confirmed
-  - frontend_tech_stack_not_yet_confirmed
   - build_test_lint_ci_gates_not_yet_confirmed
   - actual_build_and_test_commands_not_verified
+  - organization_api_gateway_technical_details_not_to_be_fabricated
+  - organization_mfe_shell_technical_details_not_to_be_fabricated
+  - organization_ui_component_system_details_not_to_be_fabricated
