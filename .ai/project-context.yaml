@@ -155,6 +155,8 @@ architecture:
     source_tree_status: pending_confirmation
     language: Java
     framework: Spring Boot
+    build_tool: Gradle
+    build_dsl: Groovy DSL
     tech_stack_status: confirmed
     integration_baseline: must integrate with organization existing api-gateway
   frontend:
@@ -162,7 +164,13 @@ architecture:
     status: planned-path-confirmed
     source_tree_status: pending_confirmation
     framework: Angular
+    baseline_version: Angular 14
     architecture_style: microfrontend
+    package_manager: npm
+    build_dev_tool: Angular CLI
+    state_management: NgRx
+    test_baseline: Karma + Jasmine
+    module_federation_reference: "@angular-architects/module-federation"
     tech_stack_status: confirmed
     integration_baseline: must integrate with organization existing MFE shell
   microfrontend:
@@ -175,15 +183,32 @@ architecture:
       - docs/05-ui/ui-page-inventory.md
       - docs/05-ui/ui-page-spec-*.md
     organization_ui_style: must align with organization existing UI style
+    shared_ui_library:
+      name: portal51-lib
+      version: "0.0.16"
+      role: shared UI library baseline and wrapper/style priority reference
+      status: confirmed
     note: >
       UI authority 已存在。frontend 必須參考組織內既有 UI 風格。
-      企業元件庫、design token、wrapper pattern 細節尚未由 source tree 證實，
-      保留為 pending confirmation。若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
+      portal51-lib@0.0.16 已確認為 shared UI library baseline 與 wrapper/style 優先參考來源。
+      component-level 使用細節（具體 wrapper pattern、design token mechanism）
+      仍為 pending confirmation。若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
   development_mode:
     formal_topology:
       frontend: Angular microfrontend -> organization existing MFE shell
       backend: Java Spring Boot service -> organization existing API Gateway
       note: 正式拓樸不因開發便利而改變。
+    api_baseline:
+      formal_base_path: "/api/quality-inspection/**"
+      required_auth_header: api-key
+      note: >
+        正式 API 經由 organization existing API Gateway 提供，
+        base path 為 /api/quality-inspection/**，必須攜帶 api-key header。
+    shell_baseline:
+      shell_provides: login and user context
+      note: >
+        organization existing MFE shell 負責完成登入並提供 user context。
+        frontend 在 standalone mode 需自行模擬 user context。
     layered_substitute_strategy:
       principle: >
         開發期若正式 shell / gateway / upstream services 尚未齊備，
@@ -192,13 +217,16 @@ architecture:
       gateway_layer_substitute:
         method: local dev proxy
         rule: >
-          frontend 仍使用正式 gateway-style API path，不得寫死 backend service 直連 URL。
+          frontend 仍使用正式 gateway-style API path（/api/quality-inspection/**），
+          不得寫死 backend service 直連 URL。
+          proxy 須至少模擬必要 auth header（api-key）。
           proxy 僅作 development substitute，不得寫成正式 topology。
       shell_layer_substitute:
         method: standalone mode
         rule: >
           frontend 同時考慮 standalone mode 與 future MFE integrated mode。
           standalone mode 是開發期替身，不代表正式架構不是 MFE。
+          standalone mode 需自行模擬 shell 原本提供的 user context。
       upstream_service_substitute:
         method: adapter-level stub / mock provider
         rule: >
@@ -332,20 +360,24 @@ assumptions_and_pending_confirmation:
 
   - id: PC-006
     category: frontend_governance
-    item: enterprise UI component source / design token / wrapper pattern
-    status: pending_confirmation
+    item: enterprise UI component usage detail / design token / wrapper pattern
+    status: partial
     basis: >
-      UI page spec 已存在，frontend 必須參考組織內既有 UI 風格，
-      但具體元件庫、design token、wrapper pattern 尚無 source evidence
+      portal51-lib@0.0.16 已確認為 shared UI library baseline 與 wrapper/style 優先參考來源。
+      但 component-level 使用細節（具體 wrapper pattern、design token mechanism）仍缺 source evidence。
+    current_value: portal51-lib@0.0.16 is the shared UI lib baseline
     action_required: >
+      component-level detail 保留 pending confirmation。
       若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
-      待 frontend skeleton 或 component strategy 確認後補齊。
 
   - id: PC-007
     category: gate_inventory
     item: build/test/run/lint/static-analysis/ci entrypoints
     status: pending_confirmation
-    basis: 目前未提供任何可執行工程入口 evidence
+    basis: >
+      build 方向已確認（backend: Gradle, frontend: npm + Angular CLI），
+      test baseline 已確認（backend: 待 Spring Boot 預設, frontend: Karma + Jasmine），
+      但目前未有任何可執行工程入口的 source evidence
     action_required: 待 implementation skeleton 建立後盤點
 
   - id: PC-008
@@ -404,12 +436,99 @@ assumptions_and_pending_confirmation:
     basis: user confirmed
     current_value: frontend must align with organization existing UI style
     note: >
-      具體 UI component / design token / wrapper pattern 細節仍為 pending confirmation (PC-006)。
+      portal51-lib@0.0.16 已確認為 shared UI lib baseline。
+      具體 component-level 使用 / design token / wrapper pattern 細節仍為 pending confirmation (PC-006)。
       若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
 
+  - id: PC-016
+    category: backend_build
+    item: backend build tool
+    status: confirmed
+    basis: user confirmed
+    current_value: Gradle with Groovy DSL
+
+  - id: PC-017
+    category: frontend_package_manager
+    item: frontend package manager
+    status: confirmed
+    basis: user confirmed
+    current_value: npm
+
+  - id: PC-018
+    category: frontend_build
+    item: frontend build/dev tool
+    status: confirmed
+    basis: user confirmed
+    current_value: Angular CLI
+
+  - id: PC-019
+    category: frontend_stack
+    item: frontend baseline version
+    status: confirmed
+    basis: user confirmed
+    current_value: Angular 14
+
+  - id: PC-020
+    category: frontend_stack
+    item: frontend state management
+    status: confirmed
+    basis: user confirmed
+    current_value: NgRx
+
+  - id: PC-021
+    category: frontend_stack
+    item: frontend default test baseline
+    status: confirmed
+    basis: user confirmed
+    current_value: Karma + Jasmine
+
+  - id: PC-022
+    category: frontend_architecture
+    item: module federation reference
+    status: confirmed
+    basis: organization existing MFE reference evidence
+    current_value: "@angular-architects/module-federation"
+
+  - id: PC-023
+    category: frontend_governance
+    item: shared UI library baseline
+    status: confirmed
+    basis: organization frontend baseline evidence
+    current_value: portal51-lib@0.0.16
+
+  - id: PC-024
+    category: shell_auth
+    item: shell provides login and user context
+    status: confirmed
+    basis: user confirmed
+    current_value: shell completes login and provides user context to microfrontends
+
+  - id: PC-025
+    category: api_baseline
+    item: formal API base path
+    status: confirmed
+    basis: user confirmed
+    current_value: "/api/quality-inspection/**"
+
+  - id: PC-026
+    category: api_baseline
+    item: required auth header
+    status: confirmed
+    basis: user confirmed
+    current_value: api-key
+
+  - id: PC-027
+    category: development_mode
+    item: dev proxy auth simulation
+    status: confirmed
+    basis: user confirmed
+    current_value: development substitute must simulate required auth header (api-key)
+
 uncovered_scope:
-  - build_test_lint_ci_gates_not_yet_confirmed
-  - actual_build_and_test_commands_not_verified
-  - organization_api_gateway_technical_details_not_to_be_fabricated
-  - organization_mfe_shell_technical_details_not_to_be_fabricated
-  - organization_ui_component_system_details_not_to_be_fabricated
+  - actual_build_and_test_scripts_not_yet_in_source_tree
+  - lint_formatter_static_analysis_ci_not_yet_confirmed
+  - organization_api_gateway_technical_details_beyond_base_path_and_auth_header_not_to_be_fabricated
+  - organization_mfe_shell_technical_details_beyond_module_federation_reference_not_to_be_fabricated
+  - portal51_lib_component_level_usage_detail_pending
+  - actual_backend_source_layout_not_yet_in_source_tree
+  - actual_frontend_source_layout_not_yet_in_source_tree

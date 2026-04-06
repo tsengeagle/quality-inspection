@@ -286,10 +286,15 @@ backend 實作應以 docs/04-testing 為上游，建立至少以下測試層級�
 confirmed:
   backend_language: Java
   backend_framework: Spring Boot
+  build_tool: Gradle (Groovy DSL)
   integration_baseline: must integrate with organization existing api-gateway
+  api_base_path: "/api/quality-inspection/**"
+  required_auth_header: api-key
   development_mode:
-    gateway_layer_substitute: local dev proxy 可模擬 api-gateway
-    upstream_substitute: adapter-level stub / mock provider 可模擬尚未齊備的 upstream services
+    gateway_layer_substitute: >
+      local dev proxy 可模擬 api-gateway，須至少模擬 api-key header。
+    upstream_substitute: >
+      adapter-level stub / mock provider 可模擬尚未齊備的 upstream services。
   note: >
     正式 service boundary 不變。proxy 與 stub 僅作 development substitute，
     不得寫成正式 topology 或業務真相。
@@ -301,7 +306,6 @@ confirmed:
 
 ```yaml
 pending_confirmation:
-  - build_tool (Maven / Gradle)
   - test_runner
   - lint_tool
   - formatter
@@ -309,7 +313,7 @@ pending_confirmation:
   - ci_pipeline
   - migration_tool
   - actual_package_layout
-  - organization_api_gateway_technical_detail
+  - organization_api_gateway_technical_detail_beyond_base_path_and_auth_header
 ```
 
 若後續 source tree 建立並證實上述項目，應再回來更新本文件。
@@ -373,7 +377,6 @@ pending_confirmation:
 
 本 README 目前 **不宣稱** 以下事項已完成：
 
-* backend stack 已確認
 * build / test / run 指令已確認
 * lint / static analysis gate 已確認
 * source tree 已落檔

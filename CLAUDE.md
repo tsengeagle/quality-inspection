@@ -30,12 +30,13 @@
 
 ## Implementation areas
 
-- Backend: `services/quality-inspection-service/` — Java + Spring Boot
-- Frontend: `frontends/quality-inspection-frontend/` — Angular (microfrontend)
+- Backend: `services/quality-inspection-service/` — Java + Spring Boot + Gradle (Groovy DSL)
+- Frontend: `frontends/quality-inspection-frontend/` — Angular 14 (microfrontend) + npm + NgRx
 
 兩個 area 目前均有 README.md 與 CLAUDE.md，但 source tree 僅含 .gitkeep placeholder。
-Tech stack 已確認（Java/Spring Boot、Angular/microfrontend），build/test/lint/ci gates 尚未確認。
+Tech stack 已確認，build/test/lint/ci gates 尚未有 source evidence。
 
 ## Build / test / lint
 
-目前無已確認的 build、test、lint 指令。待工程骨架建立後更新。
+Backend: Gradle (Groovy DSL)。Frontend: npm + Angular CLI。Test baseline: Karma + Jasmine。
+目前無已確認的可執行 build、test、lint 指令。待工程骨架建立後更新。

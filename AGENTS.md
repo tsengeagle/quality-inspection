@@ -485,22 +485,36 @@ revision 歷程頁規格。
 
 ### 9.1 已確認狀態
 
-目前已確認的 tech stack 與 integration baseline：
+目前已確認的 tech stack、integration baseline 與工具鏈方向：
 
 ```yaml
 confirmed:
   backend:
     language: Java
     framework: Spring Boot
+    build_tool: Gradle (Groovy DSL)
     integration_baseline: must integrate with organization existing api-gateway
   frontend:
-    framework: Angular
+    framework: Angular 14
     architecture: microfrontend
+    package_manager: npm
+    build_dev_tool: Angular CLI
+    state_management: NgRx
+    test_baseline: Karma + Jasmine
+    module_federation_reference: "@angular-architects/module-federation"
     integration_baseline: must integrate with organization existing MFE shell
-  ui_guidance: must align with organization existing UI style
+  ui_governance:
+    organization_ui_style: must align with organization existing UI style
+    shared_ui_library: portal51-lib@0.0.16
+    portal51_lib_role: shared UI lib baseline / wrapper-style priority reference
+  api_baseline:
+    formal_base_path: "/api/quality-inspection/**"
+    required_auth_header: api-key
+  shell_baseline:
+    shell_provides: login and user context
   development_mode:
-    gateway_layer_substitute: local dev proxy
-    shell_layer_substitute: standalone mode
+    gateway_layer_substitute: local dev proxy (must simulate api-key header)
+    shell_layer_substitute: standalone mode (must simulate user context)
     upstream_substitute: adapter-level stub / mock provider
 ```
 
@@ -512,9 +526,8 @@ confirmed:
 
 ```yaml
 pending_confirmation:
-  - build_command
-  - test_command
-  - run_command
+  - build_script_and_run_command
+  - test_script_and_run_command
   - lint_command
   - formatter_command
   - static_analysis_gate
@@ -522,13 +535,9 @@ pending_confirmation:
   - packaging_entry
   - actual_backend_source_layout
   - actual_frontend_source_layout
-  - build_tool (Maven / Gradle)
-  - package_manager (npm / yarn / pnpm)
-  - component_library_detail
-  - design_token_mechanism
-  - state_management_library
-  - organization_api_gateway_technical_detail
-  - organization_mfe_shell_technical_detail
+  - portal51_lib_component_level_usage_detail
+  - organization_api_gateway_technical_detail_beyond_base_path
+  - organization_mfe_shell_technical_detail_beyond_module_federation
 ```
 
 ### 9.3 不得自行假設
@@ -537,11 +546,10 @@ pending_confirmation:
 
 ```yaml
 assumptions:
-  - monorepo_runtime_layout_unknown: true
   - implementation_skeleton_not_verified: true
-  - organization_api_gateway_detail_not_to_be_fabricated: true
-  - organization_mfe_shell_detail_not_to_be_fabricated: true
-  - organization_ui_component_detail_not_to_be_fabricated: true
+  - organization_api_gateway_detail_beyond_base_path_not_to_be_fabricated: true
+  - organization_mfe_shell_detail_beyond_module_federation_not_to_be_fabricated: true
+  - portal51_lib_component_level_detail_not_to_be_fabricated: true
 ```
 
 ### 9.4 分層替身策略
@@ -558,9 +566,17 @@ assumptions:
 
 | Layer | 正式目標 | 開發期替身 | 限制 |
 |-------|----------|-----------|------|
-| Gateway | organization existing API Gateway | local dev proxy | 不得寫死 backend 直連 URL |
-| Shell | organization existing MFE shell | standalone mode | 不代表正式架構非 MFE |
+| Gateway | organization existing API Gateway | local dev proxy | 不得寫死 backend 直連 URL；須模擬 api-key header |
+| Shell | organization existing MFE shell | standalone mode | 不代表正式架構非 MFE；須模擬 user context |
 | Upstream | 正式 upstream services | adapter-level stub / mock | 不得把 stub 寫成業務真相 |
+
+正式 API baseline：
+
+| 項目 | 值 |
+|------|---|
+| Formal API base path | `/api/quality-inspection/**` |
+| Required auth header | `api-key` |
+| Shell provides | login + user context |
 
 開發模式：
 
@@ -649,10 +665,15 @@ assumptions:
 
 以下事項已確認：
 
-* backend tech stack: Java + Spring Boot（已確認）
-* frontend tech stack: Angular + microfrontend（已確認）
+* backend tech stack: Java + Spring Boot + Gradle (Groovy DSL)（已確認）
+* frontend tech stack: Angular 14 + microfrontend + npm + Angular CLI + NgRx + Karma/Jasmine（已確認）
+* module federation reference: @angular-architects/module-federation（已確認）
+* shared UI library baseline: portal51-lib@0.0.16（已確認）
 * backend integration baseline: must integrate with organization existing api-gateway（已確認）
 * frontend integration baseline: must integrate with organization existing MFE shell（已確認）
+* formal API base path: /api/quality-inspection/**（已確認）
+* required auth header: api-key（已確認）
+* shell provides: login + user context（已確認）
 * development mode: proxy + standalone mode（已確認）
 * UI guidance: must align with organization existing UI style（已確認）
 * `.ai/rules/repo-hard-rules.md` — canonical hard rules source 已存在

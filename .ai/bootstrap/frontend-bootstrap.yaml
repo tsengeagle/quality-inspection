@@ -219,21 +219,22 @@ assumptions_and_pending_confirmation:
     item: frontend framework
     status: confirmed
     basis: user confirmed
-    current_value: Angular
+    current_value: Angular 14
 
   - id: FB-003
     category: build_tool
     item: build tool and package manager
-    status: pending_confirmation
-    basis: 尚未看到 package/build files
-    action_required: 待工程骨架建立後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: npm + Angular CLI
 
   - id: FB-004
     category: test_tooling
     item: component/integration/e2e test tooling
-    status: pending_confirmation
-    basis: testing authority 已存在，但 frontend test tooling 尚未有工程 evidence
-    action_required: 待 test skeleton 建立後確認
+    status: partial
+    basis: user confirmed default test baseline
+    current_value: Karma + Jasmine (default baseline)
+    action_required: 待工程骨架建立後確認 e2e tooling (Playwright / Protractor / Cypress)
 
   - id: FB-005
     category: gate_inventory
@@ -245,20 +246,21 @@ assumptions_and_pending_confirmation:
   - id: FB-006
     category: ui_library
     item: actual component library / design system implementation
-    status: pending_confirmation
+    status: partial
     basis: >
-      UI 文件已存在，frontend 必須參考組織內既有 UI 風格，
-      但實際元件庫、design token、wrapper pattern 尚未驗證
+      portal51-lib@0.0.16 已確認為 shared UI library baseline 與 wrapper/style 優先參考來源。
+      但 component-level 使用細節（wrapper pattern、design token mechanism）仍缺 source evidence。
+    current_value: portal51-lib@0.0.16
     action_required: >
+      component-level 細節保留 pending confirmation。
       若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
-      待 frontend skeleton 或 design system 接入策略確認後補齊。
 
   - id: FB-007
     category: state_management
     item: frontend state management strategy
-    status: pending_confirmation
-    basis: 頁面與流程已存在，但尚未有工程 evidence 決定是否需要集中狀態管理
-    action_required: 待 frontend skeleton 或 feature implementation strategy 確認後補齊
+    status: confirmed
+    basis: user confirmed
+    current_value: NgRx
 
   - id: FB-008
     category: repo_identity
@@ -306,4 +308,47 @@ assumptions_and_pending_confirmation:
     basis: user confirmed
     current_value: >
       frontend 必須參考組織內既有 UI 風格。
-      具體元件庫、design token、wrapper pattern 細節仍為 pending confirmation (FB-006)。
+      portal51-lib@0.0.16 為 shared UI lib baseline。
+      component-level 使用細節仍為 pending confirmation (FB-006)。
+
+  - id: FB-014
+    category: frontend_architecture
+    item: module federation reference
+    status: confirmed
+    basis: organization existing MFE reference evidence
+    current_value: "@angular-architects/module-federation"
+
+  - id: FB-015
+    category: frontend_governance
+    item: shared UI library baseline
+    status: confirmed
+    basis: organization frontend baseline evidence
+    current_value: portal51-lib@0.0.16 (shared UI lib baseline / wrapper-style priority reference)
+
+  - id: FB-016
+    category: shell_auth
+    item: shell provides login and user context
+    status: confirmed
+    basis: user confirmed
+    current_value: shell completes login and provides user context to microfrontends
+
+  - id: FB-017
+    category: api_baseline
+    item: formal API base path
+    status: confirmed
+    basis: user confirmed
+    current_value: "/api/quality-inspection/**"
+
+  - id: FB-018
+    category: api_baseline
+    item: required auth header
+    status: confirmed
+    basis: user confirmed
+    current_value: api-key
+
+  - id: FB-019
+    category: development_mode
+    item: dev proxy auth simulation
+    status: confirmed
+    basis: user confirmed
+    current_value: local dev proxy must simulate required auth header (api-key)

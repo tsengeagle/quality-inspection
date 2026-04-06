@@ -61,7 +61,14 @@ state/           # client state (不得冒充 domain truth)
 
 ## Build / test / lint
 
-Frontend tech stack 已確認為 Angular (microfrontend)，integration baseline 為 organization existing MFE shell。
-開發期可使用 standalone mode 作為 shell-layer substitute，local dev proxy 作為 gateway-layer substitute。
-Frontend 必須參考組織內既有 UI 風格；具體元件庫、design token 細節待確認。
-目前無已確認的 build、test、lint 指令（package manager / test runner / lint tool 待工程骨架建立後確認）。
+Frontend tech stack 已確認為 Angular 14 (microfrontend) + npm + Angular CLI。
+State management: NgRx。Test baseline: Karma + Jasmine。
+Module federation reference: @angular-architects/module-federation。
+Shared UI lib baseline: portal51-lib@0.0.16（wrapper/style 優先參考來源）。
+Integration baseline 為 organization existing MFE shell。
+Shell 負責登入並提供 user context。
+Formal API base path: `/api/quality-inspection/**`，required auth header: `api-key`。
+開發期可使用 standalone mode 作為 shell-layer substitute（需模擬 user context），
+local dev proxy 作為 gateway-layer substitute（需模擬 api-key header）。
+component-level 使用細節（wrapper pattern、design token）待確認。
+目前無已確認的可執行 build、test、lint 指令（待工程骨架建立後確認）。

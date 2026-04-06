@@ -305,23 +305,39 @@ frontend 實作應以 docs/04-testing 為上游，建立至少以下測試層級
 
 ```yaml
 confirmed:
-  frontend_framework: Angular
+  frontend_framework: Angular 14
   frontend_architecture: microfrontend
+  package_manager: npm
+  build_dev_tool: Angular CLI
+  state_management: NgRx
+  test_baseline: Karma + Jasmine
+  module_federation_reference: "@angular-architects/module-federation"
   integration_baseline: must integrate with organization existing MFE shell
-  ui_guidance: must align with organization existing UI style
+  ui_governance:
+    organization_ui_style: must align with organization existing UI style
+    shared_ui_library: portal51-lib@0.0.16
+    portal51_lib_role: shared UI lib baseline / wrapper-style priority reference
+  api_baseline:
+    formal_base_path: "/api/quality-inspection/**"
+    required_auth_header: api-key
+  shell_baseline:
+    shell_provides: login and user context
   development_mode:
     shell_layer_substitute: >
       standalone mode 作為 MFE shell 開發期替身。
       frontend 同時考慮 standalone mode 與 future MFE integrated mode。
       standalone mode 不代表正式架構非 MFE。
+      standalone mode 需自行模擬 user context。
     gateway_layer_substitute: >
       local dev proxy 模擬 api-gateway。
-      frontend 仍使用正式 gateway-style API path，不得寫死 backend 直連 URL。
+      frontend 仍使用正式 gateway-style API path（/api/quality-inspection/**），
+      不得寫死 backend 直連 URL。
+      proxy 須至少模擬 api-key header。
   ui_component_detail:
-    status: pending_confirmation
+    status: partial
     note: >
-      frontend 必須參考組織內既有 UI 風格，但具體元件庫、design token、
-      wrapper pattern 尚無 source evidence。
+      portal51-lib@0.0.16 已確認為 shared UI lib baseline 與 wrapper/style 優先參考來源。
+      component-level 使用細節（wrapper pattern、design token mechanism）仍為 pending confirmation。
       若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
 ```
 
@@ -331,21 +347,15 @@ confirmed:
 
 ```yaml
 pending_confirmation:
-  - package_manager (npm / yarn / pnpm)
-  - build_tool
-  - test_runner
-  - component_test_tool
   - e2e_test_tool
   - lint_tool
   - formatter
   - static_analysis_gate
   - ci_pipeline
   - actual_source_layout
-  - concrete_component_library_detail
+  - portal51_lib_component_level_usage_detail
   - exact_design_token_mechanism
-  - state_management_library
-  - organization_mfe_shell_technical_detail
-  - organization_ui_component_system_technical_detail
+  - organization_mfe_shell_technical_detail_beyond_module_federation
 ```
 
 若後續 source tree 建立並證實上述項目，應再回來更新本文件。
@@ -410,11 +420,10 @@ pending_confirmation:
 
 本 README 目前 **不宣稱** 以下事項已完成：
 
-* frontend framework 已確認
 * build / run / test 指令已確認
 * lint / static analysis gate 已確認
 * source tree 已落檔
-* component library / state library 已確認
+* component library usage detail 已確認
 * route structure 已確認
 * framework-specific instructions 已存在
 

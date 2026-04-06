@@ -221,9 +221,9 @@ assumptions_and_pending_confirmation:
   - id: BB-004
     category: build_tool
     item: build tool
-    status: pending_confirmation
-    basis: 尚未看到 gradle/maven 或其他 build files
-    action_required: 待工程骨架建立後確認
+    status: confirmed
+    basis: user confirmed
+    current_value: Gradle with Groovy DSL
 
   - id: BB-005
     category: test_tooling
@@ -284,3 +284,17 @@ assumptions_and_pending_confirmation:
     current_value: >
       upstream service 不足時可採 adapter-level stub / mock provider。
       interface / adapter boundary 保持不變，production 與 dev stub 分離。
+
+  - id: BB-013
+    category: api_baseline
+    item: formal API base path
+    status: confirmed
+    basis: user confirmed
+    current_value: "/api/quality-inspection/**"
+
+  - id: BB-014
+    category: api_baseline
+    item: required auth header
+    status: confirmed
+    basis: user confirmed
+    current_value: api-key

@@ -51,6 +51,8 @@ reporting/       # read model / query projection / report support
 
 ## Build / test / lint
 
-Backend tech stack 已確認為 Java + Spring Boot，integration baseline 為 organization existing api-gateway。
-開發期可使用 local dev proxy 模擬 api-gateway，upstream service 不足時可採 adapter-level stub。
-目前無已確認的 build、test、lint 指令（build tool / test runner / lint tool 待工程骨架建立後確認）。
+Backend tech stack 已確認為 Java + Spring Boot + Gradle (Groovy DSL)。
+Integration baseline 為 organization existing api-gateway。
+Formal API base path: `/api/quality-inspection/**`，required auth header: `api-key`。
+開發期可使用 local dev proxy 模擬 api-gateway（須模擬 api-key header），upstream service 不足時可採 adapter-level stub。
+目前無已確認的可執行 build、test、lint 指令（test runner / lint tool 待工程骨架建立後確認）。
