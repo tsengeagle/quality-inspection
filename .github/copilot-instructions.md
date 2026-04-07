@@ -66,7 +66,7 @@ Copilot Chat 會自動讀取此檔作為所有對話的背景指引。
 | Language | Java 11 |
 | Framework | Spring Boot 2.7.18 |
 | Build tool | Gradle 7.6.4 (Groovy DSL) |
-| Package root | `com.example.qualityinspection` |
+| Package root | `com.tzuchi.his.quality.inspection` |
 | Layers | `domain` / `application` / `interfaces` / `infrastructure` / `reporting` |
 | Integration baseline | Organization existing API Gateway |
 
@@ -173,6 +173,18 @@ state/       # client state (不得冒充 domain truth)
 2. `docs/01-requirements/0_品質審查系統規格草案.md`
 3. `docs/01-requirements/glossary.md`
 4. 對應專業文件（`docs/02-ddd/`、`docs/03-contracts/`、`docs/05-ui/`）
+
+---
+
+## 11. Path-Specific Instructions
+
+下列文件對特定路徑自動生效，補充本文件未覆蓋的路徑專屬規則：
+
+| 路徑 | 補充文件 |
+|------|----------|
+| `services/quality-inspection-service/**` | `.github/instructions/backend.instructions.md` |
+| `frontends/quality-inspection-frontend/**` | `.github/instructions/frontend.instructions.md` |
+| `docs/**` | `.github/instructions/docs.instructions.md` |
 
 ---
 
