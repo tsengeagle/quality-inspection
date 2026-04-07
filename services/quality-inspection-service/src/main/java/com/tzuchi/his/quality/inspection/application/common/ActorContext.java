@@ -45,6 +45,24 @@ public class ActorContext {
                 "Actor '" + userId + "' does not have any of the required roles");
     }
 
+    /**
+     * Returns the actor's hospitalId, or throws AccessDeniedException if not present.
+     */
+    public String requireHospitalId() {
+        return hospitalId.orElseThrow(() ->
+                new AccessDeniedException("Hospital context required"));
+    }
+
+    /**
+     * Verifies the actor's hospitalId matches the target. Throws AccessDeniedException on mismatch.
+     */
+    public void requireHospitalScope(String targetHospitalId) {
+        String myHospitalId = requireHospitalId();
+        if (!myHospitalId.equals(targetHospitalId)) {
+            throw new AccessDeniedException("Hospital scope mismatch");
+        }
+    }
+
     public String getUserId() { return userId; }
     public String getUserName() { return userName; }
     public Set<DomainRole> getRoles() { return Collections.unmodifiableSet(roles); }
