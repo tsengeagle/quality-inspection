@@ -4,6 +4,8 @@ import com.tzuchi.his.quality.inspection.application.common.UnauthorizedExceptio
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -14,6 +16,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(DomainRuleViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleDomainRuleViolation(DomainRuleViolationException ex) {
@@ -30,7 +34,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("FORBIDDEN", ex.getMessage()));
+                .body(ApiResponse.error("UNAUTHORIZED", ex.getMessage()));
     }
 
     @ExceptionHandler(BadRequestException.class)
@@ -50,13 +54,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("BAD_REQUEST", ex.getMessage()));
+        log.warn("Unexpected IllegalArgumentException — likely a programming error", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("INTERNAL_ERROR", "An unexpected error occurred"));
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.error("CONFLICT", ex.getMessage()));
+        log.warn("Unexpected IllegalStateException — likely a programming error", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("INTERNAL_ERROR", "An unexpected error occurred"));
     }
 }
