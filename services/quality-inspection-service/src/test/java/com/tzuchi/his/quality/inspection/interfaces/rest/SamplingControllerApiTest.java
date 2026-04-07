@@ -108,6 +108,15 @@ class SamplingControllerApiTest {
                 .andExpect(jsonPath("$.error.code").value("BATCH_NOT_RETRYABLE"));
     }
 
+    @Test
+    void executeSampling_nonManagerRole_shouldReturn403() throws Exception {
+        mockMvc.perform(post("/review-projects/any-id/sampling/execute")
+                        .header("api-key", TestTokenFactory.unknownRoleToken())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+    }
+
     // --- Helpers ---
 
     private String createAndActivateProject(String name) throws Exception {
