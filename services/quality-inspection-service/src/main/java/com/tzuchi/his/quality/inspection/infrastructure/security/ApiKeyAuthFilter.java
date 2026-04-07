@@ -35,7 +35,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         String apiKey = request.getHeader("api-key");
 
         if (apiKey == null || apiKey.isBlank()) {
-            writeUnauthorized(response, "Missing api-key header");
+            writeError(response, "MISSING_API_KEY", "Missing api-key header");
             return;
         }
 
@@ -43,17 +43,17 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             ActorContext actor = jwtParser.parse(apiKey);
             request.setAttribute(ACTOR_CONTEXT_ATTR, actor);
         } catch (JwtParseException e) {
-            writeUnauthorized(response, "Invalid api-key: " + e.getMessage());
+            writeError(response, "INVALID_TOKEN", "Invalid api-key: " + e.getMessage());
             return;
         }
 
         filterChain.doFilter(request, response);
     }
 
-    private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
+    private void writeError(HttpServletResponse response, String code, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write(
-                objectMapper.writeValueAsString(ApiResponse.error("UNAUTHORIZED", message)));
+                objectMapper.writeValueAsString(ApiResponse.error(code, message)));
     }
 }
