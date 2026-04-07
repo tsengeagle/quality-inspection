@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.sampling;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
@@ -148,7 +149,7 @@ class SamplingBatchTest {
     void negativeMetrics_shouldThrow() {
         SamplingBatch batch = createBatch("b1", "p1", ExecutionMode.MANUAL);
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(DomainRuleViolationException.class,
                 () -> batch.recordCandidateCount(-1, 0, 0));
     }
 

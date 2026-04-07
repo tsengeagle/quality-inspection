@@ -169,7 +169,8 @@ public class SamplingBatch {
 
     private void requireNonNegative(int value, String name) {
         if (value < 0) {
-            throw new IllegalArgumentException(name + " must not be negative");
+            throw new DomainRuleViolationException("INVALID_METRIC_VALUE",
+                    name + " must not be negative");
         }
     }
 
