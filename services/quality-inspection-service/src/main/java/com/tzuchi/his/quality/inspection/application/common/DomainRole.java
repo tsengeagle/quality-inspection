@@ -1,7 +1,9 @@
 package com.tzuchi.his.quality.inspection.application.common;
 
 public enum DomainRole {
-    HOSPITAL_MANAGER,
     SYSTEM_ADMIN,
+    HOSPITAL_MANAGER,
+    REVIEWER,
+    REREVIEWER,
     AUDITOR
 }
