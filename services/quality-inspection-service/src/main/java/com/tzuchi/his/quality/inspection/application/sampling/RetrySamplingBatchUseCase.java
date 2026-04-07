@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
@@ -39,7 +41,8 @@ public class RetrySamplingBatchUseCase {
         this.candidateSource = candidateSource;
     }
 
-    public String execute(String previousBatchId) {
+    public String execute(ActorContext actor, String previousBatchId) {
+        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         SamplingBatch previousBatch = batchRepository.findById(previousBatchId)
                 .orElseThrow(() -> new IllegalArgumentException("Batch not found: " + previousBatchId));
 

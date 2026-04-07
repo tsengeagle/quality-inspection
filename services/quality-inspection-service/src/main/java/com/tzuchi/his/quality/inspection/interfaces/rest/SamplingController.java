@@ -31,7 +31,7 @@ public class SamplingController {
     public ResponseEntity<ApiResponse<SamplingPreviewResult>> previewSampling(
             @CurrentActor ActorContext actor,
             @PathVariable String projectId) {
-        SamplingPreviewResult result = previewUseCase.execute(projectId);
+        SamplingPreviewResult result = previewUseCase.execute(actor, projectId);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
@@ -39,7 +39,7 @@ public class SamplingController {
     public ResponseEntity<ApiResponse<Map<String, String>>> executeSampling(
             @CurrentActor ActorContext actor,
             @PathVariable String projectId) {
-        String batchId = executeUseCase.execute(projectId);
+        String batchId = executeUseCase.execute(actor, projectId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(Map.of("batchId", batchId)));
     }
@@ -48,7 +48,7 @@ public class SamplingController {
     public ResponseEntity<ApiResponse<Map<String, String>>> retrySampling(
             @CurrentActor ActorContext actor,
             @PathVariable String batchId) {
-        String newBatchId = retryUseCase.execute(batchId);
+        String newBatchId = retryUseCase.execute(actor, batchId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(Map.of("batchId", newBatchId)));
     }

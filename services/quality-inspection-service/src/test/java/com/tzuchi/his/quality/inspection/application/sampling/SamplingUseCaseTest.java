@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -11,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.EnumSet;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,6 +29,8 @@ class SamplingUseCaseTest {
     private ExecuteSamplingUseCase executeUseCase;
     private RetrySamplingBatchUseCase retryUseCase;
 
+    private ActorContext hospitalManagerActor;
+
     @BeforeEach
     void setUp() {
         projectRepo = new InMemoryProjectRepo();
@@ -35,6 +41,8 @@ class SamplingUseCaseTest {
         previewUseCase = new PreviewSamplingPopulationUseCase(projectRepo, candidateSource);
         executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource);
         retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource);
+
+        hospitalManagerActor = new ActorContext("u-test", "Test", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.empty());
     }
 
     @Test
@@ -46,7 +54,7 @@ class SamplingUseCaseTest {
                 new SelectedCaseRef("C2", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        SamplingPreviewResult result = previewUseCase.execute("p1");
+        SamplingPreviewResult result = previewUseCase.execute(hospitalManagerActor, "p1");
 
         assertEquals(2, result.getPopulationCount());
         assertEquals(2, result.getEligibleCount());
@@ -63,7 +71,7 @@ class SamplingUseCaseTest {
                 new SelectedCaseRef("C2", "H1", MedicalRecordType.INPATIENT)
         ));
 
-        String batchId = executeUseCase.execute("p1");
+        String batchId = executeUseCase.execute(hospitalManagerActor, "p1");
 
         assertNotNull(batchId);
         assertEquals(1, batchRepo.store.size());
@@ -81,7 +89,7 @@ class SamplingUseCaseTest {
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        String batchId = executeUseCase.execute("p1");
+        String batchId = executeUseCase.execute(hospitalManagerActor, "p1");
 
         ReviewCase rc = caseRepo.store.values().iterator().next();
         assertEquals(batchId, rc.getBatchId());
@@ -102,7 +110,7 @@ class SamplingUseCaseTest {
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        String newBatchId = retryUseCase.execute("failed-b");
+        String newBatchId = retryUseCase.execute(hospitalManagerActor, "failed-b");
 
         assertNotEquals("failed-b", newBatchId, "Retry creates a NEW batch");
         assertEquals(2, batchRepo.store.size(), "Old batch + new batch both exist");
@@ -130,7 +138,7 @@ class SamplingUseCaseTest {
         completedBatch.complete();
         batchRepo.save(completedBatch);
 
-        assertThrows(DomainRuleViolationException.class, () -> retryUseCase.execute("done-b"));
+        assertThrows(DomainRuleViolationException.class, () -> retryUseCase.execute(hospitalManagerActor, "done-b"));
     }
 
     @Test
@@ -139,7 +147,7 @@ class SamplingUseCaseTest {
                 EnumSet.of(MedicalRecordType.OUTPATIENT));
         projectRepo.save(project);
 
-        assertThrows(DomainRuleViolationException.class, () -> executeUseCase.execute("p1"));
+        assertThrows(DomainRuleViolationException.class, () -> executeUseCase.execute(hospitalManagerActor, "p1"));
     }
 
     @Test
@@ -155,7 +163,7 @@ class SamplingUseCaseTest {
 
         candidateSource.setCandidates(List.of());
 
-        String newBatchId = retryUseCase.execute("failed-b2");
+        String newBatchId = retryUseCase.execute(hospitalManagerActor, "failed-b2");
 
         SamplingBatch newBatch = batchRepo.store.get(newBatchId);
         assertEquals("project=p1,version=1",
@@ -172,7 +180,7 @@ class SamplingUseCaseTest {
         projectRepo.save(project);
 
         assertThrows(DomainRuleViolationException.class,
-                () -> previewUseCase.execute("p-draft"));
+                () -> previewUseCase.execute(hospitalManagerActor, "p-draft"));
     }
 
     // --- Helpers ---

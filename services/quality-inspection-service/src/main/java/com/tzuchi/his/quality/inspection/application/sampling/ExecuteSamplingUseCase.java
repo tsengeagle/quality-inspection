@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
@@ -37,7 +39,8 @@ public class ExecuteSamplingUseCase {
         this.candidateSource = candidateSource;
     }
 
-    public String execute(String projectId) {
+    public String execute(ActorContext actor, String projectId) {
+        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
