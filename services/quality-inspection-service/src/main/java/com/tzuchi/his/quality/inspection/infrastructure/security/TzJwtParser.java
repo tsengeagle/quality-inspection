@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Base64;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -92,7 +93,7 @@ public class TzJwtParser {
             }
         }
 
-        return new ActorContext(userId, userName, roles);
+        return new ActorContext(userId, userName, roles, Optional.empty());
     }
 
     private String addPadding(String base64url) {
