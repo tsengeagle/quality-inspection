@@ -18,6 +18,8 @@ import java.util.stream.Collectors;
 /**
  * Retry a failed sampling batch.
  * Creates a NEW batch — does NOT overwrite the failed batch.
+ * <p>
+ * Per D-013: retry reuses the original batch's rule snapshot, not the current published version.
  */
 @Service
 @Transactional
@@ -54,10 +56,8 @@ public class RetrySamplingBatchUseCase {
             throw new IllegalStateException("Project must be ACTIVE for retry");
         }
 
-        RuleSnapshot snapshot = new RuleSnapshot(
-                "project=" + projectId + ",version=" + project.getCurrentVersion().getVersionNumber(),
-                "default-sampling-policy"
-        );
+        // D-013: retry reuses the original batch's rule snapshot, not a newly built one.
+        RuleSnapshot snapshot = previousBatch.getRuleSnapshot();
 
         String newBatchId = UUID.randomUUID().toString();
         SamplingBatch newBatch = SamplingBatch.start(newBatchId, projectId, ExecutionMode.RETRY, snapshot);

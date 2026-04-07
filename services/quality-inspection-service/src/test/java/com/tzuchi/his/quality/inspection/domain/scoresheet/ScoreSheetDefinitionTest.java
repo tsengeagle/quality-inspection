@@ -108,6 +108,38 @@ class ScoreSheetDefinitionTest {
                         ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE)));
     }
 
+    @Test
+    void addSection_duplicateItemIdAcrossSections_shouldThrow() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection sec1 = new ScoreSheetSection("sec1", "Section 1");
+        sec1.addItem(new ScoreItem("i1", "C01", "Item1",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(sec1);
+
+        ScoreSheetSection sec2 = new ScoreSheetSection("sec2", "Section 2");
+        sec2.addItem(new ScoreItem("i1", "C02", "Item2",   // same itemId as in sec1
+                ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE));
+
+        assertThrows(IllegalArgumentException.class, () -> ss.addSection(sec2),
+                "Cross-section duplicate itemId must be rejected");
+    }
+
+    @Test
+    void addSection_duplicateCodeAcrossSections_shouldThrow() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection sec1 = new ScoreSheetSection("sec1", "Section 1");
+        sec1.addItem(new ScoreItem("i1", "C01", "Item1",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(sec1);
+
+        ScoreSheetSection sec2 = new ScoreSheetSection("sec2", "Section 2");
+        sec2.addItem(new ScoreItem("i2", "C01", "Item2",   // same code as in sec1
+                ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE));
+
+        assertThrows(IllegalArgumentException.class, () -> ss.addSection(sec2),
+                "Cross-section duplicate item code must be rejected");
+    }
+
     private ScoreSheetDefinition createSheetWithOneItem() {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         ScoreSheetSection section = new ScoreSheetSection("sec1", "General");

@@ -43,10 +43,29 @@ public class ScoreSheetDefinition {
     public void addSection(ScoreSheetSection section) {
         requireDraft();
         Objects.requireNonNull(section, "section must not be null");
-        boolean duplicate = sections.stream()
+        boolean duplicateSection = sections.stream()
                 .anyMatch(s -> s.getSectionId().equals(section.getSectionId()));
-        if (duplicate) {
+        if (duplicateSection) {
             throw new IllegalArgumentException("Duplicate sectionId: " + section.getSectionId());
+        }
+        // Enforce version-level invariant: itemId and code must be unique across all sections
+        Set<String> existingItemIds = new HashSet<>();
+        Set<String> existingCodes = new HashSet<>();
+        for (ScoreSheetSection existing : sections) {
+            for (ScoreItem item : existing.getItems()) {
+                existingItemIds.add(item.getItemId());
+                existingCodes.add(item.getCode());
+            }
+        }
+        for (ScoreItem item : section.getItems()) {
+            if (!existingItemIds.add(item.getItemId())) {
+                throw new IllegalArgumentException(
+                        "Duplicate itemId across sections in same version: " + item.getItemId());
+            }
+            if (!existingCodes.add(item.getCode())) {
+                throw new IllegalArgumentException(
+                        "Duplicate item code across sections in same version: " + item.getCode());
+            }
         }
         this.sections.add(section);
     }

@@ -114,6 +114,12 @@ class SamplingUseCaseTest {
         assertEquals(BatchStatus.COMPLETED, newBatch.getStatus());
         assertEquals("failed-b", newBatch.getRetryOfBatchId());
         assertEquals(ExecutionMode.RETRY, newBatch.getExecutionMode());
+
+        // D-013: retry must reuse the original batch's rule snapshot, not rebuild from current project version
+        assertEquals("v1", newBatch.getRuleSnapshot().getProjectVersionInfo(),
+                "Retry must reuse original batch snapshot (D-013)");
+        assertEquals("policy", newBatch.getRuleSnapshot().getSamplingPolicyInfo(),
+                "Retry must reuse original batch snapshot (D-013)");
     }
 
     @Test
