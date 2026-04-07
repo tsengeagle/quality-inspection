@@ -295,7 +295,7 @@ confirmed:
   integration_baseline: must integrate with organization existing api-gateway
   api_base_path: "/api/quality-inspection/**"
   required_auth_header: api-key
-  package_root: com.example.qualityinspection
+  package_root: com.tzuchi.his.quality.inspection
   layers: [domain, application, interfaces, infrastructure, reporting]
   commands:
     build: "./gradlew build"

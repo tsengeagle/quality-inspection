@@ -61,7 +61,7 @@ Commands:
 - Test: `./gradlew test`
 - Run: `./gradlew bootRun`
 
-Package root: `com.example.qualityinspection`
+Package root: `com.tzuchi.his.quality.inspection`
 Layers: domain, application, interfaces, infrastructure, reporting
 
 Lint / formatter / static analysis 尚未設定。

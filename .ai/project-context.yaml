@@ -163,11 +163,11 @@ architecture:
       build_file: build.gradle
       settings_file: settings.gradle
       gradle_wrapper: gradle/wrapper/gradle-wrapper.properties
-      application_entry: src/main/java/com/example/qualityinspection/QualityInspectionApplication.java
+      application_entry: src/main/java/com/tzuchi/his/quality/inspection/QualityInspectionApplication.java
       application_config: src/main/resources/application.yml
-      test_entry: src/test/java/com/example/qualityinspection/QualityInspectionApplicationTests.java
+      test_entry: src/test/java/com/tzuchi/his/quality/inspection/QualityInspectionApplicationTests.java
       layers: [domain, application, interfaces, infrastructure, reporting]
-      package_root: com.example.qualityinspection
+      package_root: com.tzuchi.his.quality.inspection
     commands:
       build: "./gradlew build"
       test: "./gradlew test"
@@ -450,7 +450,7 @@ assumptions_and_pending_confirmation:
       QualityInspectionApplication.java, package-info.java for domain/application/interfaces/infrastructure/reporting,
       QualityInspectionApplicationTests.java (context loads smoke test)
     current_value: >
-      com.example.qualityinspection with layers: domain, application, interfaces, infrastructure, reporting.
+      com.tzuchi.his.quality.inspection with layers: domain, application, interfaces, infrastructure, reporting.
       Spring Boot 2.7.18, Java 11, Gradle 7.6.4.
 
   - id: PC-009

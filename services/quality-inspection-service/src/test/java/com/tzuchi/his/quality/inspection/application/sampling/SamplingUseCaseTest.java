@@ -1,0 +1,212 @@
+package com.tzuchi.his.quality.inspection.application.sampling;
+
+import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
+import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
+import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
+import com.tzuchi.his.quality.inspection.domain.sampling.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class SamplingUseCaseTest {
+
+    private InMemoryProjectRepo projectRepo;
+    private InMemorySamplingBatchRepo batchRepo;
+    private InMemoryReviewCaseRepo caseRepo;
+    private StubCandidateSource candidateSource;
+
+    private PreviewSamplingPopulationUseCase previewUseCase;
+    private ExecuteSamplingUseCase executeUseCase;
+    private RetrySamplingBatchUseCase retryUseCase;
+
+    @BeforeEach
+    void setUp() {
+        projectRepo = new InMemoryProjectRepo();
+        batchRepo = new InMemorySamplingBatchRepo();
+        caseRepo = new InMemoryReviewCaseRepo();
+        candidateSource = new StubCandidateSource();
+
+        previewUseCase = new PreviewSamplingPopulationUseCase(projectRepo, candidateSource);
+        executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource);
+        retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource);
+    }
+
+    @Test
+    void preview_shouldNotCreateBatch() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+        candidateSource.setCandidates(List.of(
+                new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT),
+                new SelectedCaseRef("C2", "H1", MedicalRecordType.OUTPATIENT)
+        ));
+
+        SamplingPreviewResult result = previewUseCase.execute("p1");
+
+        assertEquals(2, result.getPopulationCount());
+        assertEquals(2, result.getEligibleCount());
+        assertTrue(batchRepo.store.isEmpty(), "Preview must NOT create a batch");
+        assertTrue(caseRepo.store.isEmpty(), "Preview must NOT create review cases");
+    }
+
+    @Test
+    void execute_shouldCreateBatchAndReviewCases() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+        candidateSource.setCandidates(List.of(
+                new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT),
+                new SelectedCaseRef("C2", "H1", MedicalRecordType.INPATIENT)
+        ));
+
+        String batchId = executeUseCase.execute("p1");
+
+        assertNotNull(batchId);
+        assertEquals(1, batchRepo.store.size());
+        SamplingBatch batch = batchRepo.store.values().iterator().next();
+        assertEquals(BatchStatus.COMPLETED, batch.getStatus());
+        assertEquals(2, batch.getSelectedCount());
+        assertEquals(2, caseRepo.store.size(), "Should create 2 review cases");
+    }
+
+    @Test
+    void execute_createsReviewCasesWithCorrectBatchId() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+        candidateSource.setCandidates(List.of(
+                new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
+        ));
+
+        String batchId = executeUseCase.execute("p1");
+
+        ReviewCase rc = caseRepo.store.values().iterator().next();
+        assertEquals(batchId, rc.getBatchId());
+        assertEquals("p1", rc.getProjectId());
+    }
+
+    @Test
+    void retry_shouldCreateNewBatch_notOverwriteOldBatch() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+
+        // Create a failed batch manually
+        SamplingBatch failedBatch = SamplingBatch.start("failed-b", "p1",
+                ExecutionMode.MANUAL, new RuleSnapshot("v1", "policy"));
+        failedBatch.fail("test failure");
+        batchRepo.save(failedBatch);
+
+        candidateSource.setCandidates(List.of(
+                new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
+        ));
+
+        String newBatchId = retryUseCase.execute("failed-b");
+
+        assertNotEquals("failed-b", newBatchId, "Retry creates a NEW batch");
+        assertEquals(2, batchRepo.store.size(), "Old batch + new batch both exist");
+
+        SamplingBatch oldBatch = batchRepo.store.get("failed-b");
+        assertEquals(BatchStatus.FAILED, oldBatch.getStatus(), "Old batch remains FAILED");
+
+        SamplingBatch newBatch = batchRepo.store.get(newBatchId);
+        assertEquals(BatchStatus.COMPLETED, newBatch.getStatus());
+        assertEquals("failed-b", newBatch.getRetryOfBatchId());
+        assertEquals(ExecutionMode.RETRY, newBatch.getExecutionMode());
+    }
+
+    @Test
+    void retry_nonFailedBatch_shouldThrow() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+
+        SamplingBatch completedBatch = SamplingBatch.start("done-b", "p1",
+                ExecutionMode.MANUAL, new RuleSnapshot("v1", "policy"));
+        completedBatch.recordCandidateCount(1, 1, 0);
+        completedBatch.selectCases(List.of(
+                new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
+        ));
+        completedBatch.complete();
+        batchRepo.save(completedBatch);
+
+        assertThrows(IllegalStateException.class, () -> retryUseCase.execute("done-b"));
+    }
+
+    @Test
+    void execute_inactiveProject_shouldThrow() {
+        ReviewProject project = ReviewProject.create("p1", "H1", "Test",
+                EnumSet.of(MedicalRecordType.OUTPATIENT));
+        projectRepo.save(project);
+
+        assertThrows(IllegalStateException.class, () -> executeUseCase.execute("p1"));
+    }
+
+    // --- Helpers ---
+
+    private ReviewProject createActiveProject(String projectId) {
+        ReviewProject project = ReviewProject.create(projectId, "H1", "Test Project",
+                EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT));
+        project.publishNewVersion();
+        project.activate();
+        return project;
+    }
+
+    // --- In-memory repos for unit testing ---
+
+    static class InMemoryProjectRepo implements ReviewProjectRepository {
+        final Map<String, ReviewProject> store = new HashMap<>();
+
+        @Override
+        public void save(ReviewProject project) {
+            store.put(project.getProjectId(), project);
+        }
+
+        @Override
+        public Optional<ReviewProject> findById(String projectId) {
+            return Optional.ofNullable(store.get(projectId));
+        }
+    }
+
+    static class InMemorySamplingBatchRepo implements SamplingBatchRepository {
+        final Map<String, SamplingBatch> store = new HashMap<>();
+
+        @Override
+        public void save(SamplingBatch batch) {
+            store.put(batch.getBatchId(), batch);
+        }
+
+        @Override
+        public Optional<SamplingBatch> findById(String batchId) {
+            return Optional.ofNullable(store.get(batchId));
+        }
+    }
+
+    static class InMemoryReviewCaseRepo implements com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository {
+        final Map<String, ReviewCase> store = new HashMap<>();
+
+        @Override
+        public void save(ReviewCase reviewCase) {
+            store.put(reviewCase.getCaseId(), reviewCase);
+        }
+
+        @Override
+        public void saveAll(List<ReviewCase> cases) {
+            cases.forEach(this::save);
+        }
+    }
+
+    static class StubCandidateSource implements CandidateSourcePort {
+        private List<SelectedCaseRef> candidates = new ArrayList<>();
+
+        void setCandidates(List<SelectedCaseRef> candidates) {
+            this.candidates = candidates;
+        }
+
+        @Override
+        public List<SelectedCaseRef> queryCandidates(String projectId, String hospitalId,
+                                                       List<MedicalRecordType> types) {
+            return new ArrayList<>(candidates);
+        }
+    }
+}
