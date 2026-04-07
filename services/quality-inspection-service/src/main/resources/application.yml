@@ -14,6 +14,9 @@ spring:
     show-sql: false
     open-in-view: false
 
+quality-inspection:
+  hospital-id: ${QUALITY_INSPECTION_HOSPITAL_ID:}
+
 ---
 # Local development profile
 spring:
