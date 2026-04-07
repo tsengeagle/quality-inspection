@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ class ReviewProjectTest {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 EnumSet.of(MedicalRecordType.OUTPATIENT));
 
-        assertThrows(IllegalStateException.class, project::activate);
+        assertThrows(DomainStateConflictException.class, project::activate);
     }
 
     @Test
@@ -105,7 +106,7 @@ class ReviewProjectTest {
 
     @Test
     void create_withBlankName_shouldThrow() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(DomainRuleViolationException.class,
                 () -> ReviewProject.create("p1", "h1", "  ",
                         EnumSet.of(MedicalRecordType.OUTPATIENT)));
     }

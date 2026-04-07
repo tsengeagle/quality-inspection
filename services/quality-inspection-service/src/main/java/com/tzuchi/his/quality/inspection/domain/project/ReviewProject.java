@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
@@ -35,7 +36,7 @@ public class ReviewProject {
         Objects.requireNonNull(hospitalId, "hospitalId must not be null");
         Objects.requireNonNull(name, "name must not be null");
         if (name.isBlank()) {
-            throw new IllegalArgumentException("Project name must not be blank");
+            throw new DomainRuleViolationException("INVALID_PROJECT_NAME", "Project name must not be blank");
         }
         this.projectId = projectId;
         this.hospitalId = hospitalId;
@@ -77,7 +78,8 @@ public class ReviewProject {
             return;
         }
         if (!this.currentVersion.isPublished()) {
-            throw new IllegalStateException("Cannot activate project without a published version");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Cannot activate project without a published version");
         }
         this.status = ProjectStatus.ACTIVE;
     }
@@ -107,7 +109,8 @@ public class ReviewProject {
      */
     public void prepareDraftVersion() {
         if (!this.currentVersion.isPublished()) {
-            throw new IllegalStateException("A draft version already exists");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "A draft version already exists");
         }
         this.currentVersion = this.currentVersion.nextDraft();
     }
@@ -116,7 +119,7 @@ public class ReviewProject {
         requireDraft();
         Objects.requireNonNull(name, "name must not be null");
         if (name.isBlank()) {
-            throw new IllegalArgumentException("Project name must not be blank");
+            throw new DomainRuleViolationException("INVALID_PROJECT_NAME", "Project name must not be blank");
         }
         this.name = name;
     }
