@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "sampling_batches")
+@Table(name = "sampling_batch")
 public class SamplingBatchEntity {
 
     @Id
@@ -53,6 +53,9 @@ public class SamplingBatchEntity {
 
     @Column(name = "retry_of_batch_id")
     private String retryOfBatchId;
+
+    @Column(name = "failure_reason")
+    private String failureReason;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "batch_id")
@@ -100,6 +103,9 @@ public class SamplingBatchEntity {
 
     public String getRetryOfBatchId() { return retryOfBatchId; }
     public void setRetryOfBatchId(String retryOfBatchId) { this.retryOfBatchId = retryOfBatchId; }
+
+    public String getFailureReason() { return failureReason; }
+    public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
 
     public List<SelectedCaseRefEntity> getSelectedCases() { return selectedCases; }
     public void setSelectedCases(List<SelectedCaseRefEntity> selectedCases) { this.selectedCases = selectedCases; }

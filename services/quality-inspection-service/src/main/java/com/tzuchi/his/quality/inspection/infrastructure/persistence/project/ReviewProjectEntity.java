@@ -6,7 +6,7 @@ import javax.persistence.*;
 import java.util.Set;
 
 @Entity
-@Table(name = "review_projects")
+@Table(name = "review_project")
 public class ReviewProjectEntity {
 
     @Id

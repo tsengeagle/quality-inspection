@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +38,7 @@ class ReviewProjectTest {
                 EnumSet.of(MedicalRecordType.INPATIENT));
         project.publishNewVersion();
 
-        assertThrows(IllegalStateException.class, project::publishNewVersion);
+        assertThrows(DomainStateConflictException.class, project::publishNewVersion);
     }
 
     @Test
@@ -87,7 +88,7 @@ class ReviewProjectTest {
                 EnumSet.of(MedicalRecordType.OUTPATIENT));
         project.publishNewVersion();
 
-        assertThrows(IllegalStateException.class, () -> project.updateName("New"));
+        assertThrows(DomainStateConflictException.class, () -> project.updateName("New"));
     }
 
     @Test

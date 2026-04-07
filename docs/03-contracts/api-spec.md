@@ -41,7 +41,7 @@
 ### 3.1 Base Path
 
 ```text
-/api/quality-review
+/api/quality-inspection
 ```
 
 ### 3.2 Content Type

@@ -3,7 +3,13 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.sampling;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "selected_case_refs")
+@Table(
+    name = "sampling_batch_selected_case",
+    uniqueConstraints = @UniqueConstraint(
+        name = "uq_sampling_batch_selected_case_batch_source",
+        columnNames = {"batch_id", "source_case_key"}
+    )
+)
 public class SelectedCaseRefEntity {
 
     @Id

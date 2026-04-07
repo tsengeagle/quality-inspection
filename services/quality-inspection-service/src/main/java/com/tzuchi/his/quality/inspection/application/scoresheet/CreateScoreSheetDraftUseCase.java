@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.scoresheet;
 
+import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
 import org.springframework.stereotype.Service;
@@ -17,7 +19,8 @@ public class CreateScoreSheetDraftUseCase {
         this.repository = repository;
     }
 
-    public String execute(String projectId) {
+    public String execute(ActorContext actor, String projectId) {
+        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         String scoreSheetId = UUID.randomUUID().toString();
         ScoreSheetDefinition scoreSheet = ScoreSheetDefinition.createDraft(scoreSheetId, projectId);
         repository.save(scoreSheet);

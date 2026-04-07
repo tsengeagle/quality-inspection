@@ -5,7 +5,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "review_cases")
+@Table(name = "review_case")
 public class ReviewCaseEntity {
 
     @Id

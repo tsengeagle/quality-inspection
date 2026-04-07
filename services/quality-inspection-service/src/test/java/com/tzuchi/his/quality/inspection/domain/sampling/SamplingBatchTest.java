@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.sampling;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +45,7 @@ class SamplingBatchTest {
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         );
 
-        assertThrows(IllegalArgumentException.class, () -> batch.selectCases(cases));
+        assertThrows(DomainStateConflictException.class, () -> batch.selectCases(cases));
     }
 
     @Test
@@ -56,7 +57,7 @@ class SamplingBatchTest {
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(DomainStateConflictException.class, () ->
                 batch.selectCases(List.of(
                         new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
                 ))
@@ -86,7 +87,7 @@ class SamplingBatchTest {
                 new SelectedCaseRef("C2", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        assertThrows(IllegalStateException.class, batch::complete);
+        assertThrows(DomainStateConflictException.class, batch::complete);
     }
 
     @Test
@@ -98,9 +99,9 @@ class SamplingBatchTest {
         ));
         batch.complete();
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(DomainStateConflictException.class,
                 () -> batch.recordCandidateCount(5, 5, 0));
-        assertThrows(IllegalStateException.class,
+        assertThrows(DomainStateConflictException.class,
                 () -> batch.selectCases(List.of(
                         new SelectedCaseRef("C99", "H1", MedicalRecordType.OUTPATIENT)
                 )));
@@ -124,7 +125,7 @@ class SamplingBatchTest {
         ));
         batch.complete();
 
-        assertThrows(IllegalStateException.class, () -> batch.fail("cannot fail completed"));
+        assertThrows(DomainStateConflictException.class, () -> batch.fail("cannot fail completed"));
     }
 
     @Test
@@ -140,7 +141,7 @@ class SamplingBatchTest {
     void markRetryOf_nonRetryMode_shouldThrow() {
         SamplingBatch batch = createBatch("b1", "p1", ExecutionMode.MANUAL);
 
-        assertThrows(IllegalStateException.class, () -> batch.markRetryOf("b0"));
+        assertThrows(DomainStateConflictException.class, () -> batch.markRetryOf("b0"));
     }
 
     @Test

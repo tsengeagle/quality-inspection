@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
@@ -92,7 +93,6 @@ class SamplingUseCaseTest {
         ReviewProject project = createActiveProject("p1");
         projectRepo.save(project);
 
-        // Create a failed batch manually
         SamplingBatch failedBatch = SamplingBatch.start("failed-b", "p1",
                 ExecutionMode.MANUAL, new RuleSnapshot("v1", "policy"));
         failedBatch.fail("test failure");
@@ -130,7 +130,7 @@ class SamplingUseCaseTest {
         completedBatch.complete();
         batchRepo.save(completedBatch);
 
-        assertThrows(IllegalStateException.class, () -> retryUseCase.execute("done-b"));
+        assertThrows(DomainRuleViolationException.class, () -> retryUseCase.execute("done-b"));
     }
 
     @Test
@@ -139,7 +139,40 @@ class SamplingUseCaseTest {
                 EnumSet.of(MedicalRecordType.OUTPATIENT));
         projectRepo.save(project);
 
-        assertThrows(IllegalStateException.class, () -> executeUseCase.execute("p1"));
+        assertThrows(DomainRuleViolationException.class, () -> executeUseCase.execute("p1"));
+    }
+
+    @Test
+    void retry_shouldUseSnapshotFromPreviousBatch() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+
+        RuleSnapshot originalSnapshot = new RuleSnapshot("project=p1,version=1", "original-policy");
+        SamplingBatch failedBatch = SamplingBatch.start("failed-b2", "p1",
+                ExecutionMode.MANUAL, originalSnapshot);
+        failedBatch.fail("test failure");
+        batchRepo.save(failedBatch);
+
+        candidateSource.setCandidates(List.of());
+
+        String newBatchId = retryUseCase.execute("failed-b2");
+
+        SamplingBatch newBatch = batchRepo.store.get(newBatchId);
+        assertEquals("project=p1,version=1",
+                newBatch.getRuleSnapshot().getProjectVersionInfo(),
+                "Retry batch must use original batch's snapshot, not current project version");
+        assertEquals("original-policy",
+                newBatch.getRuleSnapshot().getSamplingPolicyInfo());
+    }
+
+    @Test
+    void preview_inactiveProject_shouldThrow() {
+        ReviewProject project = ReviewProject.create("p-draft", "H1", "Draft Project",
+                EnumSet.of(MedicalRecordType.OUTPATIENT));
+        projectRepo.save(project);
+
+        assertThrows(DomainRuleViolationException.class,
+                () -> previewUseCase.execute("p-draft"));
     }
 
     // --- Helpers ---

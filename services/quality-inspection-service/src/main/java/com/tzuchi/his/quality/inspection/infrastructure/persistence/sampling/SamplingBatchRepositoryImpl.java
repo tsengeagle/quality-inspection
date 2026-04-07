@@ -42,6 +42,7 @@ public class SamplingBatchRepositoryImpl implements SamplingBatchRepository {
         e.setRuleSnapshotProject(b.getRuleSnapshot().getProjectVersionInfo());
         e.setRuleSnapshotPolicy(b.getRuleSnapshot().getSamplingPolicyInfo());
         e.setRetryOfBatchId(b.getRetryOfBatchId());
+        e.setFailureReason(b.getFailureReason());
         e.setSelectedCases(
                 b.getSelectedCases().stream().map(ref -> {
                     SelectedCaseRefEntity re = new SelectedCaseRefEntity();
@@ -56,32 +57,28 @@ public class SamplingBatchRepositoryImpl implements SamplingBatchRepository {
 
     private SamplingBatch toDomain(SamplingBatchEntity e) {
         RuleSnapshot snapshot = new RuleSnapshot(e.getRuleSnapshotProject(), e.getRuleSnapshotPolicy());
-        SamplingBatch batch = SamplingBatch.start(e.getBatchId(), e.getProjectId(),
-                e.getExecutionMode(), snapshot);
 
-        if (e.getRetryOfBatchId() != null && e.getExecutionMode() == ExecutionMode.RETRY) {
-            batch.markRetryOf(e.getRetryOfBatchId());
-        }
+        List<SelectedCaseRef> selectedCases = e.getSelectedCases().stream()
+                .map(re -> new SelectedCaseRef(
+                        re.getSourceCaseKey(), re.getHospitalId(),
+                        MedicalRecordType.valueOf(re.getMedicalRecordType())))
+                .collect(Collectors.toList());
 
-        if (e.getPopulationCount() > 0 || e.getEligibleCount() > 0) {
-            batch.recordCandidateCount(e.getPopulationCount(), e.getEligibleCount(), e.getExcludedCount());
-        }
-
-        if (!e.getSelectedCases().isEmpty()) {
-            List<SelectedCaseRef> refs = e.getSelectedCases().stream()
-                    .map(re -> new SelectedCaseRef(
-                            re.getSourceCaseKey(), re.getHospitalId(),
-                            MedicalRecordType.valueOf(re.getMedicalRecordType())))
-                    .collect(Collectors.toList());
-            batch.selectCases(refs);
-        }
-
-        if (e.getStatus() == BatchStatus.COMPLETED) {
-            batch.complete();
-        } else if (e.getStatus() == BatchStatus.FAILED) {
-            batch.fail("reconstituted");
-        }
-
-        return batch;
+        return SamplingBatch.reconstitute(
+                e.getBatchId(),
+                e.getProjectId(),
+                e.getExecutionMode(),
+                snapshot,
+                e.getStatus(),
+                e.getStartedAt(),
+                e.getFinishedAt(),
+                e.getPopulationCount(),
+                e.getEligibleCount(),
+                e.getExcludedCount(),
+                e.getSelectedCount(),
+                e.getRetryOfBatchId(),
+                e.getFailureReason(),
+                selectedCases
+        );
     }
 }

@@ -4,7 +4,7 @@ import javax.persistence.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "score_items")
+@Table(name = "score_sheet_item")
 public class ScoreItemEntity {
 
     @Id

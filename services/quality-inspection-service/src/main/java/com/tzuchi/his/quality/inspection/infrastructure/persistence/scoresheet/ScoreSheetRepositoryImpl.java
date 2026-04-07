@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.scoresheet;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.*;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -60,8 +61,7 @@ public class ScoreSheetRepositoryImpl implements ScoreSheetRepository {
     }
 
     private ScoreSheetDefinition toDomain(ScoreSheetEntity e) {
-        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft(e.getScoreSheetId(), e.getProjectId());
-        for (ScoreSheetSectionEntity se : e.getSections()) {
+        List<ScoreSheetSection> sections = e.getSections().stream().map(se -> {
             ScoreSheetSection section = new ScoreSheetSection(se.getSectionId(), se.getTitle());
             for (ScoreItemEntity ie : se.getItems()) {
                 section.addItem(new ScoreItem(
@@ -70,11 +70,15 @@ public class ScoreSheetRepositoryImpl implements ScoreSheetRepository {
                         ie.getMaxScore(), ie.getWeight()
                 ));
             }
-            ss.addSection(section);
-        }
-        if (e.getStatus() == ScoreSheetStatus.PUBLISHED) {
-            ss.publishVersion();
-        }
-        return ss;
+            return section;
+        }).collect(Collectors.toList());
+
+        return ScoreSheetDefinition.reconstitute(
+                e.getScoreSheetId(),
+                e.getProjectId(),
+                e.getStatus(),
+                e.getVersion(),
+                sections
+        );
     }
 }

@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest;
 
+import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.scoresheet.CreateScoreSheetDraftUseCase;
 import com.tzuchi.his.quality.inspection.application.scoresheet.PublishScoreSheetVersionUseCase;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse;
@@ -25,15 +26,18 @@ public class ScoreSheetController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<Map<String, String>>> createDraft(
+            @CurrentActor ActorContext actor,
             @RequestBody CreateScoreSheetDraftRequest request) {
-        String scoreSheetId = createDraftUseCase.execute(request.getProjectId());
+        String scoreSheetId = createDraftUseCase.execute(actor, request.getProjectId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(Map.of("scoreSheetId", scoreSheetId)));
     }
 
     @PostMapping("/{scoreSheetId}/publish-version")
-    public ResponseEntity<ApiResponse<Void>> publishVersion(@PathVariable String scoreSheetId) {
-        publishUseCase.execute(scoreSheetId);
+    public ResponseEntity<ApiResponse<Void>> publishVersion(
+            @CurrentActor ActorContext actor,
+            @PathVariable String scoreSheetId) {
+        publishUseCase.execute(actor, scoreSheetId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

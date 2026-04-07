@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -15,9 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Execute sampling: create batch, snapshot, select cases, create ReviewCases.
- */
+/** Execute sampling: create batch, snapshot, select cases, create ReviewCases. */
 @Service
 @Transactional
 public class ExecuteSamplingUseCase {
@@ -42,13 +42,14 @@ public class ExecuteSamplingUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
         if (project.getStatus() != ProjectStatus.ACTIVE) {
-            throw new IllegalStateException("Project must be ACTIVE for sampling execution");
+            throw new DomainRuleViolationException("PROJECT_NOT_ACTIVE",
+                    "Project must be ACTIVE for sampling execution. Current status: " + project.getStatus());
         }
         if (!project.getCurrentVersion().isPublished()) {
-            throw new IllegalStateException("Project must have a published version");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Project must have a published version before executing sampling");
         }
 
-        // Create rule snapshot from current project state
         RuleSnapshot snapshot = new RuleSnapshot(
                 "project=" + projectId + ",version=" + project.getCurrentVersion().getVersionNumber(),
                 "default-sampling-policy"
@@ -57,7 +58,6 @@ public class ExecuteSamplingUseCase {
         String batchId = UUID.randomUUID().toString();
         SamplingBatch batch = SamplingBatch.start(batchId, projectId, ExecutionMode.MANUAL, snapshot);
 
-        // Query candidates
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
         List<SelectedCaseRef> candidates = candidateSource.queryCandidates(
                 projectId, project.getHospitalId(), types);
@@ -72,7 +72,6 @@ public class ExecuteSamplingUseCase {
 
         batchRepository.save(batch);
 
-        // Create ReviewCases from selected cases
         List<ReviewCase> reviewCases = candidates.stream()
                 .map(ref -> ReviewCase.createFromSampling(
                         UUID.randomUUID().toString(),
@@ -80,8 +79,7 @@ public class ExecuteSamplingUseCase {
                         projectId,
                         ref.getHospitalId(),
                         ref.getSourceCaseKey(),
-                        ref.getMedicalRecordType()
-                ))
+                        ref.getMedicalRecordType()))
                 .collect(Collectors.toList());
 
         caseRepository.saveAll(reviewCases);

@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Preview sampling population without creating a batch.
@@ -32,7 +32,8 @@ public class PreviewSamplingPopulationUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
         if (project.getStatus() != ProjectStatus.ACTIVE) {
-            throw new IllegalStateException("Project must be ACTIVE for sampling preview");
+            throw new DomainRuleViolationException("PROJECT_NOT_ACTIVE",
+                    "Project must be ACTIVE for sampling preview. Current status: " + project.getStatus());
         }
 
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
@@ -40,13 +41,9 @@ public class PreviewSamplingPopulationUseCase {
                 projectId, project.getHospitalId(), types);
 
         int populationCount = candidates.size();
-        int excludedCount = 0; // simplified — real exclusion logic in future
+        int excludedCount = 0;
         int eligibleCount = populationCount - excludedCount;
 
-        List<String> keys = candidates.stream()
-                .map(SelectedCaseRef::getSourceCaseKey)
-                .collect(Collectors.toList());
-
-        return new SamplingPreviewResult(populationCount, eligibleCount, excludedCount, keys);
+        return new SamplingPreviewResult(populationCount, eligibleCount, excludedCount);
     }
 }

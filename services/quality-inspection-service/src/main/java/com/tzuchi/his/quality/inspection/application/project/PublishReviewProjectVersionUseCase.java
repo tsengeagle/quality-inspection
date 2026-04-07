@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.project;
 
+import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import org.springframework.stereotype.Service;
@@ -15,7 +17,8 @@ public class PublishReviewProjectVersionUseCase {
         this.repository = repository;
     }
 
-    public void execute(String projectId) {
+    public void execute(ActorContext actor, String projectId) {
+        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = repository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
         project.publishNewVersion();

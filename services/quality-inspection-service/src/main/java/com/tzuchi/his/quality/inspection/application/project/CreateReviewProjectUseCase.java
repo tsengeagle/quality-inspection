@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.project;
 
+import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
@@ -19,7 +21,9 @@ public class CreateReviewProjectUseCase {
         this.repository = repository;
     }
 
-    public String execute(String hospitalId, String name, Set<MedicalRecordType> medicalRecordTypes) {
+    public String execute(ActorContext actor, String hospitalId, String name,
+                          Set<MedicalRecordType> medicalRecordTypes) {
+        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         String projectId = UUID.randomUUID().toString();
         ReviewProject project = ReviewProject.create(projectId, hospitalId, name, medicalRecordTypes);
         repository.save(project);

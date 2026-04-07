@@ -1,5 +1,8 @@
 package com.tzuchi.his.quality.inspection.domain.sampling;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+
 import java.time.Instant;
 import java.util.*;
 
@@ -32,6 +35,7 @@ public class SamplingBatch {
 
     private RuleSnapshot ruleSnapshot;
     private String retryOfBatchId;
+    private String failureReason;
 
     private List<SelectedCaseRef> selectedCases;
 
@@ -59,10 +63,40 @@ public class SamplingBatch {
         return new SamplingBatch(batchId, projectId, executionMode, ruleSnapshot);
     }
 
+    /**
+     * Reconstitute a SamplingBatch from persisted state.
+     * FOR INFRASTRUCTURE USE ONLY — do not call from domain or application code.
+     */
+    public static SamplingBatch reconstitute(String batchId, String projectId,
+                                              ExecutionMode executionMode, RuleSnapshot ruleSnapshot,
+                                              BatchStatus status, Instant startedAt, Instant finishedAt,
+                                              int populationCount, int eligibleCount, int excludedCount,
+                                              int selectedCount, String retryOfBatchId,
+                                              String failureReason,
+                                              List<SelectedCaseRef> selectedCases) {
+        SamplingBatch batch = new SamplingBatch();
+        batch.batchId = batchId;
+        batch.projectId = projectId;
+        batch.executionMode = executionMode;
+        batch.ruleSnapshot = ruleSnapshot;
+        batch.status = status;
+        batch.startedAt = startedAt;
+        batch.finishedAt = finishedAt;
+        batch.populationCount = populationCount;
+        batch.eligibleCount = eligibleCount;
+        batch.excludedCount = excludedCount;
+        batch.selectedCount = selectedCount;
+        batch.retryOfBatchId = retryOfBatchId;
+        batch.failureReason = failureReason;
+        batch.selectedCases = selectedCases != null ? new ArrayList<>(selectedCases) : new ArrayList<>();
+        return batch;
+    }
+
     public void markRetryOf(String previousBatchId) {
         Objects.requireNonNull(previousBatchId, "previousBatchId must not be null");
         if (this.executionMode != ExecutionMode.RETRY) {
-            throw new IllegalStateException("markRetryOf only valid for RETRY mode");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "markRetryOf only valid for RETRY mode");
         }
         this.retryOfBatchId = previousBatchId;
     }
@@ -85,15 +119,14 @@ public class SamplingBatch {
         Set<String> seenKeys = new HashSet<>();
         for (SelectedCaseRef ref : cases) {
             if (!seenKeys.add(ref.getSourceCaseKey())) {
-                throw new IllegalArgumentException(
+                throw new DomainStateConflictException("DUPLICATE_SELECTED_CASE_IN_BATCH",
                         "Duplicate sourceCaseKey in same batch: " + ref.getSourceCaseKey());
             }
         }
 
-        // Also check against already-selected cases
         for (SelectedCaseRef existing : this.selectedCases) {
             if (seenKeys.contains(existing.getSourceCaseKey())) {
-                throw new IllegalArgumentException(
+                throw new DomainStateConflictException("DUPLICATE_SELECTED_CASE_IN_BATCH",
                         "Duplicate sourceCaseKey in same batch: " + existing.getSourceCaseKey());
             }
         }
@@ -106,7 +139,8 @@ public class SamplingBatch {
     public void complete() {
         requireNotCompleted();
         if (selectedCount > eligibleCount) {
-            throw new IllegalStateException("selectedCount exceeds eligibleCount");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "selectedCount exceeds eligibleCount");
         }
         this.status = BatchStatus.COMPLETED;
         this.finishedAt = Instant.now();
@@ -114,18 +148,22 @@ public class SamplingBatch {
 
     public void fail(String reason) {
         if (this.status == BatchStatus.COMPLETED) {
-            throw new IllegalStateException("Cannot fail a completed batch");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Cannot fail a completed batch");
         }
         this.status = BatchStatus.FAILED;
+        this.failureReason = reason;
         this.finishedAt = Instant.now();
     }
 
     private void requireNotCompleted() {
         if (this.status == BatchStatus.COMPLETED) {
-            throw new IllegalStateException("Batch is already completed and immutable");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Batch is already completed and immutable");
         }
         if (this.status == BatchStatus.FAILED) {
-            throw new IllegalStateException("Batch has failed and cannot be modified");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Batch has failed and cannot be modified");
         }
     }
 
@@ -149,5 +187,6 @@ public class SamplingBatch {
     public int getSelectedCount() { return selectedCount; }
     public RuleSnapshot getRuleSnapshot() { return ruleSnapshot; }
     public String getRetryOfBatchId() { return retryOfBatchId; }
+    public String getFailureReason() { return failureReason; }
     public List<SelectedCaseRef> getSelectedCases() { return Collections.unmodifiableList(selectedCases); }
 }

@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
 import java.util.*;
@@ -39,7 +40,7 @@ public class ReviewProject {
         this.projectId = projectId;
         this.hospitalId = hospitalId;
         this.name = name;
-        this.medicalRecordTypes = medicalRecordTypes != null
+        this.medicalRecordTypes = (medicalRecordTypes != null && !medicalRecordTypes.isEmpty())
                 ? EnumSet.copyOf(medicalRecordTypes)
                 : EnumSet.noneOf(MedicalRecordType.class);
         this.status = ProjectStatus.DRAFT;
@@ -49,6 +50,26 @@ public class ReviewProject {
     public static ReviewProject create(String projectId, String hospitalId, String name,
                                         Set<MedicalRecordType> medicalRecordTypes) {
         return new ReviewProject(projectId, hospitalId, name, medicalRecordTypes);
+    }
+
+    /**
+     * Reconstitute a ReviewProject from persisted state.
+     * FOR INFRASTRUCTURE USE ONLY — do not call from domain or application code.
+     */
+    public static ReviewProject reconstitute(String projectId, String hospitalId, String name,
+                                              Set<MedicalRecordType> medicalRecordTypes,
+                                              ProjectStatus status, int versionNumber,
+                                              boolean versionPublished) {
+        ReviewProject project = new ReviewProject();
+        project.projectId = projectId;
+        project.hospitalId = hospitalId;
+        project.name = name;
+        project.medicalRecordTypes = (medicalRecordTypes != null && !medicalRecordTypes.isEmpty())
+                ? EnumSet.copyOf(medicalRecordTypes)
+                : EnumSet.noneOf(MedicalRecordType.class);
+        project.status = status;
+        project.currentVersion = new ProjectVersion(versionNumber, versionPublished);
+        return project;
     }
 
     public void activate() {
@@ -74,7 +95,7 @@ public class ReviewProject {
      */
     public void publishNewVersion() {
         if (this.currentVersion.isPublished()) {
-            throw new IllegalStateException(
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
                     "Current version is already published. Cannot re-publish without creating a new draft.");
         }
         this.currentVersion = this.currentVersion.publish();
@@ -102,33 +123,17 @@ public class ReviewProject {
 
     private void requireDraft() {
         if (this.currentVersion.isPublished()) {
-            throw new IllegalStateException("Cannot modify a published version");
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Cannot modify a published version");
         }
     }
 
     // --- Getters ---
 
-    public String getProjectId() {
-        return projectId;
-    }
-
-    public String getHospitalId() {
-        return hospitalId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public Set<MedicalRecordType> getMedicalRecordTypes() {
-        return Collections.unmodifiableSet(medicalRecordTypes);
-    }
-
-    public ProjectStatus getStatus() {
-        return status;
-    }
-
-    public ProjectVersion getCurrentVersion() {
-        return currentVersion;
-    }
+    public String getProjectId() { return projectId; }
+    public String getHospitalId() { return hospitalId; }
+    public String getName() { return name; }
+    public Set<MedicalRecordType> getMedicalRecordTypes() { return Collections.unmodifiableSet(medicalRecordTypes); }
+    public ProjectStatus getStatus() { return status; }
+    public ProjectVersion getCurrentVersion() { return currentVersion; }
 }

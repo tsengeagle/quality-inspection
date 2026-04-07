@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "score_sheet_sections")
+@Table(name = "score_sheet_section")
 public class ScoreSheetSectionEntity {
 
     @Id
@@ -19,7 +19,7 @@ public class ScoreSheetSectionEntity {
     private String title;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JoinColumn(name = "section_pk")
+    @JoinColumn(name = "section_id")
     @OrderColumn(name = "item_order")
     private List<ScoreItemEntity> items = new ArrayList<>();
 

@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -34,7 +35,7 @@ class ScoreSheetDefinitionTest {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         ss.addSection(new ScoreSheetSection("sec1", "General"));
 
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(DomainStateConflictException.class,
                 () -> ss.addSection(new ScoreSheetSection("sec1", "Another")));
     }
 
@@ -51,7 +52,7 @@ class ScoreSheetDefinitionTest {
     void publishVersion_emptySections_shouldThrow() {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
 
-        assertThrows(IllegalStateException.class, ss::publishVersion);
+        assertThrows(DomainStateConflictException.class, ss::publishVersion);
     }
 
     @Test
@@ -59,7 +60,7 @@ class ScoreSheetDefinitionTest {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         ss.addSection(new ScoreSheetSection("sec1", "Empty"));
 
-        assertThrows(IllegalStateException.class, ss::publishVersion);
+        assertThrows(DomainStateConflictException.class, ss::publishVersion);
     }
 
     @Test
@@ -67,7 +68,7 @@ class ScoreSheetDefinitionTest {
         ScoreSheetDefinition ss = createSheetWithOneItem();
         ss.publishVersion();
 
-        assertThrows(IllegalStateException.class, ss::publishVersion);
+        assertThrows(DomainStateConflictException.class, ss::publishVersion);
     }
 
     @Test
@@ -75,7 +76,7 @@ class ScoreSheetDefinitionTest {
         ScoreSheetDefinition ss = createSheetWithOneItem();
         ss.publishVersion();
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(DomainStateConflictException.class,
                 () -> ss.addSection(new ScoreSheetSection("sec2", "Extra")));
     }
 

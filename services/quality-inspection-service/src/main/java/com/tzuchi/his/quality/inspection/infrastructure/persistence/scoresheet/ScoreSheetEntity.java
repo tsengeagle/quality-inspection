@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "score_sheet_definitions")
+@Table(name = "score_sheet")
 public class ScoreSheetEntity {
 
     @Id

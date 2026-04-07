@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -17,7 +18,7 @@ import java.util.stream.Collectors;
 
 /**
  * Retry a failed sampling batch.
- * Creates a NEW batch — does NOT overwrite the failed batch.
+ * Creates a NEW batch -- does NOT overwrite the failed batch.
  */
 @Service
 @Transactional
@@ -43,7 +44,8 @@ public class RetrySamplingBatchUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Batch not found: " + previousBatchId));
 
         if (previousBatch.getStatus() != BatchStatus.FAILED) {
-            throw new IllegalStateException("Only FAILED batches can be retried");
+            throw new DomainRuleViolationException("BATCH_NOT_RETRYABLE",
+                    "Only FAILED batches can be retried. Current status: " + previousBatch.getStatus());
         }
 
         String projectId = previousBatch.getProjectId();
@@ -51,13 +53,12 @@ public class RetrySamplingBatchUseCase {
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
         if (project.getStatus() != ProjectStatus.ACTIVE) {
-            throw new IllegalStateException("Project must be ACTIVE for retry");
+            throw new DomainRuleViolationException("PROJECT_NOT_ACTIVE",
+                    "Project must be ACTIVE for retry. Current status: " + project.getStatus());
         }
 
-        RuleSnapshot snapshot = new RuleSnapshot(
-                "project=" + projectId + ",version=" + project.getCurrentVersion().getVersionNumber(),
-                "default-sampling-policy"
-        );
+        // C-001 fix: use the PREVIOUS batch's snapshot, not the current project version
+        RuleSnapshot snapshot = previousBatch.getRuleSnapshot();
 
         String newBatchId = UUID.randomUUID().toString();
         SamplingBatch newBatch = SamplingBatch.start(newBatchId, projectId, ExecutionMode.RETRY, snapshot);
