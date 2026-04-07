@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Base64;
@@ -26,6 +27,14 @@ import java.util.Set;
 public class TzJwtParser {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    @Value("${quality-inspection.hospital-id:}")
+    private String configuredHospitalId;
+
+    // Package-private setter for unit testing without Spring context
+    void setConfiguredHospitalId(String configuredHospitalId) {
+        this.configuredHospitalId = configuredHospitalId;
+    }
 
     /**
      * Parse the JWT token string and return an ActorContext.
@@ -93,7 +102,20 @@ public class TzJwtParser {
             }
         }
 
-        return new ActorContext(userId, userName, roles, Optional.empty());
+        // HospitalId resolution: env var > JWT claim > empty
+        Optional<String> hospitalId;
+        if (configuredHospitalId != null && !configuredHospitalId.isBlank()) {
+            hospitalId = Optional.of(configuredHospitalId.trim());
+        } else {
+            String jwtHospitalId = parsedUser.getUser().getHospital_id();
+            if (jwtHospitalId != null && !jwtHospitalId.isBlank()) {
+                hospitalId = Optional.of(jwtHospitalId.trim());
+            } else {
+                hospitalId = Optional.empty();
+            }
+        }
+
+        return new ActorContext(userId, userName, roles, hospitalId);
     }
 
     private String addPadding(String base64url) {
