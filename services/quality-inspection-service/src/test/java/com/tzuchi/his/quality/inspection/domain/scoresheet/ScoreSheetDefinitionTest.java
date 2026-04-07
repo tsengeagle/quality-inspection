@@ -109,6 +109,36 @@ class ScoreSheetDefinitionTest {
                         ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE)));
     }
 
+    @Test
+    void addSection_crossSectionDuplicateItemId_shouldThrow() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection s1 = new ScoreSheetSection("sec1", "Section 1");
+        s1.addItem(new ScoreItem("i1", "C01", "Item1",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s1);
+
+        ScoreSheetSection s2 = new ScoreSheetSection("sec2", "Section 2");
+        s2.addItem(new ScoreItem("i1", "C99", "Different",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+
+        assertThrows(DomainStateConflictException.class, () -> ss.addSection(s2));
+    }
+
+    @Test
+    void addSection_crossSectionDuplicateCode_shouldThrow() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection s1 = new ScoreSheetSection("sec1", "Section 1");
+        s1.addItem(new ScoreItem("i1", "C01", "Item1",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s1);
+
+        ScoreSheetSection s2 = new ScoreSheetSection("sec2", "Section 2");
+        s2.addItem(new ScoreItem("i99", "C01", "Different",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+
+        assertThrows(DomainStateConflictException.class, () -> ss.addSection(s2));
+    }
+
     private ScoreSheetDefinition createSheetWithOneItem() {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         ScoreSheetSection section = new ScoreSheetSection("sec1", "General");
