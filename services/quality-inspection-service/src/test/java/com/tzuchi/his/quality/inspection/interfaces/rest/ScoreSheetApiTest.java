@@ -329,4 +329,60 @@ class ScoreSheetApiTest {
                 .andExpect(jsonPath("$.error.message", containsString("requiredRule")))
                 .andExpect(jsonPath("$.error.message", containsString("BAD_RULE")));
     }
+
+    @Test
+    void updateDraft_nullScoreType_shouldReturn400() throws Exception {
+        String projectId = createProject();
+        String ssId = createScoreSheet(projectId);
+
+        Map<String, Object> addItem = new LinkedHashMap<>();
+        addItem.put("targetSectionId", "sec1");
+        addItem.put("itemId", "i1");
+        addItem.put("code", "C01");
+        addItem.put("title", "Item 1");
+        addItem.put("scoreType", null);
+        addItem.put("maxScore", 10);
+        addItem.put("weight", 1);
+        addItem.put("requiredRule", "ALWAYS_REQUIRED");
+
+        Map<String, Object> addSection = new LinkedHashMap<>();
+        addSection.put("sectionId", "sec1");
+        addSection.put("title", "General");
+        addSection.put("items", List.of(addItem));
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("addSections", List.of(addSection));
+
+        mockMvc.perform(put(SS_BASE + "/" + ssId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.message", containsString("scoreType")));
+    }
+
+    @Test
+    void updateDraft_emptyRequiredRule_shouldReturn400() throws Exception {
+        String projectId = createProject();
+        String ssId = createScoreSheet(projectId);
+
+        Map<String, Object> updateItem = new LinkedHashMap<>();
+        updateItem.put("itemId", "i1");
+        updateItem.put("code", "C01");
+        updateItem.put("title", "Item 1");
+        updateItem.put("scoreType", "FIXED");
+        updateItem.put("maxScore", 10);
+        updateItem.put("weight", 1);
+        updateItem.put("requiredRule", "");
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("updateItems", List.of(updateItem));
+
+        mockMvc.perform(put(SS_BASE + "/" + ssId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.message", containsString("requiredRule")));
+    }
 }

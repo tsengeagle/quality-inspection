@@ -333,8 +333,10 @@ score_sheet_item:
 
 ### 約束
 
-* unique: `(score_sheet_version_id, item_id)` — 透過 section 間接關聯
-* unique: `(score_sheet_version_id, item_code)` — 透過 section 間接關聯
+* unique: `(score_sheet_version_id, item_id)` — 透過 section 間接關聯，domain 層強制
+* unique: `(score_sheet_version_id, item_code)` — 透過 section 間接關聯，domain 層強制
+
+> **注意：** 上述 uniqueness 由 domain layer aggregate invariant 強制（error code: `DUPLICATE_ITEM_ID` / `DUPLICATE_ITEM_CODE`），目前無 DB-level composite unique constraint，因跨 table 複合索引需額外設計。
 
 ### 備註
 

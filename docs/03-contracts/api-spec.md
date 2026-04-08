@@ -389,7 +389,7 @@ Accept: application/json
 
 ```json
 {
-  "code": "SUCCESS",
+  "success": true,
   "data": {
     "scoreSheetId": "SS-001"
   }
@@ -454,7 +454,7 @@ Accept: application/json
 
 ```json
 {
-  "code": "SUCCESS",
+  "success": true,
   "data": null
 }
 ```
