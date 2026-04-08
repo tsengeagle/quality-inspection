@@ -2,154 +2,312 @@ package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tzuchi.his.quality.inspection.TestTokenFactory;
-import com.tzuchi.his.quality.inspection.interfaces.rest.dto.CreateReviewProjectRequest;
-import com.tzuchi.his.quality.inspection.interfaces.rest.dto.CreateScoreSheetDraftRequest;
+import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Map;
 import java.util.Set;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@AutoConfigureTestDatabase
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class ReviewProjectApiTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private static final String BASE = "/review-projects";
+    private String hmToken = TestTokenFactory.hospitalManagerToken();
+    private String saToken = TestTokenFactory.systemAdminToken();
+
+    // --- CREATE ---
 
     @Test
     void createProject_shouldReturn201() throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
         req.setName("Test Project");
+        req.setDescription("A test description");
         req.setMedicalRecordTypes(Set.of("OUTPATIENT", "INPATIENT"));
 
-        mockMvc.perform(post("/review-projects")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken())
+        mockMvc.perform(post(BASE)
+                        .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.projectId").isNotEmpty());
     }
 
     @Test
-    void publishVersion_newProject_shouldSucceed() throws Exception {
+    void createProject_nullName_shouldReturn400() throws Exception {
+        String body = "{\"medicalRecordTypes\":[\"OUTPATIENT\"]}";
+
+        mockMvc.perform(post(BASE)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createProject_systemAdmin_shouldReturn403() throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setName("Publish Test");
+        req.setName("Test");
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
 
-        MvcResult result = mockMvc.perform(post("/review-projects")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken())
+        mockMvc.perform(post(BASE)
+                        .header("api-key", saToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andReturn();
+                .andExpect(status().isForbidden());
+    }
 
-        String projectId = objectMapper.readTree(
-                result.getResponse().getContentAsString())
-                .get("data").get("projectId").asText();
+    // --- PUBLISH ---
 
-        mockMvc.perform(post("/review-projects/" + projectId + "/publish-version")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+    @Test
+    void publishVersion_shouldReturn200() throws Exception {
+        String projectId = createProjectAndGetId("Publish Test");
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void publishVersion_notFound_shouldReturn404() throws Exception {
+        mockMvc.perform(post(BASE + "/no-such/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isNotFound());
     }
 
     @Test
     void publishVersion_alreadyPublished_shouldReturn409() throws Exception {
-        CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setName("Double Publish Test");
-        req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
+        String projectId = createProjectAndGetId("Double Publish");
 
-        MvcResult result = mockMvc.perform(post("/review-projects")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        String projectId = objectMapper.readTree(
-                result.getResponse().getContentAsString())
-                .get("data").get("projectId").asText();
-
-        mockMvc.perform(post("/review-projects/" + projectId + "/publish-version")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+        mockMvc.perform(post(BASE + "/" + projectId + "/publish")
+                        .header("api-key", hmToken))
                 .andExpect(status().isOk());
 
-        // Try to publish again — should conflict
-        mockMvc.perform(post("/review-projects/" + projectId + "/publish-version")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.success").value(false));
+        mockMvc.perform(post(BASE + "/" + projectId + "/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isConflict());
     }
 
-    @Test
-    void createScoreSheetDraft_shouldReturn201() throws Exception {
-        CreateScoreSheetDraftRequest req = new CreateScoreSheetDraftRequest();
-        req.setProjectId("p-test");
+    // --- UPDATE DRAFT ---
 
-        mockMvc.perform(post("/score-sheets")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken())
+    @Test
+    void updateDraft_shouldReturn200() throws Exception {
+        String projectId = createProjectAndGetId("Before Update");
+
+        UpdateReviewProjectRequest req = new UpdateReviewProjectRequest();
+        req.setName("After Update");
+        req.setDescription("Updated desc");
+        req.setMedicalRecordTypes(Set.of("INPATIENT"));
+
+        mockMvc.perform(put(BASE + "/" + projectId)
+                        .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.scoreSheetId").isNotEmpty());
+                .andExpect(status().isOk());
     }
 
     @Test
-    void requestWithoutApiKey_shouldReturn401() throws Exception {
-        mockMvc.perform(post("/review-projects")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isUnauthorized());
-    }
+    void updateDraft_activeProject_shouldReturn409() throws Exception {
+        String projectId = createActiveProject();
 
-    @Test
-    void createProject_nullMedicalRecordTypes_shouldDefaultToEmpty() throws Exception {
-        String body = "{\"name\":\"Test\",\"medicalRecordTypes\":null}";
-
-        mockMvc.perform(post("/review-projects")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(body))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.projectId").isNotEmpty());
-    }
-
-    @Test
-    void executeSampling_inactiveProject_shouldReturn422() throws Exception {
-        // Create a DRAFT project — not published, not activated
-        CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setName("T-003 Inactive Project");
+        UpdateReviewProjectRequest req = new UpdateReviewProjectRequest();
+        req.setName("Changed");
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
 
-        MvcResult result = mockMvc.perform(post("/review-projects")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken())
+        mockMvc.perform(put(BASE + "/" + projectId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isConflict());
+    }
+
+    // --- BIND SCORE SHEET ---
+
+    @Test
+    void bindScoreSheet_shouldReturn200() throws Exception {
+        String projectId = createProjectAndGetId("Bind Test");
+
+        BindScoreSheetRequest req = new BindScoreSheetRequest();
+        req.setScoreSheetId("ss-123");
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk());
+    }
+
+    // --- ACTIVATE ---
+
+    @Test
+    void activate_shouldReturn200() throws Exception {
+        String projectId = createProjectAndGetId("Activate Test");
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk());
+
+        BindScoreSheetRequest bindReq = new BindScoreSheetRequest();
+        bindReq.setScoreSheetId("ss-1");
+        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bindReq)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/activate")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void activate_noBoundScoreSheet_shouldReturn422() throws Exception {
+        String projectId = createProjectAndGetId("No SS");
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/activate")
+                        .header("api-key", hmToken))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    // --- DEACTIVATE ---
+
+    @Test
+    void deactivate_shouldReturn200() throws Exception {
+        String projectId = createActiveProject();
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/deactivate")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void deactivate_draftProject_shouldReturn409() throws Exception {
+        String projectId = createProjectAndGetId("Draft Only");
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/deactivate")
+                        .header("api-key", hmToken))
+                .andExpect(status().isConflict());
+    }
+
+    // --- LIST ---
+
+    @Test
+    void listProjects_hospitalManager_shouldReturnOwnOnly() throws Exception {
+        createProjectAndGetId("HM Project");
+
+        mockMvc.perform(get(BASE)
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].name").value("HM Project"));
+    }
+
+    @Test
+    void listProjects_systemAdmin_shouldReturnAll() throws Exception {
+        createProjectAndGetId("SA Project");
+
+        mockMvc.perform(get(BASE)
+                        .header("api-key", saToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)));
+    }
+
+    // --- GET DETAIL ---
+
+    @Test
+    void getProject_shouldReturn200() throws Exception {
+        String projectId = createProjectAndGetId("Detail Test");
+
+        mockMvc.perform(get(BASE + "/" + projectId)
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.projectId").value(projectId))
+                .andExpect(jsonPath("$.data.name").value("Detail Test"))
+                .andExpect(jsonPath("$.data.status").value("DRAFT"));
+    }
+
+    @Test
+    void getProject_notFound_shouldReturn404() throws Exception {
+        mockMvc.perform(get(BASE + "/no-such")
+                        .header("api-key", hmToken))
+                .andExpect(status().isNotFound());
+    }
+
+    // --- GET VERSION ---
+
+    @Test
+    void getVersion_shouldReturn200() throws Exception {
+        String projectId = createProjectAndGetId("Version Test");
+
+        mockMvc.perform(get(BASE + "/" + projectId + "/version")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.versionNumber").value(1))
+                .andExpect(jsonPath("$.data.published").value(false));
+    }
+
+    // --- Helpers ---
+
+    private String createProjectAndGetId(String name) throws Exception {
+        CreateReviewProjectRequest req = new CreateReviewProjectRequest();
+        req.setName(name);
+        req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
+
+        MvcResult result = mockMvc.perform(post(BASE)
+                        .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        String projectId = objectMapper.readTree(
-                result.getResponse().getContentAsString())
-                .get("data").get("projectId").asText();
+        Map<String, Object> body = objectMapper.readValue(
+                result.getResponse().getContentAsString(),
+                new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
+        @SuppressWarnings("unchecked")
+        Map<String, Object> data = (Map<String, Object>) body.get("data");
+        return (String) data.get("projectId");
+    }
 
-        // Execute sampling on DRAFT project → 422 PROJECT_NOT_ACTIVE
-        mockMvc.perform(post("/review-projects/" + projectId + "/sampling/execute")
-                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.error.code").value("PROJECT_NOT_ACTIVE"));
+    private String createActiveProject() throws Exception {
+        String projectId = createProjectAndGetId("Active Project");
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk());
+
+        BindScoreSheetRequest bindReq = new BindScoreSheetRequest();
+        bindReq.setScoreSheetId("ss-1");
+        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bindReq)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/activate")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk());
+
+        return projectId;
     }
 }

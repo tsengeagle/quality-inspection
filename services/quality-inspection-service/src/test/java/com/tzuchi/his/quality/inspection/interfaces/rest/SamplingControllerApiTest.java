@@ -135,7 +135,7 @@ class SamplingControllerApiTest {
                 result.getResponse().getContentAsString())
                 .get("data").get("projectId").asText();
 
-        mockMvc.perform(post("/review-projects/" + projectId + "/publish-version")
+        mockMvc.perform(post("/review-projects/" + projectId + "/publish")
                         .header("api-key", TestTokenFactory.hospitalManagerToken()))
                 .andExpect(status().isOk());
 
