@@ -39,9 +39,11 @@ public class SamplingBatchRepositoryImpl implements SamplingBatchRepository {
         e.setEligibleCount(b.getEligibleCount());
         e.setExcludedCount(b.getExcludedCount());
         e.setSelectedCount(b.getSelectedCount());
-        // TODO(B2/Task-7): Only 2 of 5 RuleSnapshot fields persisted. Task 7 adds full columns.
-        e.setRuleSnapshotProject(b.getRuleSnapshot().getProjectVersionId());
-        e.setRuleSnapshotPolicy(b.getRuleSnapshot().getSamplingPolicy());
+        e.setProjectVersionId(b.getRuleSnapshot().getProjectVersionId());
+        e.setProjectVersionNumber(b.getRuleSnapshot().getProjectVersionNumber());
+        e.setScoreSheetVersionId(b.getRuleSnapshot().getScoreSheetVersionId());
+        e.setSamplingPolicy(b.getRuleSnapshot().getSamplingPolicy());
+        e.setSnapshotSummary(b.getRuleSnapshot().getSnapshotSummary());
         e.setRetryOfBatchId(b.getRetryOfBatchId());
         e.setFailureReason(b.getFailureReason());
         e.setSelectedCases(
@@ -57,13 +59,12 @@ public class SamplingBatchRepositoryImpl implements SamplingBatchRepository {
     }
 
     private SamplingBatch toDomain(SamplingBatchEntity e) {
-        // TODO(B2/Task-7): Temporary shim — 3 fields use placeholders. Task 7 replaces with real columns.
         RuleSnapshot snapshot = new RuleSnapshot(
-                e.getRuleSnapshotProject(),
-                0,
-                "UNKNOWN",
-                e.getRuleSnapshotPolicy(),
-                null
+                e.getProjectVersionId(),
+                e.getProjectVersionNumber(),
+                e.getScoreSheetVersionId(),
+                e.getSamplingPolicy(),
+                e.getSnapshotSummary()
         );
 
         List<SelectedCaseRef> selectedCases = e.getSelectedCases().stream()

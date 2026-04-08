@@ -45,11 +45,20 @@ public class SamplingBatchEntity {
     @Column(name = "selected_count")
     private int selectedCount;
 
-    @Column(name = "rule_snapshot_project")
-    private String ruleSnapshotProject;
+    @Column(name = "project_version_id")
+    private String projectVersionId;
 
-    @Column(name = "rule_snapshot_policy")
-    private String ruleSnapshotPolicy;
+    @Column(name = "project_version_number")
+    private int projectVersionNumber;
+
+    @Column(name = "score_sheet_version_id")
+    private String scoreSheetVersionId;
+
+    @Column(name = "sampling_policy")
+    private String samplingPolicy;
+
+    @Column(name = "snapshot_summary", length = 2000)
+    private String snapshotSummary;
 
     @Column(name = "retry_of_batch_id")
     private String retryOfBatchId;
@@ -95,11 +104,20 @@ public class SamplingBatchEntity {
     public int getSelectedCount() { return selectedCount; }
     public void setSelectedCount(int selectedCount) { this.selectedCount = selectedCount; }
 
-    public String getRuleSnapshotProject() { return ruleSnapshotProject; }
-    public void setRuleSnapshotProject(String s) { this.ruleSnapshotProject = s; }
+    public String getProjectVersionId() { return projectVersionId; }
+    public void setProjectVersionId(String s) { this.projectVersionId = s; }
 
-    public String getRuleSnapshotPolicy() { return ruleSnapshotPolicy; }
-    public void setRuleSnapshotPolicy(String s) { this.ruleSnapshotPolicy = s; }
+    public int getProjectVersionNumber() { return projectVersionNumber; }
+    public void setProjectVersionNumber(int n) { this.projectVersionNumber = n; }
+
+    public String getScoreSheetVersionId() { return scoreSheetVersionId; }
+    public void setScoreSheetVersionId(String s) { this.scoreSheetVersionId = s; }
+
+    public String getSamplingPolicy() { return samplingPolicy; }
+    public void setSamplingPolicy(String s) { this.samplingPolicy = s; }
+
+    public String getSnapshotSummary() { return snapshotSummary; }
+    public void setSnapshotSummary(String s) { this.snapshotSummary = s; }
 
     public String getRetryOfBatchId() { return retryOfBatchId; }
     public void setRetryOfBatchId(String retryOfBatchId) { this.retryOfBatchId = retryOfBatchId; }
