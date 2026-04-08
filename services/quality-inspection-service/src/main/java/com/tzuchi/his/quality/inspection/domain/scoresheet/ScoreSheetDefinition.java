@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 
 import java.util.*;
@@ -109,6 +110,120 @@ public class ScoreSheetDefinition {
                     "Cannot publish a score sheet with no items");
         }
         this.status = ScoreSheetStatus.PUBLISHED;
+    }
+
+    public void updateDraft(UpdateDraftCommand command) {
+        requireDraft();
+        Objects.requireNonNull(command, "command must not be null");
+
+        // 1. Remove sections first
+        for (String sectionId : command.getRemoveSectionIds()) {
+            boolean removed = sections.removeIf(s -> s.getSectionId().equals(sectionId));
+            if (!removed) {
+                throw new DomainRuleViolationException("SECTION_NOT_FOUND",
+                        "Section not found: " + sectionId);
+            }
+        }
+
+        // 2. Remove items (cross-section search)
+        for (String itemId : command.getRemoveItemIds()) {
+            boolean found = false;
+            for (ScoreSheetSection section : sections) {
+                if (section.getItems().stream().anyMatch(i -> i.getItemId().equals(itemId))) {
+                    section.removeItem(itemId);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                throw new DomainRuleViolationException("ITEM_NOT_FOUND",
+                        "Item not found: " + itemId);
+            }
+        }
+
+        // 3. Update section titles
+        for (UpdateDraftCommand.UpdateSectionCommand update : command.getUpdateSections()) {
+            ScoreSheetSection section = findSection(update.getSectionId());
+            section.updateTitle(update.getTitle());
+        }
+
+        // 4. Update items (find item across sections, replace it)
+        for (UpdateDraftCommand.UpdateItemCommand update : command.getUpdateItems()) {
+            updateItemInSections(update);
+        }
+
+        // 5. Add new sections (reuses existing addSection() which enforces uniqueness)
+        for (UpdateDraftCommand.AddSectionCommand add : command.getAddSections()) {
+            ScoreSheetSection newSection = new ScoreSheetSection(add.getSectionId(), add.getTitle());
+            for (UpdateDraftCommand.AddItemCommand itemCmd : add.getItems()) {
+                newSection.addItem(toScoreItem(itemCmd));
+            }
+            addSection(newSection);
+        }
+
+        // 6. Add items to existing sections (with cross-section uniqueness)
+        for (UpdateDraftCommand.AddItemCommand add : command.getAddItems()) {
+            ScoreSheetSection section = findSection(add.getTargetSectionId());
+            ScoreItem newItem = toScoreItem(add);
+            validateCrossSectionUniqueness(newItem, section);
+            section.addItem(newItem);
+        }
+    }
+
+    private ScoreSheetSection findSection(String sectionId) {
+        return sections.stream()
+                .filter(s -> s.getSectionId().equals(sectionId))
+                .findFirst()
+                .orElseThrow(() -> new DomainRuleViolationException("SECTION_NOT_FOUND",
+                        "Section not found: " + sectionId));
+    }
+
+    private void updateItemInSections(UpdateDraftCommand.UpdateItemCommand update) {
+        for (ScoreSheetSection section : sections) {
+            for (int i = 0; i < section.getItems().size(); i++) {
+                if (section.getItems().get(i).getItemId().equals(update.getItemId())) {
+                    // Check code uniqueness if code changed
+                    ScoreItem oldItem = section.getItems().get(i);
+                    if (!oldItem.getCode().equals(update.getCode())) {
+                        ScoreItem tempItem = new ScoreItem(update.getItemId(), update.getCode(),
+                                update.getTitle(), update.getScoreType(), update.getMaxScore(),
+                                update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
+                        validateCrossSectionUniqueness(tempItem, null);
+                    }
+                    // Replace the item — remove old, add new at same position
+                    section.removeItem(update.getItemId());
+                    ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
+                            update.getTitle(), update.getScoreType(), update.getMaxScore(),
+                            update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
+                    section.addItem(replacement);
+                    return;
+                }
+            }
+        }
+        throw new DomainRuleViolationException("ITEM_NOT_FOUND",
+                "Item not found: " + update.getItemId());
+    }
+
+    private void validateCrossSectionUniqueness(ScoreItem newItem, ScoreSheetSection excludeSection) {
+        for (ScoreSheetSection section : sections) {
+            if (section == excludeSection) continue;
+            for (ScoreItem existing : section.getItems()) {
+                if (existing.getItemId().equals(newItem.getItemId())) {
+                    throw new DomainStateConflictException("DUPLICATE_ITEM_ID",
+                            "Duplicate itemId across sections: " + newItem.getItemId());
+                }
+                if (existing.getCode().equals(newItem.getCode())) {
+                    throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
+                            "Duplicate item code across sections: " + newItem.getCode());
+                }
+            }
+        }
+    }
+
+    private ScoreItem toScoreItem(UpdateDraftCommand.AddItemCommand cmd) {
+        return new ScoreItem(cmd.getItemId(), cmd.getCode(), cmd.getTitle(),
+                cmd.getScoreType(), cmd.getMaxScore(), cmd.getWeight(),
+                cmd.getRequiredRule(), cmd.getConditionExpression());
     }
 
     private void requireDraft() {
