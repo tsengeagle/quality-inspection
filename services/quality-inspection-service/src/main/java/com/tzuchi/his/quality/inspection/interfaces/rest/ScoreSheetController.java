@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -124,9 +125,9 @@ public class ScoreSheetController {
         List<UpdateDraftCommand.UpdateItemCommand> updateItems = req.getUpdateItems() != null
                 ? req.getUpdateItems().stream().map(i -> new UpdateDraftCommand.UpdateItemCommand(
                         i.getItemId(), i.getCode(), i.getTitle(),
-                        ScoreType.valueOf(i.getScoreType()),
+                        parseEnum(ScoreType.class, i.getScoreType(), "scoreType"),
                         i.getMaxScore(), i.getWeight(),
-                        RequiredRule.valueOf(i.getRequiredRule()),
+                        parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"),
                         i.getConditionExpression()))
                 .collect(Collectors.toList()) : null;
 
@@ -137,9 +138,9 @@ public class ScoreSheetController {
     private UpdateDraftCommand.AddItemCommand toAddItemCmd(UpdateScoreSheetDraftRequest.AddItemRequest i) {
         return new UpdateDraftCommand.AddItemCommand(
                 i.getTargetSectionId(), i.getItemId(), i.getCode(), i.getTitle(),
-                ScoreType.valueOf(i.getScoreType()),
+                parseEnum(ScoreType.class, i.getScoreType(), "scoreType"),
                 i.getMaxScore(), i.getWeight(),
-                RequiredRule.valueOf(i.getRequiredRule()),
+                parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"),
                 i.getConditionExpression());
     }
 
@@ -159,5 +160,18 @@ public class ScoreSheetController {
         return new ScoreSheetItemResponse(item.getItemId(), item.getCode(), item.getTitle(),
                 item.getScoreType().name(), item.getMaxScore(), item.getWeight(),
                 item.getRequiredRule().name(), item.getConditionExpression());
+    }
+
+    private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value, String fieldName) {
+        try {
+            return Enum.valueOf(enumClass, value);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new BadRequestException(
+                    String.format("Invalid %s: '%s'. Allowed values: %s",
+                            fieldName, value,
+                            Arrays.stream(enumClass.getEnumConstants())
+                                    .map(Enum::name)
+                                    .collect(Collectors.joining(", "))));
+        }
     }
 }
