@@ -23,7 +23,7 @@ public class ScoreSheetSectionEntity {
     @OrderColumn(name = "item_order")
     private List<ScoreItemEntity> items = new ArrayList<>();
 
-    protected ScoreSheetSectionEntity() {}
+    public ScoreSheetSectionEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

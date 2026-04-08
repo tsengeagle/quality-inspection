@@ -50,6 +50,9 @@ public class AnswerSetJsonConverter implements AttributeConverter<List<AnswerIte
                     throw new IllegalStateException("Invalid JSON: itemId must not be null");
                 }
                 String answerValue = (String) m.get("answerValue");
+                if (answerValue == null) {
+                    throw new IllegalStateException("Invalid JSON: answerValue must not be null for itemId: " + itemId);
+                }
                 BigDecimal derivedScore = m.get("derivedScore") != null
                         ? new BigDecimal(m.get("derivedScore").toString())
                         : null;

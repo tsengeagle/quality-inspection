@@ -62,7 +62,7 @@ public class ReviewSubmissionEntity {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    protected ReviewSubmissionEntity() {}
+    public ReviewSubmissionEntity() {}
 
     public String getSubmissionId() { return submissionId; }
     public void setSubmissionId(String submissionId) { this.submissionId = submissionId; }

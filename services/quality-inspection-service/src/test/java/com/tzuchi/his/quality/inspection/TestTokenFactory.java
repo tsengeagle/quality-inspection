@@ -43,6 +43,17 @@ public class TestTokenFactory {
                 Map.of("role_name", "unknown_role", "enabled", true));
     }
 
+    /** Returns a JWT with REVIEWER role and specified userId + hospitalId. */
+    public static String reviewerToken(String userId, String hospitalId) {
+        return buildToken(userId, "Test Reviewer", hospitalId,
+                Map.of("role_name", "reviewer", "enabled", true));
+    }
+
+    /** Returns a JWT with REVIEWER role, default userId and hospitalId. */
+    public static String reviewerToken() {
+        return reviewerToken("reviewer-1", DEFAULT_HOSPITAL_ID);
+    }
+
     private static String buildToken(String userId, String userName,
                                      String hospitalId, Map<String, Object> role) {
         try {

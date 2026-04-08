@@ -35,7 +35,7 @@ public class ScoreItemEntity {
     @Column(name = "condition_expression")
     private String conditionExpression;
 
-    protected ScoreItemEntity() {}
+    public ScoreItemEntity() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

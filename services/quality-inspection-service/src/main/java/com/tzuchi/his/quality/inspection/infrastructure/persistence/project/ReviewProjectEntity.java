@@ -41,7 +41,7 @@ public class ReviewProjectEntity {
     @Column(name = "version_published", nullable = false)
     private boolean versionPublished;
 
-    protected ReviewProjectEntity() {}
+    public ReviewProjectEntity() {}
 
     // --- Getters and Setters ---
 

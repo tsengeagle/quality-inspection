@@ -29,7 +29,7 @@ public class ScoreSheetEntity {
     @OrderColumn(name = "section_order")
     private List<ScoreSheetSectionEntity> sections = new ArrayList<>();
 
-    protected ScoreSheetEntity() {}
+    public ScoreSheetEntity() {}
 
     public String getScoreSheetId() { return scoreSheetId; }
     public void setScoreSheetId(String scoreSheetId) { this.scoreSheetId = scoreSheetId; }

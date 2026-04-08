@@ -2,11 +2,17 @@ package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.reviewcase.*;
+import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/review-cases")
@@ -17,17 +23,26 @@ public class ReviewCaseController {
     private final CancelReviewCaseUseCase cancelUseCase;
     private final ReturnInitialReviewUseCase returnUseCase;
     private final ReopenInitialReviewUseCase reopenUseCase;
+    private final StartInitialReviewUseCase startInitialReviewUseCase;
+    private final SaveInitialReviewDraftUseCase saveInitialReviewDraftUseCase;
+    private final SubmitInitialReviewUseCase submitInitialReviewUseCase;
 
     public ReviewCaseController(AssignReviewCaseUseCase assignUseCase,
                                  ReassignReviewCaseUseCase reassignUseCase,
                                  CancelReviewCaseUseCase cancelUseCase,
                                  ReturnInitialReviewUseCase returnUseCase,
-                                 ReopenInitialReviewUseCase reopenUseCase) {
+                                 ReopenInitialReviewUseCase reopenUseCase,
+                                 StartInitialReviewUseCase startInitialReviewUseCase,
+                                 SaveInitialReviewDraftUseCase saveInitialReviewDraftUseCase,
+                                 SubmitInitialReviewUseCase submitInitialReviewUseCase) {
         this.assignUseCase = assignUseCase;
         this.reassignUseCase = reassignUseCase;
         this.cancelUseCase = cancelUseCase;
         this.returnUseCase = returnUseCase;
         this.reopenUseCase = reopenUseCase;
+        this.startInitialReviewUseCase = startInitialReviewUseCase;
+        this.saveInitialReviewDraftUseCase = saveInitialReviewDraftUseCase;
+        this.submitInitialReviewUseCase = submitInitialReviewUseCase;
     }
 
     @PostMapping("/{caseId}/assign-reviewer")
@@ -71,6 +86,40 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
         reopenUseCase.execute(actor, caseId);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    // --- B3b endpoints ---
+
+    @PostMapping("/{caseId}/start-initial-review")
+    public ResponseEntity<ApiResponse<StartInitialReviewResponse>> startInitialReview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        String submissionId = startInitialReviewUseCase.execute(actor, caseId);
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(new StartInitialReviewResponse(submissionId)));
+    }
+
+    @PostMapping("/{caseId}/initial-review/save-draft")
+    public ResponseEntity<ApiResponse<SaveDraftResponse>> saveInitialReviewDraft(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @Valid @RequestBody SaveInitialReviewDraftRequest request) {
+        List<AnswerInput> answers = request.getAnswers().stream()
+                .filter(Objects::nonNull)
+                .map(dto -> new AnswerInput(dto.getItemId(), dto.getAnswerValue()))
+                .collect(Collectors.toList());
+        BigDecimal totalScore = saveInitialReviewDraftUseCase.execute(
+                actor, caseId, answers, request.getComment());
+        return ResponseEntity.ok(ApiResponse.ok(new SaveDraftResponse(totalScore)));
+    }
+
+    @PostMapping("/{caseId}/initial-review/submit")
+    public ResponseEntity<ApiResponse<Void>> submitInitialReview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        submitInitialReviewUseCase.execute(actor, caseId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }
