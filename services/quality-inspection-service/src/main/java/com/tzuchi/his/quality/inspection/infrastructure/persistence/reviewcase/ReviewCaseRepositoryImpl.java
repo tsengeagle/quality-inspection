@@ -6,6 +6,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -25,6 +26,11 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
     @Override
     public void saveAll(List<ReviewCase> cases) {
         jpa.saveAll(cases.stream().map(this::toEntity).collect(Collectors.toList()));
+    }
+
+    @Override
+    public Optional<ReviewCase> findById(String caseId) {
+        throw new UnsupportedOperationException("Not implemented yet — will be completed in Task 7");
     }
 
     private ReviewCaseEntity toEntity(ReviewCase rc) {

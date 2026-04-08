@@ -369,6 +369,11 @@ class SamplingUseCaseTest {
         public void saveAll(List<ReviewCase> cases) {
             cases.forEach(this::save);
         }
+
+        @Override
+        public Optional<ReviewCase> findById(String caseId) {
+            return Optional.ofNullable(store.get(caseId));
+        }
     }
 
     static class StubCandidateSource implements CandidateSourcePort {
