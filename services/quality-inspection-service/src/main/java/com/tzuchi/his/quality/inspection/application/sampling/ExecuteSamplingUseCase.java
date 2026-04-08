@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
@@ -11,6 +12,7 @@ import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.sampling.*;
+import com.tzuchi.his.quality.inspection.domain.sampling.event.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,19 +30,23 @@ public class ExecuteSamplingUseCase {
     private final SamplingBatchRepository batchRepository;
     private final ReviewCaseRepository caseRepository;
     private final CandidateSourcePort candidateSource;
+    private final DomainEventPublisher eventPublisher;
 
     public ExecuteSamplingUseCase(ReviewProjectRepository projectRepository,
                                   SamplingBatchRepository batchRepository,
                                   ReviewCaseRepository caseRepository,
-                                  CandidateSourcePort candidateSource) {
+                                  CandidateSourcePort candidateSource,
+                                  DomainEventPublisher eventPublisher) {
         this.projectRepository = projectRepository;
         this.batchRepository = batchRepository;
         this.caseRepository = caseRepository;
         this.candidateSource = candidateSource;
+        this.eventPublisher = eventPublisher;
     }
 
     public String execute(ActorContext actor, String projectId) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
+        String hospitalId = actor.requireHospitalId();
         ReviewProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
@@ -63,6 +69,8 @@ public class ExecuteSamplingUseCase {
 
         String batchId = UUID.randomUUID().toString();
         SamplingBatch batch = SamplingBatch.start(batchId, projectId, ExecutionMode.MANUAL, snapshot);
+        eventPublisher.publish(new SamplingBatchStartedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, batchId, projectId, "MANUAL"));
 
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
         List<SelectedCaseRef> candidates = candidateSource.queryCandidates(
@@ -73,8 +81,19 @@ public class ExecuteSamplingUseCase {
         int eligibleCount = populationCount - excludedCount;
 
         batch.recordCandidateCount(populationCount, eligibleCount, excludedCount);
+        eventPublisher.publish(new SamplingCandidatesPreparedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, batchId,
+                populationCount, eligibleCount, excludedCount));
+
         batch.selectCases(candidates);
+        eventPublisher.publish(new ReviewCasesSelectedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, batchId,
+                batch.getSelectedCount()));
+
         batch.complete();
+        eventPublisher.publish(new SamplingBatchCompletedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, batchId, projectId,
+                batch.getSelectedCount(), populationCount));
 
         batchRepository.save(batch);
 

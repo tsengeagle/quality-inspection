@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
@@ -10,6 +11,7 @@ import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.sampling.*;
+import com.tzuchi.his.quality.inspection.domain.sampling.event.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,19 +32,23 @@ public class RetrySamplingBatchUseCase {
     private final SamplingBatchRepository batchRepository;
     private final ReviewCaseRepository caseRepository;
     private final CandidateSourcePort candidateSource;
+    private final DomainEventPublisher eventPublisher;
 
     public RetrySamplingBatchUseCase(ReviewProjectRepository projectRepository,
                                      SamplingBatchRepository batchRepository,
                                      ReviewCaseRepository caseRepository,
-                                     CandidateSourcePort candidateSource) {
+                                     CandidateSourcePort candidateSource,
+                                     DomainEventPublisher eventPublisher) {
         this.projectRepository = projectRepository;
         this.batchRepository = batchRepository;
         this.caseRepository = caseRepository;
         this.candidateSource = candidateSource;
+        this.eventPublisher = eventPublisher;
     }
 
     public String execute(ActorContext actor, String previousBatchId) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
+        String hospitalId = actor.requireHospitalId();
         SamplingBatch previousBatch = batchRepository.findById(previousBatchId)
                 .orElseThrow(() -> new IllegalArgumentException("Batch not found: " + previousBatchId));
 
@@ -60,12 +66,14 @@ public class RetrySamplingBatchUseCase {
                     "Project must be ACTIVE for retry. Current status: " + project.getStatus());
         }
 
-        // C-001 fix: use the PREVIOUS batch's snapshot, not the current project version
+        // D-013: use the PREVIOUS batch's snapshot, not the current project version
         RuleSnapshot snapshot = previousBatch.getRuleSnapshot();
 
         String newBatchId = UUID.randomUUID().toString();
         SamplingBatch newBatch = SamplingBatch.start(newBatchId, projectId, ExecutionMode.RETRY, snapshot);
         newBatch.markRetryOf(previousBatchId);
+        eventPublisher.publish(new SamplingBatchStartedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, newBatchId, projectId, "RETRY"));
 
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
         List<SelectedCaseRef> candidates = candidateSource.queryCandidates(
@@ -76,8 +84,19 @@ public class RetrySamplingBatchUseCase {
         int eligibleCount = populationCount - excludedCount;
 
         newBatch.recordCandidateCount(populationCount, eligibleCount, excludedCount);
+        eventPublisher.publish(new SamplingCandidatesPreparedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, newBatchId,
+                populationCount, eligibleCount, excludedCount));
+
         newBatch.selectCases(candidates);
+        eventPublisher.publish(new ReviewCasesSelectedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, newBatchId,
+                newBatch.getSelectedCount()));
+
         newBatch.complete();
+        eventPublisher.publish(new SamplingBatchCompletedEvent(this,
+                actor.getUserId(), actor.getUserName(), hospitalId, newBatchId, projectId,
+                newBatch.getSelectedCount(), populationCount));
 
         batchRepository.save(newBatch);
 

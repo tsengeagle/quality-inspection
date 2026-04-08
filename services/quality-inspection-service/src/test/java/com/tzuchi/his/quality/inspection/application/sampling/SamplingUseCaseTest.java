@@ -8,6 +8,8 @@ import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.sampling.*;
+import com.tzuchi.his.quality.inspection.domain.sampling.event.*;
+import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +26,7 @@ class SamplingUseCaseTest {
     private InMemorySamplingBatchRepo batchRepo;
     private InMemoryReviewCaseRepo caseRepo;
     private StubCandidateSource candidateSource;
+    private CapturingDomainEventPublisher eventPublisher;
 
     private PreviewSamplingPopulationUseCase previewUseCase;
     private ExecuteSamplingUseCase executeUseCase;
@@ -37,12 +40,13 @@ class SamplingUseCaseTest {
         batchRepo = new InMemorySamplingBatchRepo();
         caseRepo = new InMemoryReviewCaseRepo();
         candidateSource = new StubCandidateSource();
+        eventPublisher = new CapturingDomainEventPublisher();
 
         previewUseCase = new PreviewSamplingPopulationUseCase(projectRepo, candidateSource);
-        executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource);
-        retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource);
+        executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher);
+        retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher);
 
-        hospitalManagerActor = new ActorContext("u-test", "Test", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.empty());
+        hospitalManagerActor = new ActorContext("u-test", "Test", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
     }
 
     @Test
@@ -181,6 +185,44 @@ class SamplingUseCaseTest {
 
         assertThrows(DomainRuleViolationException.class,
                 () -> previewUseCase.execute(hospitalManagerActor, "p-draft"));
+    }
+
+    @Test
+    void execute_shouldEmit4Events() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+        candidateSource.setCandidates(List.of(
+                new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
+        ));
+
+        executeUseCase.execute(hospitalManagerActor, "p1");
+
+        assertEquals(4, eventPublisher.events.size());
+        assertInstanceOf(SamplingBatchStartedEvent.class, eventPublisher.events.get(0));
+        assertInstanceOf(SamplingCandidatesPreparedEvent.class, eventPublisher.events.get(1));
+        assertInstanceOf(ReviewCasesSelectedEvent.class, eventPublisher.events.get(2));
+        assertInstanceOf(SamplingBatchCompletedEvent.class, eventPublisher.events.get(3));
+    }
+
+    @Test
+    void retry_shouldEmit4Events() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+
+        SamplingBatch failedBatch = SamplingBatch.start("failed-ev", "p1",
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null));
+        failedBatch.fail("test failure");
+        batchRepo.save(failedBatch);
+
+        candidateSource.setCandidates(List.of(
+                new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
+        ));
+
+        retryUseCase.execute(hospitalManagerActor, "failed-ev");
+
+        assertEquals(4, eventPublisher.events.size());
+        assertInstanceOf(SamplingBatchStartedEvent.class, eventPublisher.events.get(0));
+        assertInstanceOf(SamplingBatchCompletedEvent.class, eventPublisher.events.get(3));
     }
 
     // --- Helpers ---
