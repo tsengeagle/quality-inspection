@@ -361,6 +361,72 @@ class ScoreSheetDefinitionTest {
                 () -> section.removeItem("nonexistent"));
     }
 
+    @Test
+    void updateDraft_updateItemCode_shouldSucceed() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(
+                null, null, null, null,
+                List.of(new UpdateDraftCommand.UpdateItemCommand("i1", "C99", "Item1",
+                        ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE,
+                        RequiredRule.ALWAYS_REQUIRED, null)),
+                null);
+
+        ss.updateDraft(cmd);
+
+        assertEquals("C99", ss.getSections().get(0).getItems().get(0).getCode());
+    }
+
+    @Test
+    void updateDraft_updateItemCode_crossSectionDuplicate_shouldThrow() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection s1 = new ScoreSheetSection("sec1", "Section 1");
+        s1.addItem(new ScoreItem("i1", "C01", "Item1",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s1);
+        ScoreSheetSection s2 = new ScoreSheetSection("sec2", "Section 2");
+        s2.addItem(new ScoreItem("i2", "C02", "Item2",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s2);
+
+        UpdateDraftCommand cmd = new UpdateDraftCommand(
+                null, null, null, null,
+                List.of(new UpdateDraftCommand.UpdateItemCommand("i1", "C02", "Item1",
+                        ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE,
+                        RequiredRule.ALWAYS_REQUIRED, null)),
+                null);
+
+        assertThrows(DomainStateConflictException.class, () -> ss.updateDraft(cmd));
+    }
+
+    @Test
+    void updateDraft_updateItem_shouldPreservePosition() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection section = new ScoreSheetSection("sec1", "General");
+        section.addItem(new ScoreItem("i1", "C01", "Item1",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        section.addItem(new ScoreItem("i2", "C02", "Item2",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        section.addItem(new ScoreItem("i3", "C03", "Item3",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(section);
+
+        UpdateDraftCommand cmd = new UpdateDraftCommand(
+                null, null, null, null,
+                List.of(new UpdateDraftCommand.UpdateItemCommand("i2", "C02", "Updated Item2",
+                        ScoreType.RANGE, BigDecimal.valueOf(20), BigDecimal.ONE,
+                        RequiredRule.OPTIONAL, null)),
+                null);
+
+        ss.updateDraft(cmd);
+
+        List<ScoreItem> items = ss.getSections().get(0).getItems();
+        assertEquals(3, items.size());
+        assertEquals("i1", items.get(0).getItemId());
+        assertEquals("i2", items.get(1).getItemId());
+        assertEquals("Updated Item2", items.get(1).getTitle());
+        assertEquals("i3", items.get(2).getItemId());
+    }
+
     private ScoreSheetDefinition createSheetWithOneItem() {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         ScoreSheetSection section = new ScoreSheetSection("sec1", "General");

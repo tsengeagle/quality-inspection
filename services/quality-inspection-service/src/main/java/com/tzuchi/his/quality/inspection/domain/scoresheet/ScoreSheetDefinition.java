@@ -182,20 +182,17 @@ public class ScoreSheetDefinition {
         for (ScoreSheetSection section : sections) {
             for (int i = 0; i < section.getItems().size(); i++) {
                 if (section.getItems().get(i).getItemId().equals(update.getItemId())) {
-                    // Check code uniqueness if code changed
                     ScoreItem oldItem = section.getItems().get(i);
                     if (!oldItem.getCode().equals(update.getCode())) {
                         ScoreItem tempItem = new ScoreItem(update.getItemId(), update.getCode(),
                                 update.getTitle(), update.getScoreType(), update.getMaxScore(),
                                 update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
-                        validateCrossSectionUniqueness(tempItem, null);
+                        validateCrossSectionUniqueness(tempItem, section);
                     }
-                    // Replace the item — remove old, add new at same position
-                    section.removeItem(update.getItemId());
                     ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
                             update.getTitle(), update.getScoreType(), update.getMaxScore(),
                             update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
-                    section.addItem(replacement);
+                    section.replaceItemAt(i, replacement);
                     return;
                 }
             }

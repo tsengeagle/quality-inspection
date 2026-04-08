@@ -49,6 +49,11 @@ public class ScoreSheetSection {
         this.title = newTitle;
     }
 
+    public void replaceItemAt(int index, ScoreItem item) {
+        Objects.requireNonNull(item, "item must not be null");
+        items.set(index, item);
+    }
+
     public void removeItem(String itemId) {
         boolean removed = items.removeIf(i -> i.getItemId().equals(itemId));
         if (!removed) {
