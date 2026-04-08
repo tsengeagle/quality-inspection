@@ -285,7 +285,7 @@ Accept: application/json
 
 ## 7.5 發布專案版本
 
-### `POST /review-projects/{projectId}/publish-version`
+### `POST /review-projects/{projectId}/publish`
 
 #### 權限
 
@@ -296,18 +296,43 @@ Accept: application/json
 ```json
 {
   "success": true,
-  "data": {
-    "projectId": "RP-001",
-    "projectVersionId": "RPV-001",
-    "versionNo": 3,
-    "status": "PUBLISHED"
-  }
+  "data": null
+}
+```
+
+> **Implementation note:** 發布成功回傳 `null`，不回傳版本詳情。
+> 如需取得版本資訊，使用 `GET /review-projects/{projectId}/version`。
+
+---
+
+## 7.6 綁定評分表
+
+### `POST /review-projects/{projectId}/bind-score-sheet`
+
+#### 權限
+
+* `HOSPITAL_MANAGER`
+
+#### Request
+
+```json
+{
+  "scoreSheetId": "SS-001"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": null
 }
 ```
 
 ---
 
-## 7.6 查詢專案清單
+## 7.7 查詢專案清單
 
 ### `GET /review-projects`
 
@@ -328,7 +353,7 @@ Accept: application/json
 
 ---
 
-## 7.7 查詢專案詳情
+## 7.8 查詢專案詳情
 
 ### `GET /review-projects/{projectId}`
 

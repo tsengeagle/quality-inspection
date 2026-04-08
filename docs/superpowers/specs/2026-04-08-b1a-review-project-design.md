@@ -242,8 +242,8 @@ public class ReviewProjectSummary {
     private final String description;
     private final ProjectStatus status;
     private final String boundScoreSheetId;
-    private final int versionNumber;
-    private final boolean versionPublished;
+    private final int currentVersionNumber;
+    private final boolean currentVersionPublished;
     // constructor + getters
 }
 ```
@@ -586,8 +586,8 @@ public class ReviewProjectResponse {
     private String description;
     private ProjectStatus status;
     private String boundScoreSheetId;
-    private int versionNumber;
-    private boolean versionPublished;
+    private int currentVersionNumber;
+    private boolean currentVersionPublished;
     // constructor from domain or summary
 }
 ```
@@ -598,13 +598,13 @@ public class ReviewProjectResponse {
 |--------|------|--------|----------|
 | POST | `/review-projects` | Create | CreateReviewProjectUseCase |
 | PUT | `/review-projects/{projectId}` | UpdateDraft | UpdateReviewProjectDraftUseCase |
-| POST | `/review-projects/{projectId}/publish-version` | Publish | PublishReviewProjectVersionUseCase |
+| POST | `/review-projects/{projectId}/publish` | Publish | PublishReviewProjectVersionUseCase |
 | POST | `/review-projects/{projectId}/activate` | Activate | ActivateReviewProjectUseCase |
 | POST | `/review-projects/{projectId}/deactivate` | Deactivate | DeactivateReviewProjectUseCase |
 | POST | `/review-projects/{projectId}/bind-score-sheet` | Bind | BindScoreSheetToProjectUseCase |
 | GET | `/review-projects` | List | ListReviewProjectsUseCase |
 | GET | `/review-projects/{projectId}` | Detail | GetReviewProjectDetailUseCase |
-| GET | `/review-projects/{projectId}/versions` | Versions | GetReviewProjectVersionUseCase |
+| GET | `/review-projects/{projectId}/version` | Version | GetReviewProjectVersionUseCase |
 
 ---
 
@@ -745,7 +745,7 @@ For each use case:
 ### Phase 5: API Layer
 
 **T12 — ReviewProjectController Updates**
-- Add all new endpoints (PUT, POST activate/deactivate/bind, GET list/detail/versions)
+- Add all new endpoints (PUT, POST activate/deactivate/bind, GET list/detail/version)
 - Wire new use cases
 - Add `ReviewProjectResponse` DTO
 - Integration tests (happy paths + 403 + 409)
