@@ -31,7 +31,7 @@ public class DeactivateReviewProjectUseCase {
         actor.requireHospitalScope(project.getHospitalId());
         project.deactivate();
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectDeactivatedEvent(this, actor, projectId,
+        eventPublisher.publish(new ReviewProjectDeactivatedEvent(this, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId()));
     }
 }

@@ -38,7 +38,7 @@ public class UpdateScoreSheetDraftUseCase {
 
         scoreSheet.updateDraft(command);
         repository.save(scoreSheet);
-        eventPublisher.publish(new ScoreSheetDraftUpdatedEvent(this, actor, scoreSheetId,
+        eventPublisher.publish(new ScoreSheetDraftUpdatedEvent(this, actor.getUserId(), actor.getUserName(), scoreSheetId,
                 scoreSheet.getProjectId(), hospitalId));
     }
 }

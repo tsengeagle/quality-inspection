@@ -35,7 +35,7 @@ public class UpdateReviewProjectDraftUseCase {
         actor.requireHospitalScope(project.getHospitalId());
         project.updateDraft(name, description, medicalRecordTypes);
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectDraftUpdatedEvent(this, actor, projectId,
+        eventPublisher.publish(new ReviewProjectDraftUpdatedEvent(this, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId()));
     }
 }

@@ -31,7 +31,7 @@ public class PublishReviewProjectVersionUseCase {
         actor.requireHospitalScope(project.getHospitalId());
         project.publishNewVersion();
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectVersionPublishedEvent(this, actor, projectId,
+        eventPublisher.publish(new ReviewProjectVersionPublishedEvent(this, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId()));
     }
 }

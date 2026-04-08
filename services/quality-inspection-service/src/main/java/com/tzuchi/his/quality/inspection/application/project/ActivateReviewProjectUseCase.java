@@ -31,7 +31,7 @@ public class ActivateReviewProjectUseCase {
         actor.requireHospitalScope(project.getHospitalId());
         project.activate();
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectActivatedEvent(this, actor, projectId,
+        eventPublisher.publish(new ReviewProjectActivatedEvent(this, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId()));
     }
 }

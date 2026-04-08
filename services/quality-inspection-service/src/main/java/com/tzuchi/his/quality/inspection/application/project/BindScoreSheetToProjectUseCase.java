@@ -31,7 +31,7 @@ public class BindScoreSheetToProjectUseCase {
         actor.requireHospitalScope(project.getHospitalId());
         project.bindScoreSheet(scoreSheetId);
         repository.save(project);
-        eventPublisher.publish(new ScoreSheetBoundToProjectEvent(this, actor, projectId,
+        eventPublisher.publish(new ScoreSheetBoundToProjectEvent(this, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId(), scoreSheetId));
     }
 }

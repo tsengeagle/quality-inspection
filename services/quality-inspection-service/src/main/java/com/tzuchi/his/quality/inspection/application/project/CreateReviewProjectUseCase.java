@@ -34,7 +34,7 @@ public class CreateReviewProjectUseCase {
         ReviewProject project = ReviewProject.create(projectId, hospitalId, name,
                 description, medicalRecordTypes);
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectCreatedEvent(this, actor, projectId, hospitalId));
+        eventPublisher.publish(new ReviewProjectCreatedEvent(this, actor.getUserId(), actor.getUserName(), projectId, hospitalId));
         return projectId;
     }
 }

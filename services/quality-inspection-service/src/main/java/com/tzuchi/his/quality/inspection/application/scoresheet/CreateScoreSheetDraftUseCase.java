@@ -36,7 +36,7 @@ public class CreateScoreSheetDraftUseCase {
         String scoreSheetId = UUID.randomUUID().toString();
         ScoreSheetDefinition scoreSheet = ScoreSheetDefinition.createDraft(scoreSheetId, projectId);
         repository.save(scoreSheet);
-        eventPublisher.publish(new ScoreSheetDraftCreatedEvent(this, actor, scoreSheetId,
+        eventPublisher.publish(new ScoreSheetDraftCreatedEvent(this, actor.getUserId(), actor.getUserName(), scoreSheetId,
                 projectId, hospitalId));
         return scoreSheetId;
     }

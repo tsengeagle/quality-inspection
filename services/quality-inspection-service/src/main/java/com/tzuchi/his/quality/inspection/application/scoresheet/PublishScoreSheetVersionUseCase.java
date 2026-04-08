@@ -37,7 +37,7 @@ public class PublishScoreSheetVersionUseCase {
 
         scoreSheet.publishVersion();
         repository.save(scoreSheet);
-        eventPublisher.publish(new ScoreSheetVersionPublishedEvent(this, actor, scoreSheetId,
+        eventPublisher.publish(new ScoreSheetVersionPublishedEvent(this, actor.getUserId(), actor.getUserName(), scoreSheetId,
                 scoreSheet.getProjectId(), hospitalId));
     }
 }
