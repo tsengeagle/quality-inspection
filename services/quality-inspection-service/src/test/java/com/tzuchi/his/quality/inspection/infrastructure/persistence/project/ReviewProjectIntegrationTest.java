@@ -21,7 +21,7 @@ class ReviewProjectIntegrationTest {
     @Test
     void reconstitution_versionAndStatus_shouldBeCorrect() {
         ReviewProject project = ReviewProject.create("p-int-1", "h1", "Test Project",
-                EnumSet.of(MedicalRecordType.OUTPATIENT));
+                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         project.publishNewVersion();
         project.prepareDraftVersion();
         projectRepository.save(project);

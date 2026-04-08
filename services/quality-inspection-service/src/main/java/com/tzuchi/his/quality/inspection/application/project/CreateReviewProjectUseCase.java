@@ -25,7 +25,7 @@ public class CreateReviewProjectUseCase {
                           Set<MedicalRecordType> medicalRecordTypes) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         String projectId = UUID.randomUUID().toString();
-        ReviewProject project = ReviewProject.create(projectId, hospitalId, name, medicalRecordTypes);
+        ReviewProject project = ReviewProject.create(projectId, hospitalId, name, null, medicalRecordTypes);
         repository.save(project);
         return projectId;
     }

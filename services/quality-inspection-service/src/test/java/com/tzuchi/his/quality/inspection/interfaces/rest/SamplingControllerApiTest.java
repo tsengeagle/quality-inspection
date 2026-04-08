@@ -144,6 +144,7 @@ class SamplingControllerApiTest {
         com.tzuchi.his.quality.inspection.domain.project.ReviewProject project =
                 projectRepository.findById(projectId)
                         .orElseThrow(() -> new AssertionError("Project not found: " + projectId));
+        project.bindScoreSheet("ss-test");
         project.activate();
         projectRepository.save(project);
 

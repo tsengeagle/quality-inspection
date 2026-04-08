@@ -19,6 +19,12 @@ public class ReviewProjectEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "bound_score_sheet_id")
+    private String boundScoreSheetId;
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "review_project_record_types",
             joinColumns = @JoinColumn(name = "project_id"))
@@ -48,7 +54,13 @@ public class ReviewProjectEntity {
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
-    public Set<String> getMedicalRecordTypes() { return medicalRecordTypes; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getBoundScoreSheetId() { return boundScoreSheetId; }
+    public void setBoundScoreSheetId(String boundScoreSheetId) { this.boundScoreSheetId = boundScoreSheetId; }
+
+    public Set<String> getMedicalRecordTypes(){ return medicalRecordTypes; }
     public void setMedicalRecordTypes(Set<String> medicalRecordTypes) { this.medicalRecordTypes = medicalRecordTypes; }
 
     public ProjectStatus getStatus() { return status; }

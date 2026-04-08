@@ -144,7 +144,7 @@ class SamplingUseCaseTest {
     @Test
     void execute_inactiveProject_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "H1", "Test",
-                EnumSet.of(MedicalRecordType.OUTPATIENT));
+                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         projectRepo.save(project);
 
         assertThrows(DomainRuleViolationException.class, () -> executeUseCase.execute(hospitalManagerActor, "p1"));
@@ -176,7 +176,7 @@ class SamplingUseCaseTest {
     @Test
     void preview_inactiveProject_shouldThrow() {
         ReviewProject project = ReviewProject.create("p-draft", "H1", "Draft Project",
-                EnumSet.of(MedicalRecordType.OUTPATIENT));
+                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         projectRepo.save(project);
 
         assertThrows(DomainRuleViolationException.class,
@@ -187,8 +187,9 @@ class SamplingUseCaseTest {
 
     private ReviewProject createActiveProject(String projectId) {
         ReviewProject project = ReviewProject.create(projectId, "H1", "Test Project",
-                EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT));
+                null, EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT));
         project.publishNewVersion();
+        project.bindScoreSheet("ss-test");
         project.activate();
         return project;
     }
