@@ -88,6 +88,21 @@ class DeactivateReviewProjectUseCaseTest {
     }
 
     @Test
+    void execute_crossHospital_shouldThrow() {
+        ReviewProject project = ReviewProject.create("p1", "H001", "Test",
+                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        project.publishNewVersion();
+        project.bindScoreSheet("ss-1");
+        project.activate();
+        repository.save(project);
+        ActorContext actor = new ActorContext("u1", "Manager",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H999"));
+
+        assertThrows(AccessDeniedException.class,
+                () -> useCase.execute(actor, "p1"));
+    }
+
+    @Test
     void execute_notFound_shouldThrow() {
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
