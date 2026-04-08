@@ -160,6 +160,18 @@ class SamplingBatchTest {
     }
 
     @Test
+    void ruleSnapshot_nullScoreSheetVersionId_shouldThrow() {
+        assertThrows(NullPointerException.class, () ->
+                new RuleSnapshot("PV-001-v1", 1, null, "MANUAL", null));
+    }
+
+    @Test
+    void ruleSnapshot_nullSamplingPolicy_shouldThrow() {
+        assertThrows(NullPointerException.class, () ->
+                new RuleSnapshot("PV-001-v1", 1, "SS-001-v1", null, null));
+    }
+
+    @Test
     void ruleSnapshot_shouldPreserveAllFields() {
         RuleSnapshot snapshot = new RuleSnapshot("PV-001-v2", 2, "SS-001-v1",
                 "MANUAL", "{\"key\":\"value\"}");

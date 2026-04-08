@@ -35,4 +35,32 @@ public class RuleSnapshot {
     public String getScoreSheetVersionId() { return scoreSheetVersionId; }
     public String getSamplingPolicy() { return samplingPolicy; }
     public String getSnapshotSummary() { return snapshotSummary; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RuleSnapshot that = (RuleSnapshot) o;
+        return projectVersionNumber == that.projectVersionNumber
+                && projectVersionId.equals(that.projectVersionId)
+                && scoreSheetVersionId.equals(that.scoreSheetVersionId)
+                && samplingPolicy.equals(that.samplingPolicy)
+                && Objects.equals(snapshotSummary, that.snapshotSummary);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(projectVersionId, projectVersionNumber,
+                scoreSheetVersionId, samplingPolicy, snapshotSummary);
+    }
+
+    @Override
+    public String toString() {
+        return "RuleSnapshot{" +
+                "projectVersionId='" + projectVersionId + '\'' +
+                ", projectVersionNumber=" + projectVersionNumber +
+                ", scoreSheetVersionId='" + scoreSheetVersionId + '\'' +
+                ", samplingPolicy='" + samplingPolicy + '\'' +
+                '}';
+    }
 }
