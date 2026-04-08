@@ -195,13 +195,32 @@ class SamplingUseCaseTest {
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        executeUseCase.execute(hospitalManagerActor, "p1");
+        String batchId = executeUseCase.execute(hospitalManagerActor, "p1");
 
         assertEquals(4, eventPublisher.events.size());
-        assertInstanceOf(SamplingBatchStartedEvent.class, eventPublisher.events.get(0));
-        assertInstanceOf(SamplingCandidatesPreparedEvent.class, eventPublisher.events.get(1));
-        assertInstanceOf(ReviewCasesSelectedEvent.class, eventPublisher.events.get(2));
-        assertInstanceOf(SamplingBatchCompletedEvent.class, eventPublisher.events.get(3));
+
+        SamplingBatchStartedEvent started = assertInstanceOf(SamplingBatchStartedEvent.class, eventPublisher.events.get(0));
+        assertEquals("u-test", started.getActorUserId());
+        assertEquals("Test", started.getActorUserName());
+        assertEquals("H001", started.getHospitalId());
+        assertEquals("SamplingBatch", started.getEntityType());
+        assertEquals(batchId, started.getEntityId());
+        assertEquals("STARTED", started.getAction());
+
+        SamplingCandidatesPreparedEvent prepared = assertInstanceOf(SamplingCandidatesPreparedEvent.class, eventPublisher.events.get(1));
+        assertEquals(batchId, prepared.getEntityId());
+        assertEquals("CANDIDATES_PREPARED", prepared.getAction());
+        assertTrue(prepared.getDetail().contains("\"populationCount\":1"));
+
+        ReviewCasesSelectedEvent selected = assertInstanceOf(ReviewCasesSelectedEvent.class, eventPublisher.events.get(2));
+        assertEquals(batchId, selected.getEntityId());
+        assertEquals("CASES_SELECTED", selected.getAction());
+        assertTrue(selected.getDetail().contains("\"selectedCount\":1"));
+
+        SamplingBatchCompletedEvent completed = assertInstanceOf(SamplingBatchCompletedEvent.class, eventPublisher.events.get(3));
+        assertEquals(batchId, completed.getEntityId());
+        assertEquals("COMPLETED", completed.getAction());
+        assertTrue(completed.getDetail().contains("\"selectedCount\":1"));
     }
 
     @Test
@@ -218,11 +237,22 @@ class SamplingUseCaseTest {
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        retryUseCase.execute(hospitalManagerActor, "failed-ev");
+        String newBatchId = retryUseCase.execute(hospitalManagerActor, "failed-ev");
 
         assertEquals(4, eventPublisher.events.size());
-        assertInstanceOf(SamplingBatchStartedEvent.class, eventPublisher.events.get(0));
-        assertInstanceOf(SamplingBatchCompletedEvent.class, eventPublisher.events.get(3));
+
+        SamplingBatchStartedEvent started = assertInstanceOf(SamplingBatchStartedEvent.class, eventPublisher.events.get(0));
+        assertEquals("u-test", started.getActorUserId());
+        assertEquals("H001", started.getHospitalId());
+        assertEquals(newBatchId, started.getEntityId());
+        assertEquals("STARTED", started.getAction());
+
+        assertInstanceOf(SamplingCandidatesPreparedEvent.class, eventPublisher.events.get(1));
+        assertInstanceOf(ReviewCasesSelectedEvent.class, eventPublisher.events.get(2));
+
+        SamplingBatchCompletedEvent completed = assertInstanceOf(SamplingBatchCompletedEvent.class, eventPublisher.events.get(3));
+        assertEquals(newBatchId, completed.getEntityId());
+        assertEquals("COMPLETED", completed.getAction());
     }
 
     // --- Helpers ---
