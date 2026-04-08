@@ -57,6 +57,8 @@ public class ScoreSheetRepositoryImpl implements ScoreSheetRepository {
         ie.setScoreType(item.getScoreType().name());
         ie.setMaxScore(item.getMaxScore());
         ie.setWeight(item.getWeight());
+        ie.setRequiredRule(item.getRequiredRule().name());
+        ie.setConditionExpression(item.getConditionExpression());
         return ie;
     }
 
@@ -67,7 +69,9 @@ public class ScoreSheetRepositoryImpl implements ScoreSheetRepository {
                 section.addItem(new ScoreItem(
                         ie.getItemId(), ie.getCode(), ie.getTitle(),
                         ScoreType.valueOf(ie.getScoreType()),
-                        ie.getMaxScore(), ie.getWeight()
+                        ie.getMaxScore(), ie.getWeight(),
+                        RequiredRule.valueOf(ie.getRequiredRule()),
+                        ie.getConditionExpression()
                 ));
             }
             return section;

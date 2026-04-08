@@ -29,6 +29,12 @@ public class ScoreItemEntity {
     @Column(nullable = false)
     private BigDecimal weight;
 
+    @Column(name = "required_rule", nullable = false)
+    private String requiredRule;
+
+    @Column(name = "condition_expression")
+    private String conditionExpression;
+
     protected ScoreItemEntity() {}
 
     public Long getId() { return id; }
@@ -51,4 +57,10 @@ public class ScoreItemEntity {
 
     public BigDecimal getWeight() { return weight; }
     public void setWeight(BigDecimal weight) { this.weight = weight; }
+
+    public String getRequiredRule() { return requiredRule; }
+    public void setRequiredRule(String requiredRule) { this.requiredRule = requiredRule; }
+
+    public String getConditionExpression() { return conditionExpression; }
+    public void setConditionExpression(String conditionExpression) { this.conditionExpression = conditionExpression; }
 }
