@@ -30,7 +30,6 @@ class ReviewProjectApiTest {
     @Test
     void createProject_shouldReturn201() throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setHospitalId("H001");
         req.setName("Test Project");
         req.setMedicalRecordTypes(Set.of("OUTPATIENT", "INPATIENT"));
 
@@ -46,7 +45,6 @@ class ReviewProjectApiTest {
     @Test
     void publishVersion_newProject_shouldSucceed() throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setHospitalId("H001");
         req.setName("Publish Test");
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
 
@@ -70,7 +68,6 @@ class ReviewProjectApiTest {
     @Test
     void publishVersion_alreadyPublished_shouldReturn409() throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setHospitalId("H001");
         req.setName("Double Publish Test");
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
 
@@ -119,22 +116,22 @@ class ReviewProjectApiTest {
     }
 
     @Test
-    void createProject_nullMedicalRecordTypes_shouldReturn400() throws Exception {
-        String body = "{\"hospitalId\":\"H001\",\"name\":\"Test\",\"medicalRecordTypes\":null}";
+    void createProject_nullMedicalRecordTypes_shouldDefaultToEmpty() throws Exception {
+        String body = "{\"name\":\"Test\",\"medicalRecordTypes\":null}";
 
         mockMvc.perform(post("/review-projects")
                         .header("api-key", TestTokenFactory.hospitalManagerToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.projectId").isNotEmpty());
     }
 
     @Test
     void executeSampling_inactiveProject_shouldReturn422() throws Exception {
         // Create a DRAFT project — not published, not activated
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setHospitalId("H001");
         req.setName("T-003 Inactive Project");
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
 

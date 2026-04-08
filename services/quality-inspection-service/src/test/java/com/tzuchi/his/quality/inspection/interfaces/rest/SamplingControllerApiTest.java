@@ -121,7 +121,6 @@ class SamplingControllerApiTest {
 
     private String createAndActivateProject(String name) throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
-        req.setHospitalId("H001");
         req.setName(name);
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
 

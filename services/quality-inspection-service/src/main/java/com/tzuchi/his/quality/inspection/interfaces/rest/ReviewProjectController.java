@@ -44,8 +44,8 @@ public class ReviewProjectController {
                     .collect(Collectors.toSet())
                 : Collections.emptySet();
 
-        String projectId = createUseCase.execute(actor, request.getHospitalId(),
-                request.getName(), types);
+        String projectId = createUseCase.execute(actor, request.getName(),
+                request.getDescription(), types);
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(Map.of("projectId", projectId)));
