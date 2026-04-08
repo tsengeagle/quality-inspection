@@ -1,10 +1,10 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
-import com.tzuchi.his.quality.inspection.application.sampling.ExecuteSamplingUseCase;
-import com.tzuchi.his.quality.inspection.application.sampling.PreviewSamplingPopulationUseCase;
-import com.tzuchi.his.quality.inspection.application.sampling.RetrySamplingBatchUseCase;
-import com.tzuchi.his.quality.inspection.application.sampling.SamplingPreviewResult;
+import com.tzuchi.his.quality.inspection.application.common.Page;
+import com.tzuchi.his.quality.inspection.application.sampling.*;
+import com.tzuchi.his.quality.inspection.domain.sampling.BatchStatus;
+import com.tzuchi.his.quality.inspection.domain.sampling.ExecutionMode;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +18,22 @@ public class SamplingController {
     private final PreviewSamplingPopulationUseCase previewUseCase;
     private final ExecuteSamplingUseCase executeUseCase;
     private final RetrySamplingBatchUseCase retryUseCase;
+    private final ListSamplingBatchesUseCase listUseCase;
+    private final GetSamplingBatchDetailUseCase detailUseCase;
+    private final ExportSamplingBatchResultUseCase exportUseCase;
 
     public SamplingController(PreviewSamplingPopulationUseCase previewUseCase,
                                ExecuteSamplingUseCase executeUseCase,
-                               RetrySamplingBatchUseCase retryUseCase) {
+                               RetrySamplingBatchUseCase retryUseCase,
+                               ListSamplingBatchesUseCase listUseCase,
+                               GetSamplingBatchDetailUseCase detailUseCase,
+                               ExportSamplingBatchResultUseCase exportUseCase) {
         this.previewUseCase = previewUseCase;
         this.executeUseCase = executeUseCase;
         this.retryUseCase = retryUseCase;
+        this.listUseCase = listUseCase;
+        this.detailUseCase = detailUseCase;
+        this.exportUseCase = exportUseCase;
     }
 
     @PostMapping("/review-projects/{projectId}/sampling/preview")
@@ -51,5 +60,51 @@ public class SamplingController {
         String newBatchId = retryUseCase.execute(actor, batchId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(Map.of("batchId", newBatchId)));
+    }
+
+    @GetMapping("/sampling-batches")
+    public ResponseEntity<ApiResponse<Page<SamplingBatchSummary>>> listBatches(
+            @CurrentActor ActorContext actor,
+            @RequestParam(required = false) String projectId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String executionMode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        BatchStatus batchStatus = null;
+        if (status != null) {
+            try {
+                batchStatus = BatchStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid status: " + status);
+            }
+        }
+        ExecutionMode mode = null;
+        if (executionMode != null) {
+            try {
+                mode = ExecutionMode.valueOf(executionMode);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid executionMode: " + executionMode);
+            }
+        }
+        SamplingBatchQueryCriteria criteria = new SamplingBatchQueryCriteria(
+                projectId, batchStatus, mode, page, size);
+        Page<SamplingBatchSummary> result = listUseCase.execute(actor, criteria);
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    @GetMapping("/sampling-batches/{batchId}")
+    public ResponseEntity<ApiResponse<SamplingBatchDetailView>> getBatchDetail(
+            @CurrentActor ActorContext actor,
+            @PathVariable String batchId) {
+        SamplingBatchDetailView detail = detailUseCase.execute(actor, batchId);
+        return ResponseEntity.ok(ApiResponse.ok(detail));
+    }
+
+    @GetMapping("/sampling-batches/{batchId}/export")
+    public ResponseEntity<ApiResponse<SamplingBatchExportResult>> exportBatchResult(
+            @CurrentActor ActorContext actor,
+            @PathVariable String batchId) {
+        SamplingBatchExportResult result = exportUseCase.execute(actor, batchId);
+        return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }

@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Set;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -115,6 +116,103 @@ class SamplingControllerApiTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+    }
+
+    @Test
+    void listBatches_shouldReturn200WithPage() throws Exception {
+        String projectId = createAndActivateProject("List Test");
+
+        mockMvc.perform(post("/review-projects/" + projectId + "/sampling/execute")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/sampling-batches")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken())
+                        .param("projectId", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content[0].batchId").isNotEmpty())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
+    void listBatches_invalidStatus_shouldReturn400() throws Exception {
+        mockMvc.perform(get("/sampling-batches")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken())
+                        .param("status", "INVALID_STATUS"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("BAD_REQUEST"));
+    }
+
+    @Test
+    void getBatchDetail_shouldReturn200WithDetail() throws Exception {
+        String projectId = createAndActivateProject("Detail Test");
+
+        MvcResult execResult = mockMvc.perform(
+                        post("/review-projects/" + projectId + "/sampling/execute")
+                                .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String batchId = objectMapper.readTree(
+                execResult.getResponse().getContentAsString())
+                .get("data").get("batchId").asText();
+
+        mockMvc.perform(get("/sampling-batches/" + batchId)
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.batchId").value(batchId))
+                .andExpect(jsonPath("$.data.projectId").value(projectId))
+                .andExpect(jsonPath("$.data.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.data.ruleSnapshot.projectVersionId").isNotEmpty())
+                .andExpect(jsonPath("$.data.selectedCases").isArray());
+    }
+
+    @Test
+    void getBatchDetail_notFound_shouldReturn404() throws Exception {
+        mockMvc.perform(get("/sampling-batches/nonexistent")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error.code").value("SAMPLING_BATCH_NOT_FOUND"));
+    }
+
+    @Test
+    void exportBatchResult_shouldReturn200() throws Exception {
+        String projectId = createAndActivateProject("Export Test");
+
+        MvcResult execResult = mockMvc.perform(
+                        post("/review-projects/" + projectId + "/sampling/execute")
+                                .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String batchId = objectMapper.readTree(
+                execResult.getResponse().getContentAsString())
+                .get("data").get("batchId").asText();
+
+        mockMvc.perform(get("/sampling-batches/" + batchId + "/export")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.detail.batchId").value(batchId));
+    }
+
+    @Test
+    void listBatches_systemAdmin_shouldReturn200() throws Exception {
+        mockMvc.perform(get("/sampling-batches")
+                        .header("api-key", TestTokenFactory.systemAdminToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content").isArray());
+    }
+
+    @Test
+    void listBatches_unknownRole_shouldReturn403() throws Exception {
+        mockMvc.perform(get("/sampling-batches")
+                        .header("api-key", TestTokenFactory.unknownRoleToken()))
+                .andExpect(status().isForbidden());
     }
 
     // --- Helpers ---
