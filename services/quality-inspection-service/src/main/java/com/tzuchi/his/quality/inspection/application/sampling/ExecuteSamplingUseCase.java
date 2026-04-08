@@ -54,8 +54,11 @@ public class ExecuteSamplingUseCase {
         }
 
         RuleSnapshot snapshot = new RuleSnapshot(
-                "project=" + projectId + ",version=" + project.getCurrentVersion().getVersionNumber(),
-                "default-sampling-policy"
+                projectId + "-v" + project.getCurrentVersion().getVersionNumber(),
+                project.getCurrentVersion().getVersionNumber(),
+                project.getBoundScoreSheetId() != null ? project.getBoundScoreSheetId() : "UNBOUND",
+                "MANUAL",
+                null
         );
 
         String batchId = UUID.randomUUID().toString();

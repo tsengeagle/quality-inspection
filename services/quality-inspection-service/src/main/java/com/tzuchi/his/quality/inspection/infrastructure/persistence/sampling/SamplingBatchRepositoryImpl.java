@@ -39,8 +39,8 @@ public class SamplingBatchRepositoryImpl implements SamplingBatchRepository {
         e.setEligibleCount(b.getEligibleCount());
         e.setExcludedCount(b.getExcludedCount());
         e.setSelectedCount(b.getSelectedCount());
-        e.setRuleSnapshotProject(b.getRuleSnapshot().getProjectVersionInfo());
-        e.setRuleSnapshotPolicy(b.getRuleSnapshot().getSamplingPolicyInfo());
+        e.setRuleSnapshotProject(b.getRuleSnapshot().getProjectVersionId());
+        e.setRuleSnapshotPolicy(b.getRuleSnapshot().getSamplingPolicy());
         e.setRetryOfBatchId(b.getRetryOfBatchId());
         e.setFailureReason(b.getFailureReason());
         e.setSelectedCases(
@@ -56,7 +56,13 @@ public class SamplingBatchRepositoryImpl implements SamplingBatchRepository {
     }
 
     private SamplingBatch toDomain(SamplingBatchEntity e) {
-        RuleSnapshot snapshot = new RuleSnapshot(e.getRuleSnapshotProject(), e.getRuleSnapshotPolicy());
+        RuleSnapshot snapshot = new RuleSnapshot(
+                e.getRuleSnapshotProject(),
+                0,
+                "UNKNOWN",
+                e.getRuleSnapshotPolicy(),
+                null
+        );
 
         List<SelectedCaseRef> selectedCases = e.getSelectedCases().stream()
                 .map(re -> new SelectedCaseRef(

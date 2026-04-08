@@ -102,7 +102,7 @@ class SamplingUseCaseTest {
         projectRepo.save(project);
 
         SamplingBatch failedBatch = SamplingBatch.start("failed-b", "p1",
-                ExecutionMode.MANUAL, new RuleSnapshot("v1", "policy"));
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null));
         failedBatch.fail("test failure");
         batchRepo.save(failedBatch);
 
@@ -130,7 +130,7 @@ class SamplingUseCaseTest {
         projectRepo.save(project);
 
         SamplingBatch completedBatch = SamplingBatch.start("done-b", "p1",
-                ExecutionMode.MANUAL, new RuleSnapshot("v1", "policy"));
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null));
         completedBatch.recordCandidateCount(1, 1, 0);
         completedBatch.selectCases(List.of(
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
@@ -155,7 +155,7 @@ class SamplingUseCaseTest {
         ReviewProject project = createActiveProject("p1");
         projectRepo.save(project);
 
-        RuleSnapshot originalSnapshot = new RuleSnapshot("project=p1,version=1", "original-policy");
+        RuleSnapshot originalSnapshot = new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "original-policy", null);
         SamplingBatch failedBatch = SamplingBatch.start("failed-b2", "p1",
                 ExecutionMode.MANUAL, originalSnapshot);
         failedBatch.fail("test failure");
@@ -166,11 +166,11 @@ class SamplingUseCaseTest {
         String newBatchId = retryUseCase.execute(hospitalManagerActor, "failed-b2");
 
         SamplingBatch newBatch = batchRepo.store.get(newBatchId);
-        assertEquals("project=p1,version=1",
-                newBatch.getRuleSnapshot().getProjectVersionInfo(),
+        assertEquals("PV-p1-v1",
+                newBatch.getRuleSnapshot().getProjectVersionId(),
                 "Retry batch must use original batch's snapshot, not current project version");
         assertEquals("original-policy",
-                newBatch.getRuleSnapshot().getSamplingPolicyInfo());
+                newBatch.getRuleSnapshot().getSamplingPolicy());
     }
 
     @Test

@@ -70,7 +70,7 @@ class SamplingControllerApiTest {
 
         SamplingBatch failedBatch = SamplingBatch.start(
                 "test-failed-batch", projectId, ExecutionMode.MANUAL,
-                new RuleSnapshot("project=" + projectId + ",version=1", "policy"));
+                new RuleSnapshot("PV-" + projectId + "-v1", 1, "SS-001-v1", "MANUAL", null));
         failedBatch.fail("simulated failure");
         batchRepository.save(failedBatch);
 

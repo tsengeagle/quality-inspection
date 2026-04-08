@@ -1,23 +1,38 @@
 package com.tzuchi.his.quality.inspection.domain.sampling;
 
+import java.util.Objects;
+
 /**
  * Snapshot of the rules used at the time of batch execution.
- * Preserved for traceability — must not be modified after batch completion.
+ * Preserved for traceability (D-011) — must not be modified after batch completion.
  *
- * TODO(D-011): This is a stub. Replace with a full immutable snapshot containing
- *              snapshot_json and checksum per decision-log.md D-011 and
- *              persistence-model.md §5.9 (sampling_batch_snapshot table).
+ * This is the simplified version: stores version IDs + key parameters.
+ * Full snapshot_json serialization + checksum deferred to B5.
  */
 public class RuleSnapshot {
 
-    private final String projectVersionInfo;
-    private final String samplingPolicyInfo;
+    private final String projectVersionId;
+    private final int projectVersionNumber;
+    private final String scoreSheetVersionId;
+    private final String samplingPolicy;
+    private final String snapshotSummary;
 
-    public RuleSnapshot(String projectVersionInfo, String samplingPolicyInfo) {
-        this.projectVersionInfo = projectVersionInfo;
-        this.samplingPolicyInfo = samplingPolicyInfo;
+    public RuleSnapshot(String projectVersionId, int projectVersionNumber,
+                        String scoreSheetVersionId, String samplingPolicy,
+                        String snapshotSummary) {
+        Objects.requireNonNull(projectVersionId, "projectVersionId must not be null");
+        Objects.requireNonNull(scoreSheetVersionId, "scoreSheetVersionId must not be null");
+        Objects.requireNonNull(samplingPolicy, "samplingPolicy must not be null");
+        this.projectVersionId = projectVersionId;
+        this.projectVersionNumber = projectVersionNumber;
+        this.scoreSheetVersionId = scoreSheetVersionId;
+        this.samplingPolicy = samplingPolicy;
+        this.snapshotSummary = snapshotSummary;
     }
 
-    public String getProjectVersionInfo() { return projectVersionInfo; }
-    public String getSamplingPolicyInfo() { return samplingPolicyInfo; }
+    public String getProjectVersionId() { return projectVersionId; }
+    public int getProjectVersionNumber() { return projectVersionNumber; }
+    public String getScoreSheetVersionId() { return scoreSheetVersionId; }
+    public String getSamplingPolicy() { return samplingPolicy; }
+    public String getSnapshotSummary() { return snapshotSummary; }
 }

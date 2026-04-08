@@ -153,8 +153,25 @@ class SamplingBatchTest {
                 () -> batch.recordCandidateCount(-1, 0, 0));
     }
 
+    @Test
+    void ruleSnapshot_nullProjectVersionId_shouldThrow() {
+        assertThrows(NullPointerException.class, () ->
+                new RuleSnapshot(null, 1, "SS-001-v1", "MANUAL", null));
+    }
+
+    @Test
+    void ruleSnapshot_shouldPreserveAllFields() {
+        RuleSnapshot snapshot = new RuleSnapshot("PV-001-v2", 2, "SS-001-v1",
+                "MANUAL", "{\"key\":\"value\"}");
+        assertEquals("PV-001-v2", snapshot.getProjectVersionId());
+        assertEquals(2, snapshot.getProjectVersionNumber());
+        assertEquals("SS-001-v1", snapshot.getScoreSheetVersionId());
+        assertEquals("MANUAL", snapshot.getSamplingPolicy());
+        assertEquals("{\"key\":\"value\"}", snapshot.getSnapshotSummary());
+    }
+
     private SamplingBatch createBatch(String batchId, String projectId, ExecutionMode mode) {
         return SamplingBatch.start(batchId, projectId, mode,
-                new RuleSnapshot("project-v1", "default-policy"));
+                new RuleSnapshot("PV-001-v1", 1, "SS-001-v1", "MANUAL", null));
     }
 }
