@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
 import java.util.*;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.time.Instant;
+import java.util.stream.Collectors;
+import com.tzuchi.his.quality.inspection.application.common.Page;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -255,6 +258,59 @@ class SamplingUseCaseTest {
         assertEquals("COMPLETED", completed.getAction());
     }
 
+    @Test
+    void listBatches_shouldDelegateToQueryPort() {
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        queryPort.summaries.add(new SamplingBatchSummary(
+                "b1", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+                10, 8, 5, null, Instant.now(), Instant.now()));
+        ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(queryPort);
+
+        Page<SamplingBatchSummary> result =
+                listUseCase.execute(hospitalManagerActor,
+                        new SamplingBatchQueryCriteria(null, null, null, 0, 20));
+
+        assertEquals(1, result.getContent().size());
+        assertEquals("b1", result.getContent().get(0).getBatchId());
+    }
+
+    @Test
+    void listBatches_unauthorizedRole_shouldThrow() {
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(queryPort);
+        ActorContext reviewerActor = new ActorContext("u-rev", "Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
+
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.UnauthorizedException.class,
+                () -> listUseCase.execute(reviewerActor,
+                        new SamplingBatchQueryCriteria(null, null, null, 0, 20)));
+    }
+
+    @Test
+    void getDetail_notFound_shouldThrow404() {
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        GetSamplingBatchDetailUseCase detailUseCase = new GetSamplingBatchDetailUseCase(queryPort);
+
+        assertThrows(com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException.class,
+                () -> detailUseCase.execute(hospitalManagerActor, "nonexistent"));
+    }
+
+    @Test
+    void export_shouldWrapDetailView() {
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        SamplingBatchDetailView detail = new SamplingBatchDetailView(
+                "b1", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+                10, 8, 2, 5, null, null, Instant.now(), Instant.now(),
+                new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
+                List.of());
+        queryPort.details.put("b1", detail);
+        ExportSamplingBatchResultUseCase exportUseCase = new ExportSamplingBatchResultUseCase(queryPort);
+
+        SamplingBatchExportResult result = exportUseCase.execute(hospitalManagerActor, "b1");
+
+        assertEquals("b1", result.getDetail().getBatchId());
+    }
+
     // --- Helpers ---
 
     private ReviewProject createActiveProject(String projectId) {
@@ -267,6 +323,25 @@ class SamplingUseCaseTest {
     }
 
     // --- In-memory repos for unit testing ---
+
+    static class InMemoryBatchQueryPort implements SamplingBatchQueryPort {
+        final List<SamplingBatchSummary> summaries = new ArrayList<>();
+        final Map<String, SamplingBatchDetailView> details = new HashMap<>();
+
+        @Override
+        public Page<SamplingBatchSummary> findBatches(SamplingBatchQueryCriteria criteria) {
+            List<SamplingBatchSummary> filtered = summaries.stream()
+                    .filter(s -> criteria.getProjectId() == null || s.getProjectId().equals(criteria.getProjectId()))
+                    .filter(s -> criteria.getStatus() == null || s.getStatus().equals(criteria.getStatus()))
+                    .collect(Collectors.toList());
+            return new Page<>(filtered, criteria.getPage(), criteria.getSize(), filtered.size());
+        }
+
+        @Override
+        public Optional<SamplingBatchDetailView> findDetailById(String batchId) {
+            return Optional.ofNullable(details.get(batchId));
+        }
+    }
 
     static class InMemorySamplingBatchRepo implements SamplingBatchRepository {
         final Map<String, SamplingBatch> store = new HashMap<>();
