@@ -292,9 +292,9 @@ score_sheet_version:
 
 ```yaml id="af7i9u"
 score_sheet_section:
-  section_row_id: bigint PK
+  id: bigint PK (surrogate, JPA auto-generated)
   score_sheet_version_id: varchar FK -> score_sheet_version.score_sheet_version_id
-  section_id: varchar
+  section_id: varchar (business key)
   title: varchar
   display_order: int
 ```
@@ -302,6 +302,11 @@ score_sheet_section:
 ### 約束
 
 * unique: `(score_sheet_version_id, section_id)`
+
+### 備註
+
+* `id` 為 JPA surrogate PK，用於管理 section→items parent-child 關聯
+* `section_id` 為業務 key，由前端或 domain 指定，用於 API 與 domain logic
 
 ---
 
@@ -313,24 +318,30 @@ score_sheet_section:
 
 ```yaml id="jlwm6m"
 score_sheet_item:
-  item_row_id: bigint PK
-  score_sheet_version_id: varchar FK -> score_sheet_version.score_sheet_version_id
-  section_id: varchar
-  item_id: varchar
+  id: bigint PK (surrogate, JPA auto-generated)
+  section_id: bigint FK -> score_sheet_section.id (surrogate FK for parent-child)
+  item_id: varchar (business key)
   item_code: varchar
   title: varchar
   score_type: varchar
   max_score: decimal(10,2)
   weight: decimal(10,4)
-  required_rule_json: json
-  visibility_rule_json: json
+  required_rule: varchar
+  condition_expression: varchar nullable
   display_order: int
 ```
 
 ### 約束
 
-* unique: `(score_sheet_version_id, item_id)`
-* unique: `(score_sheet_version_id, item_code)`
+* unique: `(score_sheet_version_id, item_id)` — 透過 section 間接關聯
+* unique: `(score_sheet_version_id, item_code)` — 透過 section 間接關聯
+
+### 備註
+
+* `section_id` FK 參照 `score_sheet_section.id` (surrogate PK)，非 business key
+* `required_rule` 為 enum string: `ALWAYS_REQUIRED`, `OPTIONAL`, `CONDITIONAL`
+* `condition_expression` 僅在 `required_rule = CONDITIONAL` 時有值
+* `visibility_rule` 欄位保留但尚未實作，待 B3/B4 定義具體行為後再加入（見 decision-log）
 
 ---
 

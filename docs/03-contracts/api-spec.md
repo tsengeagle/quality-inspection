@@ -379,28 +379,29 @@ Accept: application/json
 
 ```json
 {
-  "projectId": "RP-001",
-  "name": "門診病歷評分表",
-  "sections": [
-    {
-      "sectionId": "S1",
-      "title": "完整性",
-      "items": [
-        {
-          "itemId": "I1",
-          "code": "record-complete",
-          "title": "病歷完整性",
-          "scoreType": "FIXED",
-          "maxScore": 20,
-          "weight": 1,
-          "requiredRule": { "type": "ALWAYS" },
-          "visibilityRule": { "type": "ALWAYS" }
-        }
-      ]
-    }
-  ]
+  "projectId": "RP-001"
 }
 ```
+
+> **設計決策 (D-015)：** 採 create-then-update 模式。POST 僅需 `projectId` 建立空白草稿，取得 `scoreSheetId` 後再透過 PUT 更新內容。
+
+#### Response — 201
+
+```json
+{
+  "code": "SUCCESS",
+  "data": {
+    "scoreSheetId": "SS-001"
+  }
+}
+```
+
+#### Error
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `PROJECT_NOT_FOUND` | 404 | projectId 不存在 |
+| `PROJECT_NOT_ACTIVE` | 422 | project 非 ACTIVE 狀態 |
 
 ---
 
@@ -415,6 +416,58 @@ Accept: application/json
 #### 限制
 
 * 僅 draft / 未發布版本可更新
+
+#### Request — 六相位 updateDraft command
+
+```json
+{
+  "name": "門診病歷評分表",
+  "sections": [
+    {
+      "sectionId": "S1",
+      "title": "完整性",
+      "displayOrder": 1,
+      "items": [
+        {
+          "itemId": "I1",
+          "itemCode": "record-complete",
+          "title": "病歷完整性",
+          "scoreType": "FIXED",
+          "maxScore": 20,
+          "weight": 1.0,
+          "requiredRule": "ALWAYS_REQUIRED",
+          "conditionExpression": null,
+          "displayOrder": 1
+        }
+      ]
+    }
+  ]
+}
+```
+
+> **欄位說明：**
+> - `requiredRule`: enum string — `ALWAYS_REQUIRED` / `OPTIONAL` / `CONDITIONAL`
+> - `conditionExpression`: 僅在 `requiredRule = CONDITIONAL` 時有值
+> - `visibilityRule`: 延後至 B3/B4（見 D-014），本版不支援
+
+#### Response — 200
+
+```json
+{
+  "code": "SUCCESS",
+  "data": null
+}
+```
+
+#### Error
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `SCORE_SHEET_NOT_FOUND` | 404 | scoreSheetId 不存在 |
+| `ALREADY_PUBLISHED` | 409 | 已發布版本不可更新 |
+| `DUPLICATE_SECTION_ID` | 422 | section id 重複 |
+| `DUPLICATE_ITEM_ID` | 422 | item id 重複 |
+| `DUPLICATE_ITEM_CODE` | 422 | item code 重複 |
 
 ---
 

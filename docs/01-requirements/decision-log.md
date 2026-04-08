@@ -514,6 +514,91 @@ revision 不構成案件 reopen，也不應直接改變案件主狀態。
 
 ---
 
+## D-014 visibilityRule 延後至 B3/B4 定義與實作
+
+### Status
+`accepted`
+
+### Category
+`scoresheet-design`
+
+### Decision
+ScoreSheetItem 的 `visibilityRule`（題目可見性規則）延後至 B3/B4 階段，待案件審查流程明確後再定義具體行為與持久化方式。B1b 階段不實作此欄位。
+
+### Rationale
+- B1b 範圍是 ScoreSheetDefinition CRUD + Query，尚無案件審查流程
+- `visibilityRule` 的語意依賴審查者角色、案件狀態等 B3/B4 才定義的行為
+- 過早實作會造成 schema 與行為不一致
+- 延後不影響 B1b 功能完整性
+
+### Affected Artifacts
+- `persistence-model.md` — `visibility_rule` 欄位標記為 reserved/未實作
+- `domain-model.md` — ScoreSheetItem 暫不包含 visibilityRule
+- `api-spec.md` — ScoreSheet API response 不含 visibilityRule
+
+### Consequences
+- B1b persistence model 不建立 `visibility_rule` 欄位
+- B3/B4 階段需新增 decision 定義 visibilityRule 行為後再實作
+- 若業務緊急需要，須回到 decision-log 提出新 decision
+
+---
+
+## D-015 ScoreSheet 採 create-then-update 模式
+
+### Status
+`accepted`
+
+### Category
+`scoresheet-design`
+
+### Decision
+ScoreSheetDefinition 的建立採 create-then-update 模式：`POST /score-sheets` 只需 `{ projectId }` 即可建立空白草稿，後續透過 `PUT /score-sheets/{id}` 更新內容（6 相位 command）。
+
+### Rationale
+- 前端可先建立草稿取得 ID，再逐步填寫 sections 與 items
+- 避免單次 POST 需提交完整結構（sections + items），降低前端複雜度
+- 與 ReviewProject 的 create-then-update 模式一致
+- 支援自動存檔 / 暫存場景
+
+### Affected Artifacts
+- `api-spec.md` — § 8.1 POST 只需 `{ projectId }`，§ 8.2 PUT 承載完整 updateDraft command
+- `persistence-model.md` — 新建時僅有 header，sections/items 在 update 時寫入
+
+### Consequences
+- 新建 ScoreSheet 的 API response 只回傳 `scoreSheetId`
+- 前端 UI 需先 POST 建立 → 再 PUT 更新內容
+- 若未來需支援一次性 POST 完整結構，須新增 decision 或另開 endpoint
+
+---
+
+## D-016 Persistence model 使用 JPA surrogate key
+
+### Status
+`accepted`
+
+### Category
+`persistence-design`
+
+### Decision
+所有 JPA entity 的 primary key 使用 surrogate key（`bigint` auto-generated），business key 保留為 unique column。parent-child 關係的 FK 參照 surrogate PK。
+
+### Rationale
+- JPA `@GeneratedValue` 慣用做法，簡化 ORM mapping
+- 業務鍵（如 `sectionId`, `itemId`）仍保留為 unique constraint，不影響業務查詢
+- surrogate FK 比 composite business FK 更高效、更容易 index
+- 原 persistence-model.md 使用 varchar PK 是設計期草案，實作時選擇 JPA 慣用方式更務實
+
+### Affected Artifacts
+- `persistence-model.md` — score_sheet_section 和 score_sheet_item 改為 `id: bigint PK (surrogate)`
+- 現有 JPA entity 已使用此模式，本決策為追認
+
+### Consequences
+- 所有 child entity FK 參照 parent surrogate PK
+- business key 作為 unique constraint 保留查詢與驗證能力
+- API 層不暴露 surrogate key，仍以 business key 為外部識別
+
+---
+
 ## 5. 已收斂但不列為 domain invariant 的決策
 
 下列事項雖已決定，但屬 access / view / scope，不應寫成 domain invariant：
@@ -564,6 +649,22 @@ decision_dependencies:
       - sampling invariant
       - selected case unique key
       - batch retry behavior
+
+  - D-014 visibilityRule 延後
+    influences:
+      - D-015 create-then-update
+      - persistence-model.md
+      - B3/B4 scoresheet item visibility
+
+  - D-015 ScoreSheet create-then-update
+    influences:
+      - api-spec.md POST/PUT score-sheets
+      - frontend create flow
+
+  - D-016 JPA surrogate key
+    influences:
+      - persistence-model.md
+      - all JPA entity mapping
 ```
 
 ---
