@@ -1,9 +1,12 @@
 package com.tzuchi.his.quality.inspection.application.project;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
+import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
+import com.tzuchi.his.quality.inspection.domain.project.event.ReviewProjectVersionPublishedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,16 +15,23 @@ import org.springframework.transaction.annotation.Transactional;
 public class PublishReviewProjectVersionUseCase {
 
     private final ReviewProjectRepository repository;
+    private final DomainEventPublisher eventPublisher;
 
-    public PublishReviewProjectVersionUseCase(ReviewProjectRepository repository) {
+    public PublishReviewProjectVersionUseCase(ReviewProjectRepository repository,
+                                               DomainEventPublisher eventPublisher) {
         this.repository = repository;
+        this.eventPublisher = eventPublisher;
     }
 
     public void execute(ActorContext actor, String projectId) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = repository.findById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+                .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
+                        "Project not found: " + projectId));
+        actor.requireHospitalScope(project.getHospitalId());
         project.publishNewVersion();
         repository.save(project);
+        eventPublisher.publish(new ReviewProjectVersionPublishedEvent(this, actor, projectId,
+                project.getHospitalId()));
     }
 }
