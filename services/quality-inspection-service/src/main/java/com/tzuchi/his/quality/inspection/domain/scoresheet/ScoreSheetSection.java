@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import java.util.*;
 
 /**
@@ -39,4 +40,20 @@ public class ScoreSheetSection {
     public String getSectionId() { return sectionId; }
     public String getTitle() { return title; }
     public List<ScoreItem> getItems() { return Collections.unmodifiableList(items); }
+
+    public void updateTitle(String newTitle) {
+        Objects.requireNonNull(newTitle, "title must not be null");
+        if (newTitle.isBlank()) {
+            throw new IllegalArgumentException("title must not be blank");
+        }
+        this.title = newTitle;
+    }
+
+    public void removeItem(String itemId) {
+        boolean removed = items.removeIf(i -> i.getItemId().equals(itemId));
+        if (!removed) {
+            throw new DomainRuleViolationException("ITEM_NOT_FOUND",
+                    "Item not found in section: " + itemId);
+        }
+    }
 }
