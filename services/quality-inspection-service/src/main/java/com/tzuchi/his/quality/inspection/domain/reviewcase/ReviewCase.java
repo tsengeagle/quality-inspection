@@ -151,6 +151,30 @@ public class ReviewCase {
         this.status = CaseStatus.PENDING_INITIAL_REVIEW;
     }
 
+    // --- B3b Domain Methods ---
+
+    public void startInitialReview(String submissionId, String scoreSheetVersionRef) {
+        if (this.status != CaseStatus.PENDING_INITIAL_REVIEW) {
+            throw new DomainStateConflictException("CASE_NOT_PENDING_INITIAL_REVIEW",
+                    "Case must be in PENDING_INITIAL_REVIEW to start. Current: " + this.status);
+        }
+        Objects.requireNonNull(submissionId, "submissionId must not be null");
+        Objects.requireNonNull(scoreSheetVersionRef, "scoreSheetVersionRef must not be null");
+        this.latestInitialSubmissionId = submissionId;
+        this.scoreSheetVersionRef = scoreSheetVersionRef;
+        this.status = CaseStatus.INITIAL_REVIEW_IN_PROGRESS;
+    }
+
+    public void completeInitialReview(BigDecimal totalScore) {
+        if (this.status != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
+            throw new DomainStateConflictException("CASE_NOT_IN_INITIAL_REVIEW",
+                    "Case must be in INITIAL_REVIEW_IN_PROGRESS to complete. Current: " + this.status);
+        }
+        Objects.requireNonNull(totalScore, "totalScore must not be null");
+        this.finalScore = totalScore;
+        this.status = CaseStatus.INITIAL_REVIEW_COMPLETED;
+    }
+
     /**
      * Test-only: force status for setting up test scenarios.
      * Package-private — only accessible from tests in the same package.

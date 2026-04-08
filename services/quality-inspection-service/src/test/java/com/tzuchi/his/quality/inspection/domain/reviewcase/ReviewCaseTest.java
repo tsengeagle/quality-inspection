@@ -4,6 +4,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictExcept
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -214,5 +215,72 @@ class ReviewCaseTest {
         assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, rc.getStatus());
         assertEquals("reviewer-1", rc.getReviewerAssignment().getReviewerId());
         assertEquals(DUE, rc.getDueAt());
+    }
+
+    // --- startInitialReview (B3b) ---
+
+    @Test
+    void startInitialReview_fromPendingInitialReview_shouldSucceed() {
+        ReviewCase rc = createPendingInitialReview();
+
+        rc.startInitialReview("sub-1", "ss-v1");
+
+        assertEquals(CaseStatus.INITIAL_REVIEW_IN_PROGRESS, rc.getStatus());
+        assertEquals("sub-1", rc.getLatestInitialSubmissionId());
+        assertEquals("ss-v1", rc.getScoreSheetVersionRef());
+    }
+
+    @Test
+    void startInitialReview_fromNonPending_shouldThrow() {
+        ReviewCase rc = createPendingAssignment(); // SELECTED_PENDING_ASSIGNMENT
+
+        assertThrows(DomainStateConflictException.class,
+                () -> rc.startInitialReview("sub-1", "ss-v1"));
+    }
+
+    @Test
+    void startInitialReview_nullSubmissionId_shouldThrow() {
+        ReviewCase rc = createPendingInitialReview();
+
+        assertThrows(NullPointerException.class,
+                () -> rc.startInitialReview(null, "ss-v1"));
+    }
+
+    @Test
+    void startInitialReview_nullScoreSheetVersionRef_shouldThrow() {
+        ReviewCase rc = createPendingInitialReview();
+
+        assertThrows(NullPointerException.class,
+                () -> rc.startInitialReview("sub-1", null));
+    }
+
+    // --- completeInitialReview (B3b) ---
+
+    @Test
+    void completeInitialReview_fromInProgress_shouldSucceed() {
+        ReviewCase rc = createPendingInitialReview();
+        rc.startInitialReview("sub-1", "ss-v1");
+
+        rc.completeInitialReview(new BigDecimal("85.50"));
+
+        assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
+        assertEquals(new BigDecimal("85.50"), rc.getFinalScore());
+    }
+
+    @Test
+    void completeInitialReview_fromNonInProgress_shouldThrow() {
+        ReviewCase rc = createPendingInitialReview(); // PENDING_INITIAL_REVIEW
+
+        assertThrows(DomainStateConflictException.class,
+                () -> rc.completeInitialReview(new BigDecimal("85.50")));
+    }
+
+    @Test
+    void completeInitialReview_nullTotalScore_shouldThrow() {
+        ReviewCase rc = createPendingInitialReview();
+        rc.startInitialReview("sub-1", "ss-v1");
+
+        assertThrows(NullPointerException.class,
+                () -> rc.completeInitialReview(null));
     }
 }
