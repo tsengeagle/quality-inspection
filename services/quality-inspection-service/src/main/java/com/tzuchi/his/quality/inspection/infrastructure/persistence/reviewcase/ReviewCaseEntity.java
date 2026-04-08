@@ -76,7 +76,7 @@ public class ReviewCaseEntity {
     @Column(name = "score_sheet_version_ref")
     private String scoreSheetVersionRef;
 
-    protected ReviewCaseEntity() {}
+    public ReviewCaseEntity() {}
 
     public String getCaseId() { return caseId; }
     public void setCaseId(String caseId) { this.caseId = caseId; }
