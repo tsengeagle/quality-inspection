@@ -4,6 +4,7 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("BAD_REQUEST", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResourceNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
