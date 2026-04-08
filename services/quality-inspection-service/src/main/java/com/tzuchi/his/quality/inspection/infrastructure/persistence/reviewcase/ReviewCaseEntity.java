@@ -3,6 +3,8 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "review_case")
@@ -31,6 +33,49 @@ public class ReviewCaseEntity {
     @Column(nullable = false)
     private CaseStatus status;
 
+    // --- B3a: assignment ---
+
+    @Column(name = "reviewer_id")
+    private String reviewerId;
+
+    @Column(name = "reviewer_assigned_at")
+    private LocalDateTime reviewerAssignedAt;
+
+    @Column(name = "due_at")
+    private LocalDateTime dueAt;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
+    @Column(name = "return_reason")
+    private String returnReason;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
+
+    // --- B3b/B3c reserved ---
+
+    @Column(name = "rereview_required")
+    private boolean rereviewRequired;
+
+    @Column(name = "final_score", precision = 10, scale = 2)
+    private BigDecimal finalScore;
+
+    @Column(name = "final_conclusion")
+    private String finalConclusion;
+
+    @Column(name = "latest_initial_submission_id")
+    private String latestInitialSubmissionId;
+
+    @Column(name = "rule_snapshot_ref")
+    private String ruleSnapshotRef;
+
+    @Column(name = "score_sheet_version_ref")
+    private String scoreSheetVersionRef;
+
     protected ReviewCaseEntity() {}
 
     public String getCaseId() { return caseId; }
@@ -53,4 +98,43 @@ public class ReviewCaseEntity {
 
     public CaseStatus getStatus() { return status; }
     public void setStatus(CaseStatus status) { this.status = status; }
+
+    public String getReviewerId() { return reviewerId; }
+    public void setReviewerId(String reviewerId) { this.reviewerId = reviewerId; }
+
+    public LocalDateTime getReviewerAssignedAt() { return reviewerAssignedAt; }
+    public void setReviewerAssignedAt(LocalDateTime reviewerAssignedAt) { this.reviewerAssignedAt = reviewerAssignedAt; }
+
+    public LocalDateTime getDueAt() { return dueAt; }
+    public void setDueAt(LocalDateTime dueAt) { this.dueAt = dueAt; }
+
+    public String getCancelReason() { return cancelReason; }
+    public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
+
+    public String getReturnReason() { return returnReason; }
+    public void setReturnReason(String returnReason) { this.returnReason = returnReason; }
+
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    public LocalDateTime getClosedAt() { return closedAt; }
+    public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
+
+    public boolean isRereviewRequired() { return rereviewRequired; }
+    public void setRereviewRequired(boolean rereviewRequired) { this.rereviewRequired = rereviewRequired; }
+
+    public BigDecimal getFinalScore() { return finalScore; }
+    public void setFinalScore(BigDecimal finalScore) { this.finalScore = finalScore; }
+
+    public String getFinalConclusion() { return finalConclusion; }
+    public void setFinalConclusion(String finalConclusion) { this.finalConclusion = finalConclusion; }
+
+    public String getLatestInitialSubmissionId() { return latestInitialSubmissionId; }
+    public void setLatestInitialSubmissionId(String latestInitialSubmissionId) { this.latestInitialSubmissionId = latestInitialSubmissionId; }
+
+    public String getRuleSnapshotRef() { return ruleSnapshotRef; }
+    public void setRuleSnapshotRef(String ruleSnapshotRef) { this.ruleSnapshotRef = ruleSnapshotRef; }
+
+    public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
+    public void setScoreSheetVersionRef(String scoreSheetVersionRef) { this.scoreSheetVersionRef = scoreSheetVersionRef; }
 }

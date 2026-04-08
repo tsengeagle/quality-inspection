@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewerAssignment;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -30,7 +31,27 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
 
     @Override
     public Optional<ReviewCase> findById(String caseId) {
-        throw new UnsupportedOperationException("Not implemented yet — will be completed in Task 7");
+        return jpa.findById(caseId).map(this::toDomain);
+    }
+
+    private ReviewCase toDomain(ReviewCaseEntity e) {
+        ReviewerAssignment assignment = null;
+        if (e.getReviewerId() != null && e.getReviewerAssignedAt() != null) {
+            assignment = new ReviewerAssignment(e.getReviewerId(), e.getReviewerAssignedAt());
+        }
+
+        MedicalRecordType mrt = null;
+        if (e.getMedicalRecordType() != null) {
+            mrt = MedicalRecordType.valueOf(e.getMedicalRecordType());
+        }
+
+        return ReviewCase.reconstitute(
+                e.getCaseId(), e.getBatchId(), e.getProjectId(), e.getHospitalId(),
+                e.getSourceCaseKey(), mrt,
+                e.getStatus(), assignment, e.getDueAt(),
+                e.getCancelReason(), e.getReturnReason(), e.getCancelledAt(), e.getClosedAt(),
+                e.isRereviewRequired(), e.getFinalScore(), e.getFinalConclusion(),
+                e.getLatestInitialSubmissionId(), e.getRuleSnapshotRef(), e.getScoreSheetVersionRef());
     }
 
     private ReviewCaseEntity toEntity(ReviewCase rc) {
@@ -42,6 +63,22 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
         e.setSourceCaseKey(rc.getSourceCaseKey());
         e.setMedicalRecordType(rc.getMedicalRecordType() != null ? rc.getMedicalRecordType().name() : null);
         e.setStatus(rc.getStatus());
+
+        if (rc.getReviewerAssignment() != null) {
+            e.setReviewerId(rc.getReviewerAssignment().getReviewerId());
+            e.setReviewerAssignedAt(rc.getReviewerAssignment().getAssignedAt());
+        }
+        e.setDueAt(rc.getDueAt());
+        e.setCancelReason(rc.getCancelReason());
+        e.setReturnReason(rc.getReturnReason());
+        e.setCancelledAt(rc.getCancelledAt());
+        e.setClosedAt(rc.getClosedAt());
+        e.setRereviewRequired(rc.isRereviewRequired());
+        e.setFinalScore(rc.getFinalScore());
+        e.setFinalConclusion(rc.getFinalConclusion());
+        e.setLatestInitialSubmissionId(rc.getLatestInitialSubmissionId());
+        e.setRuleSnapshotRef(rc.getRuleSnapshotRef());
+        e.setScoreSheetVersionRef(rc.getScoreSheetVersionRef());
         return e;
     }
 }
