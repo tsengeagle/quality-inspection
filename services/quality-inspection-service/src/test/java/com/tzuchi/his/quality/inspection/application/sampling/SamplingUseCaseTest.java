@@ -5,10 +5,10 @@ import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
-import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.sampling.*;
+import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SamplingUseCaseTest {
 
-    private InMemoryProjectRepo projectRepo;
+    private InMemoryReviewProjectRepository projectRepo;
     private InMemorySamplingBatchRepo batchRepo;
     private InMemoryReviewCaseRepo caseRepo;
     private StubCandidateSource candidateSource;
@@ -33,7 +33,7 @@ class SamplingUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        projectRepo = new InMemoryProjectRepo();
+        projectRepo = new InMemoryReviewProjectRepository();
         batchRepo = new InMemorySamplingBatchRepo();
         caseRepo = new InMemoryReviewCaseRepo();
         candidateSource = new StubCandidateSource();
@@ -195,20 +195,6 @@ class SamplingUseCaseTest {
     }
 
     // --- In-memory repos for unit testing ---
-
-    static class InMemoryProjectRepo implements ReviewProjectRepository {
-        final Map<String, ReviewProject> store = new HashMap<>();
-
-        @Override
-        public void save(ReviewProject project) {
-            store.put(project.getProjectId(), project);
-        }
-
-        @Override
-        public Optional<ReviewProject> findById(String projectId) {
-            return Optional.ofNullable(store.get(projectId));
-        }
-    }
 
     static class InMemorySamplingBatchRepo implements SamplingBatchRepository {
         final Map<String, SamplingBatch> store = new HashMap<>();

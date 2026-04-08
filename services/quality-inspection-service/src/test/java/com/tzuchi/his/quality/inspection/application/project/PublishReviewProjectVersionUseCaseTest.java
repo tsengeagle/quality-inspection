@@ -2,15 +2,14 @@ package com.tzuchi.his.quality.inspection.application.project;
 
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
-import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
-import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
-import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.project.event.ReviewProjectVersionPublishedEvent;
+import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
+import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,14 +19,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PublishReviewProjectVersionUseCaseTest {
 
-    private InMemoryProjectRepo repository;
-    private CapturingEventPublisher eventPublisher;
+    private InMemoryReviewProjectRepository repository;
+    private CapturingDomainEventPublisher eventPublisher;
     private PublishReviewProjectVersionUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        repository = new InMemoryProjectRepo();
-        eventPublisher = new CapturingEventPublisher();
+        repository = new InMemoryReviewProjectRepository();
+        eventPublisher = new CapturingDomainEventPublisher();
         useCase = new PublishReviewProjectVersionUseCase(repository, eventPublisher);
     }
 
@@ -88,16 +87,4 @@ class PublishReviewProjectVersionUseCaseTest {
                 () -> useCase.execute(actor, "no-such-project"));
     }
 
-    // --- Test doubles ---
-
-    static class InMemoryProjectRepo implements ReviewProjectRepository {
-        final Map<String, ReviewProject> store = new HashMap<>();
-        @Override public void save(ReviewProject p) { store.put(p.getProjectId(), p); }
-        @Override public Optional<ReviewProject> findById(String id) { return Optional.ofNullable(store.get(id)); }
-    }
-
-    static class CapturingEventPublisher implements DomainEventPublisher {
-        final List<DomainEvent> events = new ArrayList<>();
-        @Override public void publish(DomainEvent event) { events.add(event); }
-    }
 }

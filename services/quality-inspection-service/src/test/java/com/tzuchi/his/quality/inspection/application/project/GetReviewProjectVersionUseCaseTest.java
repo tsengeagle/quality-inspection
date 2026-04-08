@@ -6,9 +6,9 @@ import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
-import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectVersion;
+import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,12 +18,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GetReviewProjectVersionUseCaseTest {
 
-    private InMemoryProjectRepo repository;
+    private InMemoryReviewProjectRepository repository;
     private GetReviewProjectVersionUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        repository = new InMemoryProjectRepo();
+        repository = new InMemoryReviewProjectRepository();
         useCase = new GetReviewProjectVersionUseCase(repository);
     }
 
@@ -86,11 +86,4 @@ class GetReviewProjectVersionUseCaseTest {
                 () -> useCase.execute(actor, "p1"));
     }
 
-    // --- Test double ---
-
-    static class InMemoryProjectRepo implements ReviewProjectRepository {
-        final Map<String, ReviewProject> store = new HashMap<>();
-        @Override public void save(ReviewProject p) { store.put(p.getProjectId(), p); }
-        @Override public Optional<ReviewProject> findById(String id) { return Optional.ofNullable(store.get(id)); }
-    }
 }
