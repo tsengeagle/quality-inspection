@@ -16,4 +16,6 @@ public interface ReviewSubmissionJpaRepository extends JpaRepository<ReviewSubmi
            "ORDER BY e.revisionNo DESC")
     List<ReviewSubmissionEntity> findByCaseIdAndStageOrderByRevisionNoDesc(
             @Param("caseId") String caseId, @Param("stage") ReviewStage stage);
+
+    List<ReviewSubmissionEntity> findByCaseId(String caseId);
 }

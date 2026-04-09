@@ -17,4 +17,6 @@ public interface ReviewSubmissionRepository {
     List<ReviewSubmission> findByCaseIdAndStage(String caseId, ReviewStage stage);
 
     Optional<ReviewSubmission> findLatestByCaseIdAndStage(String caseId, ReviewStage stage);
+
+    List<ReviewSubmission> findAllByCaseId(String caseId);
 }

@@ -32,4 +32,11 @@ public class InMemoryReviewSubmissionRepository implements ReviewSubmissionRepos
         List<ReviewSubmission> matching = findByCaseIdAndStage(caseId, stage);
         return matching.isEmpty() ? Optional.empty() : Optional.of(matching.get(matching.size() - 1));
     }
+
+    @Override
+    public List<ReviewSubmission> findAllByCaseId(String caseId) {
+        return store.values().stream()
+                .filter(s -> caseId.equals(s.getCaseId()))
+                .collect(Collectors.toList());
+    }
 }

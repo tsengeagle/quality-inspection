@@ -43,6 +43,13 @@ public class ReviewSubmissionRepositoryImpl implements ReviewSubmissionRepositor
         return results.isEmpty() ? Optional.empty() : Optional.of(toDomain(results.get(0)));
     }
 
+    @Override
+    public List<ReviewSubmission> findAllByCaseId(String caseId) {
+        return jpa.findByCaseId(caseId).stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
     private ReviewSubmission toDomain(ReviewSubmissionEntity e) {
         return ReviewSubmission.reconstitute(
                 e.getSubmissionId(), e.getCaseId(), e.getStage(),
