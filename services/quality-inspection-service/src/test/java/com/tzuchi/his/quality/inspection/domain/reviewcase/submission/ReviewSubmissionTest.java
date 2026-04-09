@@ -167,4 +167,118 @@ class ReviewSubmissionTest {
         assertEquals("comment", sub.getComment());
         assertEquals(now, sub.getSubmittedAt());
     }
+
+    // --- createRevision ---
+
+    @Test
+    void createRevision_fromSubmittedSubmission_succeeds() {
+        ReviewSubmission old = createSubmittedSubmission();
+
+        List<AnswerItem> newAnswers = Arrays.asList(
+                AnswerItem.ofScored("Q001", "true", new BigDecimal("10.00")),
+                AnswerItem.ofScored("Q002", "90", new BigDecimal("90.00"))
+        );
+
+        ReviewSubmission rev = ReviewSubmission.createRevision(
+                "sub-2", old, newAnswers, new BigDecimal("100.00"), "revised comment");
+
+        assertEquals("sub-2", rev.getSubmissionId());
+        assertEquals("c1", rev.getCaseId());
+        assertEquals(ReviewStage.INITIAL, rev.getStage());
+        assertEquals("reviewer-1", rev.getReviewerId());
+        assertEquals(SubmissionStatus.SUBMITTED, rev.getStatus());
+        assertEquals(2, rev.getRevisionNo());
+        assertEquals(new BigDecimal("100.00"), rev.getTotalScore());
+        assertEquals("revised comment", rev.getComment());
+        assertNotNull(rev.getSubmittedAt());
+        assertEquals("ss-v1", rev.getBasedOnScoreSheetVersionId());
+    }
+
+    @Test
+    void createRevision_fromDraftSubmission_throwsConflict() {
+        ReviewSubmission draft = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1");
+
+        assertThrows(DomainStateConflictException.class,
+                () -> ReviewSubmission.createRevision(
+                        "sub-2", draft, Collections.emptyList(), BigDecimal.ZERO, null));
+    }
+
+    @Test
+    void createRevision_fromSupersededSubmission_throwsConflict() {
+        ReviewSubmission old = createSubmittedSubmission();
+        old.markSuperseded("sub-other");
+
+        assertThrows(DomainStateConflictException.class,
+                () -> ReviewSubmission.createRevision(
+                        "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null));
+    }
+
+    @Test
+    void createRevision_inheritsFieldsFromOldSubmission() {
+        ReviewSubmission old = createSubmittedSubmission();
+
+        ReviewSubmission rev = ReviewSubmission.createRevision(
+                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null);
+
+        assertEquals(old.getCaseId(), rev.getCaseId());
+        assertEquals(old.getStage(), rev.getStage());
+        assertEquals(old.getReviewerId(), rev.getReviewerId());
+        assertEquals(old.getBasedOnScoreSheetVersionId(), rev.getBasedOnScoreSheetVersionId());
+    }
+
+    @Test
+    void createRevision_incrementsRevisionNo() {
+        ReviewSubmission old = createSubmittedSubmission();
+
+        ReviewSubmission rev = ReviewSubmission.createRevision(
+                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null);
+
+        assertEquals(old.getRevisionNo() + 1, rev.getRevisionNo());
+    }
+
+    @Test
+    void createRevision_statusIsSubmitted() {
+        ReviewSubmission old = createSubmittedSubmission();
+
+        ReviewSubmission rev = ReviewSubmission.createRevision(
+                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null);
+
+        assertEquals(SubmissionStatus.SUBMITTED, rev.getStatus());
+    }
+
+    // --- markSuperseded ---
+
+    @Test
+    void markSuperseded_fromSubmitted_succeeds() {
+        ReviewSubmission sub = createSubmittedSubmission();
+
+        sub.markSuperseded("sub-new");
+
+        assertEquals(SubmissionStatus.SUPERSEDED, sub.getStatus());
+        assertEquals("sub-new", sub.getSupersededBySubmissionId());
+    }
+
+    @Test
+    void markSuperseded_fromDraft_throwsConflict() {
+        ReviewSubmission draft = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1");
+
+        assertThrows(DomainStateConflictException.class,
+                () -> draft.markSuperseded("sub-new"));
+    }
+
+    @Test
+    void markSuperseded_nullNewSubmissionId_shouldThrow() {
+        ReviewSubmission sub = createSubmittedSubmission();
+
+        assertThrows(NullPointerException.class,
+                () -> sub.markSuperseded(null));
+    }
+
+    // --- Helper ---
+
+    private ReviewSubmission createSubmittedSubmission() {
+        ReviewSubmission sub = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1");
+        sub.submit();
+        return sub;
+    }
 }

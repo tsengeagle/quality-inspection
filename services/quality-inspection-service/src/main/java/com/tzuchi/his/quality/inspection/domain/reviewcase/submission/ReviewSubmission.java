@@ -117,6 +117,58 @@ public class ReviewSubmission {
         this.updatedAt = LocalDateTime.now();
     }
 
+    /**
+     * Create a revision from an existing SUBMITTED submission.
+     * The new submission is directly SUBMITTED (no DRAFT phase for revisions).
+     */
+    public static ReviewSubmission createRevision(
+            String newSubmissionId,
+            ReviewSubmission oldSubmission,
+            List<AnswerItem> scoredAnswers,
+            BigDecimal totalScore,
+            String comment) {
+        Objects.requireNonNull(newSubmissionId, "newSubmissionId must not be null");
+        Objects.requireNonNull(oldSubmission, "oldSubmission must not be null");
+        Objects.requireNonNull(scoredAnswers, "scoredAnswers must not be null");
+        Objects.requireNonNull(totalScore, "totalScore must not be null");
+
+        if (oldSubmission.status != SubmissionStatus.SUBMITTED) {
+            throw new DomainStateConflictException("SUBMISSION_NOT_SUBMITTED",
+                    "Can only revise a SUBMITTED submission. Current: " + oldSubmission.status);
+        }
+
+        ReviewSubmission rev = new ReviewSubmission();
+        rev.submissionId = newSubmissionId;
+        rev.caseId = oldSubmission.caseId;
+        rev.stage = oldSubmission.stage;
+        rev.reviewerId = oldSubmission.reviewerId;
+        rev.status = SubmissionStatus.SUBMITTED;
+        rev.revisionNo = oldSubmission.revisionNo + 1;
+        rev.answerSet = new ArrayList<>(scoredAnswers);
+        rev.totalScore = totalScore;
+        rev.comment = comment;
+        rev.submittedAt = LocalDateTime.now();
+        rev.basedOnScoreSheetVersionId = oldSubmission.basedOnScoreSheetVersionId;
+        rev.createdAt = LocalDateTime.now();
+        rev.updatedAt = rev.createdAt;
+        return rev;
+    }
+
+    /**
+     * Mark this submission as SUPERSEDED by a newer revision.
+     * Only SUBMITTED submissions can be superseded.
+     */
+    public void markSuperseded(String newSubmissionId) {
+        if (this.status != SubmissionStatus.SUBMITTED) {
+            throw new DomainStateConflictException("SUBMISSION_NOT_SUBMITTED",
+                    "Can only supersede a SUBMITTED submission. Current: " + this.status);
+        }
+        Objects.requireNonNull(newSubmissionId, "newSubmissionId must not be null");
+        this.supersededBySubmissionId = newSubmissionId;
+        this.status = SubmissionStatus.SUPERSEDED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
     private void requireDraft() {
         if (this.status != SubmissionStatus.DRAFT) {
             throw new DomainStateConflictException("SUBMISSION_NOT_DRAFT",
