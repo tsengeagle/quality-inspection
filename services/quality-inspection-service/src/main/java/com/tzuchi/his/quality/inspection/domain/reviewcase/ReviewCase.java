@@ -176,6 +176,25 @@ public class ReviewCase {
     }
 
     /**
+     * Guard: reject operations on terminal cases (CLOSED or CANCELLED).
+     */
+    public void requireNotTerminal() {
+        if (this.status == CaseStatus.CLOSED || this.status == CaseStatus.CANCELLED) {
+            throw new DomainStateConflictException("CASE_TERMINAL",
+                    "Case is in terminal status: " + this.status + ". Revision not allowed.");
+        }
+    }
+
+    /**
+     * Update finalScore after a revision. Does not change case status.
+     */
+    public void updateFinalScore(BigDecimal newScore) {
+        requireNotTerminal();
+        Objects.requireNonNull(newScore, "newScore must not be null");
+        this.finalScore = newScore;
+    }
+
+    /**
      * Test-only: force status for setting up test scenarios.
      * Package-private — only accessible from tests in the same package.
      */

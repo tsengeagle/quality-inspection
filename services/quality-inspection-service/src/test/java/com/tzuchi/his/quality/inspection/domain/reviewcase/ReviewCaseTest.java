@@ -283,4 +283,76 @@ class ReviewCaseTest {
         assertThrows(NullPointerException.class,
                 () -> rc.completeInitialReview(null));
     }
+
+    // --- requireNotTerminal ---
+
+    @Test
+    void requireNotTerminal_whenClosed_throwsConflict() {
+        ReviewCase rc = createPendingAssignment();
+        rc.forceStatus(CaseStatus.CLOSED);
+
+        assertThrows(DomainStateConflictException.class, rc::requireNotTerminal);
+    }
+
+    @Test
+    void requireNotTerminal_whenCancelled_throwsConflict() {
+        ReviewCase rc = createPendingAssignment();
+        rc.forceStatus(CaseStatus.CANCELLED);
+
+        assertThrows(DomainStateConflictException.class, rc::requireNotTerminal);
+    }
+
+    @Test
+    void requireNotTerminal_whenInitialReviewCompleted_doesNotThrow() {
+        ReviewCase rc = createPendingAssignment();
+        rc.forceStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
+
+        assertDoesNotThrow(rc::requireNotTerminal);
+    }
+
+    @Test
+    void requireNotTerminal_whenInProgress_doesNotThrow() {
+        ReviewCase rc = createInProgress();
+
+        assertDoesNotThrow(rc::requireNotTerminal);
+    }
+
+    // --- updateFinalScore ---
+
+    @Test
+    void updateFinalScore_updatesScore() {
+        ReviewCase rc = createPendingAssignment();
+        rc.forceStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
+
+        rc.updateFinalScore(new BigDecimal("85.00"));
+
+        assertEquals(new BigDecimal("85.00"), rc.getFinalScore());
+    }
+
+    @Test
+    void updateFinalScore_whenClosed_throwsConflict() {
+        ReviewCase rc = createPendingAssignment();
+        rc.forceStatus(CaseStatus.CLOSED);
+
+        assertThrows(DomainStateConflictException.class,
+                () -> rc.updateFinalScore(new BigDecimal("85.00")));
+    }
+
+    @Test
+    void updateFinalScore_whenCancelled_throwsConflict() {
+        ReviewCase rc = createPendingAssignment();
+        rc.forceStatus(CaseStatus.CANCELLED);
+
+        assertThrows(DomainStateConflictException.class,
+                () -> rc.updateFinalScore(new BigDecimal("85.00")));
+    }
+
+    @Test
+    void updateFinalScore_nullScore_shouldThrow() {
+        ReviewCase rc = createPendingAssignment();
+        rc.forceStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
+
+        assertThrows(NullPointerException.class,
+                () -> rc.updateFinalScore(null));
+    }
 }
