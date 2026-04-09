@@ -824,9 +824,12 @@ class ReviseInitialReviewUseCaseTest {
     @Test
     void revise_caseClosed_throwsConflict() {
         seedScoreSheet();
-        ReviewCase rc = ReviewCase.createFromSampling(
-                CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.forceStatus(CaseStatus.CLOSED);
+        // Use reconstitute() since forceStatus is package-private in domain.reviewcase
+        ReviewCase rc = ReviewCase.reconstitute(
+                CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
+                CaseStatus.CLOSED, null, null,
+                null, null, null, LocalDateTime.now(),
+                false, null, null, null, null, null);
         caseRepo.save(rc);
 
         assertThrows(DomainStateConflictException.class,
@@ -836,9 +839,12 @@ class ReviseInitialReviewUseCaseTest {
     @Test
     void revise_caseCancelled_throwsConflict() {
         seedScoreSheet();
-        ReviewCase rc = ReviewCase.createFromSampling(
-                CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.forceStatus(CaseStatus.CANCELLED);
+        // Use reconstitute() since forceStatus is package-private in domain.reviewcase
+        ReviewCase rc = ReviewCase.reconstitute(
+                CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
+                CaseStatus.CANCELLED, null, null,
+                null, null, LocalDateTime.now(), null,
+                false, null, null, null, null, null);
         caseRepo.save(rc);
 
         assertThrows(DomainStateConflictException.class,
@@ -912,20 +918,35 @@ class ReviseInitialReviewUseCaseTest {
         assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID, revisedAnswers(), null));
     }
+
+    @Test
+    void revise_scoreSheetNotFound_throwsNotFound() {
+        // Case is completed but score sheet is NOT seeded
+        ReviewCase rc = ReviewCase.createFromSampling(
+                CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
+        rc.assignReviewer(REVIEWER_ID, "Reviewer", null);
+        rc.startInitialReview(SUBMISSION_ID, SCORE_SHEET_ID);
+        rc.completeInitialReview(BigDecimal.valueOf(90), "PASS", SUBMISSION_ID, REVIEWER_ID);
+        caseRepo.save(rc);
+        seedSubmittedSubmission();
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID, revisedAnswers(), null));
+    }
 }
 ```
 
 - [ ] **Step 2: Run tests to verify they pass**
 
 Run: `cd services/quality-inspection-service && .\gradlew test --tests "*.ReviseInitialReviewUseCaseTest" --no-daemon`
-Expected: ALL 10 PASS
+Expected: ALL 11 PASS
 
 - [ ] **Step 3: Commit**
 
 ```bash
 cd services/quality-inspection-service
 git add -A
-git commit -m "test(b3c): add ReviseInitialReviewUseCase tests (10 scenarios)
+git commit -m "test(b3c): add ReviseInitialReviewUseCase tests (11 scenarios)
 
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
 ```
@@ -1385,6 +1406,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
