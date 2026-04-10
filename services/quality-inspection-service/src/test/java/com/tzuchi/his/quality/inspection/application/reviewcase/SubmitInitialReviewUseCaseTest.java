@@ -19,6 +19,8 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetSection;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreItem;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreType;
+import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
+import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.testfixture.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ class SubmitInitialReviewUseCaseTest {
 
     private InMemoryReviewCaseRepository caseRepo;
     private InMemoryReviewSubmissionRepository submissionRepo;
+    private InMemoryReviewProjectRepository projectRepo;
     private InMemoryScoreSheetRepository scoreSheetRepo;
     private CapturingDomainEventPublisher eventPublisher;
     private SubmitInitialReviewUseCase useCase;
@@ -48,16 +51,28 @@ class SubmitInitialReviewUseCaseTest {
     void setUp() {
         caseRepo = new InMemoryReviewCaseRepository();
         submissionRepo = new InMemoryReviewSubmissionRepository();
+        projectRepo = new InMemoryReviewProjectRepository();
         scoreSheetRepo = new InMemoryScoreSheetRepository();
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new SubmitInitialReviewUseCase(
-                caseRepo, submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService);
+                caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService);
+        
+        // Seed project with threshold 80 (score 17.5 won't escalate)
+        seedProject(new BigDecimal("80"));
     }
 
     private ActorContext reviewer() {
         return new ActorContext(REVIEWER_ID, "Test Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of(HOSPITAL_ID));
+    }
+
+    private void seedProject(BigDecimal threshold) {
+        ReviewProject project = ReviewProject.reconstitute(
+                PROJECT_ID, HOSPITAL_ID, "Test Project", null, SCORE_SHEET_ID,
+                null, ProjectStatus.ACTIVE, 1, true,
+                threshold, new BigDecimal("0.5"), new BigDecimal("0.5"));
+        projectRepo.save(project);
     }
 
     private ScoreSheetDefinition seedScoreSheet() {
@@ -200,5 +215,24 @@ class SubmitInitialReviewUseCaseTest {
 
         assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(reviewer(), CASE_ID));
+    }
+
+    @Test
+    void execute_scoreAboveThreshold_shouldEscalateToPendingRereview() {
+        // Seed project with very low threshold so 17.5 > 0 triggers escalation
+        projectRepo.store.clear();
+        seedProject(BigDecimal.ZERO); // threshold 0 → any positive score escalates
+        
+        seedScoreSheet();
+        seedCaseInProgress();
+        seedDraftWithAnswers();
+
+        useCase.execute(reviewer(), CASE_ID);
+
+        ReviewCase savedCase = caseRepo.store.get(CASE_ID);
+        assertEquals(CaseStatus.PENDING_REREVIEW, savedCase.getStatus());
+        assertNull(savedCase.getFinalScore()); // no finalScore when escalated
+        // Should have 2 events: escalation + submission
+        assertTrue(eventPublisher.events.size() >= 2);
     }
 }

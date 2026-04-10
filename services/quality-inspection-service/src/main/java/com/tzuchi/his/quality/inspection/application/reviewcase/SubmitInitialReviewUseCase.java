@@ -16,6 +16,9 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubm
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionSubmittedEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseEscalatedToRereviewEvent;
+import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
+import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.RequiredRule;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreItem;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
@@ -23,6 +26,7 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,17 +37,20 @@ public class SubmitInitialReviewUseCase {
 
     private final ReviewCaseRepository caseRepository;
     private final ReviewSubmissionRepository submissionRepository;
+    private final ReviewProjectRepository projectRepository;
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
 
     public SubmitInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                        ReviewSubmissionRepository submissionRepository,
+                                       ReviewProjectRepository projectRepository,
                                        ScoreSheetRepository scoreSheetRepository,
                                        DomainEventPublisher eventPublisher,
                                        ScoreCalculationService scoreCalculationService) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
+        this.projectRepository = projectRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
@@ -116,9 +123,23 @@ public class SubmitInitialReviewUseCase {
         submission.submit();
         submissionRepository.save(submission);
 
+        // Load quality threshold from the project's current version
+        ReviewProject project = projectRepository.findById(reviewCase.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("ReviewProject", reviewCase.getProjectId()));
+        BigDecimal qualityThreshold = project.getCurrentVersion().getQualityThreshold();
+
         // Complete review case
-        reviewCase.completeInitialReview(result.getTotalScore(), null);
+        reviewCase.completeInitialReview(result.getTotalScore(), qualityThreshold);
         caseRepository.save(reviewCase);
+
+        // If escalated to re-review, publish escalation event
+        if (reviewCase.getStatus() == CaseStatus.PENDING_REREVIEW) {
+            eventPublisher.publish(new CaseEscalatedToRereviewEvent(
+                    this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
+                    reviewCase.getCaseId(),
+                    String.format("{\"score\":%s,\"threshold\":%s}",
+                            result.getTotalScore(), qualityThreshold)));
+        }
 
         // Publish event
         eventPublisher.publish(new ReviewSubmissionSubmittedEvent(
