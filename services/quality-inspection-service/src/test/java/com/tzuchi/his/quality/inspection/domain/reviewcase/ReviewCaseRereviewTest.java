@@ -64,4 +64,43 @@ class ReviewCaseRereviewTest {
         assertThrows(DomainStateConflictException.class,
                 () -> rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80")));
     }
+
+    private ReviewCase caseAtInitialReviewCompleted() {
+        ReviewCase rc = caseInProgress();
+        rc.completeInitialReview(new BigDecimal("60"), new BigDecimal("80"));
+        // score 60 <= threshold 80 → INITIAL_REVIEW_COMPLETED
+        return rc;
+    }
+
+    // --- closeWithoutRereview tests ---
+
+    @Test
+    void closeWithoutRereview_happyPath_shouldCloseCaseWithInitialScore() {
+        ReviewCase rc = caseAtInitialReviewCompleted();
+        rc.closeWithoutRereview();
+        assertEquals(CaseStatus.CLOSED, rc.getStatus());
+        assertEquals(new BigDecimal("60"), rc.getFinalScore());
+        assertNotNull(rc.getClosedAt());
+    }
+
+    @Test
+    void closeWithoutRereview_wrongState_shouldThrow() {
+        ReviewCase rc = caseInProgress();
+        assertThrows(DomainStateConflictException.class, rc::closeWithoutRereview);
+    }
+
+    // --- sendToRereview tests ---
+
+    @Test
+    void sendToRereview_happyPath_shouldEscalate() {
+        ReviewCase rc = caseAtInitialReviewCompleted();
+        rc.sendToRereview();
+        assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
+    }
+
+    @Test
+    void sendToRereview_wrongState_shouldThrow() {
+        ReviewCase rc = caseInProgress();
+        assertThrows(DomainStateConflictException.class, rc::sendToRereview);
+    }
 }

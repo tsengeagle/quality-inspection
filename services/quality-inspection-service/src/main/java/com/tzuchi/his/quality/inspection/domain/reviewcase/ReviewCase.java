@@ -190,6 +190,26 @@ public class ReviewCase {
         }
     }
 
+    // --- B4 Domain Methods ---
+
+    public void closeWithoutRereview() {
+        if (this.status != CaseStatus.INITIAL_REVIEW_COMPLETED) {
+            throw new DomainStateConflictException("CASE_NOT_INITIAL_REVIEW_COMPLETED",
+                    "Can only close-without-rereview from INITIAL_REVIEW_COMPLETED. Current: " + this.status);
+        }
+        this.finalScore = this.initialReviewScore;
+        this.closedAt = LocalDateTime.now();
+        this.status = CaseStatus.CLOSED;
+    }
+
+    public void sendToRereview() {
+        if (this.status != CaseStatus.INITIAL_REVIEW_COMPLETED) {
+            throw new DomainStateConflictException("CASE_NOT_INITIAL_REVIEW_COMPLETED",
+                    "Can only send-to-rereview from INITIAL_REVIEW_COMPLETED. Current: " + this.status);
+        }
+        this.status = CaseStatus.PENDING_REREVIEW;
+    }
+
     /**
      * Guard: reject operations on terminal cases (CLOSED or CANCELLED).
      */
