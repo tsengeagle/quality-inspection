@@ -274,6 +274,19 @@ class ReviewSubmissionTest {
                 () -> sub.markSuperseded(null));
     }
 
+    // --- createRereviewDraft ---
+
+    @Test
+    void createRereviewDraft_shouldCreateWithStageRereview() {
+        ReviewSubmission sub = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1");
+        assertEquals("sub-r1", sub.getSubmissionId());
+        assertEquals("c1", sub.getCaseId());
+        assertEquals("rereviewer-1", sub.getReviewerId());
+        assertEquals(ReviewStage.REREVIEW, sub.getStage());
+        assertEquals(SubmissionStatus.DRAFT, sub.getStatus());
+        assertEquals(1, sub.getRevisionNo());
+    }
+
     // --- Helper ---
 
     private ReviewSubmission createSubmittedSubmission() {

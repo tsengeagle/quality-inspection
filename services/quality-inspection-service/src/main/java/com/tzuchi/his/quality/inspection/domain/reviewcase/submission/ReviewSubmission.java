@@ -64,6 +64,24 @@ public class ReviewSubmission {
     }
 
     /**
+     * Create a rereview draft submission.
+     * Called by StartRereviewUseCase.
+     */
+    public static ReviewSubmission createRereviewDraft(String submissionId, String caseId, String reviewerId) {
+        ReviewSubmission s = new ReviewSubmission();
+        s.submissionId = submissionId;
+        s.caseId = caseId;
+        s.reviewerId = reviewerId;
+        s.stage = ReviewStage.REREVIEW;
+        s.status = SubmissionStatus.DRAFT;
+        s.revisionNo = 1;
+        s.answerSet = new ArrayList<>();
+        s.createdAt = LocalDateTime.now();
+        s.updatedAt = LocalDateTime.now();
+        return s;
+    }
+
+    /**
      * Reconstitute from persistence. No business validation.
      */
     public static ReviewSubmission reconstitute(
