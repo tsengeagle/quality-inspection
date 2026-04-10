@@ -2,7 +2,10 @@ package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.reviewcase.*;
+import com.tzuchi.his.quality.inspection.application.reviewcase.command.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.GetRereviewRevisionHistoryQuery;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.springframework.http.HttpStatus;
@@ -29,6 +32,16 @@ public class ReviewCaseController {
     private final SubmitInitialReviewUseCase submitInitialReviewUseCase;
     private final ReviseInitialReviewUseCase reviseInitialReviewUseCase;
     private final GetRevisionHistoryUseCase getRevisionHistoryUseCase;
+    // B4 dependencies
+    private final CloseWithoutRereviewUseCase closeWithoutRereviewUseCase;
+    private final SendToRereviewUseCase sendToRereviewUseCase;
+    private final AssignRereviewerUseCase assignRereviewerUseCase;
+    private final ReassignRereviewerUseCase reassignRereviewerUseCase;
+    private final StartRereviewUseCase startRereviewUseCase;
+    private final SaveRereviewDraftUseCase saveRereviewDraftUseCase;
+    private final SubmitRereviewUseCase submitRereviewUseCase;
+    private final ReviseRereviewUseCase reviseRereviewUseCase;
+    private final GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase;
 
     public ReviewCaseController(AssignReviewCaseUseCase assignUseCase,
                                  ReassignReviewCaseUseCase reassignUseCase,
@@ -39,7 +52,16 @@ public class ReviewCaseController {
                                  SaveInitialReviewDraftUseCase saveInitialReviewDraftUseCase,
                                  SubmitInitialReviewUseCase submitInitialReviewUseCase,
                                  ReviseInitialReviewUseCase reviseInitialReviewUseCase,
-                                 GetRevisionHistoryUseCase getRevisionHistoryUseCase) {
+                                 GetRevisionHistoryUseCase getRevisionHistoryUseCase,
+                                 CloseWithoutRereviewUseCase closeWithoutRereviewUseCase,
+                                 SendToRereviewUseCase sendToRereviewUseCase,
+                                 AssignRereviewerUseCase assignRereviewerUseCase,
+                                 ReassignRereviewerUseCase reassignRereviewerUseCase,
+                                 StartRereviewUseCase startRereviewUseCase,
+                                 SaveRereviewDraftUseCase saveRereviewDraftUseCase,
+                                 SubmitRereviewUseCase submitRereviewUseCase,
+                                 ReviseRereviewUseCase reviseRereviewUseCase,
+                                 GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase) {
         this.assignUseCase = assignUseCase;
         this.reassignUseCase = reassignUseCase;
         this.cancelUseCase = cancelUseCase;
@@ -50,6 +72,15 @@ public class ReviewCaseController {
         this.submitInitialReviewUseCase = submitInitialReviewUseCase;
         this.reviseInitialReviewUseCase = reviseInitialReviewUseCase;
         this.getRevisionHistoryUseCase = getRevisionHistoryUseCase;
+        this.closeWithoutRereviewUseCase = closeWithoutRereviewUseCase;
+        this.sendToRereviewUseCase = sendToRereviewUseCase;
+        this.assignRereviewerUseCase = assignRereviewerUseCase;
+        this.reassignRereviewerUseCase = reassignRereviewerUseCase;
+        this.startRereviewUseCase = startRereviewUseCase;
+        this.saveRereviewDraftUseCase = saveRereviewDraftUseCase;
+        this.submitRereviewUseCase = submitRereviewUseCase;
+        this.reviseRereviewUseCase = reviseRereviewUseCase;
+        this.getRereviewRevisionHistoryUseCase = getRereviewRevisionHistoryUseCase;
     }
 
     @PostMapping("/{caseId}/assign-reviewer")
@@ -156,6 +187,138 @@ public class ReviewCaseController {
             @PathVariable String caseId) {
         List<ReviewSubmission> submissions =
                 getRevisionHistoryUseCase.execute(actor, caseId);
+        List<SubmissionSummaryDto> dtos = submissions.stream()
+                .map(s -> new SubmissionSummaryDto(
+                        s.getSubmissionId(), s.getStage().name(), s.getReviewerId(),
+                        s.getStatus().name(), s.getRevisionNo(), s.getTotalScore(),
+                        s.getComment(), s.getSubmittedAt(), s.getSupersededBySubmissionId()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(ApiResponse.ok(new RevisionHistoryResponse(caseId, dtos)));
+    }
+
+    // --- B4 Rereview Endpoints ---
+
+    @PostMapping("/{caseId}/close-without-rereview")
+    public ResponseEntity<ApiResponse<Void>> closeWithoutRereview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        CloseWithoutRereviewCommand cmd = new CloseWithoutRereviewCommand();
+        cmd.setCaseId(caseId);
+        closeWithoutRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/{caseId}/send-to-rereview")
+    public ResponseEntity<ApiResponse<Void>> sendToRereview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        SendToRereviewCommand cmd = new SendToRereviewCommand();
+        cmd.setCaseId(caseId);
+        sendToRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/{caseId}/assign-rereviewer")
+    public ResponseEntity<ApiResponse<Void>> assignRereviewer(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @RequestBody @Valid AssignRereviewerRequest request) {
+        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
+        cmd.setCaseId(caseId);
+        cmd.setRereviewerId(request.getRereviewerId());
+        cmd.setDueAt(request.getDueAt());
+        assignRereviewerUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/{caseId}/reassign-rereviewer")
+    public ResponseEntity<ApiResponse<Void>> reassignRereviewer(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @RequestBody @Valid ReassignRereviewerRequest request) {
+        ReassignRereviewerCommand cmd = new ReassignRereviewerCommand();
+        cmd.setCaseId(caseId);
+        cmd.setRereviewerId(request.getRereviewerId());
+        cmd.setDueAt(request.getDueAt());
+        reassignRereviewerUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/{caseId}/start-rereview")
+    public ResponseEntity<ApiResponse<Void>> startRereview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        StartRereviewCommand cmd = new StartRereviewCommand();
+        cmd.setCaseId(caseId);
+        startRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PutMapping("/{caseId}/rereview-draft")
+    public ResponseEntity<ApiResponse<Void>> saveRereviewDraft(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @RequestBody @Valid SaveRereviewDraftRequest request) {
+        SaveRereviewDraftCommand cmd = new SaveRereviewDraftCommand();
+        cmd.setCaseId(caseId);
+        cmd.setSubmissionId(request.getSubmissionId());
+        if (request.getAnswers() != null) {
+            cmd.setAnswers(request.getAnswers().stream()
+                    .filter(Objects::nonNull)
+                    .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                    .collect(Collectors.toList()));
+        }
+        cmd.setTotalScore(request.getTotalScore());
+        cmd.setComment(request.getComment());
+        saveRereviewDraftUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/{caseId}/submit-rereview")
+    public ResponseEntity<ApiResponse<Void>> submitRereview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @RequestBody @Valid SubmitRereviewRequest request) {
+        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
+        cmd.setCaseId(caseId);
+        cmd.setSubmissionId(request.getSubmissionId());
+        if (request.getAnswers() != null) {
+            cmd.setAnswers(request.getAnswers().stream()
+                    .filter(Objects::nonNull)
+                    .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                    .collect(Collectors.toList()));
+        }
+        cmd.setComment(request.getComment());
+        submitRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @PostMapping("/{caseId}/revise-rereview")
+    public ResponseEntity<ApiResponse<Void>> reviseRereview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @RequestBody @Valid ReviseRereviewRequest request) {
+        ReviseRereviewCommand cmd = new ReviseRereviewCommand();
+        cmd.setCaseId(caseId);
+        cmd.setSubmissionId(request.getSubmissionId());
+        if (request.getAnswers() != null) {
+            cmd.setAnswers(request.getAnswers().stream()
+                    .filter(Objects::nonNull)
+                    .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                    .collect(Collectors.toList()));
+        }
+        cmd.setComment(request.getComment());
+        reviseRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(null));
+    }
+
+    @GetMapping("/{caseId}/rereview-revisions")
+    public ResponseEntity<ApiResponse<RevisionHistoryResponse>> getRereviewRevisionHistory(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        GetRereviewRevisionHistoryQuery query = new GetRereviewRevisionHistoryQuery();
+        query.setCaseId(caseId);
+        List<ReviewSubmission> submissions = getRereviewRevisionHistoryUseCase.execute(actor, query);
         List<SubmissionSummaryDto> dtos = submissions.stream()
                 .map(s -> new SubmissionSummaryDto(
                         s.getSubmissionId(), s.getStage().name(), s.getReviewerId(),
