@@ -117,7 +117,7 @@ public class SubmitInitialReviewUseCase {
         submissionRepository.save(submission);
 
         // Complete review case
-        reviewCase.completeInitialReview(result.getTotalScore());
+        reviewCase.completeInitialReview(result.getTotalScore(), null);
         caseRepository.save(reviewCase);
 
         // Publish event

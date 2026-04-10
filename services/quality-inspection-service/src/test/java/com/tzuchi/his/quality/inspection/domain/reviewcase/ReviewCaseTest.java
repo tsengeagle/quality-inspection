@@ -262,7 +262,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingInitialReview();
         rc.startInitialReview("sub-1", "ss-v1");
 
-        rc.completeInitialReview(new BigDecimal("85.50"));
+        rc.completeInitialReview(new BigDecimal("85.50"), null);
 
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
         assertEquals(new BigDecimal("85.50"), rc.getFinalScore());
@@ -273,7 +273,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingInitialReview(); // PENDING_INITIAL_REVIEW
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.completeInitialReview(new BigDecimal("85.50")));
+                () -> rc.completeInitialReview(new BigDecimal("85.50"), null));
     }
 
     @Test
@@ -282,7 +282,7 @@ class ReviewCaseTest {
         rc.startInitialReview("sub-1", "ss-v1");
 
         assertThrows(NullPointerException.class,
-                () -> rc.completeInitialReview(null));
+                () -> rc.completeInitialReview(null, null));
     }
 
     // --- requireNotTerminal ---

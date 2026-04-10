@@ -78,7 +78,7 @@ class ReviseInitialReviewUseCaseTest {
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer(REVIEWER_ID, LocalDateTime.of(2026, 2, 1, 23, 59));
         rc.startInitialReview(SUBMISSION_ID, SCORE_SHEET_ID);
-        rc.completeInitialReview(new BigDecimal("17.5"));
+        rc.completeInitialReview(new BigDecimal("17.5"), null);
         caseRepo.save(rc);
         return rc;
     }

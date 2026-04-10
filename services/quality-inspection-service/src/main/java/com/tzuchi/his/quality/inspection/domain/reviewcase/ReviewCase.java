@@ -175,14 +175,19 @@ public class ReviewCase {
         this.status = CaseStatus.INITIAL_REVIEW_IN_PROGRESS;
     }
 
-    public void completeInitialReview(BigDecimal totalScore) {
+    public void completeInitialReview(BigDecimal totalScore, BigDecimal qualityThreshold) {
         if (this.status != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
             throw new DomainStateConflictException("CASE_NOT_IN_INITIAL_REVIEW",
                     "Case must be in INITIAL_REVIEW_IN_PROGRESS to complete. Current: " + this.status);
         }
         Objects.requireNonNull(totalScore, "totalScore must not be null");
-        this.finalScore = totalScore;
-        this.status = CaseStatus.INITIAL_REVIEW_COMPLETED;
+        this.initialReviewScore = totalScore;
+        if (qualityThreshold != null && totalScore.compareTo(qualityThreshold) > 0) {
+            this.status = CaseStatus.PENDING_REREVIEW;
+        } else {
+            this.finalScore = totalScore;
+            this.status = CaseStatus.INITIAL_REVIEW_COMPLETED;
+        }
     }
 
     /**
@@ -201,6 +206,7 @@ public class ReviewCase {
     public void updateFinalScore(BigDecimal newScore) {
         requireNotTerminal();
         Objects.requireNonNull(newScore, "newScore must not be null");
+        this.initialReviewScore = newScore;
         this.finalScore = newScore;
     }
 
