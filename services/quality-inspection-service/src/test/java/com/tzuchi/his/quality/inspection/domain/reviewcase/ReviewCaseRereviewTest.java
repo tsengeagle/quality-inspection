@@ -192,4 +192,80 @@ class ReviewCaseRereviewTest {
         assertThrows(DomainRuleViolationException.class,
                 () -> rc.startRereview("rereviewer-1"));
     }
+
+    private ReviewCase caseAtRereviewInProgress() {
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59));
+        rc.startRereview("rereviewer-1");
+        return rc;
+    }
+
+    // --- completeRereview tests ---
+
+    @Test
+    void completeRereview_happyPath_shouldCloseWithWeightedScore() {
+        ReviewCase rc = caseAtRereviewInProgress();
+        // initialReviewScore = 90 (from caseAtPendingRereview)
+        // rereviewScore = 70, weights = 0.5/0.5 → finalScore = 80.00
+        rc.completeRereview(
+                new BigDecimal("70"),
+                new BigDecimal("0.5"),
+                new BigDecimal("0.5"));
+        assertEquals(CaseStatus.CLOSED, rc.getStatus());
+        assertEquals(0, new BigDecimal("80.00").compareTo(rc.getFinalScore()));
+        assertNotNull(rc.getClosedAt());
+    }
+
+    @Test
+    void completeRereview_asymmetricWeights_shouldCalculateCorrectly() {
+        ReviewCase rc = caseAtRereviewInProgress();
+        // initialReviewScore = 90, rereviewScore = 70
+        // weights = 0.7/0.3 → 90*0.7 + 70*0.3 = 63 + 21 = 84.00
+        rc.completeRereview(
+                new BigDecimal("70"),
+                new BigDecimal("0.7"),
+                new BigDecimal("0.3"));
+        assertEquals(0, new BigDecimal("84.00").compareTo(rc.getFinalScore()));
+    }
+
+    @Test
+    void completeRereview_wrongState_shouldThrow() {
+        ReviewCase rc = caseAtPendingRereview(); // not REREVIEW_IN_PROGRESS
+        assertThrows(DomainStateConflictException.class,
+                () -> rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5")));
+    }
+
+    // --- updateFinalScoreForRereview tests (rereview revision) ---
+
+    @Test
+    void updateFinalScoreForRereview_closedCase_shouldUpdateScore() {
+        ReviewCase rc = caseAtRereviewInProgress();
+        rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        // CLOSED state
+        assertEquals(CaseStatus.CLOSED, rc.getStatus());
+        // Rereview revision updates final score
+        rc.updateFinalScoreForRereview(
+                new BigDecimal("80"),
+                new BigDecimal("0.5"),
+                new BigDecimal("0.5"));
+        // 90*0.5 + 80*0.5 = 85.00
+        assertEquals(0, new BigDecimal("85.00").compareTo(rc.getFinalScore()));
+    }
+
+    @Test
+    void updateFinalScoreForRereview_cancelledCase_shouldThrow() {
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", LocalDateTime.now());
+        rc.startRereview("rereviewer-1");
+        // Force cancel for test — use reconstitute
+        ReviewCase cancelledCase = ReviewCase.reconstitute(
+                "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
+                CaseStatus.CANCELLED, null, null,
+                "test", null, LocalDateTime.now(), null,
+                false, null, null, null, null, null,
+                null, null, null);
+        assertThrows(DomainStateConflictException.class,
+                () -> cancelledCase.updateFinalScoreForRereview(
+                        new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")));
+    }
 }

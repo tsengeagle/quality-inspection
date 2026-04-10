@@ -258,6 +258,40 @@ public class ReviewCase {
         this.status = CaseStatus.REREVIEW_IN_PROGRESS;
     }
 
+    public void completeRereview(BigDecimal rereviewScore,
+                                  BigDecimal initialWeight,
+                                  BigDecimal rereviewWeight) {
+        if (this.status != CaseStatus.REREVIEW_IN_PROGRESS) {
+            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+                    "Can only complete rereview in REREVIEW_IN_PROGRESS. Current: " + this.status);
+        }
+        Objects.requireNonNull(rereviewScore, "rereviewScore must not be null");
+        Objects.requireNonNull(initialWeight, "initialWeight must not be null");
+        Objects.requireNonNull(rereviewWeight, "rereviewWeight must not be null");
+        this.finalScore = this.initialReviewScore.multiply(initialWeight)
+                .add(rereviewScore.multiply(rereviewWeight))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+        this.closedAt = LocalDateTime.now();
+        this.status = CaseStatus.CLOSED;
+    }
+
+    public void updateFinalScoreForRereview(BigDecimal newRereviewScore,
+                                             BigDecimal initialWeight,
+                                             BigDecimal rereviewWeight) {
+        requireNotCancelled();
+        Objects.requireNonNull(newRereviewScore, "newRereviewScore must not be null");
+        this.finalScore = this.initialReviewScore.multiply(initialWeight)
+                .add(newRereviewScore.multiply(rereviewWeight))
+                .setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private void requireNotCancelled() {
+        if (this.status == CaseStatus.CANCELLED) {
+            throw new DomainStateConflictException("CASE_CANCELLED",
+                    "Operation not allowed on CANCELLED case");
+        }
+    }
+
     /**
      * Guard: reject operations on terminal cases (CLOSED or CANCELLED).
      */
