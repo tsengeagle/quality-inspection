@@ -160,7 +160,8 @@ class ReviseInitialReviewUseCaseTest {
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CLOSED, null, null,
                 null, null, null, LocalDateTime.now(),
-                false, null, null, null, null, null);
+                false, null, null, null, null, null,
+                null, null, null);
         caseRepo.save(rc);
 
         assertThrows(DomainStateConflictException.class,
@@ -175,7 +176,8 @@ class ReviseInitialReviewUseCaseTest {
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CANCELLED, null, null,
                 null, null, LocalDateTime.now(), null,
-                false, null, null, null, null, null);
+                false, null, null, null, null, null,
+                null, null, null);
         caseRepo.save(rc);
 
         assertThrows(DomainStateConflictException.class,

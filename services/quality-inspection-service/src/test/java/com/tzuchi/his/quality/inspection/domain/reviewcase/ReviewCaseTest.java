@@ -209,7 +209,8 @@ class ReviewCaseTest {
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.PENDING_INITIAL_REVIEW, assignment, DUE,
                 null, null, null, null,
-                false, null, null, null, null, null);
+                false, null, null, null, null, null,
+                null, null, null);
 
         assertEquals("c1", rc.getCaseId());
         assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, rc.getStatus());

@@ -40,6 +40,11 @@ public class ReviewCase {
     private String ruleSnapshotRef;
     private String scoreSheetVersionRef;
 
+    // --- B4: rereview ---
+    private ReviewerAssignment rereviewerAssignment;
+    private LocalDateTime rereviewerDueAt;
+    private BigDecimal initialReviewScore;
+
     protected ReviewCase() {
         // for persistence
     }
@@ -74,7 +79,9 @@ public class ReviewCase {
             CaseStatus status, ReviewerAssignment reviewerAssignment, LocalDateTime dueAt,
             String cancelReason, String returnReason, LocalDateTime cancelledAt, LocalDateTime closedAt,
             boolean rereviewRequired, BigDecimal finalScore, String finalConclusion,
-            String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef) {
+            String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef,
+            ReviewerAssignment rereviewerAssignment, LocalDateTime rereviewerDueAt,
+            BigDecimal initialReviewScore) {
         ReviewCase rc = new ReviewCase();
         rc.caseId = caseId;
         rc.batchId = batchId;
@@ -95,6 +102,9 @@ public class ReviewCase {
         rc.latestInitialSubmissionId = latestInitialSubmissionId;
         rc.ruleSnapshotRef = ruleSnapshotRef;
         rc.scoreSheetVersionRef = scoreSheetVersionRef;
+        rc.rereviewerAssignment = rereviewerAssignment;
+        rc.rereviewerDueAt = rereviewerDueAt;
+        rc.initialReviewScore = initialReviewScore;
         return rc;
     }
 
@@ -223,4 +233,7 @@ public class ReviewCase {
     public String getLatestInitialSubmissionId() { return latestInitialSubmissionId; }
     public String getRuleSnapshotRef() { return ruleSnapshotRef; }
     public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
+    public ReviewerAssignment getRereviewerAssignment() { return rereviewerAssignment; }
+    public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
+    public BigDecimal getInitialReviewScore() { return initialReviewScore; }
 }

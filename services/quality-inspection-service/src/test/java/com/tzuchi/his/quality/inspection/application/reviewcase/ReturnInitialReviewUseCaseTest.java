@@ -49,7 +49,8 @@ class ReturnInitialReviewUseCaseTest {
                 new ReviewerAssignment("reviewer-1", LocalDateTime.now()),
                 DUE,
                 null, null, null, null,
-                false, null, null, null, null, null);
+                false, null, null, null, null, null,
+                null, null, null);
         repository.save(rc);
         return rc;
     }

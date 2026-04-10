@@ -76,6 +76,19 @@ public class ReviewCaseEntity {
     @Column(name = "score_sheet_version_ref")
     private String scoreSheetVersionRef;
 
+    // --- B4: rereview ---
+    @Column(name = "rereviewer_id")
+    private String rereviewerId;
+
+    @Column(name = "rereviewer_assigned_at")
+    private LocalDateTime rereviewerAssignedAt;
+
+    @Column(name = "rereviewer_due_at")
+    private LocalDateTime rereviewerDueAt;
+
+    @Column(name = "initial_review_score", precision = 10, scale = 2)
+    private BigDecimal initialReviewScore;
+
     public ReviewCaseEntity() {}
 
     public String getCaseId() { return caseId; }
@@ -137,4 +150,16 @@ public class ReviewCaseEntity {
 
     public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public void setScoreSheetVersionRef(String scoreSheetVersionRef) { this.scoreSheetVersionRef = scoreSheetVersionRef; }
+
+    public String getRereviewerId() { return rereviewerId; }
+    public void setRereviewerId(String rereviewerId) { this.rereviewerId = rereviewerId; }
+
+    public LocalDateTime getRereviewerAssignedAt() { return rereviewerAssignedAt; }
+    public void setRereviewerAssignedAt(LocalDateTime rereviewerAssignedAt) { this.rereviewerAssignedAt = rereviewerAssignedAt; }
+
+    public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
+    public void setRereviewerDueAt(LocalDateTime rereviewerDueAt) { this.rereviewerDueAt = rereviewerDueAt; }
+
+    public BigDecimal getInitialReviewScore() { return initialReviewScore; }
+    public void setInitialReviewScore(BigDecimal initialReviewScore) { this.initialReviewScore = initialReviewScore; }
 }

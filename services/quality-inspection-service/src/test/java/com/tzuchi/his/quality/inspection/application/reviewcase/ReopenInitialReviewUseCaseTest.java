@@ -49,7 +49,8 @@ class ReopenInitialReviewUseCaseTest {
                 new ReviewerAssignment("reviewer-1", LocalDateTime.now()),
                 DUE,
                 null, "needs correction", null, null,
-                false, null, null, null, null, null);
+                false, null, null, null, null, null,
+                null, null, null);
         repository.save(rc);
         return rc;
     }

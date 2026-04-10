@@ -40,6 +40,11 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
             assignment = new ReviewerAssignment(e.getReviewerId(), e.getReviewerAssignedAt());
         }
 
+        ReviewerAssignment rereviewerAssignment = null;
+        if (e.getRereviewerId() != null && e.getRereviewerAssignedAt() != null) {
+            rereviewerAssignment = new ReviewerAssignment(e.getRereviewerId(), e.getRereviewerAssignedAt());
+        }
+
         MedicalRecordType mrt = null;
         if (e.getMedicalRecordType() != null) {
             mrt = MedicalRecordType.valueOf(e.getMedicalRecordType());
@@ -51,7 +56,8 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
                 e.getStatus(), assignment, e.getDueAt(),
                 e.getCancelReason(), e.getReturnReason(), e.getCancelledAt(), e.getClosedAt(),
                 e.isRereviewRequired(), e.getFinalScore(), e.getFinalConclusion(),
-                e.getLatestInitialSubmissionId(), e.getRuleSnapshotRef(), e.getScoreSheetVersionRef());
+                e.getLatestInitialSubmissionId(), e.getRuleSnapshotRef(), e.getScoreSheetVersionRef(),
+                rereviewerAssignment, e.getRereviewerDueAt(), e.getInitialReviewScore());
     }
 
     private ReviewCaseEntity toEntity(ReviewCase rc) {
@@ -79,6 +85,13 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
         e.setLatestInitialSubmissionId(rc.getLatestInitialSubmissionId());
         e.setRuleSnapshotRef(rc.getRuleSnapshotRef());
         e.setScoreSheetVersionRef(rc.getScoreSheetVersionRef());
+
+        if (rc.getRereviewerAssignment() != null) {
+            e.setRereviewerId(rc.getRereviewerAssignment().getReviewerId());
+            e.setRereviewerAssignedAt(rc.getRereviewerAssignment().getAssignedAt());
+        }
+        e.setRereviewerDueAt(rc.getRereviewerDueAt());
+        e.setInitialReviewScore(rc.getInitialReviewScore());
         return e;
     }
 }

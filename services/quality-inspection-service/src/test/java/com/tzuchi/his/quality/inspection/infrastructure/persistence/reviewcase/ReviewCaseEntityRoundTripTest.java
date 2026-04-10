@@ -32,6 +32,7 @@ class ReviewCaseEntityRoundTripTest {
                 LocalDateTime.of(2025, 6, 15, 23, 59),
                 null, null, null, null,
                 false, null, null,
+                null, null, null,
                 null, null, null
         );
 
@@ -60,6 +61,7 @@ class ReviewCaseEntityRoundTripTest {
                 CaseStatus.SELECTED_PENDING_ASSIGNMENT,
                 null, null, null, null, null, null,
                 false, null, null,
+                null, null, null,
                 null, null, null
         );
 
@@ -90,6 +92,7 @@ class ReviewCaseEntityRoundTripTest {
                 "Duplicate case", null,
                 LocalDateTime.of(2025, 7, 1, 12, 0), null,
                 false, null, null,
+                null, null, null,
                 null, null, null
         );
 
