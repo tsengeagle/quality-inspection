@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.domain.reviewcase;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
 import java.math.BigDecimal;
@@ -208,6 +209,53 @@ public class ReviewCase {
                     "Can only send-to-rereview from INITIAL_REVIEW_COMPLETED. Current: " + this.status);
         }
         this.status = CaseStatus.PENDING_REREVIEW;
+    }
+
+    public void assignRereviewer(String rereviewerId, LocalDateTime dueAt) {
+        if (this.status != CaseStatus.PENDING_REREVIEW) {
+            throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
+                    "Can only assign rereviewer in PENDING_REREVIEW. Current: " + this.status);
+        }
+        Objects.requireNonNull(rereviewerId, "rereviewerId must not be null");
+        if (this.reviewerAssignment != null
+                && rereviewerId.equals(this.reviewerAssignment.getReviewerId())) {
+            throw new DomainRuleViolationException("REREVIEWER_SAME_AS_REVIEWER",
+                    "Re-reviewer must not be the same person as the initial reviewer (D-017)");
+        }
+        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, LocalDateTime.now());
+        this.rereviewerDueAt = dueAt;
+    }
+
+    public void reassignRereviewer(String rereviewerId, LocalDateTime dueAt) {
+        if (this.status != CaseStatus.PENDING_REREVIEW) {
+            throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
+                    "Can only reassign rereviewer in PENDING_REREVIEW. Current: " + this.status);
+        }
+        Objects.requireNonNull(rereviewerId, "rereviewerId must not be null");
+        if (this.reviewerAssignment != null
+                && rereviewerId.equals(this.reviewerAssignment.getReviewerId())) {
+            throw new DomainRuleViolationException("REREVIEWER_SAME_AS_REVIEWER",
+                    "Re-reviewer must not be the same person as the initial reviewer (D-017)");
+        }
+        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, LocalDateTime.now());
+        this.rereviewerDueAt = dueAt;
+    }
+
+    public void startRereview(String actorId) {
+        if (this.status != CaseStatus.PENDING_REREVIEW) {
+            throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
+                    "Can only start rereview in PENDING_REREVIEW. Current: " + this.status);
+        }
+        if (this.rereviewerAssignment == null) {
+            throw new DomainRuleViolationException("NO_REREVIEWER_ASSIGNED",
+                    "Cannot start rereview: no rereviewer has been assigned");
+        }
+        Objects.requireNonNull(actorId, "actorId must not be null");
+        if (!actorId.equals(this.rereviewerAssignment.getReviewerId())) {
+            throw new DomainRuleViolationException("NOT_ASSIGNED_REREVIEWER",
+                    "Only the assigned rereviewer can start the rereview");
+        }
+        this.status = CaseStatus.REREVIEW_IN_PROGRESS;
     }
 
     /**

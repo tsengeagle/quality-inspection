@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.domain.reviewcase;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
 
@@ -102,5 +103,93 @@ class ReviewCaseRereviewTest {
     void sendToRereview_wrongState_shouldThrow() {
         ReviewCase rc = caseInProgress();
         assertThrows(DomainStateConflictException.class, rc::sendToRereview);
+    }
+
+    private ReviewCase caseAtPendingRereview() {
+        ReviewCase rc = caseInProgress();
+        rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80"));
+        // score 90 > threshold 80 → PENDING_REREVIEW
+        return rc;
+    }
+
+    // --- assignRereviewer tests ---
+
+    @Test
+    void assignRereviewer_happyPath_shouldSetAssignment() {
+        ReviewCase rc = caseAtPendingRereview();
+        LocalDateTime dueAt = LocalDateTime.of(2026, 6, 30, 23, 59);
+        rc.assignRereviewer("rereviewer-1", dueAt);
+        assertNotNull(rc.getRereviewerAssignment());
+        assertEquals("rereviewer-1", rc.getRereviewerAssignment().getReviewerId());
+        assertEquals(dueAt, rc.getRereviewerDueAt());
+        assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
+    }
+
+    @Test
+    void assignRereviewer_sameAsInitialReviewer_shouldThrow() {
+        ReviewCase rc = caseAtPendingRereview();
+        // initial reviewer is "reviewer-1" (set in caseInProgress)
+        assertThrows(DomainRuleViolationException.class,
+                () -> rc.assignRereviewer("reviewer-1", LocalDateTime.now()));
+    }
+
+    @Test
+    void assignRereviewer_wrongState_shouldThrow() {
+        ReviewCase rc = caseInProgress(); // INITIAL_REVIEW_IN_PROGRESS
+        assertThrows(DomainStateConflictException.class,
+                () -> rc.assignRereviewer("rereviewer-1", LocalDateTime.now()));
+    }
+
+    // --- reassignRereviewer tests ---
+
+    @Test
+    void reassignRereviewer_happyPath_shouldReplaceAssignment() {
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", LocalDateTime.now());
+        LocalDateTime newDue = LocalDateTime.of(2026, 7, 15, 23, 59);
+        rc.reassignRereviewer("rereviewer-2", newDue);
+        assertEquals("rereviewer-2", rc.getRereviewerAssignment().getReviewerId());
+        assertEquals(newDue, rc.getRereviewerDueAt());
+    }
+
+    @Test
+    void reassignRereviewer_sameAsInitialReviewer_shouldThrow() {
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", LocalDateTime.now());
+        assertThrows(DomainRuleViolationException.class,
+                () -> rc.reassignRereviewer("reviewer-1", LocalDateTime.now()));
+    }
+
+    // --- startRereview tests ---
+
+    @Test
+    void startRereview_happyPath_shouldTransitionToInProgress() {
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", LocalDateTime.now());
+        rc.startRereview("rereviewer-1");
+        assertEquals(CaseStatus.REREVIEW_IN_PROGRESS, rc.getStatus());
+    }
+
+    @Test
+    void startRereview_wrongActor_shouldThrow() {
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", LocalDateTime.now());
+        assertThrows(DomainRuleViolationException.class,
+                () -> rc.startRereview("someone-else"));
+    }
+
+    @Test
+    void startRereview_wrongState_shouldThrow() {
+        ReviewCase rc = caseInProgress();
+        assertThrows(DomainStateConflictException.class,
+                () -> rc.startRereview("rereviewer-1"));
+    }
+
+    @Test
+    void startRereview_noAssignment_shouldThrow() {
+        ReviewCase rc = caseAtPendingRereview();
+        // no assignRereviewer called
+        assertThrows(DomainRuleViolationException.class,
+                () -> rc.startRereview("rereviewer-1"));
     }
 }
