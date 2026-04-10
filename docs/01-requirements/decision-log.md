@@ -48,7 +48,7 @@ decision_status:
 
 ---
 
-## D-001 結案後不允許 revision
+## D-001 結案後不允許 revision（修訂 - B4）
 
 ### Status
 
@@ -60,14 +60,20 @@ decision_status:
 
 ### Decision
 
-案件一旦進入 `CLOSED` 狀態，不允許再建立任何 submission revision。
+案件一旦進入 `CLOSED` 狀態，不允許狀態轉移或重開。然而，**複審 revision（分數修正）允許在 CLOSED 案件上進行**，因為：
+1. revision 不改變案件狀態（案件仍保持 CLOSED）
+2. revision 不構成 reopen
+3. revision 只修正分數，不改變生命週期
+4. 最終分數會被重新計算
+
+初審 revision 在 CLOSED 案件上仍然禁止。
 
 ### Rationale
 
-* 結案應作為正式終止點
-* 避免 revision 造成 reopen / 反覆翻案
-* 簡化 state machine、API 與 persistence 邊界
-* 保持 audit trail 清楚
+* 複審自動結案案件，修正分數的唯一時機是結案後
+* 追加 revision 是 append-only，不改變案件狀態
+* CLOSED 狀態應防止 reopen，但不應防止「已結案案件的分數微調」
+* 此例外安全且合理
 
 ### Affected Artifacts
 
@@ -80,10 +86,10 @@ decision_status:
 
 ### Consequences
 
-* `CLOSED` 後不可 revision
-* `CLOSED` 後不可 reopen
-* `CLOSED` 後不可重新提交初審或複審
-* 若未來需要例外修正，必須另開 administrative correction workflow，本版不納入
+* `CLOSED` 後不可 reopen 或進行狀態轉移
+* `CLOSED` 後不可新的初審提交或複審提交
+* `CLOSED` 後**允許複審 revision**（例外規則，見 D-021）
+* 初審 revision 在 CLOSED 上仍禁止
 
 ---
 
@@ -435,7 +441,7 @@ revision 不構成案件 reopen，也不應直接改變案件主狀態。
 
 ---
 
-## D-012 複審最終分數由複審醫師決定
+## D-012 複審最終分數（修訂 - B4）
 
 ### Status
 
@@ -447,12 +453,18 @@ revision 不構成案件 reopen，也不應直接改變案件主狀態。
 
 ### Decision
 
-案件進入複審後，最終分數由複審醫師提交結果決定。
+案件的最終分數為「初審分數」與「複審分數」的加權平均值，而非單純由複審分數決定。
+
+默認權重配置：initialReviewWeight = 0.5, rereviewWeight = 0.5（各佔 50%）。
+
+權重可按 ProjectVersion 配置，但保持一致性。
 
 ### Rationale
 
-* 直接對應需求規則
-* 明確劃分初審與複審決策權限
+* 複審的角色不是「推翻」初審，而是「確認與調整」
+* 加權平均反映初審與複審的共同決策權
+* 允許業務按不同專案調整權重配置，支援差異化品質政策
+* 明確定義「最終分數」計算公式，避免後續解釋衝突
 
 ### Affected Artifacts
 
@@ -461,12 +473,16 @@ revision 不構成案件 reopen，也不應直接改變案件主狀態。
 * `application-service.md`
 * `permission-matrix.md`
 * `api-spec.md`
+* `persistence-model.md`
 * `test-scenarios.md`
 
 ### Consequences
 
-* 初審結果只能決定是否進入複審
-* 複審完成後 final score 以複審 submission 為準
+* finalScore = initialReviewScore × initialReviewWeight + rereviewScore × rereviewWeight
+* `ProjectVersion` 需存儲 `initialReviewWeight`, `rereviewWeight`
+* 權重在版本發布時固定，不可事後改變
+* 複審完成後，系統自動計算最終分數（不需複審醫師手工輸入）
+* 複審 revision 時也需按相同公式重新計算最終分數
 
 ---
 
@@ -596,6 +612,199 @@ ScoreSheetDefinition 的建立採 create-then-update 模式：`POST /score-sheet
 - 所有 child entity FK 參照 parent surrogate PK
 - business key 作為 unique constraint 保留查詢與驗證能力
 - API 層不暴露 surrogate key，仍以 business key 為外部識別
+
+---
+
+## D-017 複審醫師不可為同案的初審醫師
+
+### Status
+
+`accepted`
+
+### Category
+
+`permission-and-domain-guard`
+
+### Decision
+
+任何案件的複審醫師不可為該案的初審醫師。
+
+### Rationale
+
+* 複審的語意是「獨立審查」，而非「同人自我檢查」
+* 防止初審與複審由同一醫師操作，確保品質檢查有效性
+* 符合內部稽核基本原則
+
+### Affected Artifacts
+
+* `permission-matrix.md`
+* `domain-model.md`
+* `application-service.md`
+* `api-spec.md`
+* `test-scenarios.md`
+
+### Consequences
+
+* `AssignRereviewUseCase` 需驗證 assigned_doctor ≠ original_initial_reviewer
+* assignment API 應在指派複審前檢查此條件
+* 若違反，API 應回傳明確 error（如 `SELF_REVIEW_NOT_ALLOWED`）
+
+---
+
+## D-018 複審期間複審醫師看不到初審答案與分數
+
+### Status
+
+`accepted`
+
+### Category
+
+`permission-and-visibility`
+
+### Decision
+
+複審醫師在進行複審時，不可看到初審的原始答案、評語與分數。複審醫師應獨立評分，複審完成後才可查看初審內容作為參考。
+
+### Rationale
+
+* 複審的核心是「獨立評估」，若提前暴露初審結果，易造成偏見
+* 保證複審的獨立性與可信度
+* 符合品質管理的盲評原則
+
+### Affected Artifacts
+
+* `permission-matrix.md`
+* `api-spec.md`
+* `domain-model.md`
+* `test-scenarios.md`
+
+### Consequences
+
+* `GetReviewCaseUseCase` 需有不同視角：
+  - `initial_reviewer` 視角：可看初審內容
+  - `rereview_doctor` 視角（複審中）：隱藏初審分數與答案
+  - `rereview_doctor` 視角（複審後）：可看初審內容
+* review case detail API 需按 actor 與 case status 動態遮蔽字段
+* UI 層應不顯示初審內容直到複審提交完成
+
+---
+
+## D-019 自動閾值評估與自動進入複審
+
+### Status
+
+`accepted`
+
+### Category
+
+`state-machine-and-automation`
+
+### Decision
+
+當初審分數 > quality_threshold 時，案件自動進入 `PENDING_REREVIEW` 狀態。
+
+當初審分數 ≤ threshold 或 threshold 為 null 時，案件進入 `INITIAL_REVIEW_COMPLETED` 狀態；院方管理者可選擇手工關閉或手工派發複審。
+
+### Rationale
+
+* 達不到品質閾值的案件應自動進入複審以保障品質
+* threshold ≤ score 的案件不強制複審，但保留人工干預空間
+* 避免複審人力浪費，同時保留靈活性
+
+### Affected Artifacts
+
+* `state-machine.md`
+* `application-service.md`
+* `domain-model.md`
+* `api-spec.md`
+* `test-scenarios.md`
+
+### Consequences
+
+* `SubmitInitialReviewUseCase` 需在 submission 成功後觸發閾值檢查
+* 若 score > threshold：case state 自動轉為 `PENDING_REREVIEW`
+* 若 score ≤ threshold 或 threshold == null：case state 轉為 `INITIAL_REVIEW_COMPLETED`
+* 從 `INITIAL_REVIEW_COMPLETED` 有手工 command 進入 `PENDING_REREVIEW`
+* `INITIAL_REVIEW_COMPLETED` 也可手工進入 `CLOSED`
+
+---
+
+## D-020 計分權重與不變性
+
+### Status
+
+`accepted`
+
+### Category
+
+`domain-rule`
+
+### Decision
+
+ProjectVersion 中存儲 `initialReviewWeight` 與 `rereviewWeight`，默認各 0.5。
+
+約束條件：`initialReviewWeight + rereviewWeight = 1.0`，且兩者均 > 0 並 ≤ 1。
+
+權重在 ProjectVersion 發布時固定不變，不可事後修改。
+
+### Rationale
+
+* 權重決定最終分數，應與版本綁定，支持版本間的可對比性
+* 發布後不可修改，否則會改變同版本內已結案案件的分數回溯
+* 明確約束保證計算公式的合法性
+
+### Affected Artifacts
+
+* `domain-model.md`
+* `persistence-model.md`
+* `api-spec.md`
+* `test-scenarios.md`
+
+### Consequences
+
+* `ProjectVersion` aggregate 新增 `initialReviewWeight`, `rereviewWeight` 字段
+* publish API 時應驗證權重和 = 1.0 且均 > 0
+* published version 的權重欄位設為 immutable
+* 若業務要改權重，必須建立新版本
+
+---
+
+## D-021 複審 Revision 允許在 CLOSED 案件上（D-001 例外）
+
+### Status
+
+`accepted`
+
+### Category
+
+`revision-exception`
+
+### Decision
+
+複審 revision（修正複審分數）允許在案件已進入 `CLOSED` 狀態後進行。這是 D-001「結案後不允許 revision」規則的例外。
+
+### Rationale
+
+* 複審自動結案案件，若禁止複審 revision，複審醫師發現錯誤後無法修正
+* revision 不改變案件狀態（案件仍保持 CLOSED），不構成 reopen
+* revision 是 append-only，新版本 submission 清晰記錄修正歷史
+* CLOSED 狀態的防護是「防止狀態轉移」和「防止新提交」，不應防止「已提交結果的分數微調」
+* 此例外安全且合理
+
+### Affected Artifacts
+
+* `state-machine.md`
+* `domain-model.md`
+* `application-service.md`
+* `api-spec.md`
+* `test-scenarios.md`
+
+### Consequences
+
+* `ReviseRereviewUseCase` 需允許在 case status = `CLOSED` 時觸發
+* 初審 revision 在 `CLOSED` 上仍禁止（不包含在本例外內）
+* revision 後重新計算 finalScore（見 D-020）
+* revision submission 仍遵循 D-004 append-only 原則
 
 ---
 
