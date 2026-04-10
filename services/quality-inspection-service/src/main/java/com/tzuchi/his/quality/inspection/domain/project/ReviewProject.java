@@ -4,6 +4,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationExcept
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 /**
@@ -68,7 +69,10 @@ public class ReviewProject {
                                               String description, String boundScoreSheetId,
                                               Set<MedicalRecordType> medicalRecordTypes,
                                               ProjectStatus status, int versionNumber,
-                                              boolean versionPublished) {
+                                              boolean versionPublished,
+                                              BigDecimal qualityThreshold,
+                                              BigDecimal initialReviewWeight,
+                                              BigDecimal rereviewWeight) {
         ReviewProject project = new ReviewProject();
         project.projectId = projectId;
         project.hospitalId = hospitalId;
@@ -79,7 +83,8 @@ public class ReviewProject {
                 ? EnumSet.copyOf(medicalRecordTypes)
                 : EnumSet.noneOf(MedicalRecordType.class);
         project.status = status;
-        project.currentVersion = new ProjectVersion(versionNumber, versionPublished);
+        project.currentVersion = new ProjectVersion(versionNumber, versionPublished,
+                qualityThreshold, initialReviewWeight, rereviewWeight);
         return project;
     }
 

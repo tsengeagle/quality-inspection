@@ -44,6 +44,9 @@ public class ReviewProjectRepositoryImpl implements ReviewProjectRepository {
         e.setStatus(project.getStatus());
         e.setVersionNumber(project.getCurrentVersion().getVersionNumber());
         e.setVersionPublished(project.getCurrentVersion().isPublished());
+        e.setQualityThreshold(project.getCurrentVersion().getQualityThreshold());
+        e.setInitialReviewWeight(project.getCurrentVersion().getInitialReviewWeight());
+        e.setRereviewWeight(project.getCurrentVersion().getRereviewWeight());
         return e;
     }
 
@@ -60,7 +63,10 @@ public class ReviewProjectRepositoryImpl implements ReviewProjectRepository {
                 types,
                 e.getStatus(),
                 e.getVersionNumber(),
-                e.isVersionPublished()
+                e.isVersionPublished(),
+                e.getQualityThreshold(),
+                e.getInitialReviewWeight(),
+                e.getRereviewWeight()
         );
     }
 }

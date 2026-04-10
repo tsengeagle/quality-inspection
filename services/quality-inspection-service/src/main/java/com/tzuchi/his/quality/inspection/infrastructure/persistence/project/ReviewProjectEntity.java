@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.project;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 
 import javax.persistence.*;
+import java.math.BigDecimal;
 import java.util.Set;
 
 @Entity
@@ -41,6 +42,15 @@ public class ReviewProjectEntity {
     @Column(name = "version_published", nullable = false)
     private boolean versionPublished;
 
+    @Column(name = "quality_threshold", precision = 10, scale = 2)
+    private BigDecimal qualityThreshold;
+
+    @Column(name = "initial_review_weight", precision = 3, scale = 2)
+    private BigDecimal initialReviewWeight;
+
+    @Column(name = "rereview_weight", precision = 3, scale = 2)
+    private BigDecimal rereviewWeight;
+
     public ReviewProjectEntity() {}
 
     // --- Getters and Setters ---
@@ -71,4 +81,13 @@ public class ReviewProjectEntity {
 
     public boolean isVersionPublished() { return versionPublished; }
     public void setVersionPublished(boolean versionPublished) { this.versionPublished = versionPublished; }
+
+    public BigDecimal getQualityThreshold() { return qualityThreshold; }
+    public void setQualityThreshold(BigDecimal qualityThreshold) { this.qualityThreshold = qualityThreshold; }
+
+    public BigDecimal getInitialReviewWeight() { return initialReviewWeight; }
+    public void setInitialReviewWeight(BigDecimal initialReviewWeight) { this.initialReviewWeight = initialReviewWeight; }
+
+    public BigDecimal getRereviewWeight() { return rereviewWeight; }
+    public void setRereviewWeight(BigDecimal rereviewWeight) { this.rereviewWeight = rereviewWeight; }
 }

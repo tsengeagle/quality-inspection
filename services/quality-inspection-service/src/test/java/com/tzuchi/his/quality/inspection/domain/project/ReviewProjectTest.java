@@ -283,12 +283,18 @@ class ReviewProjectTest {
         ReviewProject project = ReviewProject.reconstitute("p1", "h1", "Test",
                 "My Desc", "ss-99",
                 EnumSet.of(MedicalRecordType.OUTPATIENT),
-                ProjectStatus.ACTIVE, 2, true);
+                ProjectStatus.ACTIVE, 2, true,
+                new java.math.BigDecimal("85.00"),
+                new java.math.BigDecimal("0.50"),
+                new java.math.BigDecimal("0.50"));
 
         assertEquals("My Desc", project.getDescription());
         assertEquals("ss-99", project.getBoundScoreSheetId());
         assertEquals(ProjectStatus.ACTIVE, project.getStatus());
         assertEquals(2, project.getCurrentVersion().getVersionNumber());
         assertTrue(project.getCurrentVersion().isPublished());
+        assertEquals(new java.math.BigDecimal("85.00"), project.getCurrentVersion().getQualityThreshold());
+        assertEquals(new java.math.BigDecimal("0.50"), project.getCurrentVersion().getInitialReviewWeight());
+        assertEquals(new java.math.BigDecimal("0.50"), project.getCurrentVersion().getRereviewWeight());
     }
 }
