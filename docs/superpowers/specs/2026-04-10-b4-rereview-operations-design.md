@@ -41,6 +41,15 @@ Threshold auto-evaluation: when initial score > quality threshold → auto PENDI
 
 Scoring weight (initialReviewWeight, rereviewWeight) is stored in ProjectVersion, default 0.5/0.5. Invariant: initialReviewWeight + rereviewWeight = 1.0, both > 0 and <= 1.
 
+### 修改 D-001
+
+- **Before:** Results CLOSED cannot be revised.
+- **After:** CLOSED cases cannot be reopened or have state transitions. However, **rereview revision** (append-only score correction) is allowed on CLOSED cases because: (1) revision does not change case state, (2) revision is not reopen, (3) case remains CLOSED, (4) only finalScore is recalculated. Initial review revision on CLOSED cases remains prohibited (initial review revision window ends when case reaches CLOSED).
+
+### 新增 D-021
+
+Rereview revision is allowed on CLOSED cases (exception to terminal state no-revision rule). Rationale: rereview submission auto-closes the case, so the only window for rereview revision is after CLOSED. This is safe because revision is append-only and does not change case lifecycle state.
+
 ---
 
 ## 3. Domain Model Extensions
@@ -119,7 +128,7 @@ New behavior:
 
 #### `updateFinalScoreOnRereviewRevision(newRereviewScore, initialWeight, rereviewWeight)`
 
-- Guard: status not `CLOSED` and not `CANCELLED`
+- Guard: status not `CANCELLED` (CLOSED is allowed for rereview revision per D-021)
 - Recalculates: `finalScore = initialReviewScore × initialWeight + newRereviewScore × rereviewWeight`
 - Used by `ReviseRereviewUseCase` after revision creates new submission
 
@@ -328,7 +337,7 @@ actor: REREVIEWER (original re-reviewer)
 input: caseId, submissionId, answers[], comment
 steps:
   1. Load ReviewCase
-  2. Verify case is not CLOSED and not CANCELLED
+  2. Verify case is not CANCELLED (CLOSED is allowed per D-021)
   3. Load current SUBMITTED REREVIEW submission
   4. Verify actor.userId == case.rereviewerAssignment.reviewerId
   5. Load ScoreSheetSnapshot
@@ -340,6 +349,8 @@ steps:
   11. Save case + old submission + new submission
   12. Publish RereviewSubmissionRevisedEvent
 ```
+
+**Note:** Unlike initial review revision, rereview revision IS allowed on CLOSED cases (D-021). This is because rereview submission auto-closes the case, making CLOSED the only state where rereview revision can occur. The revision does not change the case state — only finalScore is recalculated.
 
 ### 6.9 GetRereviewRevisionHistoryUseCase
 
@@ -547,11 +558,12 @@ GET /review-cases/{caseId}/rereview/revision-history
 ### 11.4 Key Edge Cases
 
 1. Rereviewer == initial reviewer → 422 DomainRuleViolationException
-2. Case already CLOSED → revision attempt → 409 DomainStateConflictException
-3. Weighted average calculation precision (BigDecimal HALF_UP rounding)
-4. Rereview revision → finalScore recalculation correctness
-5. Threshold boundary: score == threshold → stays INITIAL_REVIEW_COMPLETED (not escalated)
-6. Manual sendToRereview on case already at INITIAL_REVIEW_COMPLETED with score <= threshold → allowed
+2. Case already CANCELLED → revision attempt → 409 DomainStateConflictException
+3. Case CLOSED → rereview revision allowed (D-021), initial review revision still blocked
+4. Weighted average calculation precision (BigDecimal HALF_UP rounding)
+5. Rereview revision → finalScore recalculation correctness
+6. Threshold boundary: score == threshold → stays INITIAL_REVIEW_COMPLETED (not escalated)
+7. Manual sendToRereview on case already at INITIAL_REVIEW_COMPLETED with score <= threshold → allowed
 
 ---
 
@@ -559,8 +571,8 @@ GET /review-cases/{caseId}/rereview/revision-history
 
 | Document | Update |
 |---|---|
-| `decision-log.md` | Modify D-012, add D-017 through D-020 |
-| `state-machine.md` | Add `sendToRereview` trigger, modify `closeWithoutRereview` guard, update principle §2.9 |
+| `decision-log.md` | Modify D-001 and D-012, add D-017 through D-021 |
+| `state-machine.md` | Add `sendToRereview` trigger, modify `closeWithoutRereview` guard, update principle §2.9, update CLOSED revision rule for rereview exception |
 | `domain-model.md` | Add rereviewerAssignment, initialReviewScore, finalScore to ReviewCase; add scoring weight to ProjectVersion |
 | `domain-events.md` | Add 6 new events |
 | `api-spec.md` | Add 9 new endpoints |
@@ -578,3 +590,4 @@ GET /review-cases/{caseId}/rereview/revision-history
 | 3 | application-service §8.1: "最終分數由複審醫師提交結果決定" | 最終分數為加權平均 | Aligned with D-012 update |
 | 4 | state-machine: `closeWithoutRereview` guard = `score <= threshold` | Manual HOSPITAL_MANAGER trigger | Auto threshold handled in `completeInitialReview()` |
 | 5 | No `sendToRereview` trigger in state-machine | New trigger added | User requirement for manual override |
+| 6 | D-001: "CLOSED cannot be revised" | CLOSED allows rereview revision only | Rereview auto-closes, so revision window must extend to CLOSED (D-021) |
