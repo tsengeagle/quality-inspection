@@ -1,10 +1,15 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.reviewcase.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.GetRereviewRevisionHistoryQuery;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryCriteria;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
@@ -42,6 +47,8 @@ public class ReviewCaseController {
     private final SubmitRereviewUseCase submitRereviewUseCase;
     private final ReviseRereviewUseCase reviseRereviewUseCase;
     private final GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase;
+    private final ListReviewCasesUseCase listReviewCasesUseCase;
+    private final GetReviewCaseDetailUseCase getReviewCaseDetailUseCase;
 
     public ReviewCaseController(AssignReviewCaseUseCase assignUseCase,
                                  ReassignReviewCaseUseCase reassignUseCase,
@@ -61,7 +68,9 @@ public class ReviewCaseController {
                                  SaveRereviewDraftUseCase saveRereviewDraftUseCase,
                                  SubmitRereviewUseCase submitRereviewUseCase,
                                  ReviseRereviewUseCase reviseRereviewUseCase,
-                                 GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase) {
+                                 GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase,
+                                 ListReviewCasesUseCase listReviewCasesUseCase,
+                                 GetReviewCaseDetailUseCase getReviewCaseDetailUseCase) {
         this.assignUseCase = assignUseCase;
         this.reassignUseCase = reassignUseCase;
         this.cancelUseCase = cancelUseCase;
@@ -81,6 +90,43 @@ public class ReviewCaseController {
         this.submitRereviewUseCase = submitRereviewUseCase;
         this.reviseRereviewUseCase = reviseRereviewUseCase;
         this.getRereviewRevisionHistoryUseCase = getRereviewRevisionHistoryUseCase;
+        this.listReviewCasesUseCase = listReviewCasesUseCase;
+        this.getReviewCaseDetailUseCase = getReviewCaseDetailUseCase;
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<ReviewCaseSummary>>> listCases(
+            @CurrentActor ActorContext actor,
+            @RequestParam(required = false) String hospitalId,
+            @RequestParam(required = false) String projectId,
+            @RequestParam(required = false) String batchId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String reviewerId,
+            @RequestParam(required = false) String rereviewerId,
+            @RequestParam(required = false) String medicalRecordType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        CaseStatus caseStatus = null;
+        if (status != null) {
+            try {
+                caseStatus = CaseStatus.valueOf(status);
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Invalid status: " + status);
+            }
+        }
+        ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(
+                hospitalId, projectId, batchId, caseStatus,
+                reviewerId, rereviewerId, medicalRecordType, page, size);
+        Page<ReviewCaseSummary> result = listReviewCasesUseCase.execute(actor, criteria);
+        return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    @GetMapping("/{caseId}")
+    public ResponseEntity<ApiResponse<ReviewCaseDetailView>> getCaseDetail(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        ReviewCaseDetailView detail = getReviewCaseDetailUseCase.execute(actor, caseId);
+        return ResponseEntity.ok(ApiResponse.ok(detail));
     }
 
     @PostMapping("/{caseId}/assign-reviewer")
