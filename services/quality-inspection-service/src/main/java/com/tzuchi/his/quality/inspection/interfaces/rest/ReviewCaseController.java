@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest;
 
+import com.tzuchi.his.quality.inspection.application.audit.AuditTrailEntry;
+import com.tzuchi.his.quality.inspection.application.audit.GetCaseLifecycleUseCase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.reviewcase.*;
@@ -49,6 +51,7 @@ public class ReviewCaseController {
     private final GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase;
     private final ListReviewCasesUseCase listReviewCasesUseCase;
     private final GetReviewCaseDetailUseCase getReviewCaseDetailUseCase;
+    private final GetCaseLifecycleUseCase getCaseLifecycleUseCase;
 
     public ReviewCaseController(AssignReviewCaseUseCase assignUseCase,
                                  ReassignReviewCaseUseCase reassignUseCase,
@@ -70,7 +73,8 @@ public class ReviewCaseController {
                                  ReviseRereviewUseCase reviseRereviewUseCase,
                                  GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase,
                                  ListReviewCasesUseCase listReviewCasesUseCase,
-                                 GetReviewCaseDetailUseCase getReviewCaseDetailUseCase) {
+                                 GetReviewCaseDetailUseCase getReviewCaseDetailUseCase,
+                                 GetCaseLifecycleUseCase getCaseLifecycleUseCase) {
         this.assignUseCase = assignUseCase;
         this.reassignUseCase = reassignUseCase;
         this.cancelUseCase = cancelUseCase;
@@ -92,6 +96,7 @@ public class ReviewCaseController {
         this.getRereviewRevisionHistoryUseCase = getRereviewRevisionHistoryUseCase;
         this.listReviewCasesUseCase = listReviewCasesUseCase;
         this.getReviewCaseDetailUseCase = getReviewCaseDetailUseCase;
+        this.getCaseLifecycleUseCase = getCaseLifecycleUseCase;
     }
 
     @GetMapping
@@ -127,6 +132,14 @@ public class ReviewCaseController {
             @PathVariable String caseId) {
         ReviewCaseDetailView detail = getReviewCaseDetailUseCase.execute(actor, caseId);
         return ResponseEntity.ok(ApiResponse.ok(detail));
+    }
+
+    @GetMapping("/{caseId}/lifecycle")
+    public ResponseEntity<ApiResponse<List<AuditTrailEntry>>> getCaseLifecycle(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId) {
+        List<AuditTrailEntry> entries = getCaseLifecycleUseCase.execute(actor, caseId);
+        return ResponseEntity.ok(ApiResponse.ok(entries));
     }
 
     @PostMapping("/{caseId}/assign-reviewer")
