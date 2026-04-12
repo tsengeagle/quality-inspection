@@ -113,6 +113,7 @@ public class ReviseRereviewUseCase {
                 result.getTotalScore(),
                 version.getInitialReviewWeight(),
                 version.getRereviewWeight());
+        reviewCase.setLatestRereviewSubmissionId(newSubmissionId);
 
         // 12. Save case
         caseRepository.save(reviewCase);

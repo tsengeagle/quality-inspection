@@ -89,6 +89,9 @@ public class ReviewCaseEntity {
     @Column(name = "initial_review_score", precision = 10, scale = 2)
     private BigDecimal initialReviewScore;
 
+    @Column(name = "latest_rereview_submission_id")
+    private String latestRereviewSubmissionId;
+
     public ReviewCaseEntity() {}
 
     public String getCaseId() { return caseId; }
@@ -162,4 +165,7 @@ public class ReviewCaseEntity {
 
     public BigDecimal getInitialReviewScore() { return initialReviewScore; }
     public void setInitialReviewScore(BigDecimal initialReviewScore) { this.initialReviewScore = initialReviewScore; }
+
+    public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
+    public void setLatestRereviewSubmissionId(String id) { this.latestRereviewSubmissionId = id; }
 }

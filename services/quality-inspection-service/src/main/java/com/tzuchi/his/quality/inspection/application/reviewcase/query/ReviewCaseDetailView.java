@@ -24,6 +24,7 @@ public class ReviewCaseDetailView {
     private final LocalDateTime closedAt;
     private final LocalDateTime cancelledAt;
     private final List<SubmissionSummaryItem> submissions;
+    private final String latestRereviewSubmissionId;
 
     public ReviewCaseDetailView(String caseId, String projectId, String batchId,
                                  String hospitalId, String status, String reviewerId,
@@ -33,7 +34,8 @@ public class ReviewCaseDetailView {
                                  LocalDateTime createdAt, LocalDateTime assignedAt,
                                  LocalDateTime dueAt, LocalDateTime closedAt,
                                  LocalDateTime cancelledAt,
-                                 List<SubmissionSummaryItem> submissions) {
+                                 List<SubmissionSummaryItem> submissions,
+                                 String latestRereviewSubmissionId) {
         this.caseId = caseId;
         this.projectId = projectId;
         this.batchId = batchId;
@@ -52,6 +54,7 @@ public class ReviewCaseDetailView {
         this.closedAt = closedAt;
         this.cancelledAt = cancelledAt;
         this.submissions = submissions;
+        this.latestRereviewSubmissionId = latestRereviewSubmissionId;
     }
 
     public String getCaseId() { return caseId; }
@@ -72,4 +75,5 @@ public class ReviewCaseDetailView {
     public LocalDateTime getClosedAt() { return closedAt; }
     public LocalDateTime getCancelledAt() { return cancelledAt; }
     public List<SubmissionSummaryItem> getSubmissions() { return submissions; }
+    public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
 }

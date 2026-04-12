@@ -30,7 +30,7 @@ class GetReviewCaseDetailUseCaseTest {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
                 "c1", "p1", "b1", "H001", "CLOSED", "r1", null,
                 "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85),
-                "PASS", null, null, null, null, null, Collections.emptyList());
+                "PASS", null, null, null, null, null, Collections.emptyList(), null);
         queryPort.setDetail("c1", detail);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 

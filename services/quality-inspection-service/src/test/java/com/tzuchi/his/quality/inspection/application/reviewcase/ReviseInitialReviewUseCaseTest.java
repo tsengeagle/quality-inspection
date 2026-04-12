@@ -164,7 +164,7 @@ class ReviseInitialReviewUseCaseTest {
                 CaseStatus.CLOSED, null, null,
                 null, null, null, LocalDateTime.now(),
                 false, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
         caseRepo.save(rc);
 
         assertThrows(DomainStateConflictException.class,
@@ -180,7 +180,7 @@ class ReviseInitialReviewUseCaseTest {
                 CaseStatus.CANCELLED, null, null,
                 null, null, LocalDateTime.now(), null,
                 false, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
         caseRepo.save(rc);
 
         assertThrows(DomainStateConflictException.class,

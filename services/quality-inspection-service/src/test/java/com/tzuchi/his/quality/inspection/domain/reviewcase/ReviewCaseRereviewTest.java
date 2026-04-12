@@ -263,7 +263,7 @@ class ReviewCaseRereviewTest {
                 CaseStatus.CANCELLED, null, null,
                 "test", null, LocalDateTime.now(), null,
                 false, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
         assertThrows(DomainStateConflictException.class,
                 () -> cancelledCase.updateFinalScoreForRereview(
                         new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")));

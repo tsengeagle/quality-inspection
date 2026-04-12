@@ -57,7 +57,8 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
                 e.getCancelReason(), e.getReturnReason(), e.getCancelledAt(), e.getClosedAt(),
                 e.isRereviewRequired(), e.getFinalScore(), e.getFinalConclusion(),
                 e.getLatestInitialSubmissionId(), e.getRuleSnapshotRef(), e.getScoreSheetVersionRef(),
-                rereviewerAssignment, e.getRereviewerDueAt(), e.getInitialReviewScore());
+                rereviewerAssignment, e.getRereviewerDueAt(), e.getInitialReviewScore(),
+                e.getLatestRereviewSubmissionId());
     }
 
     private ReviewCaseEntity toEntity(ReviewCase rc) {
@@ -92,6 +93,7 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
         }
         e.setRereviewerDueAt(rc.getRereviewerDueAt());
         e.setInitialReviewScore(rc.getInitialReviewScore());
+        e.setLatestRereviewSubmissionId(rc.getLatestRereviewSubmissionId());
         return e;
     }
 }

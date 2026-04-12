@@ -33,7 +33,7 @@ class ReviewCaseEntityRoundTripTest {
                 null, null, null, null,
                 false, null, null,
                 null, null, null,
-                null, null, null
+                null, null, null, null
         );
 
         repo.save(original);
@@ -62,7 +62,7 @@ class ReviewCaseEntityRoundTripTest {
                 null, null, null, null, null, null,
                 false, null, null,
                 null, null, null,
-                null, null, null
+                null, null, null, null
         );
 
         repo.save(minimal);
@@ -93,7 +93,7 @@ class ReviewCaseEntityRoundTripTest {
                 LocalDateTime.of(2025, 7, 1, 12, 0), null,
                 false, null, null,
                 null, null, null,
-                null, null, null
+                null, null, null, null
         );
 
         repo.save(cancelled);

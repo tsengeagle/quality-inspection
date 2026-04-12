@@ -50,7 +50,7 @@ class ReturnInitialReviewUseCaseTest {
                 DUE,
                 null, null, null, null,
                 false, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
         repository.save(rc);
         return rc;
     }

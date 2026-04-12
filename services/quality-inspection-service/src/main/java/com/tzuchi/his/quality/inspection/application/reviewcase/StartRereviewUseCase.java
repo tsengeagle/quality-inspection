@@ -41,6 +41,7 @@ public class StartRereviewUseCase {
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(
                 UUID.randomUUID().toString(), cmd.getCaseId(), actor.getUserId());
         submissionRepository.save(rereviewDraft);
+        reviewCase.setLatestRereviewSubmissionId(rereviewDraft.getSubmissionId());
         caseRepository.save(reviewCase);
         eventPublisher.publish(new RereviewStartedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),

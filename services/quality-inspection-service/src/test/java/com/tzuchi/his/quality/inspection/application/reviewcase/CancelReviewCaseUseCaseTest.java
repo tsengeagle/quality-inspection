@@ -93,7 +93,7 @@ class CancelReviewCaseUseCaseTest {
                 CaseStatus.CLOSED, null, null,
                 null, null, LocalDateTime.now(), LocalDateTime.now(),
                 false, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
         repository.save(rc);
 
         assertThrows(DomainStateConflictException.class,

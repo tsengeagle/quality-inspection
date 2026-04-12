@@ -45,6 +45,7 @@ public class ReviewCase {
     private ReviewerAssignment rereviewerAssignment;
     private LocalDateTime rereviewerDueAt;
     private BigDecimal initialReviewScore;
+    private String latestRereviewSubmissionId;
 
     protected ReviewCase() {
         // for persistence
@@ -83,7 +84,8 @@ public class ReviewCase {
             boolean rereviewRequired, BigDecimal finalScore, String finalConclusion,
             String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef,
             ReviewerAssignment rereviewerAssignment, LocalDateTime rereviewerDueAt,
-            BigDecimal initialReviewScore) {
+            BigDecimal initialReviewScore,
+            String latestRereviewSubmissionId) {
         ReviewCase rc = new ReviewCase();
         rc.caseId = caseId;
         rc.batchId = batchId;
@@ -107,6 +109,7 @@ public class ReviewCase {
         rc.rereviewerAssignment = rereviewerAssignment;
         rc.rereviewerDueAt = rereviewerDueAt;
         rc.initialReviewScore = initialReviewScore;
+        rc.latestRereviewSubmissionId = latestRereviewSubmissionId;
         return rc;
     }
 
@@ -345,4 +348,9 @@ public class ReviewCase {
     public ReviewerAssignment getRereviewerAssignment() { return rereviewerAssignment; }
     public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
     public BigDecimal getInitialReviewScore() { return initialReviewScore; }
+    public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
+
+    public void setLatestRereviewSubmissionId(String submissionId) {
+        this.latestRereviewSubmissionId = submissionId;
+    }
 }

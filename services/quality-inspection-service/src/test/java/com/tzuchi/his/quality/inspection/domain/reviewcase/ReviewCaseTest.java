@@ -210,7 +210,7 @@ class ReviewCaseTest {
                 CaseStatus.PENDING_INITIAL_REVIEW, assignment, DUE,
                 null, null, null, null,
                 false, null, null, null, null, null,
-                null, null, null);
+                null, null, null, null);
 
         assertEquals("c1", rc.getCaseId());
         assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, rc.getStatus());

@@ -115,6 +115,7 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort {
                 e.getMedicalRecordType(), e.getSourceCaseKey(),
                 e.getInitialReviewScore(), e.getFinalScore(), e.getFinalConclusion(),
                 null, e.getReviewerAssignedAt(), e.getDueAt(),
-                e.getClosedAt(), e.getCancelledAt(), submissions);
+                e.getClosedAt(), e.getCancelledAt(), submissions,
+                e.getLatestRereviewSubmissionId());
     }
 }
