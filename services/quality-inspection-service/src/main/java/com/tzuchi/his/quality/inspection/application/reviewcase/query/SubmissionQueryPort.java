@@ -8,4 +8,7 @@ import java.util.Optional;
  */
 public interface SubmissionQueryPort {
     Optional<SubmissionDetailView> findDetailById(String submissionId);
+
+    /** Returns true if a SUBMITTED rereview submission exists for the given case. */
+    boolean existsSubmittedRereview(String caseId);
 }

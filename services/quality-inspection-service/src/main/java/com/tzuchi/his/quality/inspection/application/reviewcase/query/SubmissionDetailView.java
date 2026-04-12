@@ -1,9 +1,12 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SubmissionDetailView {
 
     private final String submissionId;
@@ -18,12 +21,14 @@ public class SubmissionDetailView {
     private final BigDecimal totalScore;
     private final LocalDateTime createdAt;
     private final LocalDateTime submittedAt;
+    private final List<String> maskedFields;
 
     public SubmissionDetailView(String submissionId, String caseId, String stage,
                                  int revisionNo, String status, String reviewerId,
                                  List<AnswerDetail> answers, String comment,
                                  String attachmentRefsJson, BigDecimal totalScore,
-                                 LocalDateTime createdAt, LocalDateTime submittedAt) {
+                                 LocalDateTime createdAt, LocalDateTime submittedAt,
+                                 List<String> maskedFields) {
         this.submissionId = submissionId;
         this.caseId = caseId;
         this.stage = stage;
@@ -36,6 +41,7 @@ public class SubmissionDetailView {
         this.totalScore = totalScore;
         this.createdAt = createdAt;
         this.submittedAt = submittedAt;
+        this.maskedFields = maskedFields;
     }
 
     public String getSubmissionId() { return submissionId; }
@@ -50,4 +56,5 @@ public class SubmissionDetailView {
     public BigDecimal getTotalScore() { return totalScore; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public List<String> getMaskedFields() { return maskedFields; }
 }

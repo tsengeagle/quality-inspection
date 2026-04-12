@@ -4,6 +4,8 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.query.AnswerDeta
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionDetailView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionQueryPort;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
@@ -16,9 +18,11 @@ import java.util.stream.Collectors;
 public class SubmissionQueryAdapter implements SubmissionQueryPort {
 
     private final EntityManager em;
+    private final ReviewSubmissionJpaRepository submissionRepository;
 
-    public SubmissionQueryAdapter(EntityManager em) {
+    public SubmissionQueryAdapter(EntityManager em, ReviewSubmissionJpaRepository submissionRepository) {
         this.em = em;
+        this.submissionRepository = submissionRepository;
     }
 
     @Override
@@ -28,6 +32,12 @@ public class SubmissionQueryAdapter implements SubmissionQueryPort {
             return Optional.empty();
         }
         return Optional.of(toDetailView(entity));
+    }
+
+    @Override
+    public boolean existsSubmittedRereview(String caseId) {
+        return submissionRepository.existsByCaseIdAndStageAndStatus(
+                caseId, ReviewStage.REREVIEW, SubmissionStatus.SUBMITTED);
     }
 
     private SubmissionDetailView toDetailView(ReviewSubmissionEntity e) {
@@ -41,6 +51,6 @@ public class SubmissionQueryAdapter implements SubmissionQueryPort {
                 e.getSubmissionId(), e.getCaseId(), e.getStage().name(),
                 e.getRevisionNo(), e.getStatus().name(), e.getReviewerId(),
                 answers, e.getComment(), e.getAttachmentRefsJson(),
-                e.getTotalScore(), e.getCreatedAt(), e.getSubmittedAt());
+                e.getTotalScore(), e.getCreatedAt(), e.getSubmittedAt(), null);
     }
 }

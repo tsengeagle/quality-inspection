@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.infrastructure.persistence.submission;
 
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,4 +19,6 @@ public interface ReviewSubmissionJpaRepository extends JpaRepository<ReviewSubmi
             @Param("caseId") String caseId, @Param("stage") ReviewStage stage);
 
     List<ReviewSubmissionEntity> findByCaseId(String caseId);
+
+    boolean existsByCaseIdAndStageAndStatus(String caseId, ReviewStage stage, SubmissionStatus status);
 }
