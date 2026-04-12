@@ -294,7 +294,7 @@ class RereviewApiTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.submissionId").isString())
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"))
-                .andExpect(jsonPath("$.data.caseId").isString())
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
                 .andExpect(jsonPath("$.data.caseStatus").isString())
                 .andExpect(jsonPath("$.data.finalScore").isNumber());
 
@@ -315,7 +315,7 @@ class RereviewApiTest {
                 .andExpect(jsonPath("$.data.newSubmissionId").isString())
                 .andExpect(jsonPath("$.data.oldSubmissionId").isString())
                 .andExpect(jsonPath("$.data.stage").value("REREVIEW"))
-                .andExpect(jsonPath("$.data.caseId").isString());
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID));
 
         // Step 7: Get rereview revisions
         mockMvc.perform(get(BASE + "/" + CASE_ID + "/rereview-revisions")

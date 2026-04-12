@@ -300,7 +300,7 @@ class InitialReviewApiTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.submissionId").isString())
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"))
-                .andExpect(jsonPath("$.data.caseId").isString())
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
                 .andExpect(jsonPath("$.data.caseStatus").isString())
                 .andExpect(jsonPath("$.data.totalScore").isNumber());
     }

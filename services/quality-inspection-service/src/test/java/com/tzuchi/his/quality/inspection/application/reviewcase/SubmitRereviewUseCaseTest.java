@@ -123,6 +123,8 @@ class SubmitRereviewUseCaseTest {
         assertNotNull(result.getSubmissionId());
         assertEquals("SUBMITTED", result.getStatus());
         assertEquals(CASE_ID, result.getCaseId());
+        assertEquals("CLOSED", result.getCaseStatus());
+        assertEquals(0, new BigDecimal("53.75").compareTo(result.getFinalScore()));
 
         ReviewCase saved = caseRepo.findById(CASE_ID).orElseThrow();
         assertEquals(CaseStatus.CLOSED, saved.getStatus());
