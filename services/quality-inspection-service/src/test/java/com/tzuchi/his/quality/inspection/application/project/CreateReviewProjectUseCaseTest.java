@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.project;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.project.event.ReviewProjectCreatedEvent;
@@ -61,7 +61,7 @@ class CreateReviewProjectUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H001"));
 
-        assertThrows(UnauthorizedException.class,
+        assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(actor, "Test", null,
                         EnumSet.of(MedicalRecordType.OUTPATIENT)));
     }

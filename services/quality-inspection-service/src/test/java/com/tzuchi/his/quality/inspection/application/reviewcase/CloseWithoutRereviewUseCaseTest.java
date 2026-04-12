@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.CloseWithoutRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
@@ -70,6 +70,6 @@ class CloseWithoutRereviewUseCaseTest {
 
         ActorContext wrongActor = new ActorContext("reviewer-1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        assertThrows(UnauthorizedException.class, () -> useCase.execute(wrongActor, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(wrongActor, cmd));
     }
 }

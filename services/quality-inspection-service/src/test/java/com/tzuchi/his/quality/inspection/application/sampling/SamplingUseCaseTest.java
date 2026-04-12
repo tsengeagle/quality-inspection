@@ -281,7 +281,7 @@ class SamplingUseCaseTest {
         ActorContext reviewerActor = new ActorContext("u-rev", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
-        assertThrows(com.tzuchi.his.quality.inspection.application.common.UnauthorizedException.class,
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.RoleDeniedException.class,
                 () -> listUseCase.execute(reviewerActor,
                         new SamplingBatchQueryCriteria(null, null, null, 0, 20)));
     }

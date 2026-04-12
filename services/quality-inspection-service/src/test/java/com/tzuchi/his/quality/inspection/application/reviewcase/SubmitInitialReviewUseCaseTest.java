@@ -3,7 +3,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
@@ -144,7 +144,7 @@ class SubmitInitialReviewUseCaseTest {
         ActorContext manager = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of(HOSPITAL_ID));
 
-        assertThrows(UnauthorizedException.class,
+        assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(manager, CASE_ID));
     }
 

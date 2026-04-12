@@ -3,7 +3,7 @@ package com.tzuchi.his.quality.inspection.application.audit;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.Page;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,7 @@ class GetCaseLifecycleUseCaseTest {
     @Test
     void unknownRole_shouldThrowUnauthorized() {
         ActorContext actor = new ActorContext("u1", "Nobody", EnumSet.noneOf(DomainRole.class), Optional.empty());
-        assertThrows(UnauthorizedException.class, () -> useCase.execute(actor, "c1"));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, "c1"));
     }
 
     static class InMemoryAuditPort implements AuditTrailQueryPort {

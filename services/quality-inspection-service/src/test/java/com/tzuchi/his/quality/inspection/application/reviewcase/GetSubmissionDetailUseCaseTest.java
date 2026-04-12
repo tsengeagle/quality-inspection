@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionDetailView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionQueryPort;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
@@ -47,7 +47,7 @@ class GetSubmissionDetailUseCaseTest {
     @Test
     void unknownRole_shouldThrowUnauthorized() {
         ActorContext actor = new ActorContext("u1", "Nobody", EnumSet.noneOf(DomainRole.class), Optional.empty());
-        assertThrows(UnauthorizedException.class, () -> useCase.execute(actor, "sub1"));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, "sub1"));
     }
 
     static class InMemorySubmissionQueryPort implements SubmissionQueryPort {

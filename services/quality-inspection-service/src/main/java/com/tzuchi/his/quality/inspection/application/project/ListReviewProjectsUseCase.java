@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.project;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectQueryPort;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectSummary;
 import org.springframework.stereotype.Service;
@@ -28,6 +28,6 @@ public class ListReviewProjectsUseCase {
             String hospitalId = actor.requireHospitalId();
             return queryPort.findByHospitalId(hospitalId);
         }
-        throw new UnauthorizedException("Insufficient role to list review projects");
+        throw new RoleDeniedException("Insufficient role to list review projects");
     }
 }

@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.SubmitRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
@@ -164,6 +164,6 @@ class SubmitRereviewUseCaseTest {
 
         ActorContext reviewer = new ActorContext(REREVIEWER_ID, "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of(HOSPITAL_ID));
-        assertThrows(UnauthorizedException.class, () -> useCase.execute(reviewer, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, cmd));
     }
 }

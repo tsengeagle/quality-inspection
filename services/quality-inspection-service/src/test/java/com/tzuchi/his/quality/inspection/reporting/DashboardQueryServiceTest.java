@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.reporting;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
@@ -34,6 +34,6 @@ class DashboardQueryServiceTest {
         ActorContext actor = new ActorContext("r1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
         DashboardQueryCriteria criteria = new DashboardQueryCriteria(null, null, null, null);
 
-        assertThrows(UnauthorizedException.class, () -> service.getSummary(actor, criteria));
+        assertThrows(RoleDeniedException.class, () -> service.getSummary(actor, criteria));
     }
 }

@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.scoresheet;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetStatus;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +49,7 @@ class ListScoreSheetSummariesUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
-        assertThrows(UnauthorizedException.class, () -> useCase.execute(actor));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor));
     }
 
     private ScoreSheetQueryPort stubQueryPort(List<ScoreSheetSummary> byHospital,

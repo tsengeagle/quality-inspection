@@ -115,7 +115,7 @@ class SamplingControllerApiTest {
                         .header("api-key", TestTokenFactory.unknownRoleToken())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
+                .andExpect(jsonPath("$.error.code").value("ROLE_DENIED"));
     }
 
     @Test

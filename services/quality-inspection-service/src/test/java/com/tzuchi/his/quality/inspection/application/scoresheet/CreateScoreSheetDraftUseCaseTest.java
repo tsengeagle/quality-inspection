@@ -4,7 +4,7 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.HospitalIdResolver;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.event.ScoreSheetDraftCreatedEvent;
 import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryScoreSheetRepository;
@@ -57,7 +57,7 @@ class CreateScoreSheetDraftUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H001"));
 
-        assertThrows(UnauthorizedException.class, () -> useCase.execute(actor, "project1"));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, "project1"));
     }
 
     @Test

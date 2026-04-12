@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewSubmissionRepository;
@@ -68,7 +68,7 @@ class GetRevisionHistoryUseCaseTest {
         ActorContext noRole = new ActorContext("u1", "NoRole",
                 EnumSet.noneOf(DomainRole.class), Optional.of(HOSPITAL_ID));
 
-        assertThrows(UnauthorizedException.class,
+        assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(noRole, CASE_ID));
     }
 }

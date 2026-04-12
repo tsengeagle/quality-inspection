@@ -28,7 +28,7 @@ public class ActorContext {
 
     public void requireRole(DomainRole required) {
         if (!roles.contains(required)) {
-            throw new UnauthorizedException(
+            throw new RoleDeniedException(
                     "Actor '" + userId + "' does not have required role: " + required);
         }
     }
@@ -41,7 +41,7 @@ public class ActorContext {
         for (DomainRole r : required) {
             if (roles.contains(r)) return;
         }
-        throw new UnauthorizedException(
+        throw new RoleDeniedException(
                 "Actor '" + userId + "' does not have any of the required roles");
     }
 

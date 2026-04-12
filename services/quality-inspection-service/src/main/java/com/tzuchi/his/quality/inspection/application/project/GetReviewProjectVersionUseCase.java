@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.project;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectVersion;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -22,7 +22,7 @@ public class GetReviewProjectVersionUseCase {
 
     public ProjectVersion execute(ActorContext actor, String projectId) {
         if (!actor.hasRole(DomainRole.HOSPITAL_MANAGER) && !actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
-            throw new UnauthorizedException("Insufficient role to view project version");
+            throw new RoleDeniedException("Insufficient role to view project version");
         }
         ReviewProject project = repository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",

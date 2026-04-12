@@ -3,7 +3,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.Page;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryCriteria;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryPort;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
@@ -53,7 +53,7 @@ class ListReviewCasesUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Nobody", EnumSet.noneOf(DomainRole.class), Optional.empty());
         ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20);
 
-        assertThrows(UnauthorizedException.class, () -> useCase.execute(actor, criteria));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, criteria));
     }
 
     @Test

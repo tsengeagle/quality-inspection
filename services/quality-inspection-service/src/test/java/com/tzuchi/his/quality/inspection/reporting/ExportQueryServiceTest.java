@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.reporting;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +28,6 @@ class ExportQueryServiceTest {
         ActorContext actor = new ActorContext("r1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
         ExportCriteria criteria = new ExportCriteria("REVIEW_COMPLETION", null, null, null);
 
-        assertThrows(UnauthorizedException.class, () -> service.export(actor, criteria));
+        assertThrows(RoleDeniedException.class, () -> service.export(actor, criteria));
     }
 }

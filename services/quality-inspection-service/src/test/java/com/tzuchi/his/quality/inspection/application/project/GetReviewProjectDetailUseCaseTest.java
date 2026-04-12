@@ -3,7 +3,7 @@ package com.tzuchi.his.quality.inspection.application.project;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectQueryPort;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectSummary;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
@@ -72,7 +72,7 @@ class GetReviewProjectDetailUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Auditor",
                 EnumSet.of(DomainRole.AUDITOR), Optional.empty());
 
-        assertThrows(UnauthorizedException.class,
+        assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(actor, "p1"));
     }
 

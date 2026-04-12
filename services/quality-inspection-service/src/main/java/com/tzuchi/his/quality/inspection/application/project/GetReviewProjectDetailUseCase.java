@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.application.project;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectQueryPort;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectSummary;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
@@ -21,7 +21,7 @@ public class GetReviewProjectDetailUseCase {
 
     public ReviewProjectSummary execute(ActorContext actor, String projectId) {
         if (!actor.hasRole(DomainRole.HOSPITAL_MANAGER) && !actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
-            throw new UnauthorizedException("Insufficient role to view project detail");
+            throw new RoleDeniedException("Insufficient role to view project detail");
         }
         ReviewProjectSummary summary = queryPort.findSummaryById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",

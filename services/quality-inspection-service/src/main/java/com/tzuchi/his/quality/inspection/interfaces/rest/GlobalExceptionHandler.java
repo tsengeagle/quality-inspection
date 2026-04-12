@@ -1,7 +1,7 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
@@ -33,10 +33,10 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage()));
     }
 
-    @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
+    @ExceptionHandler(RoleDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handle(RoleDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("UNAUTHORIZED", ex.getMessage()));
+                .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

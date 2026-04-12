@@ -4,7 +4,7 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.HospitalIdResolver;
-import com.tzuchi.his.quality.inspection.application.common.UnauthorizedException;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.*;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.event.ScoreSheetDraftUpdatedEvent;
@@ -72,7 +72,7 @@ class UpdateScoreSheetDraftUseCaseTest {
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H001"));
         UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null, null, null, null);
 
-        assertThrows(UnauthorizedException.class,
+        assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(actor, "ss1", cmd));
     }
 
