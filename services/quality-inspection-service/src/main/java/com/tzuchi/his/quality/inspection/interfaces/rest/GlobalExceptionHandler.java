@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RoleDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handle(RoleDeniedException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleRoleDenied(RoleDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage()));
     }

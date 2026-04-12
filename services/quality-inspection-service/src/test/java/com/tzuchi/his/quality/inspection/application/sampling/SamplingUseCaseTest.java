@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.application.sampling;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -281,7 +282,7 @@ class SamplingUseCaseTest {
         ActorContext reviewerActor = new ActorContext("u-rev", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
-        assertThrows(com.tzuchi.his.quality.inspection.application.common.RoleDeniedException.class,
+        assertThrows(RoleDeniedException.class,
                 () -> listUseCase.execute(reviewerActor,
                         new SamplingBatchQueryCriteria(null, null, null, 0, 20)));
     }
