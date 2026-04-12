@@ -240,4 +240,15 @@ class SubmitInitialReviewUseCaseTest {
         // Should have 2 events: escalation + submission
         assertTrue(eventPublisher.events.size() >= 2);
     }
+
+    @Test
+    void execute_wrongHospital_shouldThrowAccessDenied() {
+        seedScoreSheet();
+        seedCaseInProgress();
+        seedDraftWithAnswers();
+
+        ActorContext wrongHospital = new ActorContext(REVIEWER_ID, "Test Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("OTHER_HOSPITAL"));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, CASE_ID));
+    }
 }

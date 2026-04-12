@@ -74,6 +74,8 @@ public class SubmitInitialReviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND",
                         "ReviewCase not found: " + caseId));
 
+        actor.requireHospitalScope(reviewCase.getHospitalId());
+
         if (reviewCase.getStatus() != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
             throw new DomainStateConflictException(
                     "CASE_NOT_IN_PROGRESS",

@@ -185,4 +185,13 @@ class StartInitialReviewUseCaseTest {
         assertThrows(DomainRuleViolationException.class,
                 () -> useCase.execute(reviewer(), CASE_ID));
     }
+
+    @Test
+    void execute_wrongHospital_shouldThrowAccessDenied() {
+        seedAssignedCase();
+        seedProjectWithScoreSheet();
+        ActorContext wrongHospital = new ActorContext(REVIEWER_ID, "Test Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("OTHER_HOSPITAL"));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, CASE_ID));
+    }
 }

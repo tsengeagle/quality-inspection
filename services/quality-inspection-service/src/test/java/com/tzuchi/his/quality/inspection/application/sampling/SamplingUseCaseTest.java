@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
@@ -151,7 +152,7 @@ class SamplingUseCaseTest {
 
     @Test
     void execute_inactiveProject_shouldThrow() {
-        ReviewProject project = ReviewProject.create("p1", "H1", "Test",
+        ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         projectRepo.save(project);
 
@@ -312,10 +313,19 @@ class SamplingUseCaseTest {
         assertEquals("b1", result.getDetail().getBatchId());
     }
 
+    @Test
+    void execute_wrongHospital_shouldThrowAccessDenied() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+        ActorContext wrongHospital = new ActorContext("u-test", "Test",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
+        assertThrows(AccessDeniedException.class, () -> executeUseCase.execute(wrongHospital, "p1"));
+    }
+
     // --- Helpers ---
 
     private ReviewProject createActiveProject(String projectId) {
-        ReviewProject project = ReviewProject.create(projectId, "H1", "Test Project",
+        ReviewProject project = ReviewProject.create(projectId, "H001", "Test Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT));
         project.publishNewVersion();
         project.bindScoreSheet("ss-test");

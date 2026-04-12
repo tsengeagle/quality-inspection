@@ -55,6 +55,8 @@ public class StartInitialReviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND",
                         "ReviewCase not found: " + caseId));
 
+        actor.requireHospitalScope(reviewCase.getHospitalId());
+
         // Identity guard: only the assigned reviewer can start
         // If no assignment exists, let domain state check handle it
         if (reviewCase.getReviewerAssignment() != null &&

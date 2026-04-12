@@ -50,6 +50,8 @@ public class ExecuteSamplingUseCase {
         ReviewProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
+        actor.requireHospitalScope(project.getHospitalId());
+
         if (project.getStatus() != ProjectStatus.ACTIVE) {
             throw new DomainRuleViolationException("PROJECT_NOT_ACTIVE",
                     "Project must be ACTIVE for sampling execution. Current status: " + project.getStatus());

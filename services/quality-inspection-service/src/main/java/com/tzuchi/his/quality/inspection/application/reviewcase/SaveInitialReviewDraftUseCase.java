@@ -6,6 +6,8 @@ import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
@@ -30,15 +32,18 @@ public class SaveInitialReviewDraftUseCase {
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
+    private final ReviewCaseRepository caseRepository;
 
     public SaveInitialReviewDraftUseCase(ReviewSubmissionRepository submissionRepository,
                                           ScoreSheetRepository scoreSheetRepository,
                                           DomainEventPublisher eventPublisher,
-                                          ScoreCalculationService scoreCalculationService) {
+                                          ScoreCalculationService scoreCalculationService,
+                                          ReviewCaseRepository caseRepository) {
         this.submissionRepository = submissionRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
+        this.caseRepository = caseRepository;
     }
 
     /**
@@ -47,6 +52,11 @@ public class SaveInitialReviewDraftUseCase {
     public SaveDraftResult execute(ActorContext actor, String caseId,
                                List<AnswerInput> answers, String comment) {
         actor.requireRole(DomainRole.REVIEWER);
+
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND",
+                        "ReviewCase not found: " + caseId));
+        actor.requireHospitalScope(reviewCase.getHospitalId());
 
         ReviewSubmission submission = submissionRepository
                 .findLatestByCaseIdAndStage(caseId, ReviewStage.INITIAL)

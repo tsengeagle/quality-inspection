@@ -28,6 +28,7 @@ public class SendToRereviewUseCase {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+        actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.sendToRereview();
         caseRepository.save(reviewCase);
         eventPublisher.publish(new CaseEscalatedToRereviewEvent(

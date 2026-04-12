@@ -28,6 +28,7 @@ public class CloseWithoutRereviewUseCase {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+        actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.closeWithoutRereview();
         caseRepository.save(reviewCase);
         eventPublisher.publish(new CaseClosedWithoutRereviewEvent(

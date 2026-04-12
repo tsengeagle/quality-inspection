@@ -7,6 +7,8 @@ import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
+import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
@@ -28,6 +30,7 @@ class SaveInitialReviewDraftUseCaseTest {
 
     private InMemoryReviewSubmissionRepository submissionRepo;
     private InMemoryScoreSheetRepository scoreSheetRepo;
+    private InMemoryReviewCaseRepository caseRepo;
     private CapturingDomainEventPublisher eventPublisher;
     private SaveInitialReviewDraftUseCase useCase;
 
@@ -41,10 +44,11 @@ class SaveInitialReviewDraftUseCaseTest {
     void setUp() {
         submissionRepo = new InMemoryReviewSubmissionRepository();
         scoreSheetRepo = new InMemoryScoreSheetRepository();
+        caseRepo = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new SaveInitialReviewDraftUseCase(
-                submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService);
+                submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, caseRepo);
     }
 
     private ActorContext reviewer() {
@@ -72,9 +76,19 @@ class SaveInitialReviewDraftUseCaseTest {
         return sub;
     }
 
+    private ReviewCase seedReviewCase() {
+        ReviewCase rc = ReviewCase.createFromSampling(
+                CASE_ID, "b1", "p1", HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
+        rc.assignReviewer(REVIEWER_ID, java.time.LocalDateTime.now());
+        rc.startInitialReview(SUBMISSION_ID, SCORE_SHEET_ID);
+        caseRepo.save(rc);
+        return rc;
+    }
+
     @Test
     void execute_happyPath_shouldUpdateDraftAndReturnScore() {
         seedPublishedScoreSheet();
+        seedReviewCase();
         seedDraftSubmission();
 
         List<AnswerInput> answers = Arrays.asList(
@@ -104,6 +118,7 @@ class SaveInitialReviewDraftUseCaseTest {
     @Test
     void execute_shouldPublishEvent() {
         seedPublishedScoreSheet();
+        seedReviewCase();
         seedDraftSubmission();
 
         List<AnswerInput> answers = Collections.singletonList(new AnswerInput("Q001", "true"));
@@ -126,6 +141,7 @@ class SaveInitialReviewDraftUseCaseTest {
     @Test
     void execute_notOwningReviewer_shouldThrow() {
         seedPublishedScoreSheet();
+        seedReviewCase();
         seedDraftSubmission();
 
         ActorContext other = new ActorContext("other-reviewer", "Other",
@@ -146,6 +162,7 @@ class SaveInitialReviewDraftUseCaseTest {
     @Test
     void execute_submissionNotDraft_shouldThrow() {
         seedPublishedScoreSheet();
+        seedReviewCase();
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
                 SUBMISSION_ID, CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
         sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null);
@@ -160,6 +177,7 @@ class SaveInitialReviewDraftUseCaseTest {
     @Test
     void execute_emptyAnswers_shouldReturnZeroScore() {
         seedPublishedScoreSheet();
+        seedReviewCase();
         seedDraftSubmission();
 
         SaveDraftResult result = useCase.execute(reviewer(), CASE_ID, Collections.emptyList(), null);
@@ -172,6 +190,7 @@ class SaveInitialReviewDraftUseCaseTest {
     @Test
     void execute_answersWithNullElement_shouldIgnoreNull() {
         seedPublishedScoreSheet();
+        seedReviewCase();
         seedDraftSubmission();
 
         List<AnswerInput> answers = new ArrayList<>();
@@ -181,5 +200,17 @@ class SaveInitialReviewDraftUseCaseTest {
         SaveDraftResult result = useCase.execute(reviewer(), CASE_ID, answers, null);
 
         assertEquals(new BigDecimal("10.0"), result.getTotalScore());
+    }
+
+    @Test
+    void execute_wrongHospital_shouldThrowAccessDenied() {
+        seedPublishedScoreSheet();
+        seedReviewCase();
+        seedDraftSubmission();
+
+        ActorContext wrongHospital = new ActorContext(REVIEWER_ID, "Test Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("OTHER_HOSPITAL"));
+        assertThrows(AccessDeniedException.class,
+                () -> useCase.execute(wrongHospital, CASE_ID, Collections.emptyList(), null));
     }
 }
