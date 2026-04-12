@@ -270,7 +270,7 @@ class RereviewApiTest {
                 "{\"itemId\":\"Q001\",\"answerValue\":\"true\"}," +
                 "{\"itemId\":\"Q002\",\"answerValue\":\"18\"}" +
                 "],\"totalScore\":19.0,\"comment\":\"draft comment\"}";
-        mockMvc.perform(put(BASE + "/" + CASE_ID + "/rereview-draft")
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/draft")
                         .header("api-key", rereviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(draftBody))
@@ -283,7 +283,7 @@ class RereviewApiTest {
                 "{\"itemId\":\"Q001\",\"answerValue\":\"true\"}," +
                 "{\"itemId\":\"Q002\",\"answerValue\":\"18\"}" +
                 "],\"comment\":\"submit comment\"}";
-        mockMvc.perform(post(BASE + "/" + CASE_ID + "/submit-rereview")
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submit")
                         .header("api-key", rereviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(submitBody))
@@ -294,12 +294,11 @@ class RereviewApiTest {
         String submittedSubmissionId = submissionId;
 
         // Step 6: Revise rereview (refer to the submitted submission)
-        String reviseBody = "{\"submissionId\":\"" + submittedSubmissionId + 
-                "\",\"answers\":[" +
+        String reviseBody = "{\"answers\":[" +
                 "{\"itemId\":\"Q001\",\"answerValue\":\"true\"}," +
                 "{\"itemId\":\"Q002\",\"answerValue\":\"20\"}" +
                 "],\"comment\":\"revised comment\"}";
-        mockMvc.perform(post(BASE + "/" + CASE_ID + "/revise-rereview")
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submissions/" + submittedSubmissionId + "/revise")
                         .header("api-key", rereviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(reviseBody))

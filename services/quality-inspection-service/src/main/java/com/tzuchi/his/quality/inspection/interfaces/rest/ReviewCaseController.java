@@ -169,7 +169,7 @@ public class ReviewCaseController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    @PostMapping("/{caseId}/return")
+    @PostMapping("/{caseId}/initial-review/return")
     public ResponseEntity<ApiResponse<Void>> returnCase(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
@@ -188,7 +188,7 @@ public class ReviewCaseController {
 
     // --- B3b endpoints ---
 
-    @PostMapping("/{caseId}/start-initial-review")
+    @PostMapping("/{caseId}/initial-review/start")
     public ResponseEntity<ApiResponse<StartInitialReviewResponse>> startInitialReview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
@@ -198,7 +198,7 @@ public class ReviewCaseController {
                 .body(ApiResponse.ok(new StartInitialReviewResponse(submissionId)));
     }
 
-    @PostMapping("/{caseId}/initial-review/save-draft")
+    @PostMapping("/{caseId}/initial-review/draft")
     public ResponseEntity<ApiResponse<SaveDraftResponse>> saveInitialReviewDraft(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
@@ -222,7 +222,7 @@ public class ReviewCaseController {
 
     // --- B3c endpoints ---
 
-    @PostMapping("/{caseId}/submissions/{submissionId}/revise")
+    @PostMapping("/{caseId}/initial-review/submissions/{submissionId}/revise")
     public ResponseEntity<ApiResponse<RevisionResultResponse>> reviseInitialReview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
@@ -313,7 +313,7 @@ public class ReviewCaseController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    @PutMapping("/{caseId}/rereview-draft")
+    @PostMapping("/{caseId}/rereview/draft")
     public ResponseEntity<ApiResponse<Void>> saveRereviewDraft(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
@@ -333,7 +333,7 @@ public class ReviewCaseController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    @PostMapping("/{caseId}/submit-rereview")
+    @PostMapping("/{caseId}/rereview/submit")
     public ResponseEntity<ApiResponse<Void>> submitRereview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
@@ -352,14 +352,15 @@ public class ReviewCaseController {
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
-    @PostMapping("/{caseId}/revise-rereview")
+    @PostMapping("/{caseId}/rereview/submissions/{submissionId}/revise")
     public ResponseEntity<ApiResponse<Void>> reviseRereview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
+            @PathVariable String submissionId,
             @RequestBody @Valid ReviseRereviewRequest request) {
         ReviseRereviewCommand cmd = new ReviseRereviewCommand();
         cmd.setCaseId(caseId);
-        cmd.setSubmissionId(request.getSubmissionId());
+        cmd.setSubmissionId(submissionId);
         if (request.getAnswers() != null) {
             cmd.setAnswers(request.getAnswers().stream()
                     .filter(Objects::nonNull)

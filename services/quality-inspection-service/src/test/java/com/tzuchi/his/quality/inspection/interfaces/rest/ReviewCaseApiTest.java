@@ -217,7 +217,7 @@ class ReviewCaseApiTest {
         ReturnReviewCaseRequest req = new ReturnReviewCaseRequest();
         req.setReason("needs correction");
 
-        mockMvc.perform(post(BASE + "/c1/return")
+        mockMvc.perform(post(BASE + "/c1/initial-review/return")
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -231,7 +231,7 @@ class ReviewCaseApiTest {
         ReturnReviewCaseRequest req = new ReturnReviewCaseRequest();
         req.setReason("nope");
 
-        mockMvc.perform(post(BASE + "/c1/return")
+        mockMvc.perform(post(BASE + "/c1/initial-review/return")
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))

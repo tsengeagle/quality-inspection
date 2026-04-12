@@ -165,7 +165,7 @@ class RevisionApiTest {
         ));
         body.put("comment", "revised answer");
 
-        mockMvc.perform(post(BASE + "/c1/submissions/sub-1/revise")
+        mockMvc.perform(post(BASE + "/c1/initial-review/submissions/sub-1/revise")
                         .header("api-key", reviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -190,7 +190,7 @@ class RevisionApiTest {
                 "comment", "test"
         );
 
-        mockMvc.perform(post(BASE + "/c1/submissions/sub-1/revise")
+        mockMvc.perform(post(BASE + "/c1/initial-review/submissions/sub-1/revise")
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -213,7 +213,7 @@ class RevisionApiTest {
                 "comment", "should fail"
         );
 
-        mockMvc.perform(post(BASE + "/c1/submissions/sub-1/revise")
+        mockMvc.perform(post(BASE + "/c1/initial-review/submissions/sub-1/revise")
                         .header("api-key", reviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
@@ -270,7 +270,7 @@ class RevisionApiTest {
         ));
         reviseBody.put("comment", "revised");
 
-        mockMvc.perform(post(BASE + "/c1/submissions/sub-1/revise")
+        mockMvc.perform(post(BASE + "/c1/initial-review/submissions/sub-1/revise")
                         .header("api-key", reviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reviseBody)))

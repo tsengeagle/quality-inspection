@@ -196,7 +196,7 @@ class InitialReviewApiTest {
     @Test
     void startInitialReview_shouldReturn201WithSubmissionId() throws Exception {
         seedAssignedCase();
-        mockMvc.perform(post(BASE + "/c1/start-initial-review")
+        mockMvc.perform(post(BASE + "/c1/initial-review/start")
                         .header("api-key", reviewerToken))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
@@ -206,7 +206,7 @@ class InitialReviewApiTest {
     @Test
     void startInitialReview_wrongRole_shouldReturn403() throws Exception {
         seedAssignedCase();
-        mockMvc.perform(post(BASE + "/c1/start-initial-review")
+        mockMvc.perform(post(BASE + "/c1/initial-review/start")
                         .header("api-key", hmToken))
                 .andExpect(status().isForbidden());
     }
@@ -215,14 +215,14 @@ class InitialReviewApiTest {
     void startInitialReview_notAssignedReviewer_shouldReturn403() throws Exception {
         seedAssignedCase();
         String otherToken = TestTokenFactory.reviewerToken("other-reviewer", HOSPITAL_ID);
-        mockMvc.perform(post(BASE + "/c1/start-initial-review")
+        mockMvc.perform(post(BASE + "/c1/initial-review/start")
                         .header("api-key", otherToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void startInitialReview_caseNotFound_shouldReturn404() throws Exception {
-        mockMvc.perform(post(BASE + "/nonexistent/start-initial-review")
+        mockMvc.perform(post(BASE + "/nonexistent/initial-review/start")
                         .header("api-key", reviewerToken))
                 .andExpect(status().isNotFound());
     }
@@ -230,7 +230,7 @@ class InitialReviewApiTest {
     @Test
     void startInitialReview_wrongState_shouldReturn409() throws Exception {
         seedInProgressCaseWithSubmission();
-        mockMvc.perform(post(BASE + "/c1/start-initial-review")
+        mockMvc.perform(post(BASE + "/c1/initial-review/start")
                         .header("api-key", reviewerToken))
                 .andExpect(status().isConflict());
     }
@@ -244,7 +244,7 @@ class InitialReviewApiTest {
                 "{\"itemId\":\"Q001\",\"answerValue\":\"true\"}," +
                 "{\"itemId\":\"Q002\",\"answerValue\":\"15\"}" +
                 "],\"comment\":\"my draft comment\"}";
-        mockMvc.perform(post(BASE + "/c1/initial-review/save-draft")
+        mockMvc.perform(post(BASE + "/c1/initial-review/draft")
                         .header("api-key", reviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -257,7 +257,7 @@ class InitialReviewApiTest {
     void saveDraft_wrongRole_shouldReturn403() throws Exception {
         seedInProgressCaseWithSubmission();
         String body = "{\"answers\":[{\"itemId\":\"Q001\",\"answerValue\":\"true\"}]}";
-        mockMvc.perform(post(BASE + "/c1/initial-review/save-draft")
+        mockMvc.perform(post(BASE + "/c1/initial-review/draft")
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
@@ -267,7 +267,7 @@ class InitialReviewApiTest {
     @Test
     void saveDraft_missingAnswers_shouldReturn400() throws Exception {
         seedInProgressCaseWithSubmission();
-        mockMvc.perform(post(BASE + "/c1/initial-review/save-draft")
+        mockMvc.perform(post(BASE + "/c1/initial-review/draft")
                         .header("api-key", reviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -279,7 +279,7 @@ class InitialReviewApiTest {
         seedInProgressCaseWithSubmission();
         String otherToken = TestTokenFactory.reviewerToken("other-reviewer", HOSPITAL_ID);
         String body = "{\"answers\":[{\"itemId\":\"Q001\",\"answerValue\":\"true\"}]}";
-        mockMvc.perform(post(BASE + "/c1/initial-review/save-draft")
+        mockMvc.perform(post(BASE + "/c1/initial-review/draft")
                         .header("api-key", otherToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
