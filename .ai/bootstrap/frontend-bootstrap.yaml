@@ -192,6 +192,11 @@ working_conventions:
 ai_governance:
   pilot_scope: frontend-bootstrap
   use_shared_rules: true
+  active_governance_layer: .ai/governance/
+  governance_routing_note: >
+    Daily frontend MFE work should follow the governance chain starting from
+    .ai/governance/repo-governance-instruction.md → frontend-ui.instructions.md → deeper authorities.
+    This bootstrap file provides initialization context only and is not the daily operational authority.
   workflows:
     - init
     - continue
@@ -231,10 +236,9 @@ assumptions_and_pending_confirmation:
   - id: FB-004
     category: test_tooling
     item: component/integration/e2e test tooling
-    status: partial
-    basis: user confirmed default test baseline
-    current_value: Karma + Jasmine (default baseline)
-    action_required: 待工程骨架建立後確認 e2e tooling (Playwright / Protractor / Cypress)
+    status: confirmed
+    basis: user confirmed; Playwright confirmed as e2e baseline (see PC-028)
+    current_value: Karma + Jasmine (unit), Playwright (e2e)
 
   - id: FB-005
     category: gate_inventory

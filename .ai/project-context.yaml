@@ -222,6 +222,13 @@ architecture:
       version: "0.0.16"
       role: shared UI library baseline and wrapper/style priority reference
       status: confirmed
+    frontend_mfe_governance:
+      active: true
+      entrypoint: .ai/governance/repo-governance-instruction.md
+      note: >
+        For MFE implementation rules (page composition, shell communication, CSS, tabs, etc.),
+        follow the governance chain starting from .ai/governance/repo-governance-instruction.md.
+        docs/05-ui/* remains solution UI page spec authority and is not the MFE governance layer.
     note: >
       UI authority 已存在。frontend 必須參考組織內既有 UI 風格。
       portal51-lib@0.0.16 已確認為 shared UI library baseline 與 wrapper/style 優先參考來源。
@@ -303,6 +310,16 @@ quality_and_governance:
   operating_guide_role: repo_operating_guide
   hard_rules_canonical_source: .ai/rules/repo-hard-rules.md
   hard_rules_role: repository_wide_hard_rules
+  frontend_governance:
+    status: active
+    governance_root: .ai/governance/
+    entrypoint: .ai/governance/repo-governance-instruction.md
+    role: frontend_mfe_execution_governance
+    note: >
+      Frontend MFE governance package (R1 active) provides daily operational rules
+      for frontend implementation. Bootstrap (.ai/bootstrap/frontend-bootstrap.yaml)
+      provides initialization context only. docs/05-ui/* remains solution UI page spec authority.
+      docs/design/* remains broader design baseline reference.
   per_agent_instructions:
     claude_code: CLAUDE.md
     github_copilot: .github/copilot-instructions.md

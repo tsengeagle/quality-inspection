@@ -84,7 +84,9 @@
 quality-inspection/          ← repo root
 ├─ .ai/
 │  ├─ bootstrap/
-│  └─ prompts/
+│  ├─ governance/
+│  ├─ prompts/
+│  └─ rules/
 ├─ AGENTS.md
 ├─ docs/
 │  ├─ 01-requirements/
@@ -93,6 +95,7 @@ quality-inspection/          ← repo root
 │  ├─ 04-testing/
 │  ├─ 05-ui/
 │  ├─ 99-archive/
+│  ├─ design/
 │  └─ README.md
 ├─ services/
 │  └─ quality-inspection-service/
@@ -131,6 +134,20 @@ UI 資訊架構與頁面規格區。
 
 歷史稿與被取代但需保留的設計筆記。
 此區不是現行 authority，除非現行文件明確引用。
+
+#### `docs/design`
+
+Broader frontend design baseline references。
+放組織層級的前端設計規範（`DESIGN.v2.1` 家族）。
+此區不是 repo governance layer，不是 solution UI page spec。
+由 `.ai/governance/authority-sources.md` 引用作為 broader baseline reference。
+
+#### `.ai/governance`
+
+Frontend MFE 治理層。
+放前端微前端實作的治理規則、設計語言、決策記錄與 authority index。
+日常 frontend MFE 任務應從此層進入，而非直接依賴 bootstrap 推論實作規則。
+入口為 `.ai/governance/repo-governance-instruction.md`。
 
 ---
 
@@ -329,6 +346,17 @@ revision 歷程頁規格。
 4. `docs/05-ui/ui-information-architecture.md`
 5. `docs/05-ui/ui-page-inventory.md`
 6. 對應頁面的 `ui-page-spec-*.md`
+
+### 5.6 Frontend MFE 實作相關修改
+
+1. `docs/01-requirements/decision-log.md`
+2. `.ai/governance/repo-governance-instruction.md`（governance entrypoint）
+3. `.ai/governance/frontend-ui.instructions.md`（operational entrypoint）
+4. 依任務類型讀取 deeper governance files（見 `frontend-ui.instructions.md` §4 Task Classification）
+5. `docs/02-ddd/permission-matrix.md`
+6. `docs/02-ddd/state-machine.md`
+7. `docs/03-contracts/api-spec.md`
+8. 對應頁面的 `docs/05-ui/ui-page-spec-*.md`
 
 ---
 
@@ -689,6 +717,7 @@ assumptions:
 * UI guidance: must align with organization existing UI style（已確認）
 * `.ai/rules/repo-hard-rules.md` — canonical hard rules source 已存在
 * `.ai/bootstrap/*` — solution / backend / frontend bootstrap 均已存在
+* `.ai/governance/*` — frontend MFE governance package 已存在（R1 active）
 * `.ai/prompts/*` — solution / backend / frontend init prompt 均已存在
 * `.ai/project-context.yaml` — solution-level authoritative project context 已存在
 * `AGENTS.md` — repo operating guide 已存在
