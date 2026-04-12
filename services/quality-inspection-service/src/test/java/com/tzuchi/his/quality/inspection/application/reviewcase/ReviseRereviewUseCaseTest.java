@@ -143,6 +143,7 @@ class ReviseRereviewUseCaseTest {
         ReviewCase savedCase = caseRepo.findById(CASE_ID).orElseThrow();
         assertEquals(CaseStatus.CLOSED, savedCase.getStatus()); // Status remains CLOSED (D-021)
         assertEquals(0, new BigDecimal("55.0").compareTo(savedCase.getFinalScore()));
+        assertEquals(result.getNewSubmissionId(), savedCase.getLatestRereviewSubmissionId());
 
         // Verify event published
         assertTrue(eventPublisher.events.stream()

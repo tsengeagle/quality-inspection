@@ -75,6 +75,7 @@ class StartRereviewUseCaseTest {
                 .findFirst().orElseThrow();
         assertEquals(SubmissionStatus.DRAFT, rereviewDraft.getStatus());
         assertEquals("rereviewer-1", rereviewDraft.getReviewerId());
+        assertEquals(rereviewDraft.getSubmissionId(), saved.getLatestRereviewSubmissionId());
         assertEquals(1, eventPublisher.events.size());
     }
 
