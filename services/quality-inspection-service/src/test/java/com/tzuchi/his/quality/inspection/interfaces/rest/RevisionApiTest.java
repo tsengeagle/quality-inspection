@@ -172,8 +172,11 @@ class RevisionApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.newSubmissionId").isString())
+                .andExpect(jsonPath("$.data.oldSubmissionId").isString())
                 .andExpect(jsonPath("$.data.revisionNo").value(2))
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"))
+                .andExpect(jsonPath("$.data.stage").value("INITIAL"))
+                .andExpect(jsonPath("$.data.caseId").isString())
                 .andExpect(jsonPath("$.data.totalScore").isNumber());
 
         // Verify old submission is SUPERSEDED in DB

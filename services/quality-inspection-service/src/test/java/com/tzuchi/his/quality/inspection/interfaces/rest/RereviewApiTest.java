@@ -275,7 +275,10 @@ class RereviewApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(draftBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.submissionId").isString())
+                .andExpect(jsonPath("$.data.status").value("DRAFT"))
+                .andExpect(jsonPath("$.data.stage").value("REREVIEW"));
 
         // Step 5: Submit rereview (with real calculated answers)
         String submitBody = "{\"submissionId\":\"" + submissionId + 
@@ -288,7 +291,12 @@ class RereviewApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(submitBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.submissionId").isString())
+                .andExpect(jsonPath("$.data.status").value("SUBMITTED"))
+                .andExpect(jsonPath("$.data.caseId").isString())
+                .andExpect(jsonPath("$.data.caseStatus").isString())
+                .andExpect(jsonPath("$.data.finalScore").isNumber());
 
         // Refresh submissionId (now points to the submitted revision)
         String submittedSubmissionId = submissionId;
@@ -303,7 +311,11 @@ class RereviewApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(reviseBody))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.newSubmissionId").isString())
+                .andExpect(jsonPath("$.data.oldSubmissionId").isString())
+                .andExpect(jsonPath("$.data.stage").value("REREVIEW"))
+                .andExpect(jsonPath("$.data.caseId").isString());
 
         // Step 7: Get rereview revisions
         mockMvc.perform(get(BASE + "/" + CASE_ID + "/rereview-revisions")

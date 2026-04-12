@@ -113,8 +113,11 @@ class ReviseInitialReviewUseCaseTest {
                 reviewer(), CASE_ID, SUBMISSION_ID, revisedAnswers(), "revised comment");
 
         assertNotNull(result.getNewSubmissionId());
+        assertEquals(SUBMISSION_ID, result.getOldSubmissionId());
         assertEquals(2, result.getRevisionNo());
         assertEquals("SUBMITTED", result.getStatus());
+        assertEquals("INITIAL", result.getStage());
+        assertEquals(CASE_ID, result.getCaseId());
 
         // Old submission is SUPERSEDED
         ReviewSubmission oldSub = submissionRepo.store.get(SUBMISSION_ID);

@@ -207,17 +207,22 @@ public class ReviewCaseController {
                 .filter(Objects::nonNull)
                 .map(dto -> new AnswerInput(dto.getItemId(), dto.getAnswerValue()))
                 .collect(Collectors.toList());
-        BigDecimal totalScore = saveInitialReviewDraftUseCase.execute(
+        SaveDraftResult result = saveInitialReviewDraftUseCase.execute(
                 actor, caseId, answers, request.getComment());
-        return ResponseEntity.ok(ApiResponse.ok(new SaveDraftResponse(totalScore)));
+        return ResponseEntity.ok(ApiResponse.ok(new SaveDraftResponse(
+                result.getSubmissionId(), result.getStatus(),
+                result.getStage(), result.getTotalScore())));
     }
 
     @PostMapping("/{caseId}/initial-review/submit")
-    public ResponseEntity<ApiResponse<Void>> submitInitialReview(
+    public ResponseEntity<ApiResponse<SubmitInitialReviewResponse>> submitInitialReview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
-        submitInitialReviewUseCase.execute(actor, caseId);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        SubmitInitialReviewResult result = submitInitialReviewUseCase.execute(actor, caseId);
+        return ResponseEntity.ok(ApiResponse.ok(new SubmitInitialReviewResponse(
+                result.getSubmissionId(), result.getStatus(),
+                result.getCaseId(), result.getCaseStatus(),
+                result.getTotalScore(), result.isRereviewRequired())));
     }
 
     // --- B3c endpoints ---
@@ -236,8 +241,9 @@ public class ReviewCaseController {
         RevisionResult result = reviseInitialReviewUseCase.execute(
                 actor, caseId, submissionId, answers, request.getComment());
         return ResponseEntity.ok(ApiResponse.ok(new RevisionResultResponse(
-                result.getNewSubmissionId(), result.getRevisionNo(),
-                result.getTotalScore(), result.getStatus())));
+                result.getNewSubmissionId(), result.getOldSubmissionId(),
+                result.getRevisionNo(), result.getTotalScore(),
+                result.getStatus(), result.getStage(), result.getCaseId())));
     }
 
     @GetMapping("/{caseId}/revision-history")
@@ -314,7 +320,7 @@ public class ReviewCaseController {
     }
 
     @PostMapping("/{caseId}/rereview/draft")
-    public ResponseEntity<ApiResponse<Void>> saveRereviewDraft(
+    public ResponseEntity<ApiResponse<SaveDraftResponse>> saveRereviewDraft(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @RequestBody @Valid SaveRereviewDraftRequest request) {
@@ -329,12 +335,14 @@ public class ReviewCaseController {
         }
         cmd.setTotalScore(request.getTotalScore());
         cmd.setComment(request.getComment());
-        saveRereviewDraftUseCase.execute(actor, cmd);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        SaveDraftResult result = saveRereviewDraftUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(new SaveDraftResponse(
+                result.getSubmissionId(), result.getStatus(),
+                result.getStage(), result.getTotalScore())));
     }
 
     @PostMapping("/{caseId}/rereview/submit")
-    public ResponseEntity<ApiResponse<Void>> submitRereview(
+    public ResponseEntity<ApiResponse<SubmitRereviewResponse>> submitRereview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @RequestBody @Valid SubmitRereviewRequest request) {
@@ -348,12 +356,15 @@ public class ReviewCaseController {
                     .collect(Collectors.toList()));
         }
         cmd.setComment(request.getComment());
-        submitRereviewUseCase.execute(actor, cmd);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        SubmitRereviewResult result = submitRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(new SubmitRereviewResponse(
+                result.getSubmissionId(), result.getStatus(),
+                result.getCaseId(), result.getCaseStatus(),
+                result.getFinalScore())));
     }
 
     @PostMapping("/{caseId}/rereview/submissions/{submissionId}/revise")
-    public ResponseEntity<ApiResponse<Void>> reviseRereview(
+    public ResponseEntity<ApiResponse<RevisionResultResponse>> reviseRereview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @PathVariable String submissionId,
@@ -368,8 +379,11 @@ public class ReviewCaseController {
                     .collect(Collectors.toList()));
         }
         cmd.setComment(request.getComment());
-        reviseRereviewUseCase.execute(actor, cmd);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        RevisionResult result = reviseRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(new RevisionResultResponse(
+                result.getNewSubmissionId(), result.getOldSubmissionId(),
+                result.getRevisionNo(), result.getTotalScore(),
+                result.getStatus(), result.getStage(), result.getCaseId())));
     }
 
     @GetMapping("/{caseId}/rereview-revisions")

@@ -63,7 +63,11 @@ class SaveRereviewDraftUseCaseTest {
         cmd.setTotalScore(BigDecimal.ZERO);
         cmd.setComment("draft comment");
 
-        useCase.execute(rereviewerActor(), cmd);
+        SaveDraftResult result = useCase.execute(rereviewerActor(), cmd);
+
+        assertNotNull(result.getSubmissionId());
+        assertEquals("DRAFT", result.getStatus());
+        assertEquals("REREVIEW", result.getStage());
 
         ReviewSubmission saved = submissionRepository.findById("sub-r1").orElseThrow();
         assertEquals(SubmissionStatus.DRAFT, saved.getStatus());

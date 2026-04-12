@@ -14,6 +14,8 @@ public class SaveInitialReviewDraftRequest {
 
     private String comment;
 
+    private List<AttachmentRef> attachments;
+
     public List<AnswerInputDto> getAnswers() {
         return answers;
     }
@@ -29,6 +31,9 @@ public class SaveInitialReviewDraftRequest {
     public void setComment(String comment) {
         this.comment = comment;
     }
+
+    public List<AttachmentRef> getAttachments() { return attachments; }
+    public void setAttachments(List<AttachmentRef> attachments) { this.attachments = attachments; }
 
     public static class AnswerInputDto {
         @NotBlank(message = "itemId must not be blank")

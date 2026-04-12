@@ -56,7 +56,7 @@ public class SubmitInitialReviewUseCase {
         this.scoreCalculationService = scoreCalculationService;
     }
 
-    public void execute(ActorContext actor, String caseId) {
+    public SubmitInitialReviewResult execute(ActorContext actor, String caseId) {
         actor.requireRole(DomainRole.REVIEWER);
 
         ReviewSubmission submission = submissionRepository
@@ -146,5 +146,13 @@ public class SubmitInitialReviewUseCase {
                 this, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 submission.getSubmissionId(), result.getTotalScore(), actor.getUserId()));
+
+        return new SubmitInitialReviewResult(
+                submission.getSubmissionId(),
+                submission.getStatus().name(),
+                caseId,
+                reviewCase.getStatus().name(),
+                result.getTotalScore(),
+                reviewCase.isRereviewRequired());
     }
 }

@@ -250,6 +250,9 @@ class InitialReviewApiTest {
                         .content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.submissionId").isString())
+                .andExpect(jsonPath("$.data.status").value("DRAFT"))
+                .andExpect(jsonPath("$.data.stage").value("INITIAL"))
                 .andExpect(jsonPath("$.data.totalScore").value(17.5));
     }
 
@@ -294,7 +297,12 @@ class InitialReviewApiTest {
         mockMvc.perform(post(BASE + "/c1/initial-review/submit")
                         .header("api-key", reviewerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.submissionId").isString())
+                .andExpect(jsonPath("$.data.status").value("SUBMITTED"))
+                .andExpect(jsonPath("$.data.caseId").isString())
+                .andExpect(jsonPath("$.data.caseStatus").isString())
+                .andExpect(jsonPath("$.data.totalScore").isNumber());
     }
 
     @Test

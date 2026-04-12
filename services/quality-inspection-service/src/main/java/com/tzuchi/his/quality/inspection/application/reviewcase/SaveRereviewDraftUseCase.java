@@ -28,7 +28,7 @@ public class SaveRereviewDraftUseCase {
     }
 
     @Transactional
-    public void execute(ActorContext actor, SaveRereviewDraftCommand cmd) {
+    public SaveDraftResult execute(ActorContext actor, SaveRereviewDraftCommand cmd) {
         actor.requireRole(DomainRole.REREVIEWER);
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
@@ -44,5 +44,10 @@ public class SaveRereviewDraftUseCase {
                 cmd.getTotalScore() != null ? cmd.getTotalScore() : BigDecimal.ZERO,
                 cmd.getComment());
         submissionRepository.save(submission);
+        return new SaveDraftResult(
+                submission.getSubmissionId(),
+                submission.getStatus().name(),
+                submission.getStage().name(),
+                submission.getTotalScore());
     }
 }

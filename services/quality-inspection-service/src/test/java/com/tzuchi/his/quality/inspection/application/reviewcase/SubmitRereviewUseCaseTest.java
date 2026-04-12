@@ -118,7 +118,11 @@ class SubmitRereviewUseCaseTest {
         cmd.setSubmissionId(SUBMISSION_ID);
         // Don't pass answers — use existing draft answers
 
-        useCase.execute(rereviewerActor(), cmd);
+        SubmitRereviewResult result = useCase.execute(rereviewerActor(), cmd);
+
+        assertNotNull(result.getSubmissionId());
+        assertEquals("SUBMITTED", result.getStatus());
+        assertEquals(CASE_ID, result.getCaseId());
 
         ReviewCase saved = caseRepo.findById(CASE_ID).orElseThrow();
         assertEquals(CaseStatus.CLOSED, saved.getStatus());

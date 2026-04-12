@@ -82,10 +82,13 @@ class SaveInitialReviewDraftUseCaseTest {
                 new AnswerInput("Q002", "15")
         );
 
-        BigDecimal totalScore = useCase.execute(reviewer(), CASE_ID, answers, "draft comment");
+        SaveDraftResult result = useCase.execute(reviewer(), CASE_ID, answers, "draft comment");
 
         // Score: Q001 = 10*1.0 = 10, Q002 = min(15,20)*0.5 = 7.5 -> total = 17.5
-        assertEquals(new BigDecimal("17.5"), totalScore);
+        assertEquals(new BigDecimal("17.5"), result.getTotalScore());
+        assertNotNull(result.getSubmissionId());
+        assertEquals("DRAFT", result.getStatus());
+        assertEquals("INITIAL", result.getStage());
 
         ReviewSubmission saved = submissionRepo.store.get(SUBMISSION_ID);
         assertEquals(SubmissionStatus.DRAFT, saved.getStatus());
@@ -159,9 +162,11 @@ class SaveInitialReviewDraftUseCaseTest {
         seedPublishedScoreSheet();
         seedDraftSubmission();
 
-        BigDecimal totalScore = useCase.execute(reviewer(), CASE_ID, Collections.emptyList(), null);
+        SaveDraftResult result = useCase.execute(reviewer(), CASE_ID, Collections.emptyList(), null);
 
-        assertEquals(BigDecimal.ZERO, totalScore);
+        assertEquals(BigDecimal.ZERO, result.getTotalScore());
+        assertEquals("DRAFT", result.getStatus());
+        assertEquals("INITIAL", result.getStage());
     }
 
     @Test
@@ -173,8 +178,8 @@ class SaveInitialReviewDraftUseCaseTest {
         answers.add(new AnswerInput("Q001", "true"));
         answers.add(null);
 
-        BigDecimal totalScore = useCase.execute(reviewer(), CASE_ID, answers, null);
+        SaveDraftResult result = useCase.execute(reviewer(), CASE_ID, answers, null);
 
-        assertEquals(new BigDecimal("10.0"), totalScore);
+        assertEquals(new BigDecimal("10.0"), result.getTotalScore());
     }
 }

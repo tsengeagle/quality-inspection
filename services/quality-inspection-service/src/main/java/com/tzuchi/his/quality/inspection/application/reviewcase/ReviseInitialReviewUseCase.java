@@ -113,7 +113,11 @@ public class ReviseInitialReviewUseCase {
                 oldSubmission.getStage().name(), newSubmission.getRevisionNo()));
 
         return new RevisionResult(
-                newSubmissionId, newSubmission.getRevisionNo(),
-                result.getTotalScore(), newSubmission.getStatus().name());
+                newSubmissionId, submissionId,
+                newSubmission.getRevisionNo(),
+                result.getTotalScore(),
+                newSubmission.getStatus().name(),
+                newSubmission.getStage().name(),
+                caseId);
     }
 }

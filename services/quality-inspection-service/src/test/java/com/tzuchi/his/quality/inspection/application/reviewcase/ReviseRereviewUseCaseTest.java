@@ -113,7 +113,13 @@ class ReviseRereviewUseCaseTest {
         cmd.setAnswers(newAnswers);
         cmd.setComment("revised comment");
 
-        useCase.execute(rereviewerActor(), cmd);
+        RevisionResult result = useCase.execute(rereviewerActor(), cmd);
+
+        assertNotNull(result.getNewSubmissionId());
+        assertEquals(OLD_SUBMISSION_ID, result.getOldSubmissionId());
+        assertEquals(CASE_ID, result.getCaseId());
+        assertEquals("REREVIEW", result.getStage());
+        assertEquals("SUBMITTED", result.getStatus());
 
         // Verify old submission is SUPERSEDED
         ReviewSubmission oldSub = submissionRepo.findById(OLD_SUBMISSION_ID).orElseThrow();

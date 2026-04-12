@@ -49,7 +49,7 @@ public class SubmitRereviewUseCase {
     }
 
     @Transactional
-    public void execute(ActorContext actor, SubmitRereviewCommand cmd) {
+    public SubmitRereviewResult execute(ActorContext actor, SubmitRereviewCommand cmd) {
         actor.requireRole(DomainRole.REREVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
@@ -104,5 +104,12 @@ public class SubmitRereviewUseCase {
                 reviewCase.getCaseId(),
                 String.format("{\"rereviewScore\":%s,\"finalScore\":%s}",
                         result.getTotalScore(), reviewCase.getFinalScore())));
+
+        return new SubmitRereviewResult(
+                submission.getSubmissionId(),
+                submission.getStatus().name(),
+                cmd.getCaseId(),
+                reviewCase.getStatus().name(),
+                reviewCase.getFinalScore());
     }
 }

@@ -117,7 +117,11 @@ class SubmitInitialReviewUseCaseTest {
         seedCaseInProgress();
         seedDraftWithAnswers();
 
-        useCase.execute(reviewer(), CASE_ID);
+        SubmitInitialReviewResult result = useCase.execute(reviewer(), CASE_ID);
+        assertNotNull(result.getSubmissionId());
+        assertEquals("SUBMITTED", result.getStatus());
+        assertEquals(CASE_ID, result.getCaseId());
+        assertFalse(result.isRereviewRequired());
 
         ReviewSubmission saved = submissionRepo.store.get(SUBMISSION_ID);
         assertEquals(SubmissionStatus.SUBMITTED, saved.getStatus());

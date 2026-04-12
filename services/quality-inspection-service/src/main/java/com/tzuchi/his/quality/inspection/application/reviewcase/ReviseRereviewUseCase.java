@@ -56,7 +56,7 @@ public class ReviseRereviewUseCase {
     }
 
     @Transactional
-    public void execute(ActorContext actor, ReviseRereviewCommand cmd) {
+    public RevisionResult execute(ActorContext actor, ReviseRereviewCommand cmd) {
         // 1. Require REREVIEWER role
         actor.requireRole(DomainRole.REREVIEWER);
 
@@ -126,5 +126,14 @@ public class ReviseRereviewUseCase {
                 reviewCase.getCaseId(),
                 String.format("{\"newSubmissionId\":\"%s\",\"oldSubmissionId\":\"%s\",\"rereviewScore\":%s,\"finalScore\":%s}",
                         newSubmissionId, cmd.getSubmissionId(), result.getTotalScore(), reviewCase.getFinalScore())));
+
+        return new RevisionResult(
+                newSubmissionId,
+                cmd.getSubmissionId(),
+                revision.getRevisionNo(),
+                result.getTotalScore(),
+                revision.getStatus().name(),
+                revision.getStage().name(),
+                cmd.getCaseId());
     }
 }

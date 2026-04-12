@@ -42,9 +42,9 @@ public class SaveInitialReviewDraftUseCase {
     }
 
     /**
-     * Save draft answers, calculate scores, return totalScore.
+     * Save draft answers, calculate scores, return SaveDraftResult.
      */
-    public BigDecimal execute(ActorContext actor, String caseId,
+    public SaveDraftResult execute(ActorContext actor, String caseId,
                                List<AnswerInput> answers, String comment) {
         actor.requireRole(DomainRole.REVIEWER);
 
@@ -68,7 +68,11 @@ public class SaveInitialReviewDraftUseCase {
                     this, actor.getUserId(), actor.getUserName(),
                     "", caseId, submission.getSubmissionId(), BigDecimal.ZERO));
 
-            return BigDecimal.ZERO;
+            return new SaveDraftResult(
+                    submission.getSubmissionId(),
+                    submission.getStatus().name(),
+                    submission.getStage().name(),
+                    BigDecimal.ZERO);
         }
 
         // Convert AnswerInput -> raw AnswerItem (no score yet)
@@ -95,6 +99,10 @@ public class SaveInitialReviewDraftUseCase {
                 this, actor.getUserId(), actor.getUserName(),
                 "", caseId, submission.getSubmissionId(), result.getTotalScore()));
 
-        return result.getTotalScore();
+        return new SaveDraftResult(
+                submission.getSubmissionId(),
+                submission.getStatus().name(),
+                submission.getStage().name(),
+                result.getTotalScore());
     }
 }
