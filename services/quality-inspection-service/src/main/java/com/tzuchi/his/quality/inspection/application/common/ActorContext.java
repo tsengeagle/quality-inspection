@@ -59,7 +59,9 @@ public class ActorContext {
     public void requireHospitalScope(String targetHospitalId) {
         String myHospitalId = requireHospitalId();
         if (!myHospitalId.equals(targetHospitalId)) {
-            throw new AccessDeniedException("Hospital scope mismatch");
+            throw new AccessDeniedException("HOSPITAL_SCOPE_MISMATCH",
+                    "Actor hospital '" + myHospitalId + "' cannot access resource belonging to hospital '"
+                            + targetHospitalId + "'");
         }
     }
 

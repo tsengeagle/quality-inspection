@@ -32,6 +32,7 @@ public class SaveRereviewDraftUseCase {
         actor.requireRole(DomainRole.REREVIEWER);
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+        actor.requireHospitalScope(reviewCase.getHospitalId());
         if (reviewCase.getRereviewerAssignment() == null
                 || !actor.getUserId().equals(reviewCase.getRereviewerAssignment().getReviewerId())) {
             throw new DomainRuleViolationException("NOT_ASSIGNED_REREVIEWER",

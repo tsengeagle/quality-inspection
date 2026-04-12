@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.StartRereviewCommand;
@@ -98,5 +99,16 @@ class StartRereviewUseCaseTest {
         ActorContext reviewer = new ActorContext("rereviewer-1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
         assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, cmd));
+    }
+
+    @Test
+    void execute_wrongHospital_shouldThrowAccessDenied() {
+        seedAssignedCase();
+        StartRereviewCommand cmd = new StartRereviewCommand();
+        cmd.setCaseId("c1");
+
+        ActorContext wrongHospital = new ActorContext("rereviewer-1", "ReReviewer",
+                EnumSet.of(DomainRole.REREVIEWER), Optional.of("OTHER_HOSPITAL"));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
     }
 }

@@ -42,7 +42,7 @@ class ActorContextScopeGuardTest {
 
         AccessDeniedException ex = assertThrows(AccessDeniedException.class,
                 () -> actor.requireHospitalScope("H002"));
-        assertTrue(ex.getMessage().contains("Hospital scope mismatch"));
+        assertTrue(ex.getMessage().contains("cannot access resource belonging to hospital"));
     }
 
     @Test

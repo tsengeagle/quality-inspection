@@ -35,6 +35,7 @@ public class StartRereviewUseCase {
         actor.requireRole(DomainRole.REREVIEWER);
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+        actor.requireHospitalScope(reviewCase.getHospitalId());
         // Domain method validates actor is the assigned rereviewer
         reviewCase.startRereview(actor.getUserId());
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(

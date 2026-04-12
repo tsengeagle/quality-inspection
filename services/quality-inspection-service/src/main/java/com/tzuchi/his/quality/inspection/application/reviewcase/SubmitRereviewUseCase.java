@@ -55,6 +55,8 @@ public class SubmitRereviewUseCase {
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
 
+        actor.requireHospitalScope(reviewCase.getHospitalId());
+
         // Validate actor is the assigned rereviewer
         if (reviewCase.getRereviewerAssignment() == null
                 || !actor.getUserId().equals(reviewCase.getRereviewerAssignment().getReviewerId())) {

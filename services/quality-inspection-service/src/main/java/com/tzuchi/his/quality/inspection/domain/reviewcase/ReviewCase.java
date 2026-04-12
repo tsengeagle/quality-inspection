@@ -56,6 +56,7 @@ public class ReviewCase {
         Objects.requireNonNull(caseId, "caseId must not be null");
         Objects.requireNonNull(batchId, "batchId must not be null");
         Objects.requireNonNull(projectId, "projectId must not be null");
+        Objects.requireNonNull(hospitalId, "hospitalId must not be null");
         this.caseId = caseId;
         this.batchId = batchId;
         this.projectId = projectId;
