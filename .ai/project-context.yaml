@@ -175,7 +175,7 @@ architecture:
   frontend:
     module_root: frontends/quality-inspection-frontend
     status: planned-path-confirmed
-    source_tree_status: confirmed
+    source_tree_status: partial
     framework: Angular
     baseline_version: Angular 14
     architecture_style: microfrontend
@@ -220,7 +220,7 @@ architecture:
     shared_ui_library:
       name: portal51-lib
       version: "0.0.16"
-      role: shared UI library baseline and wrapper/style priority reference
+      role: repo-local frontend dependency declaration and frontend baseline reference
       status: confirmed
     frontend_mfe_governance:
       active: true
@@ -231,7 +231,9 @@ architecture:
         docs/05-ui/* remains solution UI page spec authority and is not the MFE governance layer.
     note: >
       UI authority 已存在。frontend 必須參考組織內既有 UI 風格。
-      portal51-lib@0.0.16 已確認為 shared UI library baseline 與 wrapper/style 優先參考來源。
+      this repo 的 package.json 目前宣告 portal51-lib@0.0.16。
+      現階段可確認其為 repo-local frontend dependency 與 frontend baseline reference，
+      不足以單獨證明完整 shared UI / design-system library 角色。
       component-level 使用細節（具體 wrapper pattern、design token mechanism）
       仍為 pending confirmation。若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
   development_mode:
@@ -440,9 +442,10 @@ assumptions_and_pending_confirmation:
     item: enterprise UI component usage detail / design token / wrapper pattern
     status: partial
     basis: >
-      portal51-lib@0.0.16 已確認為 shared UI library baseline 與 wrapper/style 優先參考來源。
+      this repo 的 package.json 目前宣告 portal51-lib@0.0.16。
+      現階段僅能確認 repo-local dependency evidence 與 frontend baseline reference。
       但 component-level 使用細節（具體 wrapper pattern、design token mechanism）仍缺 source evidence。
-    current_value: portal51-lib@0.0.16 is the shared UI lib baseline
+    current_value: portal51-lib@0.0.16 is a repo-local frontend dependency and baseline reference
     action_required: >
       component-level detail 保留 pending confirmation。
       若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
@@ -473,17 +476,19 @@ assumptions_and_pending_confirmation:
   - id: PC-009
     category: source_tree
     item: frontend actual source layout
-    status: confirmed
+    status: partial
     basis: >
       skeleton 已建立：package.json, angular.json, tsconfig.json, proxy.conf.json,
       karma.conf.js, playwright.config.ts, webpack.config.js,
       src/app with modules: core, shared, features, shell,
       src/environments with standalone/production flags,
-      e2e/src with smoke test
+      e2e/src with smoke test。
+      但 detailed route/page/folder structure 仍可能隨 implementation 收斂
     current_value: >
-      Angular 14 workspace with app modules: core, shared, features, shell.
+      Angular 14 workspace skeleton 已存在，並可確認 app modules: core, shared, features, shell。
       NgRx store, module federation config, proxy for /api/quality-inspection/**,
-      Karma+Jasmine unit tests, Playwright e2e tests.
+      Karma+Jasmine unit tests, Playwright e2e tests。
+      Detailed route/page/folder structure remains pending confirmation.
 
   - id: PC-010
     category: governance_baseline
@@ -527,7 +532,9 @@ assumptions_and_pending_confirmation:
     basis: user confirmed
     current_value: frontend must align with organization existing UI style
     note: >
-      portal51-lib@0.0.16 已確認為 shared UI lib baseline。
+      this repo 的 package.json 目前宣告 portal51-lib@0.0.16。
+      現階段可確認其為 frontend baseline reference，
+      但不足以單獨證明完整 shared UI / design-system library 角色。
       具體 component-level 使用 / design token / wrapper pattern 細節仍為 pending confirmation (PC-006)。
       若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
 
@@ -584,8 +591,8 @@ assumptions_and_pending_confirmation:
     category: frontend_governance
     item: shared UI library baseline
     status: confirmed
-    basis: organization frontend baseline evidence
-    current_value: portal51-lib@0.0.16
+    basis: repo-local package.json dependency declaration
+    current_value: portal51-lib@0.0.16 is the current repo-local frontend dependency declaration; implementation role remains partial
 
   - id: PC-024
     category: shell_auth

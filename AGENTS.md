@@ -545,8 +545,8 @@ confirmed:
       e2e: "npm run e2e"
   ui_governance:
     organization_ui_style: must align with organization existing UI style
-    shared_ui_library: portal51-lib@0.0.16
-    portal51_lib_role: shared UI lib baseline / wrapper-style priority reference
+    shared_ui_library: portal51-lib@0.0.16 (repo-local dependency evidence)
+    portal51_lib_role: frontend baseline reference; implementation usage detail pending confirmation
   api_baseline:
     formal_base_path: "/api/quality-inspection/**"
     required_auth_header: api-key
@@ -707,7 +707,7 @@ assumptions:
 * backend tech stack: Java + Spring Boot + Gradle (Groovy DSL)（已確認）
 * frontend tech stack: Angular 14 + microfrontend + npm + Angular CLI + NgRx + Karma/Jasmine（已確認）
 * module federation reference: @angular-architects/module-federation（已確認）
-* shared UI library baseline: portal51-lib@0.0.16（已確認）
+* repo-local frontend dependency evidence: portal51-lib@0.0.16（已確認）；implementation role / usage detail 仍待確認
 * backend integration baseline: must integrate with organization existing api-gateway（已確認）
 * frontend integration baseline: must integrate with organization existing MFE shell（已確認）
 * formal API base path: /api/quality-inspection/**（已確認）

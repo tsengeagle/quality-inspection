@@ -20,7 +20,10 @@ organization:
 module_structure:
   module_root: frontends/quality-inspection-frontend
   readme: frontends/quality-inspection-frontend/README.md
-  source_status: pending_confirmation
+  source_status: partial
+  source_status_note: >
+    module root 與 frontend skeleton 已由 repo-local source evidence 確認。
+    但 detailed route/page/folder structure 仍應保留 pending confirmation。
   expected_layers:
     - shell
     - pages
@@ -215,9 +218,11 @@ assumptions_and_pending_confirmation:
   - id: FB-001
     category: source_tree
     item: actual frontend source root under module
-    status: pending_confirmation
-    basis: module path 已確認，但 src/、route structure、page folders 尚未提供
-    action_required: 待 frontend implementation skeleton 建立後確認
+    status: partial
+    basis: >
+      module path 與 frontend skeleton 已確認（package.json、angular.json、src/app、src/environments、e2e/src 已存在），
+      但 detailed route structure、page folders、feature composition 仍未完全固定
+    action_required: 待 frontend implementation 持續收斂後再確認 detailed route/page/folder structure
 
   - id: FB-002
     category: tech_stack
@@ -252,9 +257,10 @@ assumptions_and_pending_confirmation:
     item: actual component library / design system implementation
     status: partial
     basis: >
-      portal51-lib@0.0.16 已確認為 shared UI library baseline 與 wrapper/style 優先參考來源。
+      this repo 的 package.json 目前宣告 portal51-lib@0.0.16。
+      現階段僅能確認 repo-local dependency evidence 與 frontend baseline reference。
       但 component-level 使用細節（wrapper pattern、design token mechanism）仍缺 source evidence。
-    current_value: portal51-lib@0.0.16
+    current_value: portal51-lib@0.0.16 is a repo-local frontend dependency and baseline reference
     action_required: >
       component-level 細節保留 pending confirmation。
       若需要更精準落地，可向使用者索取既有 UI component 範例檔案。
@@ -312,7 +318,7 @@ assumptions_and_pending_confirmation:
     basis: user confirmed
     current_value: >
       frontend 必須參考組織內既有 UI 風格。
-      portal51-lib@0.0.16 為 shared UI lib baseline。
+      this repo 目前宣告 portal51-lib@0.0.16，作為 frontend baseline reference。
       component-level 使用細節仍為 pending confirmation (FB-006)。
 
   - id: FB-014
@@ -326,8 +332,8 @@ assumptions_and_pending_confirmation:
     category: frontend_governance
     item: shared UI library baseline
     status: confirmed
-    basis: organization frontend baseline evidence
-    current_value: portal51-lib@0.0.16 (shared UI lib baseline / wrapper-style priority reference)
+    basis: repo-local package.json dependency declaration
+    current_value: portal51-lib@0.0.16 is the current repo-local frontend dependency declaration; implementation role remains partial
 
   - id: FB-016
     category: shell_auth
