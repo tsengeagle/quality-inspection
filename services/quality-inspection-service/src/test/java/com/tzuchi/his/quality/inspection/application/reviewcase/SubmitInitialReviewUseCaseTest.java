@@ -251,4 +251,16 @@ class SubmitInitialReviewUseCaseTest {
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("OTHER_HOSPITAL"));
         assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, CASE_ID));
     }
+
+    @Test
+    void execute_wrongHospitalDifferentUser_scopeCheckFiresBeforeIdentityCheck() {
+        seedScoreSheet();
+        seedCaseInProgress();
+        seedDraftWithAnswers();
+
+        // Different userId AND wrong hospital — scope check must fire before identity check
+        ActorContext wrongHospital = new ActorContext("different-user", "Other Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("OTHER_HOSPITAL"));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, CASE_ID));
+    }
 }

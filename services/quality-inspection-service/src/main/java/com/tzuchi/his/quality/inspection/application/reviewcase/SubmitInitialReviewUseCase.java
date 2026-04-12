@@ -59,6 +59,13 @@ public class SubmitInitialReviewUseCase {
     public SubmitInitialReviewResult execute(ActorContext actor, String caseId) {
         actor.requireRole(DomainRole.REVIEWER);
 
+        // Load case first to enforce hospital scope before touching submission data
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND",
+                        "ReviewCase not found: " + caseId));
+
+        actor.requireHospitalScope(reviewCase.getHospitalId());
+
         ReviewSubmission submission = submissionRepository
                 .findLatestByCaseIdAndStage(caseId, ReviewStage.INITIAL)
                 .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND",
@@ -68,13 +75,6 @@ public class SubmitInitialReviewUseCase {
             throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
                     "Only the reviewer who owns this submission can submit");
         }
-
-        // Load ReviewCase and verify status
-        ReviewCase reviewCase = caseRepository.findById(caseId)
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND",
-                        "ReviewCase not found: " + caseId));
-
-        actor.requireHospitalScope(reviewCase.getHospitalId());
 
         if (reviewCase.getStatus() != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
             throw new DomainStateConflictException(
