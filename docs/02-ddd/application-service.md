@@ -34,6 +34,10 @@
 6. revision 不等於 reopen，不構成重新開案流程。
 7. actor 權限驗證應在 application service 與 authorization guard 層共同執行。
 8. 系統管理員不直接介入院內抽選、分派、審查、複審業務流程。
+9. 所有處理 `ReviewCase` / `SamplingBatch` 的 use case 必須執行 `requireHospitalScope`，
+   確保 actor 所屬院所與資源院所一致（D-024）；違反時拋出 `RoleDeniedException`（`HOSPITAL_SCOPE_MISMATCH`）。
+10. use case orchestration 標準順序：`requireRole` → load aggregate → `requireHospitalScope` → identity guard → domain method。
+11. 角色驗證失敗一律拋出 `RoleDeniedException`（error code: `ROLE_DENIED`，D-023），不使用 `UnauthorizedException`。
 
 ---
 
@@ -161,17 +165,20 @@
 #### `AssignReviewCaseUseCase`
 - 驗證 actor 是否為 `HOSPITAL_MANAGER`
 - 載入 `ReviewCase`
+- 執行 `requireHospitalScope` — actor 院所必須與案件院所一致
 - 呼叫 `assignReviewer(...)`
 - 寫 audit
 
 #### `StartInitialReviewUseCase`
 - 驗證 actor 是否為已指派初審醫師
 - 載入 `ReviewCase`
+- 執行 `requireHospitalScope`
 - 呼叫 `startInitialReview()`
 
 #### `SaveInitialReviewDraftUseCase`
 - 驗證 actor 是否為已指派初審醫師
 - 載入 `ReviewCase`
+- 執行 `requireHospitalScope`
 - 載入當前有效 `ScoreSheetSnapshot`
 - 建立或更新 `ReviewSubmission` draft
 - 不改變案件主狀態，除非 state machine 另有要求
@@ -179,6 +186,7 @@
 #### `SubmitInitialReviewUseCase`
 - 驗證 actor 與 submission 所有權
 - 載入 `ReviewCase`
+- 執行 `requireHospitalScope`
 - 載入 `ReviewSubmission`
 - 呼叫 `submit()`
 - 呼叫 `ReviewCase.completeInitialReview(...)`
@@ -219,6 +227,7 @@
 #### `SubmitRereviewUseCase`
 - 驗證 actor 與 submission 所有權
 - 載入 `ReviewCase`
+- 執行 `requireHospitalScope`
 - 載入 `ReviewSubmission`
 - 呼叫 `submit()`
 - 呼叫 `ReviewCase.completeRereview(...)`
@@ -297,7 +306,7 @@ revision_orchestration_rules:
 | ---------------------------------- | --------------------- | ---------------------- |
 | `GetReviewProjectDetailUseCase`    | projectId             | 查詢專案與版本資訊              |
 | `GetReviewCaseDetailUseCase`       | caseId                | 查詢案件詳情                 |
-| `GetReviewSubmissionDetailUseCase` | submissionId          | 查詢提交詳情                 |
+| `GetReviewSubmissionDetailUseCase` | caseId, submissionId  | 查詢提交詳情（含 D-018 masking）|
 | `GetAuditTrailUseCase`             | aggregateId           | 查詢操作軌跡與異動歷程            |
 | `ExportReviewReportUseCase`        | filter                | 匯出報表                   |
 | `GetDashboardSummaryUseCase`       | hospitalScope, filter | 查詢審查完成率 / 複審率 / 逾期率等摘要 |
@@ -307,6 +316,14 @@ revision_orchestration_rules:
 * 這些 use case 雖屬 application layer，但以 query / export orchestration 為主
 * 權限範圍由 permission matrix 決定
 * 內容遮罩與 metadata only 規則不得在此忽略
+
+### 10.2 `GetReviewSubmissionDetailUseCase` — D-018 Masking Logic（GAP-15）
+
+* 若 actor 角色為 `REREVIEWER` 且案件無 `SUBMITTED` 複審 submission：
+  - 將 `answers`、`comment`、`totalScore` 設為 `null`
+  - 於 view 中加入 `maskedFields: ["answers", "comment", "totalScore"]`
+* 遮罩為 view-level 操作，不改變 `ReviewSubmission` domain state
+* `maskedFields` 欄位僅在有遮罩時出現，無遮罩時不帶此欄位（D-026）
 
 ---
 
@@ -386,7 +403,8 @@ application service 可透過下列 adapter 協作：
 
 ### 14.1 應由 application service 拒絕的情境
 
-* actor 與角色不符
+* actor 與角色不符 → `RoleDeniedException`（`ROLE_DENIED`，HTTP 403）
+* actor 所屬院所與資源院所不一致 → `RoleDeniedException`（`HOSPITAL_SCOPE_MISMATCH`，HTTP 403）
 * actor 不在合法資料範圍內
 * revision 嘗試作用於 `CLOSED` / `CANCELLED` 案件
 * revision actor 與原責任醫師不一致

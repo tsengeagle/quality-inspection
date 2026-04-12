@@ -1436,6 +1436,159 @@ retry 的語意是重做原失敗執行，因此必須沿用原 batch snapshot�
 * batch B 的 `retryOfBatchId = batch A`
 * batch B 沿用與 batch A 相同的 snapshot 基礎
 * batch B **不應** 使用 version 2 的 snapshot
+
+---
+
+## EX-031 Hospital scope mismatch → 403 HOSPITAL_SCOPE_MISMATCH
+
+### Rule
+
+所有處理 ReviewCase / SamplingBatch 的 use case，若 actor 所屬院所與資源院所不一致，
+必須拒絕操作並回傳 `403 HOSPITAL_SCOPE_MISMATCH`。
+
+### Why it matters
+
+此為 defense-in-depth 層的 access guard。即使 actor 持有有效 JWT 且角色正確，
+若不屬於案件所在院所，仍不可存取或操作。
+
+### Given
+
+* 存在 ReviewCase RC-001，所屬院所為 `H-01`
+* actor 為 `HOSPITAL_MANAGER`，角色驗證通過
+* actor 所屬院所為 `H-02`（與案件不同）
+
+### When
+
+* actor 嘗試對 RC-001 執行任意 command（如指派初審醫師）
+
+### Then
+
+* 回傳 `403`
+* error code 為 `HOSPITAL_SCOPE_MISMATCH`
+* 案件不受影響
+
+### Notes
+
+* 此規則適用所有 ReviewCase 與 SamplingBatch use case
+* 驗證順序：`requireRole` → load aggregate → `requireHospitalScope`
+
+### Mapping
+
+```yaml
+mapping:
+  application:
+    - AssignReviewCaseUseCase
+    - StartInitialReviewUseCase
+    - SubmitInitialReviewUseCase
+    - SubmitRereviewUseCase
+    - (所有 ReviewCase / SamplingBatch use case)
+  api:
+    - 任何 /review-cases/{caseId}/... command endpoint
+  tests:
+    - TS-GAP-01-001
+```
+
+---
+
+## EX-032 D-018：複審醫師在複審提交前無法看到初審答案
+
+### Rule
+
+當 actor 為 `REREVIEWER` 且案件目前無 `SUBMITTED` 複審 submission 時，
+查詢初審 submission 詳情時，`answers`、`comment`、`totalScore` 欄位被遮罩為 `null`，
+response 包含 `maskedFields`。
+
+### Why it matters
+
+複審的核心是「獨立評估」。若提前暴露初審答案，會影響複審的客觀性與品質可信度。
+
+### Given
+
+* 存在 ReviewCase RC-001，狀態為 `REREVIEW_IN_PROGRESS`
+* 已有已提交初審 submission SUB-INIT-001
+* 案件目前無 `SUBMITTED` 複審 submission
+* actor 為 RC-001 的指派複審醫師（`REREVIEWER`）
+
+### When
+
+* actor 查詢 `GET /review-cases/RC-001/submissions/SUB-INIT-001`
+
+### Then
+
+* 回傳 `200`
+* `data.answers` 為 `null`
+* `data.comment` 為 `null`
+* `data.totalScore` 為 `null`
+* `data.maskedFields` 為 `["answers", "comment", "totalScore"]`
+
+### Notes
+
+* 遮罩在 application layer 執行，不改變 domain state
+* 遮罩條件：actor 為 REREVIEWER + 無 SUBMITTED 複審 submission
+
+### Mapping
+
+```yaml
+mapping:
+  domain:
+    - D-018
+  application:
+    - GetSubmissionDetailUseCase (masking branch)
+  api:
+    - GET /review-cases/{caseId}/submissions/{submissionId}
+  tests:
+    - TS-GAP-15-001
+```
+
+---
+
+## EX-033 D-018：複審提交後複審醫師可看到初審答案
+
+### Rule
+
+當 `REREVIEWER` 在複審提交完成（存在 `SUBMITTED` 複審 submission）後再查詢初審 submission，
+不執行遮罩，`maskedFields` 欄位不出現於 response。
+
+### Why it matters
+
+複審完成後，遮罩不再必要。複審醫師應可查看初審內容作為參考與追溯。
+
+### Given
+
+* ReviewCase RC-001，狀態為 `CLOSED`
+* 已有已提交初審 submission SUB-INIT-001
+* 已有 `SUBMITTED` 複審 submission SUB-RR-001
+* actor 為 RC-001 的複審醫師（`REREVIEWER`）
+
+### When
+
+* actor 查詢 `GET /review-cases/RC-001/submissions/SUB-INIT-001`
+
+### Then
+
+* 回傳 `200`
+* `data.answers` 有完整答案內容
+* `data.comment` 有評語內容
+* `data.totalScore` 有分數
+* response **不包含** `maskedFields` 欄位
+
+### Notes
+
+* 遮罩解除條件：案件存在 `SUBMITTED` 複審 submission
+
+### Mapping
+
+```yaml
+mapping:
+  domain:
+    - D-018
+  application:
+    - GetSubmissionDetailUseCase (no masking branch)
+  api:
+    - GET /review-cases/{caseId}/submissions/{submissionId}
+  tests:
+    - TS-GAP-15-002
+```
 * batch A 保持 `FAILED`
 * retry 不覆寫原 batch
 

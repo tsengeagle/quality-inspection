@@ -125,6 +125,9 @@ Accept: application/json
 | `SUBMISSION_NOT_OWNED_BY_ACTOR`    |         403 | submission 不屬於目前 actor    |
 | `SUBMISSION_STAGE_MISMATCH`        |         422 | submission stage 與 API 不符 |
 | `INVALID_STATE_TRANSITION`         |         409 | 非法狀態轉移                    |
+| `ROLE_DENIED`                      |         403 | 角色不符，不可執行此操作              |
+| `HOSPITAL_SCOPE_MISMATCH`          |         403 | actor 所屬院所與案件/專案院所不符      |
+| `VALIDATION_ERROR`                 |         400 | 欄位驗證失敗                    |
 
 ---
 
@@ -158,9 +161,16 @@ Accept: application/json
 
 ### 5.2 API 實作原則
 
+* `403 ROLE_DENIED`
+
+  * 角色不符，不可執行此操作（`RoleDeniedException`）
+
+* `403 HOSPITAL_SCOPE_MISMATCH`
+
+  * actor 所屬院所與案件/專案院所不符（所有 ReviewCase / SamplingBatch use case 均強制驗證）
+
 * `403 FORBIDDEN`
 
-  * 角色不符
   * 超出資料範圍
   * 內容明細不可見
 
@@ -666,6 +676,24 @@ Accept: application/json
 * metadata view
 * full detail view
 
+#### 新增欄位（GAP-13）
+
+`data.latestRereviewSubmissionId` — 最新複審 submission ID，供前端導覽用；無複審時為 `null`。
+
+```json
+{
+  "success": true,
+  "data": {
+    "caseId": "RC-001",
+    "projectId": "RP-001",
+    "status": "PENDING_REREVIEW",
+    "reviewerId": "DOC-1001",
+    "rereviewerId": "DOC-2001",
+    "latestRereviewSubmissionId": "SUB-RR-001"
+  }
+}
+```
+
 ---
 
 ## 10.3 指派初審醫師
@@ -814,7 +842,7 @@ Accept: application/json
 
 ## 11.3 提交初審
 
-### `POST /review-submissions/{submissionId}/initial-review/submit`
+### `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
 
 #### 權限
 
@@ -841,7 +869,7 @@ Accept: application/json
 
 ## 11.4 修正已提交初審
 
-### `POST /review-submissions/{submissionId}/initial-review/revise`
+### `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`
 
 #### 權限
 
@@ -915,7 +943,7 @@ Accept: application/json
 
 ## 12.3 提交複審
 
-### `POST /review-submissions/{submissionId}/rereview/submit`
+### `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
 
 #### 權限
 
@@ -932,7 +960,8 @@ Accept: application/json
     "status": "SUBMITTED",
     "caseId": "RC-001",
     "caseStatus": "CLOSED",
-    "finalScore": 92.0
+    "finalScore": 92.0,
+    "finalConclusion": "PASS"
   }
 }
 ```
@@ -941,7 +970,7 @@ Accept: application/json
 
 ## 12.4 修正已提交複審
 
-### `POST /review-submissions/{submissionId}/rereview/revise`
+### `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
 
 #### 權限
 
@@ -950,10 +979,40 @@ Accept: application/json
 
 #### 限制
 
-* 案件不得為 `CLOSED`
+* 案件不得為 `CLOSED`（D-021 例外：`CLOSED` 後仍允許複審 revision）
 * 案件不得為 `CANCELLED`
 * 不可覆寫舊 submission
 * 建立新 revision
+
+#### Request
+
+```json
+{
+  "answers": [
+    {
+      "itemId": "I1",
+      "answerValue": false
+    }
+  ],
+  "comment": "修正複審結果"
+}
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "oldSubmissionId": "SUB-RR-001",
+    "newSubmissionId": "SUB-RR-002",
+    "revisionNo": 2,
+    "stage": "REREVIEW",
+    "caseId": "RC-001",
+    "finalScore": 90.0
+  }
+}
+```
 
 ---
 
@@ -963,7 +1022,7 @@ Accept: application/json
 
 ## 13.1 查詢 submission 詳情
 
-### `GET /review-submissions/{submissionId}`
+### `GET /review-cases/{caseId}/submissions/{submissionId}`
 
 #### 權限
 
@@ -971,6 +1030,27 @@ Accept: application/json
 * `REVIEWER` / `REREVIEWER`：合法範圍內
 * `AUDITOR`：授權範圍內
 * `SYSTEM_ADMIN`：metadata only
+
+#### D-018 Masking 行為（GAP-15）
+
+當 actor 為 `REREVIEWER` 且案件尚無已提交（`SUBMITTED`）的複審 submission 時，
+初審的以下欄位回傳 `null`，且 response 包含 `maskedFields`：
+
+```json
+{
+  "success": true,
+  "data": {
+    "submissionId": "SUB-INIT-001",
+    "stage": "INITIAL",
+    "answers": null,
+    "comment": null,
+    "totalScore": null,
+    "maskedFields": ["answers", "comment", "totalScore"]
+  }
+}
+```
+
+複審完成後（存在 `SUBMITTED` 複審），不遮罩，`maskedFields` 欄位不出現。
 
 ---
 

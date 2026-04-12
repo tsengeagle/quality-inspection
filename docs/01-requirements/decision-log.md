@@ -808,6 +808,183 @@ ProjectVersion 中存儲 `initialReviewWeight` 與 `rereviewWeight`，默認各 
 
 ---
 
+## D-022 — API Path Model: Case-Rooted Sub-Resource Style
+
+### Status
+
+`accepted`
+
+### Category
+
+`api-design`
+
+### Decision
+
+所有 review workflow command endpoint 採用 case-rooted sub-resource path 風格：
+`/review-cases/{caseId}/submissions/{submissionId}/{stage}/action`。
+所有 command method 使用 `POST`。舊的 `/review-submissions/{submissionId}/...` paths 廢除。
+
+### Rationale
+
+* GAP-04 發現 api-spec.md（submission-rooted）與 implementation（case-rooted）不一致
+* 實作已有 78+ tests 以 case-rooted paths 通過，零 consumer migration 成本
+* case-rooted 風格使 caseId 成為必要路徑參數，強化 hospital scope 驗證
+* 一致性優先
+
+### Affected Artifacts
+
+* `api-spec.md` — 11.3、11.4、12.3、12.4、13.1 更新為 case-rooted paths
+
+### Consequences
+
+* frontend 從第一天就以統一路徑開發
+* `GET /review-submissions/{submissionId}` → `GET /review-cases/{caseId}/submissions/{submissionId}`
+* `POST /review-submissions/{submissionId}/...` → `POST /review-cases/{caseId}/submissions/{submissionId}/...`
+
+---
+
+## D-023 — 角色驗證失敗使用 ROLE_DENIED error code
+
+### Status
+
+`accepted`
+
+### Category
+
+`error-handling`
+
+### Decision
+
+HTTP 403 因角色不符觸發時，使用獨立 error code `ROLE_DENIED`（對應 `RoleDeniedException`），
+而非混用 `UNAUTHORIZED` 或 generic `FORBIDDEN`。
+
+### Rationale
+
+* GAP-06 發現 `UnauthorizedException` 命名容易與 HTTP 401（未認證）混淆
+* `ROLE_DENIED` 語意更精確，對應「已認證但角色不允許」
+* 統一 error code 有助前端精確錯誤處理
+
+### Affected Artifacts
+
+* `api-spec.md` — Section 4.1、5.2 更新
+* `application-service.md` — 例外類別名稱
+
+### Consequences
+
+* `UnauthorizedException` 改名為 `RoleDeniedException`
+* 所有 403 role 驗證失敗一律回傳 `ROLE_DENIED`
+* `UNAUTHORIZED`（401）維持原語意（未登入 / 憑證失效）
+
+---
+
+## D-024 — 所有 use case 強制 hospital scope guard
+
+### Status
+
+`accepted`
+
+### Category
+
+`permission-and-domain-guard`
+
+### Decision
+
+所有處理 `ReviewCase` 或 `SamplingBatch` 的 use case，
+在 `requireRole` 與 aggregate 載入後，必須執行 `requireHospitalScope` 驗證，
+確保 actor 所屬院所與案件/批次的院所一致。
+違反時回傳 `403 HOSPITAL_SCOPE_MISMATCH`。
+
+### Rationale
+
+* GAP-01 發現部分 use case 缺乏 hospital scope 驗證，存在跨院資料存取風險
+* hospital scope guard 是 defense-in-depth 層：即使 JWT 有效，仍需確保 actor 在正確院所範圍內
+* 此為 access policy，不應寫成 domain invariant
+
+### Affected Artifacts
+
+* `application-service.md` — 所有 ReviewCase / SamplingBatch use case 的 orchestration 描述
+* `api-spec.md` — Section 4.2、5.2 新增 `HOSPITAL_SCOPE_MISMATCH`
+* `specification-by-example.md` — 新增 EX-031
+
+### Consequences
+
+* use case orchestration 標準順序：`requireRole` → load aggregate → `requireHospitalScope` → identity guard → domain method
+* 違反 hospital scope 一律回傳 `403 HOSPITAL_SCOPE_MISMATCH`
+
+---
+
+## D-025 — ReviewCase 新增 latestRereviewSubmissionId
+
+### Status
+
+`accepted`
+
+### Category
+
+`domain-model-extension`
+
+### Decision
+
+`ReviewCase` aggregate 新增 `latestRereviewSubmissionId` 欄位，
+在 `GET /review-cases/{caseId}` response 中回傳，供前端直接導覽至最新複審 submission。
+
+### Rationale
+
+* GAP-13 發現前端需要此欄位才能導覽至複審作業頁，而目前無法從案件詳情直接取得
+* 此欄位語意明確（最新複審 submission）、不改變 domain invariant
+* 由 use case 在 rereview submission 建立時同步更新
+
+### Affected Artifacts
+
+* `domain-model.md` — ReviewCase 新增欄位
+* `persistence-model.md` — review_case 新增 column
+* `api-spec.md` — Section 10.2 新增欄位說明
+
+### Consequences
+
+* `latestRereviewSubmissionId` 在無複審時為 `null`
+* 建立 rereview submission 的 use case 負責更新此欄位
+
+---
+
+## D-026 — D-018 遮罩在 application layer 實作（view level）
+
+### Status
+
+`accepted`
+
+### Category
+
+`permission-and-visibility`
+
+### Decision
+
+D-018（複審期間複審醫師看不到初審答案與分數）的遮罩邏輯，
+在 application layer 的 `GetSubmissionDetailUseCase` 中根據 actor 角色與案件查詢狀態執行，
+而非在 domain layer 實作。遮罩為 view-level 操作，不改變 domain state。
+
+判斷條件：actor 為 `REREVIEWER` 且案件無 `SUBMITTED` 複審 submission 時，
+將 `answers`、`comment`、`totalScore` 設為 `null`，並於 response 加入 `maskedFields`。
+
+### Rationale
+
+* 遮罩是 response shaping / access policy，不是 domain invariant
+* 放在 application layer 可清楚區分「能不能看到資料」與「資料本身是否合法」
+* domain layer 的 `ReviewSubmission` 不應因 actor 視角不同而改變其值
+
+### Affected Artifacts
+
+* `application-service.md` — `GetSubmissionDetailUseCase` 說明
+* `api-spec.md` — Section 13.1 新增 masking 行為說明
+* `specification-by-example.md` — 新增 EX-032、EX-033
+
+### Consequences
+
+* `maskedFields` 僅在有遮罩時出現於 response，無遮罩時不帶此欄位
+* 前端必須根據 `maskedFields` 存在與否決定顯示行為
+
+---
+
 ## 5. 已收斂但不列為 domain invariant 的決策
 
 下列事項雖已決定，但屬 access / view / scope，不應寫成 domain invariant：
