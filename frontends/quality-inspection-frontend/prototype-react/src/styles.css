@@ -75,6 +75,10 @@ button {
   padding: 10px 12px;
 }
 
+.hub-nav a:hover {
+  border-color: var(--accent);
+}
+
 .content-area {
   padding: 24px;
 }
@@ -98,6 +102,13 @@ button {
 
 .hero-panel {
   padding: 24px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
 }
 
 .eyebrow,
@@ -259,6 +270,116 @@ button {
   transform: translateY(-1px);
 }
 
+.risk-tag-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.risk-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid #aeb8c2;
+  background: #f1f4f7;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.review-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.review-meta-card {
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.deferred-card {
+  background: #faf7f1;
+}
+
+.section-header-stack {
+  align-items: stretch;
+}
+
+.section-copy {
+  display: grid;
+  gap: 6px;
+  color: var(--text-subtle);
+}
+
+.compact-list {
+  gap: 4px;
+  padding-left: 16px;
+}
+
+.scenario-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.scenario-card,
+.flow-card {
+  border: 1px solid var(--border);
+  background: #fcfcfd;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.scenario-top {
+  display: grid;
+  gap: 8px;
+}
+
+.scenario-top h4,
+.flow-card h4 {
+  margin: 0;
+}
+
+.scenario-description {
+  margin: 0;
+  color: var(--text-subtle);
+}
+
+.scenario-highlight-list {
+  min-height: 64px;
+}
+
+.scenario-link {
+  align-self: end;
+}
+
+.flow-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.flow-index {
+  display: inline-flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--accent);
+  background: #eef4fb;
+  font-weight: 600;
+}
+
+.harness-intro-grid {
+  margin-top: 18px;
+}
+
 .command-panel {
   position: sticky;
   bottom: 12px;
@@ -356,6 +477,10 @@ button {
 
   .content-area {
     padding: 16px;
+  }
+
+  .hero-actions {
+    display: grid;
   }
 
   .split-layout {

@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import type {
   CommandAction,
+  CriticalFlowStep,
   LinkAction,
+  ReviewScenarioGroup,
   SummaryField,
   TimelineRecord,
   VariantOption,
@@ -19,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </p>
           <nav className="hub-nav">
             <Link to="/">首頁</Link>
+            <Link to="/review-harness">Review Harness</Link>
             <Link to="/cases/CASE-240013/detail?variant=FULL">UI-010</Link>
             <Link to="/cases/CASE-240013/revisions?variant=ALL">UI-014</Link>
             <Link to="/cases/CASE-240013/rereview?variant=NEW_REREVIEW">UI-013</Link>
@@ -257,6 +260,116 @@ export function CommandBar({
       <div className="command-result">
         <strong>mock command result</strong>
         <p>{lastResult || '尚未執行 command。'}</p>
+      </div>
+    </section>
+  );
+}
+
+export function RiskTagList({ tags }: { tags: string[] }) {
+  return (
+    <div className="risk-tag-list">
+      {tags.map((tag) => (
+        <span className="risk-tag" key={tag}>
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function ReviewScenarioSection({ group }: { group: ReviewScenarioGroup }) {
+  return (
+    <section className="panel section-gap">
+      <div className="section-header section-header-stack">
+        <div>
+          <p className="eyebrow">{group.pageId}</p>
+          <h3>{group.title}</h3>
+        </div>
+        <div className="section-copy">
+          <p>{group.summary}</p>
+          <p>
+            {group.archetype} / {group.pageRole}
+          </p>
+        </div>
+      </div>
+
+      <div className="review-meta-grid">
+        <article className="review-meta-card">
+          <strong>High-risk targets</strong>
+          <RiskTagList tags={group.highRiskTargets} />
+        </article>
+        <article className="review-meta-card">
+          <strong>Shared structures</strong>
+          <ul className="flat-list compact-list">
+            {group.sharedStructures.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </article>
+        <article className="review-meta-card deferred-card">
+          <strong>Deferred / placeholder</strong>
+          <ul className="flat-list compact-list">
+            {group.deferredNotes.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </article>
+      </div>
+
+      <div className="scenario-grid">
+        {group.scenarios.map((scenario) => (
+          <article className="scenario-card" key={`${scenario.pageId}-${scenario.variantId}`}>
+            <div className="scenario-top">
+              <div>
+                <p className="eyebrow">{scenario.pageId}</p>
+                <h4>{scenario.label}</h4>
+              </div>
+              <RiskTagList tags={scenario.riskTags} />
+            </div>
+            <p className="scenario-description">{scenario.description}</p>
+            <ul className="flat-list compact-list scenario-highlight-list">
+              {scenario.highlights.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+            <Link className="action-card primary scenario-link" to={scenario.path}>
+              <strong>開啟 scenario</strong>
+              <span>{scenario.label}</span>
+            </Link>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function CriticalFlowPanel({ steps }: { steps: CriticalFlowStep[] }) {
+  return (
+    <section className="panel section-gap">
+      <div className="section-header section-header-stack">
+        <div>
+          <p className="eyebrow">Critical Flow</p>
+          <h3>UI-010 → UI-014 → UI-013</h3>
+        </div>
+        <div className="section-copy">
+          <p>固定 reviewer 驗證路徑，快速檢查 navigate-only 與 command bar 差異。</p>
+        </div>
+      </div>
+
+      <div className="flow-grid">
+        {steps.map((step, index) => (
+          <article className="flow-card" key={step.title}>
+            <span className="flow-index">0{index + 1}</span>
+            <h4>{step.title}</h4>
+            <p className="scenario-description">{step.pageRole}</p>
+            <p className="scenario-description">{step.note}</p>
+            <RiskTagList tags={step.riskTargets} />
+            <Link className="action-card warning scenario-link" to={step.path}>
+              <strong>進入此步驟</strong>
+              <span>{step.title}</span>
+            </Link>
+          </article>
+        ))}
       </div>
     </section>
   );

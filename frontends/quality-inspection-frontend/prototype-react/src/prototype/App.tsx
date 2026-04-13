@@ -8,6 +8,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<HomeScreen />} />
+      <Route path="/review-harness" element={<HomeScreen />} />
       <Route path="/cases/:caseId/detail" element={<CaseDetailScreen />} />
       <Route path="/cases/:caseId/revisions" element={<RevisionHistoryScreen />} />
       <Route path="/cases/:caseId/rereview" element={<RereviewScreen />} />

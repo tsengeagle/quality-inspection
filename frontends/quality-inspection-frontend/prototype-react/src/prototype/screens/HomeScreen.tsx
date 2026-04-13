@@ -1,47 +1,57 @@
 import { Link } from 'react-router-dom';
-import { AppShell } from '../components';
-import { homeScenarios } from '../data';
+import {
+  AppShell,
+  CriticalFlowPanel,
+  ReviewScenarioSection,
+} from '../components';
+import {
+  criticalFlowSteps,
+  harnessDeferredNotes,
+  harnessSharedStructureNotes,
+  reviewHarnessGroups,
+} from '../data';
 
 export function HomeScreen() {
   return (
     <AppShell>
       <div className="page-stack">
         <section className="panel hero-panel">
-          <p className="eyebrow">Reviewer hub</p>
-          <h2>三頁原型與 flow validation 入口</h2>
+          <p className="eyebrow">Review harness</p>
+          <h2>P1 scenario index / review harness</h2>
           <p>
-            這個 prototype 只處理 UI-010、UI-013、UI-014。所有畫面都用 mock state 驅動，不依賴後端。
+            這個 review harness 固定 UI-010、UI-013、UI-014 的高風險場景、critical flow 與 shared
+            structure 檢查點。reviewer 不需要手動拼 URL 或猜 variant。
           </p>
-          <div className="chip-grid">
-            <Link className="variant-chip active" to="/cases/CASE-240013/detail?variant=FULL">
-              <strong>UI-010</strong>
-              <span>案件詳情 control center</span>
+          <div className="hero-actions">
+            <Link className="action-card primary scenario-link" to="/review-harness">
+              <strong>固定 review harness 入口</strong>
+              <span>/review-harness</span>
             </Link>
-            <Link className="variant-chip active" to="/cases/CASE-240013/revisions?variant=ALL">
-              <strong>UI-014</strong>
-              <span>revision 歷程與 compare</span>
-            </Link>
-            <Link className="variant-chip active" to="/cases/CASE-240013/rereview?variant=NEW_REREVIEW">
-              <strong>UI-013</strong>
-              <span>複審 command page</span>
-            </Link>
+          </div>
+          <div className="review-meta-grid harness-intro-grid">
+            <article className="review-meta-card">
+              <strong>Shared structures</strong>
+              <ul className="flat-list compact-list">
+                {harnessSharedStructureNotes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+            <article className="review-meta-card deferred-card">
+              <strong>Deferred / placeholder</strong>
+              <ul className="flat-list compact-list">
+                {harnessDeferredNotes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
           </div>
         </section>
 
-        {homeScenarios.map((group) => (
-          <section className="panel section-gap" key={group.title}>
-            <div className="section-header">
-              <h3>{group.title}</h3>
-            </div>
-            <div className="action-list">
-              {group.items.map((item) => (
-                <Link className="action-card default" key={item.label} to={item.to}>
-                  <strong>{item.label}</strong>
-                  <span>open preset</span>
-                </Link>
-              ))}
-            </div>
-          </section>
+        <CriticalFlowPanel steps={criticalFlowSteps} />
+
+        {reviewHarnessGroups.map((group) => (
+          <ReviewScenarioSection group={group} key={group.pageId} />
         ))}
       </div>
     </AppShell>
