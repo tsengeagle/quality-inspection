@@ -41,6 +41,8 @@
 - `docs/03-contracts`
 - `docs/04-testing`
 - `docs/05-ui`
+- `docs/06-frontend`
+- `docs/07-design`
 
 ---
 
@@ -94,6 +96,8 @@ quality-inspection/          ← repo root
 │  ├─ 03-contracts/
 │  ├─ 04-testing/
 │  ├─ 05-ui/
+│  ├─ 06-frontend/
+│  ├─ 07-design/
 │  ├─ 99-archive/
 │  ├─ design/
 │  └─ README.md
@@ -129,6 +133,16 @@ DDD 與核心業務設計區。
 
 UI 資訊架構與頁面規格區。
 放 IA、page inventory、各頁 page spec。
+
+#### `docs/06-frontend`
+
+Frontend design method 與 implementation bridge 區。
+放 frontend design method、roadmap、route/module/view-model/API binding/component map、review gate 與 frontend test scenarios。
+
+#### `docs/07-design`
+
+Design execution 區。
+放 wireframe brief、wireframes、prototype / flow validation artifacts、以及必要時的 Figma translation spec。
 
 #### `docs/99-archive`
 
@@ -289,7 +303,63 @@ revision 歷程頁規格。
 
 ---
 
-### 4.7 `docs/99-archive`
+### 4.7 `docs/06-frontend`
+
+#### `frontend-design-method.md`
+
+Frontend foundational design truth 與方法論基線。
+
+#### `frontend-design-roadmap.md`
+
+Frontend 文件推進順序、落點與 design execution roadmap。
+
+#### `frontend-review-gate-pending-items.md`
+
+Frontend focused review gate 與待人類拍板議題。
+
+#### `frontend-test-scenarios.md`
+
+Frontend reviewer / QA 可驗證的 scenario 基線。
+
+#### `ui-api-binding-matrix.md`
+
+頁面區塊到 API / loading / error / orchestration 的 binding。
+
+#### `ui-component-map.md`
+
+跨頁 page regions 與 reusable component map。
+
+#### `ui-route-module-map.md`
+
+UI IA 映射到 Angular route / feature module / guard 邊界。
+
+#### `ui-state-actions-matrix.md`
+
+跨頁 UI 狀態與操作矩陣。
+
+#### `ui-view-model-spec.md`
+
+前端實際使用的 view model 與 projection 規格。
+
+---
+
+### 4.8 `docs/07-design`
+
+#### `ui-wireframe-brief.md`
+
+第一輪 wireframe / prototype execution 的 scope freezing 與 shared structure 規則。
+
+#### `wireframes/README.md`
+
+目前低保真 wireframe artifact 索引與狀態說明。
+
+#### `wireframes/figma-frame-spec.md`
+
+可選用的 Figma translation spec；不是 Figma artifact 本身。
+
+---
+
+### 4.9 `docs/99-archive`
 
 #### `aggregate-design-notes-v1.md`
 
@@ -347,7 +417,19 @@ revision 歷程頁規格。
 5. `docs/05-ui/ui-page-inventory.md`
 6. 對應頁面的 `ui-page-spec-*.md`
 
-### 5.6 Frontend MFE 實作相關修改
+### 5.6 Frontend design / wireframe / prototype 相關修改
+
+1. `docs/01-requirements/decision-log.md`
+2. `.ai/rules/repo-hard-rules.md`
+3. `docs/06-frontend/frontend-design-method.md`
+4. `docs/06-frontend/frontend-design-roadmap.md`
+5. `docs/05-ui/ui-information-architecture.md`
+6. `docs/05-ui/ui-page-inventory.md`
+7. 對應頁面的 `docs/05-ui/ui-page-spec-*.md`
+8. `docs/07-design/ui-wireframe-brief.md`
+9. `docs/07-design/wireframes/*`
+
+### 5.7 Frontend MFE 實作相關修改
 
 1. `docs/01-requirements/decision-log.md`
 2. `.ai/governance/repo-governance-instruction.md`（governance entrypoint）
@@ -394,6 +476,22 @@ revision 歷程頁規格。
 * `docs/05-ui/ui-page-inventory.md`
 * `docs/05-ui/ui-information-architecture.md`
 * 各頁 page spec
+
+### 6.6 Frontend Design / Bridge
+
+* `docs/06-frontend/frontend-design-method.md`
+* `docs/06-frontend/frontend-design-roadmap.md`
+* `docs/06-frontend/ui-state-actions-matrix.md`
+* `docs/06-frontend/ui-route-module-map.md`
+* `docs/06-frontend/ui-view-model-spec.md`
+* `docs/06-frontend/ui-api-binding-matrix.md`
+* `docs/06-frontend/ui-component-map.md`
+
+### 6.7 Design Execution
+
+* `docs/07-design/ui-wireframe-brief.md`
+* `docs/07-design/wireframes/README.md`
+* `docs/07-design/wireframes/figma-frame-spec.md`
 
 ---
 
@@ -478,6 +576,18 @@ revision 歷程頁規格。
 更新：
 
 * `docs/05-ui/` 對應頁面文件
+
+#### 要改「frontend design method / implementation bridge / prototype 驗證規則」
+
+更新：
+
+* `docs/06-frontend/`
+
+#### 要改「wireframe / prototype / design execution artifact」
+
+更新：
+
+* `docs/07-design/`
 
 ---
 

@@ -45,6 +45,14 @@
 7. 各頁 `docs/05-ui/ui-page-spec-*.md`
 8. 本文件
 
+wireframe / prototype execution policy 補充：
+
+- 一般 wireframe / prototype 任務，可直接執行，不需要先等待使用者批准。
+- 免費或本地方案優先；Figma 不是預設方案。
+- 若涉及 Figma / Figma MCP、付費能力，或遇到額度 / 權限 / API / MCP / 方案限制，必須先停下來回報。
+- 若 Figma 不可行，優先 fallback 到本地 React / HTML low-fidelity prototype。
+- markdown wireframe、ASCII、Mermaid、frame spec 都是文件，不得冒充 Figma artifact 或可執行 prototype。
+
 ---
 
 ## 3. 目前已完成的文件基線

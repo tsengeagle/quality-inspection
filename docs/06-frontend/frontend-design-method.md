@@ -201,6 +201,14 @@ action_policy:
 - 已列出 spec gaps / pending confirmation。
 - 可直接餵給下一輪 `ui-route-module-map`、`ui-view-model-spec`、`ui-api-binding-matrix`。
 
+補充：
+
+- 本文件的完成只代表 frontend design truth / bridge 準備完成，不代表 wireframe、Figma artifact 或可執行 prototype 已完成。
+- 若後續要進 wireframe / prototype execution，一般情況下可直接執行，不需要先等待使用者批准。
+- 若涉及 Figma / Figma MCP、付費能力，或遇到額度 / 權限 / API / MCP / 方案限制，必須先停下來回報。
+- 免費 / 本地方案優先；Figma 不是預設方案。
+- 沒有實際 artifact，不得宣稱該 execution 任務完成。
+
 ---
 
 ## 14) Pending Confirmation

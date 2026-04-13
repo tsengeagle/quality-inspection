@@ -6,6 +6,8 @@
 
 本文件是 scope freezing，不是 wireframe 畫稿本身；不包含 visual baseline、實作規劃與程式碼細節。
 
+本文件也不是 Figma artifact 或可執行 prototype；它只定義 execution scope 與約束。
+
 ---
 
 ## 2. Source Inputs
@@ -65,6 +67,15 @@
 4. **deferred 區塊只畫 placeholder**：不能在 first-pass 假裝定稿。  
 5. **FULL/METADATA_ONLY 是同頁變體**：不得拆成獨立頁。  
 6. **command vs history 邊界不可混淆**：UI-012/UI-013 是 command pages；UI-014 只做 navigate-only（含條件入口）。
+
+## 4.1 Execution Policy
+
+1. 一般 wireframe / prototype 任務可直接執行，不需要先等待使用者批准。
+2. 免費 / 本地方案優先；Figma 不是預設方案。
+3. 若要使用 Figma / Figma MCP、付費能力，或遇到額度 / 權限 / API / MCP / 方案限制，必須先停下來回報。
+4. 若使用 Figma MCP，必須先走免費 API / 免費能力。
+5. markdown、ASCII、Mermaid、frame spec 都只能算文件；不得冒充 Figma artifact。
+6. 若 Figma 不可行，優先 fallback 到本地 React / HTML low-fidelity prototype。
 
 ---
 
@@ -285,6 +296,7 @@
 1. 依本 brief 的 P1/P2 順序繪製 first-pass wireframe。
 2. 每頁至少覆蓋本 brief 指定的 must-show regions + must-visualize variants。
 3. 對 high-risk targets（C16/C21/C22）先行評審，再展開其餘頁。
+4. 若要進一步做 flow validation，優先建立本地 React / HTML low-fidelity prototype；只有在免費能力可行且無限制時才考慮 Figma / Figma MCP。
 
 ### 畫完後需進 `ui-design-decisions.md` 的議題類型（僅列議題，不在本輪決策）
 - mode strip 與 blocked banner 的相對優先序衝突。

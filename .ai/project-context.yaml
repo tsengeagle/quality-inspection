@@ -300,6 +300,8 @@ constraints:
     - api_and_persistence_contracts_go_to_03_contracts
     - testing_material_go_to_04_testing
     - ui_ia_and_page_specs_go_to_05_ui
+    - frontend_design_method_and_bridge_go_to_06_frontend
+    - wireframe_and_prototype_execution_go_to_07_design
     - historical_notes_go_to_99_archive
   anti_patterns:
     - inventing_new_governance_logic_outside_existing_structure
@@ -321,6 +323,8 @@ quality_and_governance:
       Frontend MFE governance package (R1 active) provides daily operational rules
       for frontend implementation. Bootstrap (.ai/bootstrap/frontend-bootstrap.yaml)
       provides initialization context only. docs/05-ui/* remains solution UI page spec authority.
+      docs/06-frontend/* remains frontend design method / implementation bridge authority.
+      docs/07-design/* remains design execution artifact layer.
       docs/design/* remains broader design baseline reference.
   per_agent_instructions:
     claude_code: CLAUDE.md

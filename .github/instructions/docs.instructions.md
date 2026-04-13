@@ -27,6 +27,8 @@ When modifying docs, use the correct file for each type of change:
 | Concrete examples / acceptance rules | `docs/04-testing/specification-by-example.md` |
 | Test scenarios | `docs/04-testing/test-scenarios.md` |
 | UI page behavior / screen spec | `docs/05-ui/ui-page-spec-*.md` |
+| Frontend design method / implementation bridge | `docs/06-frontend/*.md` |
+| Wireframe / prototype / design execution artifact | `docs/07-design/*.md` |
 
 **`docs/99-archive/` is NOT current authority** — historical reference only. If it conflicts with current docs, current docs win.
 
@@ -52,3 +54,4 @@ Before changing any rule that affects:
 - Write state machine rules only in API spec (use `state-machine.md` as the primary source)
 - Let UI page spec drive aggregate invariant decisions
 - Treat archive as current authority
+- Treat markdown frame specs / ASCII / Mermaid as Figma artifacts or executable prototypes

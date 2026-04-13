@@ -37,6 +37,7 @@ Before making changes, classify the task:
 |---|---|
 | Shell-facing interaction, workspace ownership, standalone support, runtime assets | `frontend-mfe-governance.md` |
 | New page, page layout, patient context, tabs, tables, empty states, loading, modal choice, styling | `frontend-design-language-mfe.md` |
+| Wireframe, low-fidelity prototype, design execution, flow validation artifact | `../../docs/06-frontend/frontend-design-method.md`, `../../docs/06-frontend/frontend-design-roadmap.md`, `../../docs/07-design/ui-wireframe-brief.md`, `../../docs/07-design/wireframes/README.md`, `../../.ai/rules/repo-hard-rules.md` |
 | Need rule rationale or R1 override background | `frontend-mfe-decisions-r1.md` |
 | Need broader baseline or migration context | `authority-sources.md` |
 

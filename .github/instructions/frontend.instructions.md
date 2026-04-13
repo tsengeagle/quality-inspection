@@ -19,6 +19,8 @@ Before any frontend change, read in order:
 5. `docs/05-ui/ui-information-architecture.md`
 6. `docs/05-ui/ui-page-inventory.md`
 7. Relevant `docs/05-ui/ui-page-spec-*.md` for the page being changed
+8. Relevant `docs/06-frontend/*.md` when the task touches frontend bridge, wireframe, or prototype rules
+9. Relevant `docs/07-design/*.md` when the task touches wireframe, prototype, or design execution artifacts
 
 ---
 
@@ -64,6 +66,17 @@ state/       # client state (不得冒充 domain truth)
 - Component-level usage details (wrapper pattern, design token mechanism) are **pending confirmation**
 - Do NOT invent component details or design tokens beyond what is confirmed in the repo
 - If precise component usage is needed, ask the user for existing UI component sample files
+
+---
+
+## Prototype / Wireframe Execution
+
+- General wireframe / prototype tasks do not require prior user approval.
+- Prefer free or local solutions first; Figma is not the default path.
+- If a task requires Figma / Figma MCP / paid capabilities, or hits quota / permission / API / MCP / plan limits, stop and report before proceeding.
+- If Figma MCP is used, try free API / free capabilities first.
+- Markdown wireframes, frame specs, ASCII, and Mermaid are documentation artifacts only; they do not prove a Figma artifact exists.
+- If Figma is not feasible, prefer a local React / HTML low-fidelity prototype.
 
 ---
 

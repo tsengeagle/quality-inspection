@@ -28,7 +28,9 @@ Copilot Chat 會自動讀取此檔作為所有對話的背景指引。
 5. `docs/03-contracts/*` — API spec / persistence model
 6. `docs/04-testing/*` — specification-by-example / test scenarios
 7. `docs/05-ui/*` — UI IA / page spec
-8. `docs/99-archive/*` — 僅歷史參考，非現行 authority
+8. `docs/06-frontend/*` — frontend design method / implementation bridge
+9. `docs/07-design/*` — wireframe / prototype / design execution
+10. `docs/99-archive/*` — 僅歷史參考，非現行 authority
 
 ---
 
@@ -51,6 +53,7 @@ Copilot Chat 會自動讀取此檔作為所有對話的背景指引。
 - **未經 evidence 確認的事項不得宣稱完成**：尚未有 source code / build script / CI 的 gate 不得宣稱通過。
 - **核心規則要變時，先更新 `decision-log.md`**，不直接改實作。
 - **archive 不作現行 authority**：`docs/99-archive/` 與現行文件衝突時，現行文件優先。
+- **wireframe / prototype 執行預設可直接進行**：但若涉及 Figma / Figma MCP、付費能力，或遇到額度 / 權限 / API / MCP / 方案限制，必須先回報；免費 / 本地優先，沒有實際 artifact 不得宣稱完成。
 - **specification-by-example 與 test-scenarios 分工不可混淆**：
   - `specification-by-example.md` — 固定共同理解與規則例子
   - `test-scenarios.md` — 轉成可驗證情境與覆蓋

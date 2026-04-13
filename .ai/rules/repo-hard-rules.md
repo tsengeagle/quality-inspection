@@ -16,7 +16,9 @@
 5. `docs/03-contracts/*`
 6. `docs/04-testing/*`
 7. `docs/05-ui/*`
-8. `docs/99-archive/*` — 僅供歷史參考，不作現行 authority
+8. `docs/06-frontend/*`
+9. `docs/07-design/*`
+10. `docs/99-archive/*` — 僅供歷史參考，不作現行 authority
 
 ## 2. Change Placement Discipline
 
@@ -27,6 +29,8 @@
 - API contract / persistence model -> `docs/03-contracts/`
 - Testing examples and scenarios -> `docs/04-testing/`
 - UI IA / page spec -> `docs/05-ui/`
+- Frontend design method / implementation bridge -> `docs/06-frontend/`
+- Wireframe / prototype / design execution -> `docs/07-design/`
 
 不得：
 - 在 controller / DTO 中重新定義 domain rule
@@ -70,7 +74,17 @@
 - UI 規格與 domain / API 脫鉤
 - testing 出現無對應 example / decision 的高風險規則
 
-## 9. Solution-Level Completion Format
+## 9. Wireframe / Prototype Execution Policy
+
+- 一般 wireframe / prototype 任務，可直接執行，不需要先等待使用者批准。
+- 若要使用 Figma / Figma MCP、付費能力，或遇到額度 / 權限 / API / MCP / 方案限制，必須先停下來回報。
+- 免費或本地方案優先；Figma 不是預設方案。
+- 若使用 Figma MCP，必須先走免費 API / 免費能力。
+- 沒有實際 artifact，不得宣稱完成。
+- markdown、frame spec、ASCII、Mermaid 都是文件，不得冒充 Figma artifact。
+- 若 Figma 不可行，優先 fallback 到本地 React / HTML low-fidelity prototype。
+
+## 10. Solution-Level Completion Format
 
 每次變更完成後，應提供：
 1. Authority sources used
@@ -78,3 +92,4 @@
 3. Placement decision rationale
 4. Assumptions / pending confirmations
 5. Unverified items disclosure
+

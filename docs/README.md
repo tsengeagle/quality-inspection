@@ -53,6 +53,17 @@
    - `05-ui/ui-page-spec-ui013複審作業頁.md`
    - `05-ui/ui-page-spec-ui014revision歷程頁.md`
 
+### F. 再看 frontend bridge 與 design execution
+20. `06-frontend/frontend-design-method.md`
+21. `06-frontend/frontend-design-roadmap.md`
+22. `06-frontend/ui-state-actions-matrix.md`
+23. `06-frontend/ui-route-module-map.md`
+24. `06-frontend/ui-view-model-spec.md`
+25. `06-frontend/ui-api-binding-matrix.md`
+26. `06-frontend/ui-component-map.md`
+27. `07-design/ui-wireframe-brief.md`
+28. `07-design/wireframes/README.md`
+
 ---
 
 ## 2. 目錄分層說明
@@ -182,6 +193,29 @@ UI 設計層。
 
 ---
 
+### `06-frontend/`
+Frontend design method 與 implementation bridge 層。
+
+放置：
+- frontend design method
+- design roadmap
+- route / module / view model / API binding / component map
+- frontend test scenarios
+- review gate 與 bridge-level pending items
+
+---
+
+### `07-design/`
+Design execution 層。
+
+放置：
+- wireframe brief
+- wireframes
+- prototype / flow validation artifacts
+- 必要時的 Figma translation spec
+
+---
+
 ## 3. Authority 優先順序
 
 若文件之間出現衝突，建議依以下順序判斷：
@@ -201,6 +235,8 @@ UI 設計層。
 13. `04-testing/test-scenarios.md`
 14. `05-ui/ui-information-architecture.md`
 15. `05-ui/ui-page-spec-*.md`
+16. `06-frontend/*`
+17. `07-design/*`
 
 ---
 
@@ -257,6 +293,9 @@ UI 設計層。
 * `05-ui/ui-page-inventory.md`
 * `05-ui/ui-information-architecture.md`
 * 各 `ui-page-spec-*.md`
+* `06-frontend/frontend-design-method.md`
+* `06-frontend/frontend-design-roadmap.md`
+* `07-design/ui-wireframe-brief.md`
 
 ### AI Agent
 
@@ -272,6 +311,8 @@ UI 設計層。
   * `03-contracts/persistence-model.md`
   * `04-testing/test-scenarios.md`
   * `05-ui/ui-page-spec-*.md`
+  * `06-frontend/*`
+  * `07-design/*`
 
 ---
 
@@ -325,6 +366,11 @@ UI 設計層。
    * `05-ui/ui-page-inventory.md`
    * `05-ui/ui-information-architecture.md`
    * 對應 `ui-page-spec-*.md`
+
+5. 若 frontend bridge、wireframe 或 prototype execution 規則改變，至少同步更新：
+
+  * `06-frontend/` 對應 bridge 文件
+  * `07-design/` 對應 design execution 文件
 
 ---
 

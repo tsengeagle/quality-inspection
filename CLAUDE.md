@@ -18,7 +18,9 @@
 5. `docs/03-contracts/*`
 6. `docs/04-testing/*`
 7. `docs/05-ui/*`
-8. `docs/99-archive/*` — 僅歷史參考，非現行 authority
+8. `docs/06-frontend/*`
+9. `docs/07-design/*`
+10. `docs/99-archive/*` — 僅歷史參考，非現行 authority
 
 ## Key rules
 
@@ -26,6 +28,7 @@
 - 不做任務範圍外的 incidental refactor
 - 未經 evidence 確認的事項不得宣稱完成
 - archive 不作現行 authority
+- 一般 wireframe / prototype 任務可直接執行；若涉及 Figma / Figma MCP、付費能力，或遇到額度 / 權限 / API / MCP / 方案限制，必須先回報；免費 / 本地優先
 - specification-by-example 與 test-scenarios 分工不可混淆
 - 核心規則要變時，先更新 decision-log，不直接改實作
 
