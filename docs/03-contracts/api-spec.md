@@ -65,6 +65,18 @@ Accept: application/json
 * `caseId`
 * `submissionId`
 
+### 3.6 Metadata-only Projection Whitelist (O3-C)
+
+`SYSTEM_ADMIN` 採 **shared base + page extension** 投影策略：
+
+- shared base：`caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`
+- page extension：
+  - UI-009：`batchId`, `dueAt`
+  - UI-010：`lifecycleLatestStage`, `latestRevisionSummary`
+  - UI-014：`stage`, `revisionNo`, `submittedAt`, `submittedBy`, `isCurrentEffective`
+
+超出白名單欄位視為 FULL-only，不得回傳於 metadata-only 視角。
+
 ### 3.5 共用回應外殼
 
 #### 成功
@@ -1236,7 +1248,7 @@ Accept: application/json
 ### 17.1 API 不可違反的規則
 
 * 不可用 update API 覆寫已提交 submission
-* 不可在 `CLOSED` / `CANCELLED` 後 revision
+* 不可在 `CANCELLED` 後 revision；`CLOSED` 僅允許複審 revision（D-021 例外）
 * revision 不等於 reopen
 * 初審 / 複審 revision actor 不可混用
 * 抽選執行必須使用正式 published version

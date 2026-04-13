@@ -457,8 +457,8 @@
 - `ReviewSubmission`
 - `POST /review-cases/{caseId}/initial-review/start`
 - `POST /review-cases/{caseId}/initial-review/draft`
-- `POST /review-submissions/{submissionId}/initial-review/submit`
-- `POST /review-submissions/{submissionId}/initial-review/revise`
+- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
+- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`
 
 ---
 
@@ -490,8 +490,8 @@
 - `ReviewSubmission`
 - `POST /review-cases/{caseId}/rereview/start`
 - `POST /review-cases/{caseId}/rereview/draft`
-- `POST /review-submissions/{submissionId}/rereview/submit`
-- `POST /review-submissions/{submissionId}/rereview/revise`
+- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
+- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
 
 ---
 

@@ -42,8 +42,8 @@
 ### 對應主要 API
 - `POST /review-cases/{caseId}/rereview/start`
 - `POST /review-cases/{caseId}/rereview/draft`
-- `POST /review-submissions/{submissionId}/rereview/submit`
-- `POST /review-submissions/{submissionId}/rereview/revise`
+- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
+- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
 
 ---
 
@@ -447,12 +447,13 @@ page_modes:
 
 ### 頁面行為
 
-* `READONLY_BLOCKED`
+* `REVISION_EXCEPTION_CLOSED`（限原複審醫師）或 `READONLY_BLOCKED`（其他人）
 * 顯示：
 
   * 此案件已結案
-  * 不可 revision
-* 不顯示草稿 / 提交按鈕
+  * 新複審提交不可執行
+  * 允許以 revision 例外流程修正既有複審結果（不構成 reopen）
+* 不顯示一般草稿 / 提交按鈕；僅顯示複審修正入口（合法責任人）
 
 ---
 
@@ -495,8 +496,8 @@ page_modes:
 
 * stage = `REREVIEW`
 * actor = assigned rereviewer
-* case status != `CLOSED`
 * case status != `CANCELLED`
+* 若 case status = `CLOSED`，僅允許例外 revision flow（D-021）
 * 存在可作為 base 的 submitted rereview submission
 
 ### 8.2 revision 模式的 UI 表現
@@ -630,11 +631,11 @@ page_modes:
 
 ### 12.3 提交複審
 
-* `POST /review-submissions/{submissionId}/rereview/submit`
+* `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
 
 ### 12.4 修正複審
 
-* `POST /review-submissions/{submissionId}/rereview/revise`
+* `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
 
 ---
 
