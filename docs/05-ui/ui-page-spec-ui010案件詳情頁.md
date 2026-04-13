@@ -337,6 +337,7 @@
 顯示：
 
 * 目前為 metadata only 視角
+* metadata 欄位採 shared base + page extension whitelist（不可回傳 full answers/comments/attachments）
 * 完整作答內容已遮罩
 
 #### 當使用者非合法責任人

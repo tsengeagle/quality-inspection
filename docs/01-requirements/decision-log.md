@@ -1082,3 +1082,79 @@ decision_dependencies:
 * `test-scenarios.md`
 
 若後續某份文件與本文件衝突，應先以本文件檢查該規則是否已被正式接受。
+
+
+---
+
+## D-027 — CLOSED 後複審修正入口策略（O1-C）
+
+### Status
+
+`accepted`
+
+### Category
+
+`frontend-workflow-entry`
+
+### Decision
+
+當 case status = `CLOSED` 時：
+
+- `UI-014` 允許對「原複審醫師」顯示條件式「前往複審修正」導頁入口
+- 真正的修正 command 僅在 `UI-013` 執行（例外修正模式）
+- 不允許 reopen，不允許新的複審提交
+
+### Rationale
+
+* 對齊 D-021 的 domain 例外與 command page 責任分層
+* history page 保持閱讀/導頁定位，不直接提交
+
+### Affected Artifacts
+
+* `ui-page-spec-ui013複審作業頁.md`
+* `ui-page-spec-ui014revision歷程頁.md`
+* `ui-state-actions-matrix.md`
+* `frontend-test-scenarios.md`
+
+### Consequences
+
+* CLOSED 下「新提交」維持 blocked
+* CLOSED 下「複審修正」僅限合法責任人，且為 append-only
+
+---
+
+## D-028 — Metadata-only 欄位白名單採 shared base + page extension（O3-C）
+
+### Status
+
+`accepted`
+
+### Category
+
+`permission-and-visibility`
+
+### Decision
+
+`SYSTEM_ADMIN` / metadata-only 視角採：
+
+- shared base whitelist
+- per-page extension whitelist（UI-009/UI-010/UI-014）
+
+metadata-only 為 projection，不是獨立頁，不得取得 FULL-only 欄位。
+
+### Rationale
+
+* 在一致性與頁面差異需求間取得平衡
+* 可直接支援前端 view-model projection 與 section visibility
+
+### Affected Artifacts
+
+* `permission-matrix.md`
+* `api-spec.md`
+* `ui-view-model-spec.md`
+* `ui-api-binding-matrix.md`
+
+### Consequences
+
+* 白名單成為 metadata-only mapper 的唯一來源
+* FULL-only 欄位不得在 metadata-only response 出現

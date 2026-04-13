@@ -43,7 +43,7 @@ Revision 歷程頁
 
 ### 對應主要 API
 - `GET /review-cases/{caseId}/revisions`
-- `GET /review-submissions/{submissionId}` [供詳情 / 比對時補抓]
+- `GET /review-cases/{caseId}/submissions/{submissionId}` [供詳情 / 比對時補抓，case-rooted]
 
 ---
 
@@ -480,8 +480,8 @@ detail_modes:
 
 顯示：
 
-* `案件已結案，revision 歷程僅供查閱`
-* 不顯示任何導向 revision 作業頁的按鈕
+* `案件已結案，revision 歷程預設唯讀；若你是原複審醫師可使用複審修正例外入口`
+* 顯示條件式「前往複審修正」導頁按鈕（僅合法責任人）
 
 ### 8.2 當案件 `CANCELLED`
 
@@ -581,13 +581,13 @@ detail_modes:
 
 ### 11.2 單一 submission 詳細摘要 [可選]
 
-* `GET /review-submissions/{submissionId}`
+* `GET /review-cases/{caseId}/submissions/{submissionId}`
 
 ### 11.3 差異摘要 API [可後補]
 
 若後續需要伺服器端差異計算，可考慮：
 
-* `GET /review-submissions/{submissionId}/compare?with={otherSubmissionId}`
+* `GET /review-cases/{caseId}/submissions/{submissionId}/compare?with={otherSubmissionId}`
 
 本版可先不強制要求。
 
