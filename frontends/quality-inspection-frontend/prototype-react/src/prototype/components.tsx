@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import type {
+  AssignmentPickerPreviewModel,
   CommandAction,
   CriticalFlowStep,
   LinkAction,
@@ -7,6 +8,7 @@ import type {
   SummaryField,
   TimelineRecord,
   VariantOption,
+  WorkQueueRow,
 } from './types';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -22,6 +24,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="hub-nav">
             <Link to="/">首頁</Link>
             <Link to="/review-harness">Review Harness</Link>
+            <Link to="/cases?variant=MANAGER_DEFAULT_WORKLIST">UI-009</Link>
+            <Link to="/cases/CASE-240013/assign?variant=ASSIGN_INITIAL">UI-011</Link>
+            <Link to="/cases/CASE-240013/initial-review?variant=NEW_INITIAL_REVIEW">UI-012</Link>
             <Link to="/cases/CASE-240013/detail?variant=FULL">UI-010</Link>
             <Link to="/cases/CASE-240013/revisions?variant=ALL">UI-014</Link>
             <Link to="/cases/CASE-240013/rereview?variant=NEW_REREVIEW">UI-013</Link>
@@ -76,6 +81,7 @@ export function PageFrame({
   modeStrip,
   banner,
   projectionNotice,
+  projectionPlacement = 'banner',
   summaryFields,
   roleSummary,
   reviewerNotes,
@@ -86,6 +92,7 @@ export function PageFrame({
   modeStrip: string;
   banner?: { tone: 'info' | 'blocked' | 'exception'; title: string; detail: string };
   projectionNotice?: string;
+  projectionPlacement?: 'banner' | 'inline';
   summaryFields: SummaryField[];
   roleSummary: string;
   reviewerNotes: string[];
@@ -99,10 +106,16 @@ export function PageFrame({
           <span className="subtle">{roleSummary}</span>
         </div>
         <h2>{pageName}</h2>
+        {projectionNotice && projectionPlacement === 'inline' ? (
+          <div className="inline-projection-note">
+            <strong>Projection notice</strong>
+            <span>{projectionNotice}</span>
+          </div>
+        ) : null}
         <SummaryGrid fields={summaryFields} compact={false} />
       </section>
 
-      {projectionNotice ? (
+      {projectionNotice && projectionPlacement === 'banner' ? (
         <section className="panel banner-panel projection">
           <strong>Projection notice</strong>
           <p>{projectionNotice}</p>
@@ -223,10 +236,14 @@ export function TimelinePanel({ records }: { records: TimelineRecord[] }) {
 }
 
 export function CommandBar({
+  title = 'Command bar',
+  description = 'command zone',
   actions,
   lastResult,
   onRun,
 }: {
+  title?: string;
+  description?: string;
   actions: CommandAction[];
   lastResult: string;
   onRun: (action: CommandAction) => void;
@@ -234,8 +251,8 @@ export function CommandBar({
   return (
     <section className="panel section-gap command-panel">
       <div className="section-header">
-        <h3>Command bar</h3>
-        <p>UI-013 專用，與 navigate-only action zone 分離</p>
+        <h3>{title}</h3>
+        <p>{description}</p>
       </div>
       <div className="action-list">
         {actions.map((action) =>
@@ -262,6 +279,86 @@ export function CommandBar({
         <p>{lastResult || '尚未執行 command。'}</p>
       </div>
     </section>
+  );
+}
+
+export function FilterChipRow({ chips }: { chips: string[] }) {
+  return (
+    <div className="filter-chip-row">
+      {chips.map((chip) => (
+        <span className="filter-chip" key={chip}>
+          {chip}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+export function WorkQueueTable({ rows }: { rows: WorkQueueRow[] }) {
+  return (
+    <section className="panel section-gap">
+      <div className="section-header">
+        <h3>Case work queue</h3>
+        <p>row-level navigate-only actions / 顯示 {rows.length} 筆示範案件</p>
+      </div>
+      <div className="workqueue-grid">
+        {rows.map((row) => (
+          <article className="workqueue-card" key={`${row.caseId}-${row.title}`}>
+            <div className="workqueue-top">
+              <div>
+                <p className="eyebrow">{row.caseId}</p>
+                <h4>{row.title}</h4>
+              </div>
+            </div>
+            <SummaryGrid fields={row.fields} />
+            {row.note ? <p className="scenario-description">{row.note}</p> : null}
+            <div className="action-list workqueue-action-list">
+              {row.actions.map((action) =>
+                action.disabled ? (
+                  <div className="action-card disabled" key={`${row.caseId}-${action.label}`}>
+                    <strong>{action.label}</strong>
+                    <span>{action.reason ?? 'blocked'}</span>
+                  </div>
+                ) : (
+                  <Link
+                    className={`action-card ${action.tone ?? 'default'}`}
+                    key={`${row.caseId}-${action.label}`}
+                    to={action.to ?? '#'}
+                  >
+                    <strong>{action.label}</strong>
+                    <span>navigate</span>
+                  </Link>
+                ),
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function AssignmentPickerPreview({
+  model,
+}: {
+  model: AssignmentPickerPreviewModel;
+}) {
+  return (
+    <div className={`assignment-picker-preview ${model.state}`}>
+      <div className="assignment-picker-meta">
+        <span className="eyebrow">picker placeholder</span>
+        <span className="subtle">{model.state}</span>
+      </div>
+      <div className={`assignment-picker-cta ${model.state}`}>
+        <strong>{model.actionLabel}</strong>
+        <span>{model.helperText}</span>
+      </div>
+      <div className="assignment-selection-slot">
+        <span>{model.slotLabel}</span>
+        <strong>{model.currentValue}</strong>
+      </div>
+      {model.candidateOptions.length ? <FilterChipRow chips={model.candidateOptions} /> : null}
+    </div>
   );
 }
 

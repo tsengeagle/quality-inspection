@@ -10,6 +10,11 @@ import {
   harnessSharedStructureNotes,
   reviewHarnessGroups,
 } from '../data';
+import {
+  p2HarnessDeferredNotes,
+  p2HarnessSharedStructureNotes,
+  p2ReviewHarnessGroups,
+} from '../p2Data';
 
 export function HomeScreen() {
   return (
@@ -17,10 +22,10 @@ export function HomeScreen() {
       <div className="page-stack">
         <section className="panel hero-panel">
           <p className="eyebrow">Review harness</p>
-          <h2>P1 scenario index / review harness</h2>
+          <h2>P1 + P2 scenario index / review harness</h2>
           <p>
-            這個 review harness 固定 UI-010、UI-013、UI-014 的高風險場景、critical flow 與 shared
-            structure 檢查點。reviewer 不需要手動拼 URL 或猜 variant。
+            這個 review harness 固定 P1 與 P2 的 page role、shared structure、mode、projection 與
+            command / navigate 邊界。reviewer 不需要手動拼 URL 或猜 variant。
           </p>
           <div className="hero-actions">
             <Link className="action-card primary scenario-link" to="/review-harness">
@@ -32,7 +37,7 @@ export function HomeScreen() {
             <article className="review-meta-card">
               <strong>Shared structures</strong>
               <ul className="flat-list compact-list">
-                {harnessSharedStructureNotes.map((item) => (
+                {[...harnessSharedStructureNotes, ...p2HarnessSharedStructureNotes].map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -40,7 +45,7 @@ export function HomeScreen() {
             <article className="review-meta-card deferred-card">
               <strong>Deferred / placeholder</strong>
               <ul className="flat-list compact-list">
-                {harnessDeferredNotes.map((item) => (
+                {[...harnessDeferredNotes, ...p2HarnessDeferredNotes].map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -51,6 +56,10 @@ export function HomeScreen() {
         <CriticalFlowPanel steps={criticalFlowSteps} />
 
         {reviewHarnessGroups.map((group) => (
+          <ReviewScenarioSection group={group} key={group.pageId} />
+        ))}
+
+        {p2ReviewHarnessGroups.map((group) => (
           <ReviewScenarioSection group={group} key={group.pageId} />
         ))}
       </div>

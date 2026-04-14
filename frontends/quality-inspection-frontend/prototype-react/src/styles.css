@@ -463,6 +463,103 @@ button {
   scroll-margin-top: 20px;
 }
 
+.inline-projection-note {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #b8c5d1;
+  background: #edf3f8;
+}
+
+.inline-projection-note strong,
+.inline-projection-note span {
+  font-size: 13px;
+}
+
+.filter-chip-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.workqueue-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.workqueue-card {
+  border: 1px solid var(--border);
+  background: #fcfcfd;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.workqueue-top h4 {
+  margin: 4px 0 0;
+}
+
+.workqueue-action-list {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.assignment-picker-preview {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  background: #fcfcfd;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.assignment-picker-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.assignment-picker-cta,
+.assignment-selection-slot {
+  border: 1px dashed var(--border);
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+}
+
+.assignment-picker-cta.enabled {
+  border-style: solid;
+  border-color: var(--accent);
+  background: #eef4fb;
+}
+
+.assignment-picker-cta.readonly {
+  background: #f5f5f5;
+}
+
+.assignment-picker-cta.blocked {
+  background: var(--blocked-soft);
+  border-color: var(--blocked);
+}
+
+.assignment-selection-slot span,
+.assignment-picker-cta span {
+  color: var(--text-subtle);
+  font-size: 13px;
+}
+
 @media (max-width: 960px) {
   .app-shell {
     grid-template-columns: 1fr;

@@ -43,6 +43,14 @@ export interface LinkAction {
   reason?: string;
 }
 
+export interface WorkQueueRow {
+  caseId: string;
+  title: string;
+  fields: SummaryField[];
+  actions: LinkAction[];
+  note?: string;
+}
+
 export interface CommandAction {
   label: string;
   tone?: 'default' | 'primary' | 'warning';
@@ -59,7 +67,7 @@ export interface VariantOption {
 
 export interface ReviewScenario {
   label: string;
-  pageId: 'UI-010' | 'UI-013' | 'UI-014';
+  pageId: 'UI-009' | 'UI-010' | 'UI-011' | 'UI-012' | 'UI-013' | 'UI-014';
   variantId: string;
   description: string;
   path: string;
@@ -69,7 +77,7 @@ export interface ReviewScenario {
 
 export interface ReviewScenarioGroup {
   title: string;
-  pageId: 'UI-010' | 'UI-013' | 'UI-014';
+  pageId: 'UI-009' | 'UI-010' | 'UI-011' | 'UI-012' | 'UI-013' | 'UI-014';
   archetype: string;
   pageRole: string;
   summary: string;
@@ -126,4 +134,40 @@ export interface RevisionPreset extends PagePresetBase {
   compareMode: 'SINGLE' | 'COMPARE' | 'METADATA_COMPARE';
   compareSummary: SummaryField[];
   navigateActions: LinkAction[];
+}
+
+export interface WorkQueuePreset extends PagePresetBase {
+  tabMode: string;
+  filterChips: string[];
+  rows: WorkQueueRow[];
+  nextStepHint: string;
+  emptyMessage?: string;
+}
+
+export interface AssignmentPickerPreviewModel {
+  slotLabel: string;
+  currentValue: string;
+  actionLabel: string;
+  helperText: string;
+  candidateOptions: string[];
+  state: 'enabled' | 'readonly' | 'blocked';
+}
+
+export interface AssignmentPreset extends PagePresetBase {
+  assignmentMode: string;
+  modeExplanation: string;
+  reviewerSectionFields: SummaryField[];
+  rereviewerSectionFields: SummaryField[];
+  reviewerPicker: AssignmentPickerPreviewModel;
+  rereviewerPicker: AssignmentPickerPreviewModel;
+  helperLines: string[];
+  commandActions: CommandAction[];
+  navigateActions: LinkAction[];
+}
+
+export interface InitialReviewPreset extends PagePresetBase {
+  formOutline: string[];
+  revisionContextFields: SummaryField[];
+  versionFields: SummaryField[];
+  commandActions: CommandAction[];
 }
