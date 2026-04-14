@@ -83,37 +83,27 @@ Round: P1 structural wireframes only.
 
 ---
 
-## Candidate Issues for `ui-design-decisions.md`
+## Remaining Candidate Issues for `ui-design-decisions.md`
 
-The following items were identified across the three wireframes as **open questions** that require design decisions **before visual baseline work can begin**:
+The following items remain open across the three wireframes after the approved backwrite for DD-001 / DD-003 / DD-004 / DD-005 / DD-006 / DD-007 / DD-008:
 
 ### Category: Layout / Visual Priority
 
-1. C16 sticky / fixed 策略 (UI-013): long form scroll time command bar visibility
-2. C02 vs C03 優先序 (all pages): when both blocked banner and mode indicator must show
-3. C04 vs C02 版面排列 (UI-010, UI-014): metadata-only + terminal state combined banner
-
-### Category: Exception UX
-
-4. C02 CLOSED exception vs READONLY_BLOCKED 視覺語意分化 (UI-013)
-5. C03 CLOSED_REVISION_EXCEPTION mode label 文案 (UI-013)
-6. C22 exception entry 控件類型: link vs outlined button (UI-014)
+1. C02 vs C03 優先序 (all pages): when both blocked banner and mode indicator must show
 
 ### Category: Information Architecture
 
-7. C21 METADATA_ONLY compare 遮罩層級 (UI-014): N題遮罩 vs 完全不顯示比較區
-8. C08 action visible vs disabled 分離策略 (UI-010)
-9. C10/C11 cross-role summary visibility (UI-010): can reviewer see C11?
+2. C10/C11 cross-role summary visibility (UI-010): can reviewer see C11?
 
 ### Category: Visual Language
 
-10. Effective version badge design token (UI-014): current vs superseded colour semantics
-11. UI-014 stage tab 預設切換策略 (interaction vs routing)
+3. Effective version badge design token (UI-014): current vs superseded colour semantics
+4. UI-014 stage tab 預設切換策略 (interaction vs routing)
 
 ### Category: Deferred Reactivation
 
-12. C24 RevisionLifecycleEntryArea 細分策略 (UI-010): single zone vs sub-zones
-13. C16 CLOSED exception button label 文案統一 (UI-013)
+5. C24 RevisionLifecycleEntryArea 細分策略 (UI-010): single zone vs sub-zones
+6. C16 CLOSED exception button label 文案統一 (UI-013)
 
 ---
 

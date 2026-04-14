@@ -424,12 +424,11 @@ detail_modes:
 ### 可看
 
 * metadata only revision list
-* submissionId
 * stage
 * revisionNo
 * submittedAt
-* actorId
-* status
+* submittedBy
+* currentEffective
 
 ### 不可看
 
@@ -440,7 +439,8 @@ detail_modes:
 
 ### UI 原則
 
-* 若 system admin 進入本頁，應以 metadata-only banner 明確提示
+* 若 system admin 進入本頁，應以 metadata-only projection indicator 明確提示
+* 若同時存在 terminal / exception / blocked 提示，projection indicator 應附著於 header 區；主 banner 仍由狀態提示承擔
 
 ---
 
@@ -468,7 +468,7 @@ detail_modes:
 ### 7.3 分數顯示
 
 * manager / auditor / 合法 reviewer / rereviewer：可看 score 摘要
-* system admin：不顯示或僅顯示 masked score metadata [依後續策略]
+* system admin：不顯示 score 數值；若保留欄位僅以 `—` 佔位
 
 ---
 
@@ -481,7 +481,7 @@ detail_modes:
 顯示：
 
 * `案件已結案，revision 歷程預設唯讀；若你是原複審醫師可使用複審修正例外入口`
-* 顯示條件式「前往複審修正」導頁按鈕（僅合法責任人）
+* 顯示條件式「前往複審修正（例外）」導頁入口（僅合法責任人；navigate-only，不是 submit）
 
 ### 8.2 當案件 `CANCELLED`
 
@@ -536,6 +536,8 @@ detail_modes:
 
 * 顯示 metadata banner
 * 差異與內容摘要受遮罩
+* FULL-only 類別保留 label，值以 `—` 佔位
+* compare 區顯示 `詳細差異內容不適用於此視角`
 
 ---
 

@@ -183,6 +183,7 @@ page_modes:
   - NEW_REREVIEW
   - EDIT_DRAFT
   - REVISION
+  - REVISION_EXCEPTION_CLOSED
   - READONLY_BLOCKED
 ```
 
@@ -208,6 +209,12 @@ page_modes:
 * 案件不允許複審操作
 * 例如未進複審 / 已結案 / 已取消 / 非本人
 
+#### `REVISION_EXCEPTION_CLOSED`
+
+* 僅限原複審醫師
+* UI mode label 顯示為 `例外修正（已結案）`
+* 屬 revision exception，不構成 reopen
+
 ### 建議提示訊息
 
 #### 複審草稿模式
@@ -221,6 +228,7 @@ page_modes:
 #### blocked 模式
 
 * `案件目前不可執行複審作業`
+* 使用 blocked 語意，不與 exception warning tone 混淆
 
 ---
 
@@ -453,6 +461,7 @@ page_modes:
   * 此案件已結案
   * 新複審提交不可執行
   * 允許以 revision 例外流程修正既有複審結果（不構成 reopen）
+  * exception 提示採 warning / amber 語意；其他 readonly blocked 維持 blocked 語意
 * 不顯示一般草稿 / 提交按鈕；僅顯示複審修正入口（合法責任人）
 
 ---

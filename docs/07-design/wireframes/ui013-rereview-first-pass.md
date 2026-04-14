@@ -44,7 +44,7 @@
 │  [條件出現 — blocked / CLOSED_exception 時顯示]              │
 ├─────────────────────────────────────────────────────────────┤
 │ C03  ModeIndicatorStrip                                     │
-│  [NEW_REREVIEW / EDIT_DRAFT / REVISION / READONLY / CLOSED] │
+│  [NEW_REREVIEW / EDIT_DRAFT / REVISION / READONLY / 例外修正（已結案）] │
 ├─────────────────────────────────────────────────────────────┤
 │ C15  ReviewFormSummaryStrip                                 │
 │  [case context | stage=REREVIEW | version | assignee]       │
@@ -80,7 +80,7 @@
 
 > **Region 順序原則**：上下脈絡（C01）→ 警示（C02）→ 行為模式（C03）→ 頁面摘要（C15）→ 前置參考（C18）→ 主作業區 → 決策摘要（C19）→ 命令列（C16）→ 版本摘要（C17）。
 > 
-> **C16 必須維持高可見優先序**，不得沈到頁底被 scroll 遮蓋。建議固定或 sticky 版面（設計細節延後至 ui-design-decisions.md）。
+> **C16 必須維持高可見優先序**，不得沈到頁底被 scroll 遮蓋。P1 backwrite 採 **viewport-fixed bottom bar**；主作業區需預留對應底部補白，避免最後一題被遮住。
 
 ---
 
@@ -156,7 +156,7 @@ C17: [basedOn submissionId / revisionNo → new revision pending]
 
 ```
 C01: [Summary Header — FULL or limited]
-C02: [banner: BLOCKED reason — e.g. "此案件已取消，不可執行複審作業" OR
+C02: [banner: BLOCKED tone / reason — e.g. "此案件已取消，不可執行複審作業" OR
               "你不是本案件的複審醫師" OR
               "案件尚未進入複審流程"]
 C03: [Mode = READONLY_BLOCKED]
@@ -181,11 +181,12 @@ C17: [readonly 版本摘要（若有）]
 
 ```
 C01: [Summary Header — FULL]
-C02: [banner: EXCEPTION — "此案件已結案，新提交已禁止。
+C02: [banner: EXCEPTION / amber-warning tone — "此案件已結案，新提交已禁止。
               合法例外：你可以發起複審修正（revision），不開啟新提交。"
-              ★ 文案與 READONLY_BLOCKED 必須視覺不同（顏色/icon/語意）]
+              ★ 文案與 READONLY_BLOCKED 必須視覺不同（tone/icon/語意）]
 C03: [Mode = CLOSED_REVISION_EXCEPTION]
-     [★ mode strip 須明確標示例外語意，不可與一般 REVISION 模式混淆]
+     [display label = "例外修正（已結案）"]
+     [★ mode strip 須明確標示例外語意，不可與一般 REVISION 模式混淆，也不可暗示 reopen]
 C15: [context strip + CLOSED case indicator]
 C18: [Initial Summary Reference — FULL (readonly)]
      主作業區: [帶入最後一版複審答案（可編輯用於 revision）]
@@ -230,10 +231,10 @@ C17: [basedOn = last effective submissionId / revisionNo]
 **First-pass 處理策略**：
 - 在每個 variant 都明確寫出 C16 的 present/disabled/hidden 狀態
 - 特別區分 V4 READONLY_BLOCKED（全 disable）vs V5 CLOSED exception（revise enable，submit disable）
+- C16 採 fixed-bottom 命令列表達；不以流式 footer 呈現
 - C16 的 button labels 不一致（"提交複審" vs "提交複審修正" vs "提交複審修正（例外）"）— 視為 open question 進 ui-design-decisions.md
 
 **Open question for ui-design-decisions.md**:
-- C16 sticky / fixed 版面策略（長表單 scroll 時 command bar 是否固定在底部）
 - CLOSED exception 的 button label 與顏色語意是否需要獨立設計 token
 
 ### HR-2 CLOSED revision-exception（結構區分）
@@ -244,7 +245,8 @@ C17: [basedOn = last effective submissionId / revisionNo]
 
 **First-pass 處理策略**：
 - V4 vs V5 的 C02 banner、C03 mode strip、C16 action set 三點差異均明確列出
-- 不試圖在此定稿 exception banner 的最終顏色/icon；只確保「差異可見」
+- V4 `READONLY_BLOCKED` = blocked tone；V5 `CLOSED revision-exception` = amber / warning tone
+- C03 在 V5 固定顯示 `例外修正（已結案）`
 
 ---
 
@@ -255,7 +257,7 @@ C17: [basedOn = last effective submissionId / revisionNo]
 | C18 InitialSummaryReferenceRegion | page-owned，first-pass 畫出骨架；不升 shared | 等 UI-010/UI-013 共用邊界更明確後決定 |
 | C19 FinalDecisionSummaryRegion | page-owned，骨架可見；final score calc 細節未定 | 等 API 欄位粒度確認後補齊 |
 | 主作業區（score sheet form） | 只畫佔位符；不做 item-level form spec | 等 implementation planning 階段補齊 |
-| C16 sticky / fixed 策略 | 結構未定，僅標示「高可見優先序」 | 進 ui-design-decisions.md |
+| C16 command bar 版面 | 已回寫為 viewport-fixed bottom bar；主作業區需預留底部補白 | 視覺尺寸 / token 細節留待 visual baseline |
 | commentary/attachment 詳細操作 | 只標 placeholder；不定稿最終控件類型 | 後續 component planning |
 | revision draft save 可行性 | 未在 API spec 明確，標 pending confirmation | 等 O3 / API spec 更新 |
 
@@ -265,9 +267,6 @@ C17: [basedOn = last effective submissionId / revisionNo]
 
 > 以下議題第一輪 wireframe 無法單方面拍板，需進 `ui-design-decisions.md`。
 
-1. **C16 是否 sticky**：長表單時 command bar 要固定在視口，還是隨 scroll 消失？（可用性 vs 版面自由度）
-2. **C02 CLOSED exception vs READONLY_BLOCKED 的視覺語意分化**：exception banner 是 warning? info? 需獨立設計決策。
-3. **C03 CLOSED_REVISION_EXCEPTION mode label 文案**：UI 顯示什麼字樣讓使用者明確理解「例外模式」？
-4. **C16 submit button label 在 CLOSED exception 時**：「提交複審修正（例外）」vs 其他；label 需設計統一。
-5. **C19 FinalDecisionSummaryRegion 是否在 REVISION 模式輸入中顯示即時分數**：live calculation vs submit-time display？
-6. **mode strip（C03）與 blocked banner（C02）的優先序**：當兩者都要顯示時，哪個先？
+1. **C16 submit button label 在 CLOSED exception 時**：「提交複審修正（例外）」vs 其他；label 需設計統一。
+2. **C19 FinalDecisionSummaryRegion 是否在 REVISION 模式輸入中顯示即時分數**：live calculation vs submit-time display？
+3. **mode strip（C03）與 blocked banner（C02）的優先序**：當兩者都要顯示時，哪個先？

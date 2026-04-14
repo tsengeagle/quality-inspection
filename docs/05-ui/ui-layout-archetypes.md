@@ -281,7 +281,7 @@ archetypes:
 - **summary header pattern**:
   - case summary + latest revision indicators
 - **status / banner pattern**:
-  - metadata-only banner
+  - metadata-only projection indicator（paired with status banner 時併入 header）
   - closed/cancelled semantics banner
 - **mode indicator pattern**:
   - ALL / INITIAL_ONLY / REREVIEW_ONLY
@@ -329,7 +329,7 @@ shared_structures:
   - mode_indicator_strip
   - action_zone
   - traceability_region
-  - projection_notice_banner(metadata-only)
+  - projection_notice_banner(metadata-only; inline indicator when paired with status banner)
 ```
 
 ### Shared structure 用途
@@ -338,7 +338,7 @@ shared_structures:
 - `mode_indicator_strip`: A3/A4/A5 高頻
 - `action_zone`: A1 row actions + A3/A4 commands + A5 navigate actions
 - `traceability_region`: A2/A5 主區 + A4 版本摘要
-- `projection_notice_banner`: A1/A2/A5 metadata-only 必備
+- `projection_notice_banner`: A1/A2/A5 metadata-only 必備；在 A2/A5 與 status banner 共存時可降格為 header-level inline indicator
 
 ---
 
@@ -360,7 +360,6 @@ shared_structures:
 
 1. `INITIAL_REVIEW_COMPLETED` manager handoff commands 的最終 API 顯式化程度（影響 A2/A3 action zone 變體）。
 2. lifecycle API 欄位粒度與排序（影響 A2 traceability region detail depth）。
-3. metadata-only compare 欄位顯示密度（摘要 vs 完全遮罩；影響 A5 detail/compare region）。
 
 > 已批准回寫的 O1-C / O2-A / O3-C **不列入 pending**。
 

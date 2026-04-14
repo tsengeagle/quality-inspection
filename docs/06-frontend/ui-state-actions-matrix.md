@@ -84,11 +84,11 @@ action_policy_inputs:
 - role-sensitive behavior：manager 可分派；reviewer/rereviewer 僅自身合法作業；auditor read-only
 - visible sections：summary、status/action、traceability、initial/rereview summary、revision entry
 - available actions：navigate only（assign/review/rereview/revisions）
-- hidden actions：不在本頁直接 submit/revise
-- disabled/blocked actions：status 不符或 terminal 顯示 blocked reason
-- blocked reasons：`CASE_ALREADY_CLOSED` / `CASE_ALREADY_CANCELLED` / actor mismatch
-- next-step hints：明確提示下一頁 command page
-- data projection differences：sysadmin metadata-only banner + shared base/page extension 白名單遮罩
+- hidden actions：根本不屬於當前角色的 action family（`ROLE_DENIED`）與本頁直接 submit/revise
+- disabled/blocked actions：當前角色合法但受 status / stage / ownership 限制時，action 維持 visible + blocked reason
+- blocked reasons：`CASE_ALREADY_CLOSED` / `CASE_ALREADY_CANCELLED` / `STAGE_MISMATCH` / `OWNED_BY_OTHER` / `USE_REVISION_HISTORY_ENTRY`
+- next-step hints：明確提示下一頁 command page；CLOSED rereviewer 顯示改走 UI-014 例外入口
+- data projection differences：sysadmin metadata-only projection indicator + shared base/page extension 白名單遮罩
 - route guard notes：scope guard 先於 detail content render
 - pending confirmation：複審中是否可看初審完整內容（D-018 相關）
 
@@ -191,4 +191,3 @@ action_policy_inputs:
 ## 6) Pending Confirmation（Cross-file Gaps）
 
 1. `INITIAL_REVIEW_COMPLETED` 的 manager close / manager assign rereview command 是否已在所有 API 端點明確化。
-2. metadata-only compare 欄位顯示密度（摘要 vs 完全遮罩）仍需 UI governance 層細化。

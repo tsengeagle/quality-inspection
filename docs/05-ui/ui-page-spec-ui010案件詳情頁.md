@@ -123,6 +123,7 @@
 - view mode 標記：
   - `FULL`
   - `METADATA_ONLY`
+  - metadata-only 在複合狀態下以 header subtitle / badge / inline indicator 呈現，不與主狀態 banner 競爭
 
 ### 建議版面
 上方一列摘要卡，固定呈現：

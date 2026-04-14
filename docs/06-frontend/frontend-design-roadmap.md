@@ -581,7 +581,7 @@ repo 已確認 `portal51-lib@0.0.16` 是 shared UI baseline，但 component-leve
 
 - drawer 還是獨立頁
 - revision 是否做 sub-tab 還是獨立頁
-- metadata-only banner 的固定位置
+- metadata-only projection indicator 的固定位置
 - `UI-011` 是否保留獨立頁
 - `UI-014` 是否保留 timeline + detail panel
 

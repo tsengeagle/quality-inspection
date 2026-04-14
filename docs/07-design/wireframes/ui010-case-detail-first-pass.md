@@ -45,9 +45,6 @@
 │  [caseId | project | medicalRecord | hospitalId]           │
 │  [status badge | reviewer | rereviewer | version]          │
 ├─────────────────────────────────────────────────────────────┤
-│ C04  ProjectionNoticeBanner  [METADATA_ONLY 時才出現]       │
-│  [metadata-only 視角：部分欄位已遮罩]                       │
-├─────────────────────────────────────────────────────────────┤
 │ C02  StatusOrBlockedBanner  [條件出現]                      │
 │  [terminal: CLOSED / CANCELLED 通知 | scope denied]        │
 ├─────────────────────────────────────────────────────────────┤
@@ -85,7 +82,9 @@
 └─────────────────────────────────────────────────────────────┘
 ```
 
-> **Region 順序原則**：識別（C01）→ 降級提示（C04）→ 狀態警示（C02）→ 行為模式（C03）→ 導頁操作（C08）→ 追蹤（C09）→ 摘要（C10/C11）→ revision 入口（C24 placeholder）。
+> **Region 順序原則**：識別（C01）→ 狀態警示（C02）→ 行為模式（C03）→ 導頁操作（C08）→ 追蹤（C09）→ 摘要（C10/C11）→ revision 入口（C24 placeholder）。
+>
+> **C04 在 UI-010 的複合狀態下不再作為獨立 banner**；metadata-only 改以 `C01` 內的 subtitle / badge / inline projection indicator 呈現，避免與 C02 爭奪主提示位置。
 >
 > **C08 在此頁不是 command bar**，不能被誤設計成 A4 頁的 ReviewCommandBar（C16）語意。
 
@@ -151,9 +150,8 @@ C24: [Placeholder]
 C01: [Summary Header — metadata-only: shared base + UI-010 extension]
      [visible: caseId / caseStatus / projectName / hospitalId / reviewer / rereviewer]
      [visible ext: patientAge / patientGender / admissionDate / dischargeDate]
-     [hidden: clinical detail, specific content]
-C04: [★ ProjectionNoticeBanner = VISIBLE]
-     [banner: "目前為 metadata-only 視角，部分欄位已遮罩"]
+      [hidden: clinical detail, specific content]
+     [inline projection indicator: "metadata-only 視角"]
 C02: [absent or minimal]
 C03: [Mode = METADATA_CONTROL_CENTER]
 C08: [Action Panel — sysadmin scope]:
@@ -177,13 +175,14 @@ C24: [Placeholder — limited or absent for sysadmin]
 
 ```
 C01: [Summary Header — FULL or metadata (by role)]
-C04: [METADATA_ONLY 時出現]
-C02: [★ terminal notice]:
+C01: [若 METADATA_ONLY，於 header 顯示 inline projection indicator]
+C02: [★ terminal notice / blocked tone]:
      CLOSED: "案件已結案，不可再執行審查作業，僅可查看歷程"
      CANCELLED: "案件已取消"
 C03: [Mode = terminal]
 C08: [Action Panel — minimal]:
-     [★ 所有作業入口 hidden or disabled]
+     [★ 與 actor 角色相符的作業入口 = visible + disabled + reason]
+     [★ 根本不屬於 actor 角色的作業入口 = hidden]
      [前往 Revision 歷程 — still navigate-able]
      [CLOSED 例外：顯示提示文字（不是 CTA button）]
 C09: [Traceability — FULL]
@@ -203,9 +202,10 @@ C24: [Placeholder — deferred]
 ```
 C01: [Summary Header — FULL]
 C04: [absent]
-C02: [CLOSED notice: "案件已結案"]
+C02: [exception notice / amber-warning tone: "案件已結案；如需複審修正，請改從歷程入口進入"]
 C03: [Mode = FULL_CONTROL_CENTER or ROLE_LIMITED depending on role]
 C08: [Action Panel]:
+     [前往複審作業 → disabled: "請改從 Revision 歷程頁進入複審修正"]
      [前往 Revision 歷程 — navigate only]
      [顯示提示: "如需複審修正，請從 Revision 歷程頁進入"]
      [★ 不在此頁提供直接 revision 作業 CTA]
@@ -223,11 +223,11 @@ C24: [Placeholder]
 | Component | Role in UI-010 | Position |
 |---|---|---|
 | C01 CaseSummaryHeader | case 識別，全變體均顯示 | 頁首固定 |
-| C04 ProjectionNoticeBanner | metadata-only 降級提示（sysadmin 必顯示） | C01 之後 |
+| C04 ProjectionNoticeBanner | metadata-only projection 提示；在 UI-010 以 header subtitle / badge / inline indicator 方式呈現 | 併入 C01 header |
 | C02 StatusOrBlockedBanner | terminal / scope denied 訊號（條件出現） | C04 之後 |
 | C03 ModeIndicatorStrip | 控制中心模式標示 | C02 之後，C08 之前 |
 
-注意：C04 與 C02 可能同時出現（METADATA + CLOSED 組合）。兩者不可互相遮蓋；C04 先（告知降級視角），C02 次（告知狀態問題）。
+注意：C04 與 C02 同場時，C04 僅作 header-level projection indicator；C02 仍是主 banner，不合併責任。
 
 ---
 
@@ -241,6 +241,14 @@ C24: [Placeholder]
 | 「查看...」link | 任何 primary/danger action button |
 | 狀態說明文字 | Form field / input |
 | 角色提示文字 | Dropdown selection |
+
+**C08 action 顯示策略（DD-007 backwrite）**：
+
+| 情境 | 呈現 |
+|---|---|
+| 根本不屬於當前角色的 action family（ROLE_DENIED） | hidden |
+| 當前角色合法，但因 stage / terminal / ownership 不可執行 | visible + disabled + reason text |
+| CLOSED rereviewer 例外路徑 | 原 action visible + disabled（reason=`請改從 Revision 歷程頁進入複審修正`）+ 顯示前往 UI-014 的替代入口 |
 
 **C08 vs C16 的語意區分**：
 - C08（UI-010 navigate actions）= 「我要去哪裡做事」
@@ -258,7 +266,7 @@ C24: [Placeholder]
 | C10/C11 masked field density | 只標「有遮罩」，不定稿遮罩層級 | 等 O3 metadata whitelist 細節確認 |
 | C08 role-specific action 細節 | 畫出 role 差異但不定稿 button 樣式 | 等 interaction designer review |
 | CANCELLED 案件的 C08 狀態 | 標 disabled，不定稿 UX copywriting | 後續 UX 補充 |
-| action 可見性 vs 可用性分問題 | first-pass 只區分 hidden / visible | 等 action policy implementation detail |
+| C08 action 可見性 vs 可執行性 | 已回寫：ROLE_DENIED → hidden；status/stage/ownership block → visible + disabled + reason | 具體 copy 可於 UX writing 微調 |
 
 ---
 
@@ -266,9 +274,7 @@ C24: [Placeholder]
 
 > 以下議題第一輪 wireframe 無法單方面拍板，需進 `ui-design-decisions.md`。
 
-1. **C04 與 C02 同出現時的版面排列**：metadata-only + CLOSED 時兩個 banner 如何堆疊？是否可合併成一個複合 banner？
-2. **C08 navigate action 可見性 vs 可用性分離**：當 role 合法但 status 不允許時，action 是 hidden 還是 visible+disabled+reason？（影響使用者認知）
-3. **C24 placement**：revision lifecycle entry area 最終在 C11 之後，還是側邊欄？（待 prototype 驗證）
-4. **CLOSED exception hint 的 copywriting**：「如需複審修正，請從 Revision 歷程頁進入」的實際文案應在 UX writing 層決定。
-5. **C03 mode strip 在 METADATA_CONTROL_CENTER 的文案**：「metadata-only」字樣是否直接暴露給使用者，還是用更友善文案替換？
-6. **C10/C11 在 ROLE_LIMITED 時的可見性規則**：REVIEWER 能看 rereview summary (C11) 嗎？REREVIEWER 能看 initial summary (C10) 的頁面入口嗎？（需回頭確認 permission-matrix）
+1. **C24 placement**：revision lifecycle entry area 最終在 C11 之後，還是側邊欄？（待 prototype 驗證）
+2. **CLOSED exception hint 的 copywriting**：「如需複審修正，請從 Revision 歷程頁進入」的實際文案應在 UX writing 層決定。
+3. **C03 mode strip 在 METADATA_CONTROL_CENTER 的文案**：「metadata-only」字樣是否直接暴露給使用者，還是用更友善文案替換？
+4. **C10/C11 在 ROLE_LIMITED 時的可見性規則**：REVIEWER 能看 rereview summary (C11) 嗎？REREVIEWER 能看 initial summary (C10) 的頁面入口嗎？（需回頭確認 permission-matrix）

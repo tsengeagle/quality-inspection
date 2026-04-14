@@ -133,8 +133,8 @@ classification_layers:
 - mode / state / exception constraints: CLOSED exception 時需由文案區分「submit blocked vs revise allowed」。
 - ownership boundary: `shared`
 - notes for future view-model binding: 依 action policy 產生 machine-readable reason code。
-- notes for future wireframe: 必畫 blocked、forbidden、exception 三類訊息差異。
-- notes for future implementation: 保留 reason-code 映射，不寫死單一句子。
+- notes for future wireframe: 必畫 blocked、forbidden、exception 三類訊息差異；exception 使用 amber / warning 語意，blocked 則需維持獨立 blocked tone。
+- notes for future implementation: 保留 reason-code 映射，不寫死單一句子；exception tone 需與 C22 的 warning-toned exception entry 同一語意家族。
 
 ### C03. ModeIndicatorStrip
 - componentName: `ModeIndicatorStrip`
@@ -146,8 +146,8 @@ classification_layers:
 - visibility / projection constraints: metadata-only 可見但 mode 簡化為 read/navigate 語意。
 - mode / state / exception constraints: UI-013 必含 CLOSED revision-exception 模式標示。
 - ownership boundary: `shared`
-- notes for future view-model binding: 綁定 mode resolver 輸出。
-- notes for future wireframe: 需在 command page 顯示高可見優先序。
+- notes for future view-model binding: 綁定 mode resolver 輸出與 display label mapping。
+- notes for future wireframe: 需在 command page 顯示高可見優先序；UI-013 `CLOSED_REVISION_EXCEPTION` 顯示 label 固定為 `例外修正（已結案）`。
 - notes for future implementation: 不內含表單或 command 觸發。
 
 ### C04. ProjectionNoticeBanner
@@ -161,8 +161,8 @@ classification_layers:
 - mode / state / exception constraints: 非 blocked 主體，僅 projection 說明。
 - ownership boundary: `shared`
 - notes for future view-model binding: 綁定 projectionMode + maskingLevel。
-- notes for future wireframe: 與 blocked banner 需分離，不可混為同一 alert。
-- notes for future implementation: 不承載 domain action。
+- notes for future wireframe: 在 UI-010/UI-014 的複合狀態下降格為 header subtitle / badge / inline projection indicator；與 C02 分工清楚，不混為同一 alert。
+- notes for future implementation: 不承載 domain action；不得升格回 primary status banner。
 
 ### C05. CaseWorkQueueFilterBar
 - componentName: `CaseWorkQueueFilterBar`
@@ -217,8 +217,8 @@ classification_layers:
 - mode / state / exception constraints: CLOSED exception 僅顯示導向，不在此提交。
 - ownership boundary: `features/cases`
 - notes for future view-model binding: 對應 `CaseActionPanelViewModel`。
-- notes for future wireframe: 要與 command bar 版位明確區隔。
-- notes for future implementation: 不混入 UI-011/UI-012/UI-013 提交按鈕。
+- notes for future wireframe: 要與 command bar 版位明確區隔；`ROLE_DENIED` action hidden，status/stage/ownership blocked action visible+disabled+reason。
+- notes for future implementation: 不混入 UI-011/UI-012/UI-013 提交按鈕；CLOSED rereviewer 場景保留 disabled 原 action + UI-014 替代入口提示。
 
 ### C09. TraceabilitySummaryRegion
 - componentName: `TraceabilitySummaryRegion`
@@ -330,7 +330,7 @@ classification_layers:
 - ownership boundary: `features/cases`
 - notes for future view-model binding: 綁定 mode + guard reason + loading state。
 - notes for future wireframe: 必畫 NEW/EDIT_DRAFT/REVISION/CLOSED-exception 差異。
-- notes for future implementation: 保留 command 語意分離，不做單一 generic submit bar。
+- notes for future implementation: 保留 command 語意分離，不做單一 generic submit bar；UI-013 P1 採 viewport-fixed bottom bar，主作業區需預留底部補白。
 
 ### C17. ReviewVersionSummaryRegion
 - componentName: `ReviewVersionSummaryRegion`
@@ -399,8 +399,8 @@ classification_layers:
 - mode / state / exception constraints: compare selection 與 stage filter 同步。
 - ownership boundary: `features/cases`
 - notes for future view-model binding: 對應 `RevisionDetailSummaryViewModel`。
-- notes for future wireframe: 必畫 FULL vs METADATA_ONLY 的 compare 差異。
-- notes for future implementation: 先維持 cases 專屬，避免過早 generic diff 抽象。
+- notes for future wireframe: 必畫 FULL vs METADATA_ONLY 的 compare 差異；metadata-only 僅保留 O3-C 白名單欄位，FULL-only 類別以 `—` placeholder + compare notice 表達。
+- notes for future implementation: 先維持 cases 專屬，避免過早 generic diff 抽象；不得在 metadata-only 顯示 score/diff 題數摘要。
 
 ### C22. RevisionNavigationActionZone
 - componentName: `RevisionNavigationActionZone`
@@ -413,8 +413,8 @@ classification_layers:
 - mode / state / exception constraints: O1-C：CLOSED + 合法 rereviewer 才顯示 exception entry。
 - ownership boundary: `features/cases`
 - notes for future view-model binding: 依 action eligibility matrix 輸出。
-- notes for future wireframe: 需與 command bar 清楚區隔（不可出現 submit）。
-- notes for future implementation: 嚴禁在本區直接提交 revision。
+- notes for future wireframe: 需與 command bar 清楚區隔（不可出現 submit）；條件式 exception entry 可見時採 warning tone outlined navigate action，並與 C02 exception banner 保持同一 amber / warning 語意。
+- notes for future implementation: 嚴禁在本區直接提交 revision；若 UI library 無對應元件，也須維持次要導頁層級，不升級為 filled primary CTA。
 
 ### C23. AssignmentDueDateHelperRegion
 - componentName: `AssignmentDueDateHelperRegion`
@@ -537,7 +537,6 @@ classification_layers:
 
 1. `INITIAL_REVIEW_COMPLETED` manager handoff commands 的 API 顯式化程度（影響 C08/C12 邊界）。
 2. lifecycle API 欄位粒度與排序（影響 C24 是否可由 deferred 轉 feature-scoped）。
-3. metadata-only compare 欄位顯示密度（影響 C21 在 wireframe 的摘要層級）。
 
 > 已批准回寫的 O1-C / O2-A / O3-C 不列入 pending。
 

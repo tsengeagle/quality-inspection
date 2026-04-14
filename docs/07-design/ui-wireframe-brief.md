@@ -114,7 +114,7 @@
 
 ### S4. ProjectionNoticeBanner [C04]
 - 固定角色：metadata-only 降級提示，不取代 blocked banner。
-- 相對位置：在 metadata-only 場景中靠近 summary/status 區。
+- 相對位置：在 metadata-only 場景中靠近 summary/status 區；若與 C02 共存，降格為 header subtitle / badge / inline projection indicator。
 - 變體要求：僅 UI-009/UI-010/UI-014 出現。
 
 ---
@@ -158,7 +158,7 @@
 - projection presentation: FULL/METADATA_ONLY 同頁結構，內容密度不同。
 - must-visualize variants: terminal blocked、role-limited action zone、closed-exception 導頁語意。
 - deferred areas: C24。
-- notes for design execution: 本頁不可出現直接 submit/revise command。
+- notes for design execution: 本頁不可出現直接 submit/revise command；若同時有 metadata-only 與 status 提示，C04 以 header-level inline indicator 呈現，C02 保持主 banner。
 
 ## UI-011
 - pageId: `UI-011`
@@ -234,7 +234,7 @@
 - projection presentation: FULL vs METADATA_ONLY compare 降級同頁呈現。
 - must-visualize variants: ALL/INITIAL_ONLY/REREVIEW_ONLY、effective version 強調、conditional exception entry。
 - deferred areas: 無新增 deferred。
-- notes for design execution: 本頁不可出現直接提交按鈕。
+- notes for design execution: 本頁不可出現直接提交按鈕；metadata-only 提示在複合狀態下降格為 header-level inline indicator，不與 C02 競爭主提示。
 
 ---
 
@@ -271,7 +271,6 @@
 1. `AssignmentDueDateHelperRegion [C23]`
 2. `RevisionLifecycleEntryArea [C24]`
 3. 受 API 粒度未定影響的 lifecycle 深層細節
-4. metadata-only compare 欄位密度細節（只凍結「有降級」，不凍結最終資訊量）
 
 ---
 
@@ -281,7 +280,6 @@
 
 1. `INITIAL_REVIEW_COMPLETED` manager handoff commands 的 API 顯式化程度。
 2. lifecycle API 欄位粒度與排序。
-3. metadata-only compare 欄位顯示密度（摘要粒度）。
 
 > 已批准回寫 O1-C / O2-A / O3-C，不列入 pending。
 
@@ -300,7 +298,6 @@
 
 ### 畫完後需進 `ui-design-decisions.md` 的議題類型（僅列議題，不在本輪決策）
 - mode strip 與 blocked banner 的相對優先序衝突。
-- metadata-only compare 的資訊密度最終級別。
 - lifecycle placeholder（C24）是否拆分次區塊。
 
 ### deferred 區塊處理規範

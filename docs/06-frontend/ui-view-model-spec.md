@@ -150,13 +150,14 @@ shared_sub_models:
 - 用於頁面：UI-013
 - 來源 API：`GET /review-cases/{caseId}` + rereview draft/submit/revise responses
 - 欄位：
-  - `caseSummary`, `pageMode`, `initialSummaryForReference`, `baseSubmissionRef`
+  - `caseSummary`, `pageMode`, `pageModeDisplayLabel`, `initialSummaryForReference`, `baseSubmissionRef`
   - `draftFormState`, `finalScorePreview`, `revisionContext`, `versionSummary`
   - `actionCapabilities`, `blockedReasons`
-- UI 聚合結果：`pageMode`, `finalScorePreview`, `actionCapabilities`
+- UI 聚合結果：`pageMode`, `pageModeDisplayLabel`, `finalScorePreview`, `actionCapabilities`
 - FULL only：rereview editable content
 - METADATA_ONLY：不適用主情境
 - policy 影響欄位：`pageMode`, `actionCapabilities`, `blockedReasons`
+- display label note：`CLOSED_REVISION_EXCEPTION` → `例外修正（已結案）`
 
 ## 5.8 RevisionTimelineItemViewModel
 
@@ -176,10 +177,11 @@ shared_sub_models:
 - 欄位：
   - `mode` (`SINGLE`/`COMPARE`), `baseRevisionRef`, `targetRevisionRef`
   - `scoreDeltaSummary`, `answerChangeSummary`, `commentChangeSummary`, `attachmentChangeSummary`
-  - `projectionMode`, `maskedFields[]`
-- UI 聚合結果：`scoreDeltaSummary`, `maskedFields[]`
+  - `projectionMode`, `maskedFields[]`, `maskedValuePlaceholder`, `compareNotice`
+- UI 聚合結果：`scoreDeltaSummary`, `maskedFields[]`, `compareNotice`
 - FULL only：detail-level change summaries
-- METADATA_ONLY 保留：revision refs + masked summary message
+- METADATA_ONLY 保留（DD-005 / O3-C）：`stage`, `revisionNo`, `submittedAt`, `submittedBy`, `isCurrentEffective`
+- METADATA_ONLY 呈現策略：保留欄位 label，FULL-only 值以 `—` 佔位；compare 區顯示 `詳細差異內容不適用於此視角`
 
 ## 5.10 MetadataOnlyCaseProjectionViewModel
 
@@ -187,10 +189,10 @@ shared_sub_models:
 - 來源 authority：permission-matrix + api-spec metadata policy
 - 欄位：
   - `caseId`, `caseStatus`, `projectName`, `assignmentMeta`, `revisionMeta`, `timestamps`
-  - `maskingReason`, `allowedReadActions[]`
-- UI 聚合結果：`maskingReason`, `allowedReadActions[]`
+  - `maskingReason`, `allowedReadActions[]`, `projectionIndicatorText`, `projectionIndicatorPlacement`
+- UI 聚合結果：`maskingReason`, `allowedReadActions[]`, `projectionIndicatorText`
 - FULL only：無（此模型專為 metadata projection）
-- 備註：同頁 projection 子模型，不是獨立 page model。
+- 備註：同頁 projection 子模型，不是獨立 page model；在 UI-010/UI-014 與 C02 共存時，projection notice 以 header-level inline indicator 呈現。
 
 ---
 

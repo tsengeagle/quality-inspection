@@ -31,7 +31,7 @@
 | State / action policy | `ui-state-actions-matrix.md` §4.6 |
 | Domain state | `state-machine.md` §3.3 (CLOSED revision exception) |
 | Permission guard | `permission-matrix.md` §4 UI-014 row |
-| Decision backwrite | O1-C（CLOSED + 合法 rereviewer → 顯示「前往複審修正」導頁入口，不在本頁提交） |
+| Decision backwrite | O1-C（CLOSED + 合法 rereviewer → 顯示「前往複審修正」導頁入口，不在本頁提交）；DD-003（metadata-only 與 status 複合時，C04 降格為 header-level projection indicator） |
 | Metadata whitelist | O3-C（shared base + UI-014 extension: stage/revisionNo/submittedAt/submittedBy/currentEffective） |
 | Wireframe brief | `ui-wireframe-brief.md` §7 UI-014, §9 high-risk C21/C22 |
 
@@ -44,9 +44,7 @@
 │ C01  CaseSummaryHeader                                      │
 │  [caseId | project | status | reviewer | rereviewer]       │
 │  [initialRevisionCount | rereviewRevisionCount]            │
-├─────────────────────────────────────────────────────────────┤
-│ C04  ProjectionNoticeBanner  [METADATA_ONLY 時才出現]       │
-│  [metadata-only 視角：完整答案差異已遮罩]                   │
+│  [metadata-only 時：inline projection indicator]            │
 ├─────────────────────────────────────────────────────────────┤
 │ C02  StatusOrBlockedBanner  [terminal/scope/exception]      │
 │  [條件出現：CLOSED 提示 / CANCELLED 提示 / scope denied]   │
@@ -87,11 +85,12 @@
 │                                                             │
 │  METADATA_ONLY mode（降級）:                               │
 │  ┌──────────────────────────────────────────────────────┐  │
-│  │ [ProjectionNoticeBanner 已在上方提示降級]              │  │
-│  │  submissionId | stage | revisionNo | status           │  │
-│  │  submittedAt | actorId                                 │  │
-│  │  [答案摘要已遮罩] [comment 已遮罩] [attachment 已遮罩] │  │
-│  │  [比較差異不顯示: "詳細比較需完整視角"]               │  │
+│  │ [Projection indicator 已在 header 提示降級]           │  │
+│  │  stage | revisionNo | submittedAt | submittedBy       │  │
+│  │  currentEffective                                      │  │
+│  │  totalScore | answer摘要 | comment摘要 | attachment摘要 │  │
+│  │   = `—`（metadata-only placeholder）                  │  │
+│  │  [詳細差異內容不適用於此視角]                          │  │
 │  └──────────────────────────────────────────────────────┘  │
 ├─────────────────────────────────────────────────────────────┤
 │ C22  RevisionNavigationActionZone  ★ HIGH-RISK             │
@@ -103,11 +102,16 @@
 │  [查看複審作業頁 — 僅合法 rereviewer + 非 terminal]        │
 │                                                             │
 │  Conditional exception entry (O1-C):                       │
-│  [前往複審修正 — 僅 CLOSED + 合法 rereviewer]              │
+│  [前往複審修正（例外）— 僅 CLOSED + 合法 rereviewer]      │
+│  [warning tone outlined navigate action]                   │
 │  (是 navigate link 而非 submit button)                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+> **C04 / C02 關鍵設計規範**：
+> - metadata-only 提示保留，但在 UI-014 改以 `C01` 內的 subtitle / badge / inline indicator 呈現
+> - C02 保持 terminal / exception / blocked 的主 banner 角色
+>
 > **C22 關鍵設計規範**：
 > - 按鈕/連結語意必須是「前往...」而非「提交...」
 > - CLOSED exception entry 顯示為 navigate link，不是 primary action button
@@ -203,27 +207,28 @@ C22: [返回案件詳情]
 
 ```
 C01: [Summary Header — metadata-only: shared base + UI-014 extension]
-C04: [★ ProjectionNoticeBanner = VISIBLE]
-     [banner: "目前為 metadata-only 視角，完整答案差異已遮罩"]
+     [inline projection indicator: "metadata-only 視角"]
 C02: [absent or minimal]
 C03: [Mode = METADATA_HISTORY]
      Tab: [ALL / INITIAL / REREVIEW]
 C20: [Timeline — metadata only]:
-     [stage | revisionNo | submittedAt | actorId | status (current/superseded)]
+     [stage | revisionNo | submittedAt | submittedBy | currentEffective]
      [答案內容 hidden; score hidden]
-C21: [Compare panel — DEGRADED]:
-     ┌────────────────────────────────────────┐
-     │ submissionId | stage | revisionNo      │
-     │ submittedAt | actorId                  │
-     │ [答案摘要已遮罩]                        │
-     │ [詳細比較需完整視角]                    │
-     └────────────────────────────────────────┘
-     [★ 不顯示 score diff、answer diff、comment diff]
+ C21: [Compare panel — DEGRADED]:
+      ┌────────────────────────────────────────┐
+      │ stage | revisionNo                     │
+      │ submittedAt | submittedBy              │
+      │ currentEffective                       │
+      │ totalScore: —                          │
+      │ answer/comment/attachment: —           │
+      │ [詳細差異內容不適用於此視角]            │
+      └────────────────────────────────────────┘
+     [★ 不顯示 score diff、answer diff、comment diff，也不顯示差異題數]
 C22: [返回案件詳情]
      [NO 作業頁入口 — sysadmin 不作業]
 ```
 
-**Structural difference**: C04 出現；C21 只剩 metadata 欄位；C22 無作業 navigate；C20 無 score/answer。
+**Structural difference**: C04 降格為 header-level indicator；C21 只剩 metadata 欄位；C22 無作業 navigate；C20 無 score/answer。
 
 ---
 
@@ -234,15 +239,15 @@ C22: [返回案件詳情]
 ```
 C01: [Summary Header — FULL]
 C04: [absent]
-C02: [banner: "此案件已結案" + 語意提示]
+C02: [exception banner / amber-warning tone: "此案件已結案；如需修正請使用例外入口"]
 C03: [Mode = HISTORY_REREVIEW_ONLY or ALL]
 C20: [Timeline — effective version 標示清晰]
      [CLOSED badge on case]
 C21: [Compare — FULL / readonly as CLOSED]
 C22: [返回案件詳情]
      [★ 條件式 exception entry (O1-C)]:
-     "前往複審修正（CLOSED 例外）"
-     [此為 navigate link，導向 UI-013 CLOSED_REVISION_EXCEPTION 模式]
+     "前往複審修正（例外）"
+     [warning tone outlined navigate action；導向 UI-013 CLOSED_REVISION_EXCEPTION 模式]
      [★ 不是 submit button — 是 navigate to command page]
 ```
 
@@ -255,11 +260,11 @@ C22: [返回案件詳情]
 | Component | Role in UI-014 | Position |
 |---|---|---|
 | C01 CaseSummaryHeader | case + revision summary 識別 | 頁首固定 |
-| C04 ProjectionNoticeBanner | metadata-only 降級提示 | C01 之後，C02 之前 |
-| C02 StatusOrBlockedBanner | terminal/scope/exception 訊號 | C04 之後，C03 之前 |
+| C04 ProjectionNoticeBanner | metadata-only projection 提示；在 UI-014 以 header subtitle / badge / inline indicator 方式呈現 | 併入 C01 header |
+| C02 StatusOrBlockedBanner | terminal/scope/exception 訊號 | C01 之後，C03 之前 |
 | C03 ModeIndicatorStrip | 階段切換模式標示 | stage tabs 之前 |
 
-**注意**：C04 在 UI-014 是高頻出現成員（sysadmin 進入必顯示）；與 C02 共存時不可互相遮蔽。
+**注意**：C04 在 UI-014 是高頻出現成員（sysadmin 進入必顯示）；與 C02 共存時降格為 header-level indicator，不再佔獨立 banner 列。
 
 ---
 
@@ -274,10 +279,9 @@ C22: [返回案件詳情]
 
 **First-pass 處理策略**：
 - V4（FULL compare）vs V5（METADATA_ONLY）結構明確對比
-- METADATA_ONLY 的 C21 只顯示允許欄位 + 「已遮罩」提示
-- 最終資訊密度細節（摘要粒度 vs 完全遮罩）進 ui-design-decisions.md
-
-**Open question**: 比較差異的最細粒度（題目 diff vs 摘要 diff only）— pending confirmation (見 wireframe brief §11)。
+- METADATA_ONLY 的 C21 只顯示 O3-C 允許欄位：`stage`、`revisionNo`、`submittedAt`、`submittedBy`、`currentEffective`
+- FULL-only 類別保留 label，但值以 `—` 佔位
+- 比較區固定顯示「詳細差異內容不適用於此視角」，不顯示 score/diff 題數摘要
 
 ### HR-2 C22 RevisionNavigationActionZone（高風險）
 
@@ -288,7 +292,7 @@ C22: [返回案件詳情]
 **First-pass 處理策略**：
 - 所有 C22 variants 均明確標示「navigate-only / 前往...」語意
 - CLOSED exception entry 明確標注「是 navigate link，不是 submit button」
-- C22 與 C16（command bar in UI-013）的視覺語意必須不同 — 細節進 ui-design-decisions.md
+- C22 與 C16（command bar in UI-013）的視覺語意必須不同；可見時採 warning tone outlined 次要導頁 action
 
 ### HR-3 Effective Version 強調
 
@@ -307,9 +311,9 @@ C22: [返回案件詳情]
 
 | Region | 狀態 | 下一步 |
 |---|---|---|
-| C21 metadata-only compare 欄位密度細節 | 只凍結「有降級」，不凍結最終資訊量 | 待 O3 pending confirmation 解除後補齊 |
+| C21 metadata-only compare 欄位密度 | 已回寫為 O3-C 白名單欄位 + `—` placeholder + compare notice | 若日後 authority 擴充 whitelist，再另案調整 |
 | C21 逐題 diff（fine-grained） | 只畫「差異摘要」層；逐題 diff 為 deferred | 等 implementation planning 決定是否第一版支援 |
-| C22 exception entry 的精確控件類型（link vs button） | 只標「navigate-only intent」 | 進 ui-design-decisions.md |
+| C22 exception entry 控件類型 | 已回寫為 warning tone outlined navigate action（非 submit） | token / icon 細節留待 visual baseline |
 | C20 timeline card 的 hover / expand 行為 | 只畫靜態骨架 | 後續 interaction spec |
 | compare helper hint（可選區塊） | 不在 first-pass 定稿 | 後續 UX 補充 |
 | actor-scope hint（可選區塊） | 不在 first-pass 定稿 | 後續 UX 補充 |
@@ -320,10 +324,7 @@ C22: [返回案件詳情]
 
 > 以下議題第一輪 wireframe 無法單方面拍板，需進 `ui-design-decisions.md`。
 
-1. **C04 與 C02 共存的優先序**：metadata-only banner vs blocked/CLOSED banner，哪個先？視覺如何分層？
-2. **C22 exception entry 的控件類型**：文字連結 vs outlined button vs其他？需與 C16 command bar 有明確視覺差異。
-3. **C21 METADATA_ONLY 遮罩層級**：顯示「N 題已遮罩」vs 完全不顯示比較區域——哪種降級語意更佳？
-4. **effective version badge 的設計 token**：需定義 current / superseded 的 badge 語意色彩（進 visual baseline）。
-5. **stage tab 預設切換策略**：各角色的預設 tab 是要在 route resolver 決定，還是 component 自行根據 role 選擇？（影響 route/VM binding）
-6. **比較版本選擇方式**：使用者如何「選兩版比較」— timeline row check / dropdown select？（interaction detail）
-7. **C03 mode strip 在 METADATA_HISTORY vs 其他模式的文案**：是否需要提示「metadata-only 不可比較」？
+1. **effective version badge 的設計 token**：需定義 current / superseded 的 badge 語意色彩（進 visual baseline）。
+2. **stage tab 預設切換策略**：各角色的預設 tab 是要在 route resolver 決定，還是 component 自行根據 role 選擇？（影響 route/VM binding）
+3. **比較版本選擇方式**：使用者如何「選兩版比較」— timeline row check / dropdown select？（interaction detail）
+4. **C03 mode strip 在 METADATA_HISTORY vs 其他模式的文案**：是否需要提示「metadata-only 不可比較」？

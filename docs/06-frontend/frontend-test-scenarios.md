@@ -84,7 +84,7 @@
 ### B-04 UI-013 CLOSED 狀態（O1-C）
 - Given actor=original rereviewer, case=`CLOSED`
 - When open UI-013
-- Then new submit actions blocked；僅顯示 revision-exception command 入口
+- Then new submit actions blocked；僅顯示 revision-exception command 入口，且 mode label 顯示 `例外修正（已結案）`
 - Level: integration, e2e, QA checklist
 
 ### B-05 UI-011 分派模式切換
@@ -118,8 +118,14 @@
 ### C-04 UI-014 無 direct revise submit（O1-C）
 - Given CLOSED case + original rereviewer
 - When inspect actions on UI-014
-- Then 顯示「前往複審修正」導頁 action；仍不直接顯示「提交 revision」
+- Then 顯示「前往複審修正（例外）」navigate-only action；仍不直接顯示「提交 revision」
 - Level: integration, e2e
+
+### C-05 UI-010 role-legal but status-blocked action
+- Given actor 屬於該 action family，但案件因 stage / terminal / ownership 條件不可執行
+- When view UI-010 action panel
+- Then 該 action 維持 visible + disabled + reason；不屬於 actor 角色的 action 仍 hidden
+- Level: integration, e2e, QA checklist
 
 ---
 
@@ -134,14 +140,20 @@
 ### D-02 UI-010 metadata-only projection
 - Given actor=`SYSTEM_ADMIN`
 - When open detail
-- Then sensitive fields masked/hidden + metadata banner shown
+- Then sensitive fields masked/hidden + metadata projection indicator shown in header；若同時有 terminal/blocked 提示，仍由 C02 作為主 banner
 - Level: integration, e2e, QA checklist
 
 ### D-03 UI-014 metadata diff restriction
 - Given actor=`SYSTEM_ADMIN`
 - When open revision compare
-- Then full answer diff hidden，僅 metadata rows
+- Then 僅顯示 O3-C 白名單欄位；FULL-only 類別保留 label + `—` placeholder，並顯示「詳細差異內容不適用於此視角」
 - Level: integration, QA checklist
+
+### D-04 UI-013 blocked vs exception banner semantics
+- Given UI-013 在 `READONLY_BLOCKED` 與 `CLOSED_REVISION_EXCEPTION` 兩種場景
+- When inspect banner semantics
+- Then blocked 與 exception 必須是不同 tone；exception 採 amber / warning family，且與 C22 例外入口語意一致
+- Level: QA checklist
 
 ---
 
