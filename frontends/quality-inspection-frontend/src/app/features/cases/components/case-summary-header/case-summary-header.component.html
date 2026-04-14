@@ -1,0 +1,13 @@
+<div class="case-summary-header">
+  <!-- C04 inline slot: metadata-only projection 通知（C04 位於 C01 內，不獨立為 banner row） -->
+  <app-projection-notice-banner [show]="showProjectionNotice"></app-projection-notice-banner>
+
+  <div class="case-summary-header__identity">
+    <span class="case-summary-header__case-id">{{ caseId }}</span>
+    <span class="case-summary-header__title">{{ caseTitle }}</span>
+  </div>
+  <div class="case-summary-header__meta">
+    <span class="case-summary-header__stage">{{ stageLabel }}</span>
+    <span class="case-summary-header__status">{{ status }}</span>
+  </div>
+</div>

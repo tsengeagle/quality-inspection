@@ -1,0 +1,12 @@
+<div class="review-command-bar">
+  <!-- C16: viewport-fixed 底部 command bar；容器頁面須預留 padding-bottom -->
+  <button class="review-command-bar__btn review-command-bar__btn--secondary"
+          *ngIf="secondaryLabel"
+          [disabled]="disabled">
+    {{ secondaryLabel }}
+  </button>
+  <button class="review-command-bar__btn review-command-bar__btn--primary"
+          [disabled]="disabled">
+    {{ primaryLabel }}
+  </button>
+</div>

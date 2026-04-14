@@ -1,0 +1,7 @@
+<div class="status-or-blocked-banner"
+     [class.status-or-blocked-banner--blocked]="tone === 'blocked'"
+     [class.status-or-blocked-banner--exception-amber]="tone === 'exception-amber'"
+     [class.status-or-blocked-banner--info]="tone === 'info'">
+  <!-- C02: 訊息文字；reason-code 映射由容器負責，不寫死單一句子 -->
+  <span class="status-or-blocked-banner__message">{{ message }}</span>
+</div>

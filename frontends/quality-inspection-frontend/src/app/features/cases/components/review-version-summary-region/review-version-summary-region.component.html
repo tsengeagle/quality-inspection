@@ -1,0 +1,11 @@
+<div *ngIf="isRevisionMode" class="review-version-summary-region">
+  <!-- C17: REVISION mode 下的基準版本摘要；非 REVISION mode 不渲染 -->
+  <span class="review-version-summary-region__label">修正依據版本</span>
+  <ng-container *ngIf="basedOnVersion">
+    <span class="review-version-summary-region__id">{{ basedOnVersion.submissionId }}</span>
+    <span class="review-version-summary-region__version">v{{ basedOnVersion.version }}</span>
+    <span *ngIf="basedOnVersion.submittedAt" class="review-version-summary-region__date">
+      {{ basedOnVersion.submittedAt }}
+    </span>
+  </ng-container>
+</div>

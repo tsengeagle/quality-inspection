@@ -1,0 +1,34 @@
+:host {
+  display: block;
+}
+
+.status-or-blocked-banner {
+  padding: 10px 16px;
+  border-left: 4px solid transparent;
+  font-size: 13px;
+
+  &__message {
+    display: inline-block;
+  }
+
+  /* blocked tone — 暗紅，操作封鎖語意 */
+  &--blocked {
+    background-color: #fff0f0;
+    border-left-color: #d32f2f;
+    color: #b71c1c;
+  }
+
+  /* exception-amber tone — 琥珀警示，CLOSED revision-exception 語意 */
+  &--exception-amber {
+    background-color: #fffde7;
+    border-left-color: #f9a825;
+    color: #6d4c00;
+  }
+
+  /* info tone — 資訊藍，一般說明 */
+  &--info {
+    background-color: #e3f2fd;
+    border-left-color: #1565c0;
+    color: #0d47a1;
+  }
+}

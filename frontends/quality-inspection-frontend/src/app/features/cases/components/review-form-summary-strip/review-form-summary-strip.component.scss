@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.review-form-summary-strip {
+  padding: 8px 16px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #ebebeb;
+
+  &__mode-label {
+    font-size: 12px;
+    color: #666;
+  }
+}

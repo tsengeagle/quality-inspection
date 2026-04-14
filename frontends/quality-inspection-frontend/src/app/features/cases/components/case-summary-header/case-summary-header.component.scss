@@ -1,0 +1,39 @@
+:host {
+  display: block;
+}
+
+.case-summary-header {
+  padding: 12px 16px;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+
+  &__identity {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  &__case-id {
+    font-size: 12px;
+    color: #888;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #222;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__stage,
+  &__status {
+    font-size: 12px;
+    color: #555;
+  }
+}
