@@ -3,9 +3,9 @@
 <!-- C01 CaseSummaryHeader（含 C04 inline） -->
 <app-case-summary-header
   [caseId]="caseId"
-  [caseTitle]="caseDetail?.caseTitle ?? ''"
+  [caseTitle]="caseTitle"
   [status]="caseDetail?.status ?? ''"
-  [stageLabel]="caseDetail?.stageLabel ?? ''"
+  [stageLabel]="stageLabel"
   [showProjectionNotice]="showProjectionNotice">
 </app-case-summary-header>
 
@@ -33,19 +33,20 @@
   <!-- C09 InitialSummaryRegion -->
   <app-initial-summary-region
     *ngIf="showInitialSummary"
-    [caseId]="caseId">
+    [caseId]="caseId"
+    [summary]="initialSummary">
   </app-initial-summary-region>
 
   <!-- C10 RereviewSummaryRegion -->
   <app-rereview-summary-region
     *ngIf="showRereviewSummary"
-    [summary]="caseDetail?.latestRevisionSummary">
+    [summary]="rereviewSummary">
   </app-rereview-summary-region>
 
   <!-- C11 LifecycleProgressRegion -->
   <app-lifecycle-progress-region
     *ngIf="showLifecycleProgress"
-    [currentStage]="caseDetail?.lifecycleLatestStage ?? caseDetail?.stageLabel ?? ''">
+    [currentStage]="caseDetail?.status ?? ''">
   </app-lifecycle-progress-region>
 
   <!-- PH-08: RevisionHistoryJumpEntry slot -->

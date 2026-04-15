@@ -18,20 +18,20 @@ import { CaseSummaryItem } from '../../../services/cases.service';
         <thead>
           <tr>
             <th>案件編號</th>
-            <th>病歷號</th>
+            <th>來源案件</th>
             <th>狀態</th>
-            <th>階段</th>
-            <th>建立日期</th>
+            <th>病歷類型</th>
+            <th>截止日</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let c of cases">
             <td>{{ c.caseId }}</td>
-            <td>{{ c.patientId }}</td>
+            <td>{{ c.sourceCaseKey }}</td>
             <td>{{ c.status }}</td>
-            <td>{{ c.stageLabel }}</td>
-            <td>{{ c.createDate }}</td>
+            <td>{{ c.medicalRecordType }}</td>
+            <td>{{ displayDate(c.dueAt) }}</td>
             <td>
               <app-case-row-action-set
                 [caseId]="c.caseId"
@@ -56,4 +56,8 @@ export class CaseWorkQueueTableComponent {
   @Input() cases: CaseSummaryItem[] = [];
   /** metadata-only 時設為 false → business commands hidden */
   @Input() showBusinessCommands = true;
+
+  displayDate(value?: string | null): string {
+    return value ? value.replace('T', ' ').slice(0, 16) : '—';
+  }
 }

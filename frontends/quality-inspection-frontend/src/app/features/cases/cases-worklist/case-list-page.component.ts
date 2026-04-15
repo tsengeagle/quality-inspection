@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CasesService, CaseSummaryItem, CasesQueryCriteria } from '../services/cases.service';
+import { CaseListResult, CasesService, CaseSummaryItem, CasesQueryCriteria } from '../services/cases.service';
 
 /** C-01 CaseListPage UI state */
 export interface CaseListUIState {
@@ -22,8 +22,8 @@ export class CaseListPageComponent implements OnInit {
 
   /** 模擬 role（正式實作由 shell 注入） */
   role = 'REVIEWER';
-  /** 模擬 projectionType（正式實作由 shell 注入） */
-  projectionType: 'FULL' | 'METADATA_ONLY' = 'FULL';
+  /** backend list response 提供的 projection truth */
+  projectionType?: 'FULL' | 'METADATA_ONLY';
 
   /** 當前 UI state（驅動 filter/tab） */
   uiState: CaseListUIState = { tab: 'MY_QUEUE', status: 'PENDING', page: 0, size: 20 };
@@ -51,11 +51,10 @@ export class CaseListPageComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       this.uiState = {
         tab: params['tab'] ?? this._defaultTab(),
-        status: params['status'] ?? 'PENDING',
+        status: params['status'] ?? this._defaultStatus(params['tab'] ?? this._defaultTab()),
         page: parseInt(params['page'] ?? '0', 10),
         size: parseInt(params['size'] ?? '20', 10)
       };
-      this._resolveMode();
       this._loadCases();
     });
   }
@@ -66,13 +65,29 @@ export class CaseListPageComponent implements OnInit {
       case 'REVIEWER': return 'MY_QUEUE';
       case 'REREVIEWER': return 'MY_QUEUE';
       case 'MANAGER': return 'MY_MANAGED_PROJECTS';
+      case 'HOSPITAL_MANAGER': return 'MY_MANAGED_PROJECTS';
       case 'ADMIN': return 'ALL_CASES';
       case 'SYSADMIN': return 'ALL_CASES';
+      case 'SYSTEM_ADMIN': return 'ALL_CASES';
       default: return 'MY_QUEUE';
     }
   }
 
-  /** Mode resolution: role + projectionType → modeLabel + command visibility */
+  private _defaultStatus(tab: string): string | undefined {
+    switch (tab) {
+      case 'MY_QUEUE':
+        if (this.role === 'REREVIEWER') {
+          return 'PENDING_REREVIEW';
+        }
+        return 'PENDING_INITIAL_REVIEW';
+      case 'MY_MANAGED_PROJECTS':
+        return 'SELECTED_PENDING_ASSIGNMENT';
+      default:
+        return undefined;
+    }
+  }
+
+  /** Mode resolution: role + backend projectionType → modeLabel + command visibility */
   private _resolveMode(): void {
     if (this.projectionType === 'METADATA_ONLY') {
       this.showBusinessCommands = false;
@@ -92,16 +107,19 @@ export class CaseListPageComponent implements OnInit {
       page: this.uiState.page,
       size: this.uiState.size
     };
-    this.casesService.getCases(criteria).subscribe(cases => {
-      this.cases = cases;
+    this.casesService.getCases(criteria).subscribe((result: CaseListResult) => {
+      this.cases = result.items;
+      this.projectionType = result.projectionType;
+      this._resolveMode();
     });
   }
 
   /** tab 切換 → query params 持久化 */
   onTabChange(tab: string): void {
+    const status = this._defaultStatus(tab);
     this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { tab, status: this.uiState.status },
+      queryParams: { tab, status },
       queryParamsHandling: 'merge'
     });
   }

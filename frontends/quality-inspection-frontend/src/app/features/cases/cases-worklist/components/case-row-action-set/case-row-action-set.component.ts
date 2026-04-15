@@ -47,7 +47,7 @@ export class CaseRowActionSetComponent {
   @Input() showBusinessCommands = true;
 
   get canAssign(): boolean {
-    return ['PENDING', 'PENDING_INITIAL_REVIEW'].includes(this.status);
+    return ['SELECTED_PENDING_ASSIGNMENT', 'PENDING_INITIAL_REVIEW'].includes(this.status);
   }
 
   constructor(private router: Router) {}

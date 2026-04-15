@@ -12,6 +12,38 @@ import { RevisionCompareSummaryComponent } from './components/revision-compare-s
 import { RevisionNavActionZoneComponent } from './components/revision-nav-action-zone/revision-nav-action-zone.component';
 import { RevisionTimelineComponent } from './components/revision-timeline/revision-timeline.component';
 
+function buildVm(overrides: Partial<RevisionHistoryViewModel> = {}): RevisionHistoryViewModel {
+  return {
+    caseId: 'CASE-014',
+    status: 'REREVIEW_IN_PROGRESS',
+    actorRole: 'REREVIEWER',
+    projectionType: 'FULL',
+    hasExceptionEntry: false,
+    revisions: [
+      {
+        submissionId: 'SUB-1',
+        stage: 'INITIAL',
+        reviewerId: 'Dr. A',
+        status: 'SUPERSEDED',
+        revisionNo: 1,
+        submittedAt: '2026-04-01T08:00:00Z',
+        supersededBySubmissionId: 'SUB-2',
+        isCurrentEffective: false
+      },
+      {
+        submissionId: 'SUB-2',
+        stage: 'REREVIEW',
+        reviewerId: 'Dr. B',
+        status: 'SUBMITTED',
+        revisionNo: 2,
+        submittedAt: '2026-04-02T08:00:00Z',
+        isCurrentEffective: true
+      }
+    ],
+    ...overrides
+  };
+}
+
 describe('RevisionHistoryPageComponent', () => {
   let fixture: ComponentFixture<RevisionHistoryPageComponent>;
   let component: RevisionHistoryPageComponent;
@@ -52,43 +84,9 @@ describe('RevisionHistoryPageComponent', () => {
     component = fixture.componentInstance;
   });
 
-  function render(vm: RevisionHistoryViewModel | null): void {
+  function render(vm: RevisionHistoryViewModel): void {
     casesService.getRevisionHistory.and.returnValue(of(vm));
     fixture.detectChanges();
-  }
-
-  function buildVm(overrides: Partial<RevisionHistoryViewModel> = {}): RevisionHistoryViewModel {
-    return {
-      caseId: 'CASE-014',
-      caseTitle: 'Revision 歷程',
-      status: 'REREVIEW_IN_PROGRESS',
-      stageLabel: '複審中',
-      role: 'REREVIEWER',
-      projectionType: 'FULL',
-      isOriginalRereviewer: false,
-      hasBaseSubmission: false,
-      revisions: [
-        {
-          submissionId: 'SUB-1',
-          stage: 'INITIAL',
-          revisionNo: 1,
-          submittedAt: '2026-04-01T08:00:00Z',
-          submittedBy: 'Dr. A',
-          isCurrentEffective: false,
-          actionType: 'INITIAL_SUBMITTED'
-        },
-        {
-          submissionId: 'SUB-2',
-          stage: 'REREVIEW',
-          revisionNo: 2,
-          submittedAt: '2026-04-02T08:00:00Z',
-          submittedBy: 'Dr. B',
-          isCurrentEffective: true,
-          actionType: 'REREVIEW_REVISED'
-        }
-      ],
-      ...overrides
-    };
   }
 
   it('resolves FULL_HISTORY and keeps compare summary in full mode', () => {
@@ -104,7 +102,7 @@ describe('RevisionHistoryPageComponent', () => {
   });
 
   it('resolves METADATA_HISTORY and shows the metadata compare notice', () => {
-    render(buildVm({ projectionType: 'METADATA_ONLY', role: 'SYSTEM_ADMIN' }));
+    render(buildVm({ projectionType: 'METADATA_ONLY', actorRole: 'SYSTEM_ADMIN' }));
 
     expect(component.mode).toBe('METADATA_HISTORY');
     expect(component.showMetadataOnlyNotice).toBeTrue();
@@ -114,7 +112,7 @@ describe('RevisionHistoryPageComponent', () => {
   });
 
   it('shows the exception entry only when all three conditions are met', () => {
-    render(buildVm({ status: 'CLOSED', isOriginalRereviewer: true, hasBaseSubmission: true }));
+    render(buildVm({ status: 'CLOSED', hasExceptionEntry: true }));
 
     expect(component.mode).toBe('READONLY_TERMINAL');
     expect(component.hasExceptionEntry).toBeTrue();
@@ -126,19 +124,13 @@ describe('RevisionHistoryPageComponent', () => {
   });
 
   it('does not show the exception entry when the case is not CLOSED', () => {
-    render(buildVm({ status: 'OPEN', isOriginalRereviewer: true, hasBaseSubmission: true }));
+    render(buildVm({ status: 'OPEN', hasExceptionEntry: true }));
 
     expect(component.hasExceptionEntry).toBeFalse();
   });
 
-  it('does not show the exception entry when the actor is not the original rereviewer', () => {
-    render(buildVm({ status: 'CLOSED', isOriginalRereviewer: false, hasBaseSubmission: true }));
-
-    expect(component.hasExceptionEntry).toBeFalse();
-  });
-
-  it('does not show the exception entry when there is no base submission', () => {
-    render(buildVm({ status: 'CLOSED', isOriginalRereviewer: true, hasBaseSubmission: false }));
+  it('does not show the exception entry when backend truth is false', () => {
+    render(buildVm({ status: 'CLOSED', hasExceptionEntry: false }));
 
     expect(component.hasExceptionEntry).toBeFalse();
   });
@@ -157,20 +149,20 @@ describe('RevisionHistoryPageComponent', () => {
 
   it('defaults to INITIAL_ONLY when the actor is a reviewer and no query param overrides it', () => {
     activatedRouteStub.snapshot.queryParamMap = convertToParamMap({});
-    render(buildVm({ role: 'REVIEWER' }));
+    render(buildVm({ actorRole: 'REVIEWER' }));
 
     expect(component.stageTab).toBe('INITIAL_ONLY');
   });
 
   it('defaults to ALL when the actor is a manager and no query param overrides it', () => {
     activatedRouteStub.snapshot.queryParamMap = convertToParamMap({});
-    render(buildVm({ role: 'HOSPITAL_MANAGER' }));
+    render(buildVm({ actorRole: 'HOSPITAL_MANAGER' }));
 
     expect(component.stageTab).toBe('ALL');
   });
 
   it('navigates to rereview from C22 as a navigate-only action', () => {
-    render(buildVm({ status: 'CLOSED', isOriginalRereviewer: true, hasBaseSubmission: true }));
+    render(buildVm({ status: 'CLOSED', hasExceptionEntry: true }));
 
     component.navigateToRereview();
 

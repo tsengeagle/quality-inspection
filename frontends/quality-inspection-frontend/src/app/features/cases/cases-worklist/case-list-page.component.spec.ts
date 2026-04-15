@@ -27,7 +27,14 @@ describe('CaseListPageComponent', () => {
     activatedRoute = new ActivatedRouteStub();
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     casesService = jasmine.createSpyObj<CasesService>('CasesService', ['getCases']);
-    casesService.getCases.and.returnValue(of([]));
+    casesService.getCases.and.returnValue(of({
+      items: [],
+      page: 0,
+      size: 20,
+      totalElements: 0,
+      totalPages: 0,
+      projectionType: 'FULL'
+    }));
 
     await TestBed.configureTestingModule({
       declarations: [CaseListPageComponent],
@@ -43,8 +50,15 @@ describe('CaseListPageComponent', () => {
     component = fixture.componentInstance;
   });
 
-  it('resolves metadata-only mode from the container and hides business commands', () => {
-    component.projectionType = 'METADATA_ONLY';
+  it('resolves metadata-only mode from backend list truth and hides business commands', () => {
+    casesService.getCases.and.returnValue(of({
+      items: [],
+      page: 0,
+      size: 20,
+      totalElements: 0,
+      totalPages: 0,
+      projectionType: 'METADATA_ONLY'
+    }));
     activatedRoute.setQueryParams({});
 
     fixture.detectChanges();
@@ -55,7 +69,7 @@ describe('CaseListPageComponent', () => {
     expect(component.modeLabel).toBe('唯讀（metadata-only）');
     expect(casesService.getCases).toHaveBeenCalledWith(jasmine.objectContaining({
       role: 'REVIEWER',
-      status: 'PENDING',
+      status: 'PENDING_INITIAL_REVIEW',
       page: 0,
       size: 20
     }));
@@ -66,13 +80,13 @@ describe('CaseListPageComponent', () => {
     activatedRoute.setQueryParams({});
 
     fixture.detectChanges();
-    component.onTabChange('MY_QUEUE');
+    component.onTabChange('MY_MANAGED_PROJECTS');
 
     expect(component.uiState.tab).toBe('MY_MANAGED_PROJECTS');
     expect(component.modeLabel).toBe('管理者視角');
     expect(router.navigate).toHaveBeenCalledWith([], {
       relativeTo: activatedRoute as unknown as ActivatedRoute,
-      queryParams: { tab: 'MY_QUEUE', status: 'PENDING' },
+      queryParams: { tab: 'MY_MANAGED_PROJECTS', status: 'SELECTED_PENDING_ASSIGNMENT' },
       queryParamsHandling: 'merge'
     });
   });

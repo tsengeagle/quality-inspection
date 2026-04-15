@@ -19,8 +19,8 @@ import { RevisionStageTab } from '../../revision-history-page.component';
             <span *ngIf="rev.isCurrentEffective" class="badge current">current effective</span>
             <span *ngIf="!rev.isCurrentEffective" class="badge superseded">superseded</span>
           </span>
-          <span class="action-type">{{ rev.actionType }}</span>
-          <span class="author">{{ rev.submittedBy }}</span>
+          <span class="action-type">{{ rev.status }}</span>
+          <span class="author">{{ rev.reviewerId }}</span>
           <span class="submitted-at">{{ rev.submittedAt }}</span>
         </div>
       </div>

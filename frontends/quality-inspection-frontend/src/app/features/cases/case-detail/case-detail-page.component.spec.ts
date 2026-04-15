@@ -13,6 +13,25 @@ import { InitialSummaryRegionComponent } from './components/initial-summary-regi
 import { LifecycleProgressRegionComponent } from './components/lifecycle-progress-region/lifecycle-progress-region.component';
 import { RereviewSummaryRegionComponent } from './components/rereview-summary-region/rereview-summary-region.component';
 
+function buildDetail(overrides: Partial<CaseDetailViewModel> = {}): CaseDetailViewModel {
+  return {
+    caseId: 'CASE-010',
+    status: 'PENDING_INITIAL_REVIEW',
+    projectionType: 'FULL',
+    actorRole: 'REVIEWER',
+    isOwner: false,
+    batchId: 'BATCH-001',
+    hospitalId: 'H001',
+    reviewerId: 'reviewer-1',
+    rereviewerId: 'rereviewer-1',
+    medicalRecordType: 'OUTPATIENT',
+    sourceCaseKey: 'SK-001',
+    submissions: [],
+    latestRereviewSubmissionId: null,
+    ...overrides
+  };
+}
+
 describe('CaseDetailPageComponent', () => {
   let fixture: ComponentFixture<CaseDetailPageComponent>;
   let component: CaseDetailPageComponent;
@@ -50,24 +69,29 @@ describe('CaseDetailPageComponent', () => {
     component = fixture.componentInstance;
   });
 
-  function render(detail: CaseDetailViewModel | null): void {
+  function render(detail: CaseDetailViewModel): void {
     casesService.getCaseDetail.and.returnValue(of(detail));
     fixture.detectChanges();
   }
 
   it('resolves the metadata-only control center and hides command CTAs', () => {
-    render({
-      caseId: 'CASE-010',
-      caseTitle: '案件詳情',
-      patientId: 'P001',
+    render(buildDetail({
       status: 'INITIAL_REVIEW_COMPLETED',
-      stageLabel: '初審完成',
-      role: 'SYSTEM_ADMIN',
+      actorRole: 'SYSTEM_ADMIN',
       projectionType: 'METADATA_ONLY',
       isOwner: false,
-      lifecycleLatestStage: 'INITIAL_REVIEW_COMPLETED',
-      latestRevisionSummary: '最後一次修正摘要'
-    });
+      submissions: [
+        {
+          submissionId: 'SUB-001',
+          stage: 'REREVIEW',
+          reviewerId: 'rereviewer-1',
+          status: 'SUBMITTED',
+          revisionNo: 1,
+          isCurrentEffective: true
+        }
+      ],
+      latestRereviewSubmissionId: 'SUB-001'
+    }));
 
     expect(component.mode).toBe('METADATA_CONTROL_CENTER');
     expect(component.showProjectionNotice).toBeTrue();
@@ -84,18 +108,23 @@ describe('CaseDetailPageComponent', () => {
   });
 
   it('resolves the full control center and keeps the shared region order', () => {
-    render({
-      caseId: 'CASE-010',
-      caseTitle: '案件詳情',
-      patientId: 'P001',
+    render(buildDetail({
       status: 'PENDING_REREVIEW',
-      stageLabel: '待複審',
-      role: 'HOSPITAL_MANAGER',
+      actorRole: 'HOSPITAL_MANAGER',
       projectionType: 'FULL',
       isOwner: false,
-      lifecycleLatestStage: 'PENDING_REREVIEW',
-      latestRevisionSummary: '待複審摘要'
-    });
+      submissions: [
+        {
+          submissionId: 'SUB-002',
+          stage: 'REREVIEW',
+          reviewerId: 'rereviewer-1',
+          status: 'SUBMITTED',
+          revisionNo: 2,
+          isCurrentEffective: true
+        }
+      ],
+      latestRereviewSubmissionId: 'SUB-002'
+    }));
 
     expect(component.mode).toBe('FULL_CONTROL_CENTER');
 
@@ -107,18 +136,22 @@ describe('CaseDetailPageComponent', () => {
   });
 
   it('resolves role-limited access for owned reviewer cases', () => {
-    render({
-      caseId: 'CASE-010',
-      caseTitle: '案件詳情',
-      patientId: 'P001',
+    render(buildDetail({
       status: 'PENDING_INITIAL_REVIEW',
-      stageLabel: '待初審',
-      role: 'REVIEWER',
+      actorRole: 'REVIEWER',
       projectionType: 'FULL',
       isOwner: true,
-      lifecycleLatestStage: 'PENDING_INITIAL_REVIEW',
-      latestRevisionSummary: ''
-    });
+      submissions: [
+        {
+          submissionId: 'SUB-003',
+          stage: 'INITIAL',
+          reviewerId: 'reviewer-1',
+          status: 'SUBMITTED',
+          revisionNo: 1,
+          isCurrentEffective: true
+        }
+      ]
+    }));
 
     expect(component.mode).toBe('ROLE_LIMITED');
     expect(fixture.nativeElement.textContent).toContain('初審作業');
@@ -128,18 +161,31 @@ describe('CaseDetailPageComponent', () => {
   });
 
   it('shows rereview summary for role-limited rereviewer cases only', () => {
-    render({
-      caseId: 'CASE-010',
-      caseTitle: '案件詳情',
-      patientId: 'P001',
+    render(buildDetail({
       status: 'REREVIEW_IN_PROGRESS',
-      stageLabel: '複審中',
-      role: 'REREVIEWER',
+      actorRole: 'REREVIEWER',
       projectionType: 'FULL',
       isOwner: true,
-      lifecycleLatestStage: 'REREVIEW_IN_PROGRESS',
-      latestRevisionSummary: '複審摘要'
-    });
+      submissions: [
+        {
+          submissionId: 'SUB-004',
+          stage: 'INITIAL',
+          reviewerId: 'reviewer-1',
+          status: 'SUBMITTED',
+          revisionNo: 1,
+          isCurrentEffective: false
+        },
+        {
+          submissionId: 'SUB-005',
+          stage: 'REREVIEW',
+          reviewerId: 'rereviewer-1',
+          status: 'SUBMITTED',
+          revisionNo: 1,
+          isCurrentEffective: true
+        }
+      ],
+      latestRereviewSubmissionId: 'SUB-005'
+    }));
 
     expect(component.mode).toBe('ROLE_LIMITED');
     expect((fixture.nativeElement as HTMLElement).querySelector('app-initial-summary-region')).not.toBeNull();
@@ -149,16 +195,12 @@ describe('CaseDetailPageComponent', () => {
   });
 
   it('resolves terminal mode and shows the blocked banner before the mode strip', () => {
-    render({
-      caseId: 'CASE-010',
-      caseTitle: '案件詳情',
-      patientId: 'P001',
+    render(buildDetail({
       status: 'CLOSED',
-      stageLabel: '已結案',
-      role: 'HOSPITAL_MANAGER',
+      actorRole: 'HOSPITAL_MANAGER',
       projectionType: 'FULL',
       isOwner: false
-    });
+    }));
 
     expect(component.mode).toBe('READONLY_TERMINAL');
     expect(component.showBanner).toBeTrue();

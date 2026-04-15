@@ -70,7 +70,7 @@ export class RevisionHistoryPageComponent implements OnInit {
       return;
     }
 
-    switch (this.vm.role) {
+    switch (this.vm.actorRole) {
       case 'REVIEWER':
         this.stageTab = 'INITIAL_ONLY';
         break;
@@ -126,14 +126,7 @@ export class RevisionHistoryPageComponent implements OnInit {
       case 'READONLY_TERMINAL':
         this.modeLabel = '唯讀歷程（終止狀態）';
         this.showMetadataOnlyNotice = false;
-        // HR-2 exception entry: CLOSED + originalRereviewer + baseSubmission
-        // CANCELLED 不啟用
-        this.hasExceptionEntry = !!(
-          d &&
-          d.status === 'CLOSED' &&
-          d.isOriginalRereviewer &&
-          d.hasBaseSubmission
-        );
+        this.hasExceptionEntry = !!d?.hasExceptionEntry;
         this.showBanner = true;
         this.bannerTone = this.hasExceptionEntry ? 'exception-amber' : 'info';
         this.bannerMessage = this.hasExceptionEntry

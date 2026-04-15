@@ -3,9 +3,9 @@
 <!-- C01 CaseSummaryHeader -->
 <app-case-summary-header
   [caseId]="caseId"
-  [caseTitle]="vm?.caseTitle ?? ''"
+  caseTitle="Revision 歷程"
   [status]="vm?.status ?? ''"
-  [stageLabel]="vm?.stageLabel ?? ''"
+  [stageLabel]="vm?.status ?? ''"
   [showProjectionNotice]="mode === 'METADATA_HISTORY'">
 </app-case-summary-header>
 

@@ -43,7 +43,39 @@ export class CaseDetailPageComponent implements OnInit {
   }
 
   get actorRole(): string {
-    return this.caseDetail?.role ?? '';
+    return this.caseDetail?.actorRole ?? '';
+  }
+
+  get caseTitle(): string {
+    return '案件詳情';
+  }
+
+  get stageLabel(): string {
+    return this.caseDetail?.status ?? '';
+  }
+
+  get initialSummary(): string | undefined {
+    const initialSubmission = this.caseDetail?.submissions.find(item => item.stage === 'INITIAL');
+
+    if (!initialSubmission) {
+      return undefined;
+    }
+
+    return `第 ${initialSubmission.revisionNo} 版 / ${initialSubmission.status}`;
+  }
+
+  get rereviewSummary(): string | undefined {
+    const latestRereview = this.caseDetail?.submissions.find(item => item.submissionId === this.caseDetail?.latestRereviewSubmissionId)
+      ?? this.caseDetail?.submissions.find(item => item.stage === 'REREVIEW');
+
+    if (!latestRereview) {
+      if (this.caseDetail?.finalConclusion || this.caseDetail?.finalScore != null) {
+        return `${this.caseDetail.finalConclusion ?? 'FINAL'} / ${this.caseDetail.finalScore ?? '—'}`;
+      }
+      return undefined;
+    }
+
+    return `第 ${latestRereview.revisionNo} 版 / ${latestRereview.status}`;
   }
 
   get showInitialSummary(): boolean {
@@ -103,9 +135,9 @@ export class CaseDetailPageComponent implements OnInit {
       this.mode = 'METADATA_CONTROL_CENTER';
     } else if (isTerminalState) {
       this.mode = 'READONLY_TERMINAL';
-    } else if (d.role === 'HOSPITAL_MANAGER' || d.role === 'MANAGER' || d.role === 'ADMIN') {
+    } else if (d.actorRole === 'HOSPITAL_MANAGER' || d.actorRole === 'MANAGER' || d.actorRole === 'ADMIN') {
       this.mode = 'FULL_CONTROL_CENTER';
-    } else if (d.isOwner || d.role === 'AUDITOR') {
+    } else if (d.isOwner || d.actorRole === 'AUDITOR') {
       this.mode = 'ROLE_LIMITED';
     } else {
       this.mode = 'READONLY_TERMINAL';

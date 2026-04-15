@@ -1,5 +1,143 @@
 import { test, expect } from '@playwright/test';
 
+async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Promise<void> {
+  await page.route('**/api/quality-inspection/review-cases?*', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          content: [
+            {
+              caseId: 'CASE-009',
+              projectId: 'PROJECT-001',
+              batchId: 'BATCH-001',
+              hospitalId: 'H001',
+              status: 'PENDING_INITIAL_REVIEW',
+              reviewerId: 'reviewer-1',
+              rereviewerId: 'rereviewer-1',
+              medicalRecordType: 'OUTPATIENT',
+              sourceCaseKey: 'SK-009',
+              createdAt: '2026-04-01T08:00:00',
+              assignedAt: '2026-04-01T09:00:00',
+              dueAt: '2026-04-03T23:59:00',
+              projectionType: 'FULL'
+            }
+          ],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1
+        }
+      })
+    });
+  });
+
+  await page.route('**/api/quality-inspection/review-cases/CASE-010', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          caseId: 'CASE-010',
+          projectId: 'PROJECT-001',
+          batchId: 'BATCH-001',
+          hospitalId: 'H001',
+          status: 'PENDING_REREVIEW',
+          reviewerId: 'reviewer-1',
+          rereviewerId: 'rereviewer-1',
+          medicalRecordType: 'OUTPATIENT',
+          sourceCaseKey: 'SK-010',
+          submissions: [
+            {
+              submissionId: 'SUB-010',
+              stage: 'INITIAL',
+              reviewerId: 'reviewer-1',
+              status: 'SUBMITTED',
+              revisionNo: 1,
+              submittedAt: '2026-04-01T08:00:00'
+            },
+            {
+              submissionId: 'SUB-011',
+              stage: 'REREVIEW',
+              reviewerId: 'rereviewer-1',
+              status: 'SUBMITTED',
+              revisionNo: 2,
+              submittedAt: '2026-04-02T08:00:00'
+            }
+          ],
+          latestRereviewSubmissionId: 'SUB-011',
+          projectionType: 'FULL',
+          actorRole: 'HOSPITAL_MANAGER',
+          isOwner: false
+        }
+      })
+    });
+  });
+
+  await page.route('**/api/quality-inspection/review-cases/CASE-014', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          caseId: 'CASE-014',
+          projectId: 'PROJECT-001',
+          batchId: 'BATCH-001',
+          hospitalId: 'H001',
+          status: 'CLOSED',
+          reviewerId: 'reviewer-1',
+          rereviewerId: 'rereviewer-1',
+          medicalRecordType: 'OUTPATIENT',
+          sourceCaseKey: 'SK-014',
+          submissions: [],
+          latestRereviewSubmissionId: 'SUB-014-2',
+          projectionType: 'FULL',
+          actorRole: 'REREVIEWER',
+          isOwner: true
+        }
+      })
+    });
+  });
+
+  await page.route('**/api/quality-inspection/review-cases/CASE-014/revision-history', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          caseId: 'CASE-014',
+          hasExceptionEntry: true,
+          submissions: [
+            {
+              submissionId: 'SUB-014-1',
+              stage: 'INITIAL',
+              reviewerId: 'reviewer-1',
+              status: 'SUPERSEDED',
+              revisionNo: 1,
+              submittedAt: '2026-04-01T08:00:00',
+              supersededBySubmissionId: 'SUB-014-2'
+            },
+            {
+              submissionId: 'SUB-014-2',
+              stage: 'REREVIEW',
+              reviewerId: 'rereviewer-1',
+              status: 'SUBMITTED',
+              revisionNo: 2,
+              submittedAt: '2026-04-02T08:00:00',
+              supersededBySubmissionId: null
+            }
+          ]
+        }
+      })
+    });
+  });
+}
+
 test.describe('frontend smoke baseline', () => {
   test('loads the shell from the root route', async ({ page }) => {
     await page.goto('/');
@@ -9,6 +147,7 @@ test.describe('frontend smoke baseline', () => {
   });
 
   test('renders the cases worklist shared regions', async ({ page }) => {
+    await mockWave3CasesApi(page);
     await page.goto('/cases');
 
     await expect(page.locator('.case-summary-header')).toBeVisible();
@@ -46,6 +185,7 @@ test.describe('frontend smoke baseline', () => {
   });
 
   test('loads the Wave 3 case detail control center route', async ({ page }) => {
+    await mockWave3CasesApi(page);
     await page.goto('/cases/CASE-010');
 
     await expect(page.locator('.case-detail-content')).toBeVisible();
@@ -53,6 +193,7 @@ test.describe('frontend smoke baseline', () => {
   });
 
   test('loads the Wave 3 revision history route', async ({ page }) => {
+    await mockWave3CasesApi(page);
     await page.goto('/cases/CASE-014/revisions');
 
     await expect(page.locator('.stage-tabs')).toBeVisible();
