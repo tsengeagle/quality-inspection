@@ -1986,15 +1986,34 @@ Wave 2 — Shared Components（可與 Wave 1 中的 F-01 後平行開始）
   ← S-01 ~ S-07 + PH-02 可完全平行
 
 Wave 3 — Cases Read-only（依賴 Wave 2 之 S-01/S-02/S-03/S-04）
+  Start gate:
+    - `npm run typecheck` 綠燈
+    - `npm run test:unit:ci` 綠燈，且已存在 shared component baseline（C01）與 cases container baseline（UI-009）
+    - `npm run test:e2e` 綠燈，且 smoke 至少覆蓋 `/` 與 `/cases`
+    - 先建立 Wave 3 目標頁（UI-009/UI-010/UI-014）的 unit 測試，再開始功能變更
   C-01: UI-009 CaseListPageComponent 骨架
   C-03: UI-010 CaseDetailPageComponent 骨架
   C-11: UI-014 RevisionHistoryPageComponent 骨架
   V-01: Route smoke test（可在此波次後執行）
+  Exit gate:
+    - `npm run typecheck`
+    - `npm run test:unit:ci`
+    - `npm run test:e2e`
+    - Wave 3 新增或變更的 read-only route / mode / navigate-only 行為均有對應 unit 測試與 smoke 驗證
   ← C-01 / C-03 / C-11 可平行（但需等 S-01~S-04）
 
 Wave 4 — Sampling（依賴 Wave 2 之 S-01/S-02/S-03；可與 Wave 3 平行）
+  Start gate:
+    - Wave foundation gate 持續為綠燈：`npm run typecheck`、`npm run test:unit:ci`、`npm run test:e2e`
+    - Wave 4 先補 sampling route / role tab / placeholder 或 mode smoke 所需測試，再開始 UI-007 / UI-006 功能
+    - e2e smoke 至少已可進入 `/sampling/batches`；若 sampling smoke route 不可進入，不得開始 Wave 4
   SP-01: UI-007 SamplingBatchListPageComponent 骨架
   SP-04: UI-006 SamplingExecutePageComponent 骨架
+  Exit gate:
+    - `npm run typecheck`
+    - `npm run test:unit:ci`
+    - `npm run test:e2e`
+    - `/sampling/batches` 與 `/sampling/:projectId` 至少各有 1 個 smoke 驗證；sampling role/tab 或 mode baseline 已有 unit coverage
   ← SP-01 / SP-04 可平行
 
 Wave 3+4 Extensions（依賴各自的 Wave 3/4 骨架）
@@ -2010,9 +2029,19 @@ Wave 3+4 Extensions（依賴各自的 Wave 3/4 骨架）
   ← 各依賴其 page 骨架
 
 Wave 5 — Cases Command Pages（依賴 Wave 2 + Wave 3 + S-05/S-06/S-07；UI-014 須在 UI-013 前完成）
+  Start gate:
+    - Wave 3 與 Wave 4 exit gate 均已通過
+    - `npm run typecheck`、`npm run test:unit:ci`、`npm run test:e2e` 仍維持綠燈
+    - 先建立 command page 測試（guard / ownership / mode / command bar 可視狀態），再開始 UI-011 / UI-012 / UI-013 功能
+    - 若 e2e 仍為 partial 或 smoke route 尚未穩定，Wave 5 不得開始
   C-05: UI-011 CaseAssignmentPageComponent 骨架
   C-07: UI-012 InitialReviewPageComponent 骨架（依賴 S-05/S-06/S-07）
   C-09: UI-013 RereviewPageComponent 骨架（依賴 C-07，因 A4 grammar 承接）
+  Exit gate:
+    - `npm run typecheck`
+    - `npm run test:unit:ci`
+    - `npm run test:e2e`
+    - command page 的 route entry、guard、mode resolution、command region 可視條件都已有 unit coverage；至少 1 條 command page smoke route 可進入
   ← C-05 可與 C-07 平行，但 C-09 必須在 C-07 後
 
 Wave 5 Extensions
@@ -2028,6 +2057,20 @@ Wave 6 — Verification（所有任務完成後）
   V-05: Must-not-invent 16 條 audit
   V-06: STUB boundary 驗收
 ```
+
+### Wave test-first gate reset
+
+| Wave | Pre-start required | Exit gate required | 若 gate 未過的處置 |
+|---------|------|---------|-------------|
+| Wave 3 | `npm run typecheck`、`npm run test:unit:ci`、`npm run test:e2e` 全部通過；shared component baseline + cases container baseline 已存在 | 同三個 command 全綠；read-only route / navigate-only / mode 變更均有 unit + smoke | 不得進入 Wave 4 |
+| Wave 4 | Wave foundation gate 持續全綠；sampling smoke route 已可進入；sampling wave 測試先定義 | 同三個 command 全綠；`/sampling/batches`、`/sampling/:projectId` smoke 至少各 1 條 | 不得進入 Wave 5 |
+| Wave 5 | Wave 3 + Wave 4 exit gate 已通過；command page 測試先定義；e2e 非 partial | 同三個 command 全綠；command page route / guard / ownership / mode / command region 有 unit coverage，且至少 1 條 smoke route 可進入 | 不得進入下一 wave |
+
+補充規則：
+- `required`：`npm run typecheck`、`npm run test:unit:ci`、`npm run test:e2e`
+- `required`：每個 wave 的測試必須先寫，再做功能
+- `required`：若 `npm run test:e2e` 回到 partial（例如 `No tests found`），只允許修補測試基礎，不允許繼續 Wave 3 / Wave 4 / Wave 5
+- `recommended`：新增 route 時同步擴充 smoke route 清單；新增 mode 時同步補 mode resolver unit 測試
 
 ### 波次並行矩陣摘要
 

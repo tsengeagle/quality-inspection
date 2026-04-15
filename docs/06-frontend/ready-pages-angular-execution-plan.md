@@ -1007,6 +1007,9 @@ interface RevisionHistoryViewModel {
 
 ### 跨批次注意事項
 
+- **Frontend test foundation gate 是後續所有波次的共同前置**：在 `npm run typecheck`、`npm run test:unit:ci`、`npm run test:e2e` 尚未同時為綠燈前，不得開始 Wave 3 / Wave 4 / Wave 5 的任何功能實作。
+- **test-first 是執行規則，不只是建議**：每一個 wave 必須先定義該 wave 的 unit / e2e 驗證，再開始功能；若該 wave 的 exit gate 未通過，不得進入下一個 wave。
+- **若 e2e 再度回到 partial**（包含 `No tests found`、discovery 失效、smoke route 失敗），允許進行的工作僅限 foundation repair；Wave 3 / Wave 4 / Wave 5 一律停止。
 - F1~F4 必須全部完成後，P1~P8 才能開始。
 - S1~S7 可以與 F1~F4 平行進行，也可以在 P 批次進行中按需建立。
 - P3（UI-014）應在 P8（UI-013）之前完成，因為 C22 navigate to UI-013 是 P3 的 implement-now 項目。
