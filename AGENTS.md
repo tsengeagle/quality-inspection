@@ -439,6 +439,10 @@ UI IA 映射到 Angular route / feature module / guard 邊界。
 6. `docs/02-ddd/state-machine.md`
 7. `docs/03-contracts/api-spec.md`
 8. 對應頁面的 `docs/05-ui/ui-page-spec-*.md`
+9. 若任務涉及 frontend terminal execution / typecheck / unit / e2e，先讀 `frontends/quality-inspection-frontend/package.json`
+10. 同類任務需同步確認 `frontends/quality-inspection-frontend/angular.json`
+11. typecheck / unit task 需同步確認 `frontends/quality-inspection-frontend/tsconfig.json`、`tsconfig.spec.json`、`karma.conf.js`
+12. e2e task 需同步確認 `frontends/quality-inspection-frontend/playwright.config.ts` 與 `e2e/`
 
 ---
 
@@ -637,6 +641,7 @@ confirmed:
       test: "./gradlew test"
       run: "./gradlew bootRun"
   frontend:
+    module_root: "frontends/quality-inspection-frontend"
     framework: Angular 14
     architecture: microfrontend
     package_manager: npm
@@ -651,8 +656,13 @@ confirmed:
       start: "npm start"
       start_standalone: "npm run start:standalone"
       build: "npm run build"
+      typecheck: "npm run typecheck"
       test: "npm test"
+      test_unit: "npm run test:unit"
+      test_unit_ci: "npm run test:unit:ci"
       e2e: "npm run e2e"
+      test_e2e: "npm run test:e2e"
+      verify_frontend: "npm run verify:frontend"
   ui_governance:
     organization_ui_style: must align with organization existing UI style
     shared_ui_library: portal51-lib@0.0.16 (repo-local dependency evidence)
@@ -670,6 +680,15 @@ confirmed:
 
 文件設計樹已存在且分層清楚。
 Backend / frontend 工程骨架已建立。
+
+Frontend terminal execution governance note:
+
+- repo root currently contains `package-lock.json` but no repo-root `package.json`
+- frontend npm install / typecheck / unit / e2e must execute from `frontends/quality-inspection-frontend`
+- prefer `npm run <script>` first, module-root local binary second, and `npx` only as the last resort
+- keep install / typecheck / unit / e2e in the same module root, preferably in the order install -> typecheck -> unit -> e2e
+- e2e readiness requires `playwright.config.ts`, `e2e/`, and at least one Playwright-discoverable test file; config presence alone is not sufficient
+- do not treat repo-root lockfile as the frontend module lockfile
 
 ### 9.2 尚未確認
 

@@ -630,6 +630,39 @@ Agent reasoning:
 
 ---
 
+### 9.4 Frontend Terminal Execution Governance
+
+**When the task requires frontend install, typecheck, unit test, or e2e execution:**
+
+1. Resolve the repo root first, then set the working directory explicitly to `frontends\quality-inspection-frontend`.
+2. Announce the repo root, target module root, current working directory, and exact command before execution.
+3. Verify `package.json`, `angular.json`, and `tsconfig.json` before any frontend command.
+4. Verify `node_modules` before using module-local binaries.
+5. Verify `tsconfig.spec.json` and `karma.conf.js` before unit test commands.
+6. Verify `playwright.config.ts`, `e2e\src`, and at least one Playwright-discoverable test file before e2e commands.
+7. Prefer command resolution in this order:
+   - `npm run <script>`
+   - module-root local binary
+   - `npx` only when no safe script or local binary entry exists
+8. Do not run bare `npx tsc`.
+9. Do not run bare `npx playwright test` when the module already provides an npm script.
+10. Do not run frontend commands from repo root or backend module root.
+11. Do not mix repo-root install state with module-root install, typecheck, unit, or e2e execution in this multi-module repository.
+12. Prefer the execution order install -> typecheck -> unit -> e2e when validating a frontend module.
+13. Do not treat e2e config presence alone as proof that e2e is executable.
+
+**Canonical PowerShell pattern:**
+```powershell
+$RepoRoot = git rev-parse --show-toplevel
+$FrontendRoot = Join-Path $RepoRoot 'frontends\quality-inspection-frontend'
+Set-Location $FrontendRoot
+npm run verify:frontend
+```
+
+If e2e discovery does not find any tests, classify e2e as `partial`, not `ready`, even when the npm script and config files exist.
+
+---
+
 ## 10. References
 
 - **Design baseline:** `DESIGN.v2.1.md`, `DESIGN-components.v2.1.md`, `DESIGN-engineering.v2.1.md`

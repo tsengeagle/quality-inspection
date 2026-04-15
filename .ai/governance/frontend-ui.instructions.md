@@ -43,7 +43,58 @@ Before making changes, classify the task:
 
 If broader baseline and MFE-specific authority appear to disagree for an MFE task, follow the MFE-specific authority and mark the broader-vs-MFE mismatch as cleanup or pending confirmation.
 
-## 5. Reuse-First Rules
+## 5. Terminal Execution Governance
+
+For frontend terminal work in this multi-module repo, use these rules directly:
+
+1. Before running a command, identify and state:
+   - repo root
+   - target frontend module root: `frontends\quality-inspection-frontend`
+   - current working directory
+   - exact command to run
+2. Do not guess relative paths from memory. Resolve the repo root first, then change explicitly into the frontend module root before install, typecheck, unit, or e2e commands.
+3. PowerShell examples must use module-root execution, for example:
+   ```powershell
+   $RepoRoot = git rev-parse --show-toplevel
+   $FrontendRoot = Join-Path $RepoRoot 'frontends\quality-inspection-frontend'
+   Set-Location $FrontendRoot
+   npm run verify:frontend
+   ```
+4. Required pre-checks before running frontend commands:
+   - `package.json`
+   - `angular.json`
+   - `tsconfig.json`
+   - `node_modules` when the command depends on local binaries
+   - `tsconfig.spec.json` + `karma.conf.js` for unit test commands
+   - `playwright.config.ts` + `e2e\src` + at least one Playwright-discoverable test file for e2e commands
+5. Command priority for Node / TypeScript work:
+   - first: `npm run <script>`
+   - second: module-root local binary such as `.\node_modules\.bin\playwright.cmd`
+   - last resort: `npx`, only when no safe script or local binary path exists
+6. Angular CLI commands in the same frontend module must run serially. Do not start a second `ng build` or `ng test` process while another Angular CLI process is still compiling or holding `.ngcc_lock_file`.
+7. Preferred execution order inside the frontend module:
+   - install
+   - typecheck
+   - unit
+   - e2e
+8. Prohibited patterns:
+   - running frontend commands from repo root or backend module root
+   - bare `npx tsc`
+   - bare `npx playwright test` when a repo-local npm script exists
+   - parallel Angular CLI execution inside the same module root
+   - mixing install in one directory with typecheck / unit / e2e in another directory
+   - treating the repo-root `package-lock.json` as the frontend module lockfile
+   - treating e2e config presence alone as proof that e2e is executable
+9. Frontend command baseline in this repo:
+   - install: `npm install`
+   - typecheck: `npm run typecheck`
+   - unit: `npm run test:unit` or `npm run test:unit:ci`
+   - e2e: `npm run test:e2e`
+   - minimal verify: `npm run verify:frontend`
+
+If e2e discovery does not find any tests, classify e2e as `partial`, not `ready`, even when the script and config files exist.
+
+## 6. Reuse-First Rules
 
 Before changing code:
 
@@ -60,7 +111,7 @@ Prefer existing patterns for:
 - illustration-based empty states
 - token-safe styling
 
-## 6. Page Composition Rules
+## 7. Page Composition Rules
 
 Use these rules directly:
 
@@ -73,7 +124,7 @@ Use these rules directly:
 7. Domain-specific table variants may diverge only when they provide complete base styling.
 8. Primary empty states use the illustration-based empty-state pattern, not alert-only placeholders.
 
-## 7. Shell Communication Rules
+## 8. Shell Communication Rules
 
 Use these rules directly:
 
@@ -84,7 +135,7 @@ Use these rules directly:
 5. Do not duplicate shell-global runtime assets.
 6. Support hosted mode and standalone mode through a module-side boundary.
 
-## 8. CSS and Styling Rules
+## 9. CSS and Styling Rules
 
 Use these rules directly:
 
@@ -93,22 +144,26 @@ Use these rules directly:
 3. Keep shell-global CSS and module-local CSS ownership clear.
 4. If you need the light gray-blue surface color, use `--bs-tertiary`, not legacy assumptions about `--bs-secondary`.
 
-## 9. Validation Checklist
+## 10. Validation Checklist
 
 Before claiming completion:
 
 1. Read the deeper authority files required by the task type.
-2. Check page structure and page-root composition.
-3. Check patient context placement when the page is patient-facing.
-4. Check breadcrumbs omission for hosted tabbed-shell runtime.
-5. Check in-page tabs use `nav-tabs-scoped`.
-6. Check shell-facing interactions go through `EventBusService`.
-7. Check no raw `PubSub` or shell store internals were introduced.
-8. Check no duplicate shell-global assets were imported.
-9. Check component CSS has no hardcoded hex colors.
-10. Check hosted + standalone compatibility when the task touches runtime/bootstrap/context assumptions.
+2. Check the command was executed from `frontends\quality-inspection-frontend`, not repo root or another module root.
+3. Check the command used an npm script before falling back to a local binary or `npx`.
+4. Check required frontend config files existed before command execution.
+5. Check e2e commands had at least one Playwright-discoverable test file before claiming e2e readiness.
+6. Check page structure and page-root composition.
+7. Check patient context placement when the page is patient-facing.
+8. Check breadcrumbs omission for hosted tabbed-shell runtime.
+9. Check in-page tabs use `nav-tabs-scoped`.
+10. Check shell-facing interactions go through `EventBusService`.
+11. Check no raw `PubSub` or shell store internals were introduced.
+12. Check no duplicate shell-global assets were imported.
+13. Check component CSS has no hardcoded hex colors.
+14. Check hosted + standalone compatibility when the task touches runtime/bootstrap/context assumptions.
 
-## 10. Escalation / Pending Confirmation Rules
+## 11. Escalation / Pending Confirmation Rules
 
 Escalate or mark pending confirmation when:
 
