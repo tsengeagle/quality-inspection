@@ -94,8 +94,9 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort {
         q.setParameter("caseId", caseId);
         return q.getResultList().stream()
                 .map(s -> new SubmissionSummaryItem(
-                        s.getSubmissionId(), s.getStage().name(), s.getRevisionNo(),
-                        s.getStatus().name(), s.getSubmittedAt()))
+                s.getSubmissionId(), s.getStage().name(), s.getReviewerId(),
+                s.getRevisionNo(), s.getStatus().name(),
+                s.getTotalScore(), s.getSubmittedAt()))
                 .collect(Collectors.toList());
     }
 
@@ -115,7 +116,8 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort {
                 e.getMedicalRecordType(), e.getSourceCaseKey(),
                 e.getInitialReviewScore(), e.getFinalScore(), e.getFinalConclusion(),
                 null, e.getReviewerAssignedAt(), e.getDueAt(),
-                e.getClosedAt(), e.getCancelledAt(), submissions,
-                e.getLatestRereviewSubmissionId(), null, null, false);
+            e.getClosedAt(), e.getCancelledAt(),
+            e.getLatestInitialSubmissionId(), e.getScoreSheetVersionRef(), submissions,
+            e.getLatestRereviewSubmissionId(), null, null, false, null, null);
     }
 }

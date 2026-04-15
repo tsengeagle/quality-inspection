@@ -11,6 +11,12 @@
 	[message]="bannerMessage">
 </app-status-or-blocked-banner>
 
+<app-status-or-blocked-banner
+	*ngIf="showCommandFeedback"
+	[tone]="commandFeedbackTone"
+	[message]="commandFeedbackMessage">
+</app-status-or-blocked-banner>
+
 <app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
 
 <app-review-form-summary-strip [mode]="modeLabel"></app-review-form-summary-strip>
@@ -54,8 +60,12 @@
 </section>
 
 <app-review-command-bar
-	*ngIf="mode !== 'READONLY_BLOCKED'"
+	*ngIf="showCommandBar"
 	[primaryLabel]="commandPrimaryLabel"
-	secondaryLabel="返回案件詳情"
-	[disabled]="true">
+	[secondaryLabel]="commandSecondaryLabel"
+	[disabled]="false"
+	[primaryDisabled]="commandPrimaryDisabled"
+	[secondaryDisabled]="commandSecondaryDisabled"
+	(primaryClick)="onPrimaryAction()"
+	(secondaryClick)="onSecondaryAction()">
 </app-review-command-bar>

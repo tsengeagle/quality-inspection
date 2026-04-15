@@ -23,11 +23,15 @@ public class ReviewCaseDetailView {
     private final LocalDateTime dueAt;
     private final LocalDateTime closedAt;
     private final LocalDateTime cancelledAt;
+    private final String latestInitialSubmissionId;
+    private final String scoreSheetVersionRef;
     private final List<SubmissionSummaryItem> submissions;
     private final String latestRereviewSubmissionId;
     private final String projectionType;
     private final String actorRole;
     private final boolean isOwner;
+    private final InitialReviewBootstrapView initialReviewContext;
+    private final RereviewBootstrapView rereviewContext;
 
     public ReviewCaseDetailView(String caseId, String projectId, String batchId,
                                  String hospitalId, String status, String reviewerId,
@@ -40,6 +44,28 @@ public class ReviewCaseDetailView {
                                  List<SubmissionSummaryItem> submissions,
                                  String latestRereviewSubmissionId,
                                  String projectionType, String actorRole, boolean isOwner) {
+        this(caseId, projectId, batchId, hospitalId, status, reviewerId, rereviewerId,
+                medicalRecordType, sourceCaseKey, initialReviewScore, finalScore,
+                finalConclusion, createdAt, assignedAt, dueAt, closedAt, cancelledAt,
+                null, null, submissions, latestRereviewSubmissionId,
+                projectionType, actorRole, isOwner, null, null);
+    }
+
+    public ReviewCaseDetailView(String caseId, String projectId, String batchId,
+                                 String hospitalId, String status, String reviewerId,
+                                 String rereviewerId, String medicalRecordType,
+                                 String sourceCaseKey, BigDecimal initialReviewScore,
+                                 BigDecimal finalScore, String finalConclusion,
+                                 LocalDateTime createdAt, LocalDateTime assignedAt,
+                                 LocalDateTime dueAt, LocalDateTime closedAt,
+                                 LocalDateTime cancelledAt,
+                                 String latestInitialSubmissionId,
+                                 String scoreSheetVersionRef,
+                                 List<SubmissionSummaryItem> submissions,
+                                 String latestRereviewSubmissionId,
+                                 String projectionType, String actorRole, boolean isOwner,
+                                 InitialReviewBootstrapView initialReviewContext,
+                                 RereviewBootstrapView rereviewContext) {
         this.caseId = caseId;
         this.projectId = projectId;
         this.batchId = batchId;
@@ -57,11 +83,15 @@ public class ReviewCaseDetailView {
         this.dueAt = dueAt;
         this.closedAt = closedAt;
         this.cancelledAt = cancelledAt;
+        this.latestInitialSubmissionId = latestInitialSubmissionId;
+        this.scoreSheetVersionRef = scoreSheetVersionRef;
         this.submissions = submissions;
         this.latestRereviewSubmissionId = latestRereviewSubmissionId;
         this.projectionType = projectionType;
         this.actorRole = actorRole;
         this.isOwner = isOwner;
+        this.initialReviewContext = initialReviewContext;
+        this.rereviewContext = rereviewContext;
     }
 
     public String getCaseId() { return caseId; }
@@ -81,21 +111,30 @@ public class ReviewCaseDetailView {
     public LocalDateTime getDueAt() { return dueAt; }
     public LocalDateTime getClosedAt() { return closedAt; }
     public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public String getLatestInitialSubmissionId() { return latestInitialSubmissionId; }
+    public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public List<SubmissionSummaryItem> getSubmissions() { return submissions; }
     public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
     public String getProjectionType() { return projectionType; }
     public String getActorRole() { return actorRole; }
     public boolean isOwner() { return isOwner; }
+    public InitialReviewBootstrapView getInitialReviewContext() { return initialReviewContext; }
+    public RereviewBootstrapView getRereviewContext() { return rereviewContext; }
 
-    public ReviewCaseDetailView enrich(String projectionType, String actorRole, boolean isOwner) {
+    public ReviewCaseDetailView enrich(String projectionType, String actorRole, boolean isOwner,
+                                       InitialReviewBootstrapView initialReviewContext,
+                                       RereviewBootstrapView rereviewContext) {
         return new ReviewCaseDetailView(
                 this.caseId, this.projectId, this.batchId, this.hospitalId,
                 this.status, this.reviewerId, this.rereviewerId,
                 this.medicalRecordType, this.sourceCaseKey,
                 this.initialReviewScore, this.finalScore, this.finalConclusion,
                 this.createdAt, this.assignedAt, this.dueAt,
-                this.closedAt, this.cancelledAt, this.submissions,
+                this.closedAt, this.cancelledAt,
+                this.latestInitialSubmissionId, this.scoreSheetVersionRef,
+                this.submissions,
                 this.latestRereviewSubmissionId,
-                projectionType, actorRole, isOwner);
+                projectionType, actorRole, isOwner,
+                initialReviewContext, rereviewContext);
     }
 }

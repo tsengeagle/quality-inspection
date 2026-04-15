@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { of } from 'rxjs';
 
 import { CaseSummaryHeaderComponent } from '../components/case-summary-header/case-summary-header.component';
 import { ModeIndicatorStripComponent } from '../components/mode-indicator-strip/mode-indicator-strip.component';
@@ -8,13 +9,24 @@ import { ReviewCommandBarComponent } from '../components/review-command-bar/revi
 import { ReviewFormSummaryStripComponent } from '../components/review-form-summary-strip/review-form-summary-strip.component';
 import { ReviewVersionSummaryRegionComponent } from '../components/review-version-summary-region/review-version-summary-region.component';
 import { StatusOrBlockedBannerComponent } from '../components/status-or-blocked-banner/status-or-blocked-banner.component';
-import { RereviewContext, RereviewPageComponent } from './rereview-page.component';
+import { CaseDetailViewModel, CasesService } from '../services/cases.service';
+import { RereviewPageComponent } from './rereview-page.component';
 
 describe('RereviewPageComponent', () => {
   let fixture: ComponentFixture<RereviewPageComponent>;
   let component: RereviewPageComponent;
+  let casesService: jasmine.SpyObj<CasesService>;
 
   beforeEach(async () => {
+    casesService = jasmine.createSpyObj<CasesService>('CasesService', [
+      'getCaseDetail',
+      'getSubmissionDetail',
+      'startRereview',
+      'saveRereviewDraft',
+      'submitRereview',
+      'reviseRereview'
+    ]);
+
     await TestBed.configureTestingModule({
       declarations: [
         RereviewPageComponent,
@@ -27,6 +39,7 @@ describe('RereviewPageComponent', () => {
         ReviewVersionSummaryRegionComponent
       ],
       providers: [
+        { provide: CasesService, useValue: casesService },
         {
           provide: ActivatedRoute,
           useValue: {
@@ -42,71 +55,318 @@ describe('RereviewPageComponent', () => {
     component = fixture.componentInstance;
   });
 
-  function buildContext(overrides: Partial<RereviewContext> = {}): RereviewContext {
+  function buildDetail(overrides: Partial<CaseDetailViewModel> = {}): CaseDetailViewModel {
     return {
       caseId: 'CASE-013',
-      caseTitle: '複審測試骨架',
       status: 'PENDING_REREVIEW',
-      stageLabel: '待複審',
-      blockedReason: null,
-      hasDraft: false,
-      hasSubmittedBase: false,
-      isClosedRevisionException: false,
-      initialSubmissionId: 'SUB-INITIAL-001',
-      initialReviewerName: 'Dr. Initial',
-      initialTotalScore: '79',
-      finalDecisionSummary: '最終結論 placeholder',
+      projectionType: 'FULL',
+      actorRole: 'REREVIEWER',
+      isOwner: true,
+      batchId: 'BATCH-001',
+      hospitalId: 'H001',
+      reviewerId: 'reviewer-1',
+      rereviewerId: 'rereviewer-1',
+      medicalRecordType: 'OUTPATIENT',
+      sourceCaseKey: 'SK-013',
+      submissions: [],
+      rereviewContext: {
+        pageMode: 'NEW_REREVIEW',
+        hasDraft: false,
+        hasSubmittedBase: false,
+        closedRevisionException: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['START_REREVIEW'],
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'PENDING_FINAL_DECISION'
+      },
       ...overrides
     };
   }
 
-  function render(context: RereviewContext): void {
+  function render(detail: CaseDetailViewModel): void {
+    casesService.getCaseDetail.and.returnValue(of(detail));
     fixture.detectChanges();
-    component.applyContext(context);
     fixture.detectChanges();
   }
 
+  function getButtons(): HTMLButtonElement[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('button'));
+  }
+
+  function getButtonByText(label: string): HTMLButtonElement | undefined {
+    return getButtons().find(button => button.textContent?.includes(label));
+  }
+
   it('covers NEW baseline with C18/C19 skeleton and rereview form placeholder', () => {
-    render(buildContext());
+    render(buildDetail());
 
     expect(component.mode).toBe('NEW');
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-initial-summary-reference"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-final-decision-summary"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-form-placeholder"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Dr. Initial');
+    expect(getButtonByText('開始複審')?.disabled).toBeFalse();
   });
 
-  it('covers EDIT_DRAFT baseline', () => {
-    render(buildContext({ hasDraft: true, status: 'REREVIEW_IN_PROGRESS' }));
+  it('starts rereview via backend command path and shows minimal success feedback', () => {
+    casesService.getCaseDetail.and.returnValues(of(buildDetail()), of(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        closedRevisionException: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_REREVIEW_DRAFT', 'SUBMIT_REREVIEW'],
+        currentSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'PENDING_FINAL_DECISION'
+      }
+    })));
+    casesService.startRereview.and.returnValue(of({ caseId: 'CASE-013' }));
+
+    fixture.detectChanges();
+    fixture.detectChanges();
+    getButtonByText('開始複審')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.startRereview).toHaveBeenCalledWith('CASE-013');
+    expect(fixture.nativeElement.textContent).toContain('已開始複審，系統已建立最小草稿。');
+  });
+
+  it('uses allowedActions to control draft and submit CTA for rereview EDIT_DRAFT mode', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        closedRevisionException: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_REREVIEW_DRAFT'],
+        currentSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'PENDING_FINAL_DECISION'
+      }
+    }));
 
     expect(component.mode).toBe('EDIT_DRAFT');
     expect(fixture.nativeElement.querySelector('app-review-command-bar')).not.toBeNull();
+    expect(getButtonByText('保存複審草稿')?.disabled).toBeFalse();
+    expect(getButtonByText('提交複審')?.disabled).toBeTrue();
+  });
+
+  it('saves rereview draft using submission detail as the minimal payload source', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        closedRevisionException: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_REREVIEW_DRAFT', 'SUBMIT_REREVIEW'],
+        currentSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'PENDING_FINAL_DECISION'
+      }
+    }));
+    casesService.getSubmissionDetail.and.returnValue(of({
+      submissionId: 'SUB-REREVIEW-001',
+      caseId: 'CASE-013',
+      stage: 'REREVIEW',
+      revisionNo: 1,
+      status: 'DRAFT',
+      reviewerId: 'rereviewer-1',
+      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
+      comment: 'draft comment',
+      totalScore: 88,
+      maskedFields: []
+    }));
+    casesService.saveRereviewDraft.and.returnValue(of({ submissionId: 'SUB-REREVIEW-001', status: 'DRAFT', stage: 'REREVIEW', totalScore: 88 }));
+
+    getButtonByText('保存複審草稿')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.saveRereviewDraft).toHaveBeenCalledWith('CASE-013', {
+      submissionId: 'SUB-REREVIEW-001',
+      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
+      comment: 'draft comment',
+      totalScore: 88
+    });
+    expect(fixture.nativeElement.textContent).toContain('複審草稿已保存。');
+  });
+
+  it('submits rereview through the backend submit path', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        closedRevisionException: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_REREVIEW_DRAFT', 'SUBMIT_REREVIEW'],
+        currentSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'PENDING_FINAL_DECISION'
+      }
+    }));
+    casesService.getSubmissionDetail.and.returnValue(of({
+      submissionId: 'SUB-REREVIEW-001',
+      caseId: 'CASE-013',
+      stage: 'REREVIEW',
+      revisionNo: 1,
+      status: 'DRAFT',
+      reviewerId: 'rereviewer-1',
+      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
+      comment: 'submit comment',
+      totalScore: 88,
+      maskedFields: []
+    }));
+    casesService.submitRereview.and.returnValue(of({ submissionId: 'SUB-REREVIEW-001', caseId: 'CASE-013', caseStatus: 'CLOSED', status: 'SUBMITTED', finalScore: 84 }));
+
+    getButtonByText('提交複審')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.submitRereview).toHaveBeenCalledWith('CASE-013', {
+      submissionId: 'SUB-REREVIEW-001',
+      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
+      comment: 'submit comment'
+    });
+    expect(fixture.nativeElement.textContent).toContain('複審已提交，最終分數 84。');
   });
 
   it('covers REVISION baseline and keeps C17 visible', () => {
-    render(buildContext({
-      hasSubmittedBase: true,
-      basedOnVersion: { submissionId: 'SUB-REREVIEW-001', version: 1, submittedAt: '2026-04-15T11:00:00+08:00' }
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'REVISION',
+        hasDraft: false,
+        hasSubmittedBase: true,
+        closedRevisionException: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['REVISE_REREVIEW'],
+        basedOnVersion: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'SUBMITTED', submittedAt: '2026-04-15T11:00:00+08:00' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'PASS'
+      }
     }));
 
     expect(component.mode).toBe('REVISION');
     expect(fixture.nativeElement.querySelector('app-review-version-summary-region')).not.toBeNull();
   });
 
-  it('covers CLOSED_REVISION_EXCEPTION baseline and shows the exception banner with C16 placeholder label', () => {
-    render(buildContext({
+  it('revises rereview in CLOSED exception mode using backend truth only', () => {
+    render(buildDetail({
       status: 'CLOSED',
-      isClosedRevisionException: true,
-      hasSubmittedBase: true,
-      basedOnVersion: { submissionId: 'SUB-REREVIEW-002', version: 2 }
+      rereviewContext: {
+        pageMode: 'REVISION_EXCEPTION_CLOSED',
+        hasDraft: false,
+        hasSubmittedBase: true,
+        closedRevisionException: true,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['REVISE_REREVIEW'],
+        basedOnVersion: { submissionId: 'SUB-REREVIEW-002', version: 2, status: 'SUBMITTED' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: null,
+        initialTotalScore: 79,
+        finalScore: 84,
+        finalConclusion: 'PASS'
+      }
     }));
+    casesService.getSubmissionDetail.and.returnValue(of({
+      submissionId: 'SUB-REREVIEW-002',
+      caseId: 'CASE-013',
+      stage: 'REREVIEW',
+      revisionNo: 2,
+      status: 'SUBMITTED',
+      reviewerId: 'rereviewer-1',
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'exception revise',
+      maskedFields: []
+    }));
+    casesService.reviseRereview.and.returnValue(of({ submissionId: 'SUB-REREVIEW-003', revisionNo: 3 }));
 
     expect(component.mode).toBe('CLOSED_REVISION_EXCEPTION');
     expect(fixture.nativeElement.querySelector('app-status-or-blocked-banner')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-c16-placeholder-label"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('reviewer-1');
+
+    getButtonByText('提交複審修正')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.reviseRereview).toHaveBeenCalledWith('CASE-013', 'SUB-REREVIEW-002', {
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'exception revise'
+    });
+    expect(fixture.nativeElement.textContent).toContain('已提交已結案例外複審修正。');
   });
 
   it('covers READONLY_BLOCKED baseline and hides the command bar', () => {
-    render(buildContext({ status: 'CANCELLED', blockedReason: 'CASE_ALREADY_CANCELLED' }));
+    render(buildDetail({
+      status: 'CANCELLED',
+      rereviewContext: {
+        pageMode: 'READONLY_BLOCKED',
+        hasDraft: false,
+        hasSubmittedBase: false,
+        closedRevisionException: false,
+        readonly: true,
+        blocked: true,
+        blockedReason: 'CASE_ALREADY_CANCELLED',
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: [],
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'BLOCKED'
+      }
+    }));
 
     expect(component.mode).toBe('READONLY_BLOCKED');
     expect(fixture.nativeElement.querySelector('app-status-or-blocked-banner')).not.toBeNull();

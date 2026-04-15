@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 /** C16 — ReviewCommandBar: viewport-fixed 底部 command bar。
  *  樣式強制 position: fixed; bottom: 0; width: 100%
@@ -16,4 +16,23 @@ export class ReviewCommandBarComponent {
   @Input() secondaryLabel?: string;
   /** 是否禁用所有按鈕 */
   @Input() disabled = false;
+  /** 主要按鈕獨立禁用狀態 */
+  @Input() primaryDisabled = false;
+  /** 次要按鈕獨立禁用狀態 */
+  @Input() secondaryDisabled = false;
+
+  @Output() primaryClick = new EventEmitter<void>();
+  @Output() secondaryClick = new EventEmitter<void>();
+
+  onPrimaryClick(): void {
+    if (!this.disabled && !this.primaryDisabled) {
+      this.primaryClick.emit();
+    }
+  }
+
+  onSecondaryClick(): void {
+    if (!this.disabled && !this.secondaryDisabled) {
+      this.secondaryClick.emit();
+    }
+  }
 }

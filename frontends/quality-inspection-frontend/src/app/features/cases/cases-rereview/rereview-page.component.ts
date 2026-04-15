@@ -1,7 +1,17 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { finalize, map, Observable, switchMap } from 'rxjs';
 
 import { SubmissionRef } from '../components/review-version-summary-region/review-version-summary-region.component';
+import {
+  CaseDetailViewModel,
+  CasesService,
+  CommandResultViewModel,
+  RereviewBootstrapViewModel,
+  RereviewDraftPayload,
+  RereviewSubmitPayload,
+  SubmissionDetailViewModel
+} from '../services/cases.service';
 
 export type RereviewMode =
   | 'NEW'
@@ -38,30 +48,62 @@ export class RereviewPageComponent implements OnInit {
   modeLabel = 'NEW';
   bannerTone: 'blocked' | 'exception-amber' = 'blocked';
   bannerMessage = '';
+  commandPending = false;
+  commandFeedbackMessage = '';
+  commandFeedbackTone: 'info' | 'blocked' = 'info';
+  private bootstrap?: RereviewBootstrapViewModel;
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(
+    private readonly route: ActivatedRoute,
+    private readonly casesService: CasesService
+  ) {}
 
   ngOnInit(): void {
     this.caseId = this.route.snapshot.paramMap.get('caseId') ?? 'CASE-WAVE5';
-    this.applyContext(this.createDefaultContext(this.caseId));
+    this.casesService.getCaseDetail(this.caseId).subscribe({
+      next: detail => this.applyCaseDetail(detail),
+      error: () => {
+        this.applyContext({
+          ...this.createDefaultContext(this.caseId),
+          status: 'CANCELLED',
+          stageLabel: '載入失敗',
+          blockedReason: 'CASE_DETAIL_LOAD_FAILED'
+        });
+      }
+    });
   }
 
-  applyContext(context: RereviewContext): void {
+  applyCaseDetail(detail: CaseDetailViewModel): void {
+    const bootstrap = detail.rereviewContext;
+    this.bootstrap = bootstrap;
+
+    this.applyContext({
+      caseId: detail.caseId,
+      caseTitle: '複審作業',
+      status: detail.status,
+      stageLabel: this.resolveStageLabel(detail.status),
+      blockedReason: bootstrap?.blockedReason ?? null,
+      hasDraft: bootstrap?.hasDraft ?? false,
+      hasSubmittedBase: bootstrap?.hasSubmittedBase ?? false,
+      isClosedRevisionException: bootstrap?.closedRevisionException ?? false,
+      basedOnVersion: bootstrap?.basedOnVersion,
+      initialSubmissionId: bootstrap?.initialSubmissionId ?? '',
+      initialReviewerName: bootstrap?.initialReviewerName || bootstrap?.initialReviewerId || '未提供',
+      initialTotalScore: bootstrap?.initialTotalScore != null ? String(bootstrap.initialTotalScore) : '未提供',
+      finalDecisionSummary: this.buildFinalDecisionSummary(bootstrap)
+    }, bootstrap);
+  }
+
+  applyContext(context: RereviewContext, bootstrap?: RereviewBootstrapViewModel): void {
     this.context = context;
     this.caseId = context.caseId;
-    this.resolveMode(context);
+    this.resolveMode(context, bootstrap);
   }
 
-  resolveMode(context: RereviewContext): void {
-    if (context.isClosedRevisionException) {
-      this.mode = 'CLOSED_REVISION_EXCEPTION';
-      this.modeLabel = 'CLOSED_REVISION_EXCEPTION';
-      this.bannerTone = 'exception-amber';
-      this.bannerMessage = '此案件已結案，但目前以例外修正骨架呈現。';
-      return;
-    }
+  resolveMode(context: RereviewContext, bootstrap?: RereviewBootstrapViewModel): void {
+    const backendMode = bootstrap?.pageMode;
 
-    if (context.blockedReason || ['CLOSED', 'CANCELLED'].includes(context.status)) {
+    if ((!backendMode && context.blockedReason) || ['CLOSED', 'CANCELLED'].includes(context.status) && !context.isClosedRevisionException) {
       this.mode = 'READONLY_BLOCKED';
       this.modeLabel = 'READONLY_BLOCKED';
       this.bannerTone = 'blocked';
@@ -69,14 +111,30 @@ export class RereviewPageComponent implements OnInit {
       return;
     }
 
-    if (context.hasSubmittedBase) {
+    if (backendMode === 'REVISION_EXCEPTION_CLOSED') {
+      this.mode = 'CLOSED_REVISION_EXCEPTION';
+      this.modeLabel = 'CLOSED_REVISION_EXCEPTION';
+      this.bannerTone = 'exception-amber';
+      this.bannerMessage = '此案件已結案，但目前以例外修正骨架呈現。';
+      return;
+    }
+
+    if (backendMode === 'READONLY_BLOCKED') {
+      this.mode = 'READONLY_BLOCKED';
+      this.modeLabel = 'READONLY_BLOCKED';
+      this.bannerTone = 'blocked';
+      this.bannerMessage = '案件目前不可執行複審作業。';
+      return;
+    }
+
+    if (backendMode === 'REVISION') {
       this.mode = 'REVISION';
       this.modeLabel = 'REVISION';
       this.bannerMessage = '';
       return;
     }
 
-    if (context.hasDraft) {
+    if (backendMode === 'EDIT_DRAFT') {
       this.mode = 'EDIT_DRAFT';
       this.modeLabel = 'EDIT_DRAFT';
       this.bannerMessage = '';
@@ -100,26 +158,136 @@ export class RereviewPageComponent implements OnInit {
     return this.mode === 'REVISION' || this.mode === 'CLOSED_REVISION_EXCEPTION';
   }
 
+  get showCommandFeedback(): boolean {
+    return this.commandFeedbackMessage.length > 0;
+  }
+
+  get showCommandBar(): boolean {
+    return this.mode !== 'READONLY_BLOCKED';
+  }
+
   get commandPrimaryLabel(): string {
+    if (this.mode === 'NEW') {
+      return '開始複審';
+    }
+
     if (this.mode === 'CLOSED_REVISION_EXCEPTION') {
-      return 'C16 placeholder label';
+      return '提交複審修正';
     }
 
     if (this.mode === 'REVISION') {
-      return '提交複審修正 placeholder';
+      return '提交複審修正';
     }
 
     if (this.mode === 'EDIT_DRAFT') {
-      return '儲存複審草稿 placeholder';
+      return '提交複審';
     }
 
-    return '提交複審 placeholder';
+    return '提交複審';
+  }
+
+  get commandSecondaryLabel(): string | undefined {
+    return this.mode === 'EDIT_DRAFT' ? '保存複審草稿' : undefined;
+  }
+
+  get commandPrimaryDisabled(): boolean {
+    if (this.commandPending || this.isBlockedByBackendTruth()) {
+      return true;
+    }
+
+    switch (this.mode) {
+      case 'NEW':
+        return !this.hasAllowedAction('START_REREVIEW');
+      case 'EDIT_DRAFT':
+        return !this.hasAllowedAction('SUBMIT_REREVIEW') || !this.resolveRereviewEditableSubmissionId();
+      case 'REVISION':
+      case 'CLOSED_REVISION_EXCEPTION':
+        return !this.hasAllowedAction('REVISE_REREVIEW') || !this.resolveRereviewRevisionBaseSubmissionId();
+      default:
+        return true;
+    }
+  }
+
+  get commandSecondaryDisabled(): boolean {
+    if (this.commandPending || this.isBlockedByBackendTruth()) {
+      return true;
+    }
+
+    if (this.mode !== 'EDIT_DRAFT') {
+      return true;
+    }
+
+    return !this.hasAllowedAction('SAVE_REREVIEW_DRAFT') || !this.resolveRereviewEditableSubmissionId();
+  }
+
+  onPrimaryAction(): void {
+    if (this.commandPrimaryDisabled) {
+      return;
+    }
+
+    if (this.mode === 'NEW') {
+      this.executeCommand(
+        this.casesService.startRereview(this.caseId),
+        () => '已開始複審，系統已建立最小草稿。'
+      );
+      return;
+    }
+
+    if (this.mode === 'EDIT_DRAFT') {
+      const submissionId = this.resolveRereviewEditableSubmissionId();
+      if (!submissionId) {
+        this.setCommandFeedback('無法取得可提交的複審草稿。', 'blocked');
+        return;
+      }
+
+      this.executeCommand(
+        this.buildRereviewSubmitPayload(submissionId).pipe(
+          switchMap(payload => this.casesService.submitRereview(this.caseId, payload))
+        ),
+        result => result.finalScore != null ? `複審已提交，最終分數 ${result.finalScore}。` : '複審已提交。'
+      );
+      return;
+    }
+
+    if (this.mode === 'REVISION' || this.mode === 'CLOSED_REVISION_EXCEPTION') {
+      const submissionId = this.resolveRereviewRevisionBaseSubmissionId();
+      if (!submissionId) {
+        this.setCommandFeedback('無法取得複審修正基底版本。', 'blocked');
+        return;
+      }
+
+      this.executeCommand(
+        this.buildRereviewRevisionPayload(submissionId).pipe(
+          switchMap(payload => this.casesService.reviseRereview(this.caseId, submissionId, payload))
+        ),
+        () => this.mode === 'CLOSED_REVISION_EXCEPTION' ? '已提交已結案例外複審修正。' : '複審修正已提交。'
+      );
+    }
+  }
+
+  onSecondaryAction(): void {
+    if (this.commandSecondaryDisabled) {
+      return;
+    }
+
+    const submissionId = this.resolveRereviewEditableSubmissionId();
+    if (!submissionId) {
+      this.setCommandFeedback('無法取得可保存的複審草稿。', 'blocked');
+      return;
+    }
+
+    this.executeCommand(
+      this.buildRereviewDraftPayload(submissionId).pipe(
+        switchMap(payload => this.casesService.saveRereviewDraft(this.caseId, payload))
+      ),
+      () => '複審草稿已保存。'
+    );
   }
 
   private createDefaultContext(caseId: string): RereviewContext {
     return {
       caseId,
-      caseTitle: '複審作業骨架',
+      caseTitle: '複審作業',
       status: 'PENDING_REREVIEW',
       stageLabel: '待複審',
       blockedReason: null,
@@ -131,5 +299,115 @@ export class RereviewPageComponent implements OnInit {
       initialTotalScore: '82',
       finalDecisionSummary: '最終結論 placeholder'
     };
+  }
+
+  private resolveStageLabel(status: string): string {
+    switch (status) {
+      case 'REREVIEW_IN_PROGRESS':
+        return '複審進行中';
+      case 'CLOSED':
+        return '已結案';
+      case 'CANCELLED':
+        return '已取消';
+      case 'INITIAL_REVIEW_COMPLETED':
+        return '初審完成';
+      default:
+        return '待複審';
+    }
+  }
+
+  private buildFinalDecisionSummary(bootstrap?: RereviewBootstrapViewModel): string {
+    if (!bootstrap) {
+      return '最終結論 placeholder';
+    }
+
+    const parts = [bootstrap.finalConclusion, bootstrap.finalScore != null ? `最終分數 ${bootstrap.finalScore}` : null]
+      .filter((value): value is string => Boolean(value));
+
+    return parts.join(' / ') || '最終結論未提供';
+  }
+
+  private buildRereviewDraftPayload(submissionId: string): Observable<RereviewDraftPayload> {
+    return this.casesService.getSubmissionDetail(submissionId).pipe(
+      map(detail => ({
+        submissionId,
+        answers: detail.answers.map(answer => ({
+          itemId: answer.itemId,
+          answerValue: answer.answerValue
+        })),
+        comment: detail.comment ?? null,
+        totalScore: detail.totalScore
+      }))
+    );
+  }
+
+  private buildRereviewSubmitPayload(submissionId: string): Observable<RereviewSubmitPayload> {
+    return this.casesService.getSubmissionDetail(submissionId).pipe(
+      map(detail => ({
+        submissionId,
+        answers: detail.answers.map(answer => ({
+          itemId: answer.itemId,
+          answerValue: answer.answerValue
+        })),
+        comment: detail.comment ?? null
+      }))
+    );
+  }
+
+  private buildRereviewRevisionPayload(submissionId: string): Observable<Pick<RereviewSubmitPayload, 'answers' | 'comment'>> {
+    return this.casesService.getSubmissionDetail(submissionId).pipe(
+      map(detail => ({
+        answers: detail.answers.map(answer => ({
+          itemId: answer.itemId,
+          answerValue: answer.answerValue
+        })),
+        comment: detail.comment ?? null
+      }))
+    );
+  }
+
+  private resolveRereviewEditableSubmissionId(): string | undefined {
+    return this.bootstrap?.editableSubmission?.submissionId ?? this.bootstrap?.currentSubmission?.submissionId;
+  }
+
+  private resolveRereviewRevisionBaseSubmissionId(): string | undefined {
+    return this.bootstrap?.basedOnVersion?.submissionId;
+  }
+
+  private hasAllowedAction(action: string): boolean {
+    return this.bootstrap?.allowedActions.includes(action) ?? false;
+  }
+
+  private isBlockedByBackendTruth(): boolean {
+    return Boolean(this.bootstrap?.blocked || this.bootstrap?.blockedReason || this.mode === 'READONLY_BLOCKED');
+  }
+
+  private executeCommand(command$: Observable<CommandResultViewModel>, successMessage: (result: CommandResultViewModel) => string): void {
+    this.commandPending = true;
+    this.commandFeedbackMessage = '';
+
+    command$.pipe(finalize(() => {
+      this.commandPending = false;
+    })).subscribe({
+      next: result => {
+        this.setCommandFeedback(successMessage(result), 'info');
+        this.reloadCaseDetail();
+      },
+      error: () => {
+        this.setCommandFeedback('複審 command 執行失敗，limited wiring 僅提供最小錯誤提示。', 'blocked');
+      }
+    });
+  }
+
+  private reloadCaseDetail(): void {
+    this.casesService.getCaseDetail(this.caseId).subscribe({
+      next: detail => this.applyCaseDetail(detail),
+      error: () => this.setCommandFeedback('重新整理複審頁面 bootstrap 失敗。', 'blocked')
+    });
+  }
+
+  private setCommandFeedback(message: string, tone: 'info' | 'blocked'): void {
+    this.commandFeedbackMessage = message;
+    this.commandFeedbackTone = tone;
   }
 }

@@ -11,6 +11,12 @@ interface ApiResponse<T> {
   data: T;
 }
 
+interface ApiErrorResponse {
+  success: false;
+  message?: string;
+  errorCode?: string;
+}
+
 interface PageResponse<T> {
   content: T[];
   page: number;
@@ -47,6 +53,55 @@ interface SubmissionSummaryDto {
   supersededBySubmissionId?: string | null;
 }
 
+interface ReviewSubmissionRefDto {
+  submissionId: string;
+  revisionNo: number;
+  status: string;
+  submittedAt?: string | null;
+}
+
+interface InitialReviewBootstrapDto {
+  pageMode: 'NEW_INITIAL_REVIEW' | 'EDIT_DRAFT' | 'REVISION' | 'READONLY_BLOCKED';
+  hasDraft: boolean;
+  hasSubmittedBase: boolean;
+  readonly: boolean;
+  blocked: boolean;
+  blockedReason?: string | null;
+  scoreSheetVersionId?: string | null;
+  allowedActions: string[];
+  currentSubmission?: ReviewSubmissionRefDto | null;
+  editableSubmission?: ReviewSubmissionRefDto | null;
+  basedOnVersion?: ReviewSubmissionRefDto | null;
+}
+
+interface RereviewBootstrapDto {
+  pageMode:
+    | 'NEW_REREVIEW'
+    | 'EDIT_DRAFT'
+    | 'REVISION'
+    | 'REVISION_EXCEPTION_CLOSED'
+    | 'READONLY_BLOCKED';
+  hasDraft: boolean;
+  hasSubmittedBase: boolean;
+  closedRevisionException: boolean;
+  readonly: boolean;
+  blocked: boolean;
+  blockedReason?: string | null;
+  scoreSheetVersionId?: string | null;
+  allowedActions: string[];
+  currentSubmission?: ReviewSubmissionRefDto | null;
+  editableSubmission?: ReviewSubmissionRefDto | null;
+  basedOnVersion?: ReviewSubmissionRefDto | null;
+  initialSubmissionId?: string | null;
+  initialSubmissionRevisionNo?: number | null;
+  initialReviewerId?: string | null;
+  initialReviewerName?: string | null;
+  initialTotalScore?: number | null;
+  initialSubmittedAt?: string | null;
+  finalScore?: number | null;
+  finalConclusion?: string | null;
+}
+
 interface ReviewCaseDetailDto {
   caseId: string;
   projectId: string;
@@ -70,12 +125,74 @@ interface ReviewCaseDetailDto {
   projectionType: ProjectionType;
   actorRole: string;
   isOwner: boolean;
+  initialReviewContext?: InitialReviewBootstrapDto | null;
+  rereviewContext?: RereviewBootstrapDto | null;
 }
 
 interface RevisionHistoryResponseDto {
   caseId: string;
   submissions: SubmissionSummaryDto[];
   hasExceptionEntry: boolean;
+}
+
+interface SubmissionDetailAnswerDto {
+  itemId: string;
+  answerValue: string;
+  derivedScore?: number | null;
+}
+
+interface SubmissionDetailDto {
+  submissionId: string;
+  caseId: string;
+  stage: 'INITIAL' | 'REREVIEW';
+  revisionNo: number;
+  status: string;
+  reviewerId: string;
+  answers: SubmissionDetailAnswerDto[];
+  comment?: string | null;
+  attachmentRefsJson?: string | null;
+  totalScore?: number | null;
+  createdAt?: string | null;
+  submittedAt?: string | null;
+  maskedFields?: string[] | null;
+}
+
+interface StartInitialReviewResponseDto {
+  submissionId: string;
+}
+
+interface SaveDraftResponseDto {
+  submissionId: string;
+  status: string;
+  stage: string;
+  totalScore?: number | null;
+}
+
+interface SubmitInitialReviewResponseDto {
+  submissionId: string;
+  status: string;
+  caseId: string;
+  caseStatus: string;
+  totalScore?: number | null;
+  rereviewRequired: boolean;
+}
+
+interface SubmitRereviewResponseDto {
+  submissionId: string;
+  status: string;
+  caseId: string;
+  caseStatus: string;
+  finalScore?: number | null;
+}
+
+interface RevisionResultResponseDto {
+  newSubmissionId: string;
+  oldSubmissionId: string;
+  revisionNo: number;
+  totalScore?: number | null;
+  status: string;
+  stage: string;
+  caseId: string;
 }
 
 /** 案件列表查詢條件 */
@@ -127,6 +244,114 @@ export interface SubmissionSummaryItem {
   isCurrentEffective: boolean;
 }
 
+export interface ReviewSubmissionRef {
+  submissionId: string;
+  version: number;
+  status: string;
+  submittedAt?: string;
+}
+
+export interface InitialReviewBootstrapViewModel {
+  pageMode: 'NEW_INITIAL_REVIEW' | 'EDIT_DRAFT' | 'REVISION' | 'READONLY_BLOCKED';
+  hasDraft: boolean;
+  hasSubmittedBase: boolean;
+  readonly: boolean;
+  blocked: boolean;
+  blockedReason?: string | null;
+  scoreSheetVersionId?: string | null;
+  allowedActions: string[];
+  currentSubmission?: ReviewSubmissionRef;
+  editableSubmission?: ReviewSubmissionRef;
+  basedOnVersion?: ReviewSubmissionRef;
+}
+
+export interface RereviewBootstrapViewModel {
+  pageMode:
+    | 'NEW_REREVIEW'
+    | 'EDIT_DRAFT'
+    | 'REVISION'
+    | 'REVISION_EXCEPTION_CLOSED'
+    | 'READONLY_BLOCKED';
+  hasDraft: boolean;
+  hasSubmittedBase: boolean;
+  closedRevisionException: boolean;
+  readonly: boolean;
+  blocked: boolean;
+  blockedReason?: string | null;
+  scoreSheetVersionId?: string | null;
+  allowedActions: string[];
+  currentSubmission?: ReviewSubmissionRef;
+  editableSubmission?: ReviewSubmissionRef;
+  basedOnVersion?: ReviewSubmissionRef;
+  initialSubmissionId?: string | null;
+  initialSubmissionRevisionNo?: number | null;
+  initialReviewerId?: string | null;
+  initialReviewerName?: string | null;
+  initialTotalScore?: number | null;
+  initialSubmittedAt?: string | null;
+  finalScore?: number | null;
+  finalConclusion?: string | null;
+}
+
+export interface CommandAnswerInput {
+  itemId: string;
+  answerValue: string;
+}
+
+export interface SubmissionDetailAnswer {
+  itemId: string;
+  answerValue: string;
+  derivedScore?: number | null;
+}
+
+export interface SubmissionDetailViewModel {
+  submissionId: string;
+  caseId: string;
+  stage: 'INITIAL' | 'REREVIEW';
+  revisionNo: number;
+  status: string;
+  reviewerId: string;
+  answers: SubmissionDetailAnswer[];
+  comment?: string | null;
+  attachmentRefsJson?: string | null;
+  totalScore?: number | null;
+  createdAt?: string | null;
+  submittedAt?: string | null;
+  maskedFields: string[];
+}
+
+export interface InitialReviewDraftPayload {
+  answers: CommandAnswerInput[];
+  comment?: string | null;
+}
+
+export interface RereviewDraftPayload {
+  submissionId: string;
+  answers?: CommandAnswerInput[];
+  comment?: string | null;
+  totalScore?: number | null;
+}
+
+export interface RereviewSubmitPayload {
+  submissionId: string;
+  answers?: CommandAnswerInput[];
+  comment?: string | null;
+}
+
+export interface CommandResultViewModel {
+  submissionId?: string;
+  caseId?: string;
+  caseStatus?: string;
+  status?: string;
+  stage?: string;
+  totalScore?: number | null;
+  finalScore?: number | null;
+  revisionNo?: number;
+  oldSubmissionId?: string;
+  newSubmissionId?: string;
+  rereviewRequired?: boolean;
+}
+
 /** 案件詳情 */
 export interface CaseDetailViewModel {
   caseId: string;
@@ -150,6 +375,8 @@ export interface CaseDetailViewModel {
   cancelledAt?: string | null;
   submissions: SubmissionSummaryItem[];
   latestRereviewSubmissionId?: string | null;
+  initialReviewContext?: InitialReviewBootstrapViewModel;
+  rereviewContext?: RereviewBootstrapViewModel;
 }
 
 /** Revision 歷史條目 */
@@ -169,6 +396,7 @@ export interface RevisionHistoryViewModel {
 export class CasesService {
 
   private readonly baseUrl = `${environment.apiBasePath}/review-cases`;
+  private readonly submissionBaseUrl = `${environment.apiBasePath}/review-submissions`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -229,6 +457,81 @@ export class CasesService {
     );
   }
 
+  getSubmissionDetail(submissionId: string): Observable<SubmissionDetailViewModel> {
+    return this.http.get<ApiResponse<SubmissionDetailDto>>(`${this.submissionBaseUrl}/${submissionId}`).pipe(
+      map(response => this.mapSubmissionDetail(response.data))
+    );
+  }
+
+  startInitialReview(caseId: string): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<StartInitialReviewResponseDto>>(`${this.baseUrl}/${caseId}/initial-review/start`, {}).pipe(
+      map(response => ({
+        submissionId: response.data.submissionId
+      }))
+    );
+  }
+
+  saveInitialReviewDraft(caseId: string, payload: InitialReviewDraftPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<SaveDraftResponseDto>>(`${this.baseUrl}/${caseId}/initial-review/draft`, payload).pipe(
+      map(response => this.mapSaveDraftResponse(response.data))
+    );
+  }
+
+  submitInitialReview(caseId: string): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<SubmitInitialReviewResponseDto>>(`${this.baseUrl}/${caseId}/initial-review/submit`, {}).pipe(
+      map(response => ({
+        submissionId: response.data.submissionId,
+        caseId: response.data.caseId,
+        caseStatus: response.data.caseStatus,
+        status: response.data.status,
+        totalScore: response.data.totalScore,
+        rereviewRequired: response.data.rereviewRequired
+      }))
+    );
+  }
+
+  reviseInitialReview(caseId: string, submissionId: string, payload: InitialReviewDraftPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<RevisionResultResponseDto>>(
+      `${this.baseUrl}/${caseId}/initial-review/submissions/${submissionId}/revise`,
+      payload
+    ).pipe(
+      map(response => this.mapRevisionResult(response.data))
+    );
+  }
+
+  startRereview(caseId: string): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<unknown>>(`${this.baseUrl}/${caseId}/start-rereview`, {}).pipe(
+      map(() => ({ caseId }))
+    );
+  }
+
+  saveRereviewDraft(caseId: string, payload: RereviewDraftPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<SaveDraftResponseDto>>(`${this.baseUrl}/${caseId}/rereview/draft`, payload).pipe(
+      map(response => this.mapSaveDraftResponse(response.data))
+    );
+  }
+
+  submitRereview(caseId: string, payload: RereviewSubmitPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<SubmitRereviewResponseDto>>(`${this.baseUrl}/${caseId}/rereview/submit`, payload).pipe(
+      map(response => ({
+        submissionId: response.data.submissionId,
+        caseId: response.data.caseId,
+        caseStatus: response.data.caseStatus,
+        status: response.data.status,
+        finalScore: response.data.finalScore
+      }))
+    );
+  }
+
+  reviseRereview(caseId: string, submissionId: string, payload: Pick<RereviewSubmitPayload, 'answers' | 'comment'>): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<RevisionResultResponseDto>>(
+      `${this.baseUrl}/${caseId}/rereview/submissions/${submissionId}/revise`,
+      payload
+    ).pipe(
+      map(response => this.mapRevisionResult(response.data))
+    );
+  }
+
   private fetchCaseDetail(caseId: string): Observable<CaseDetailViewModel> {
     return this.http.get<ApiResponse<ReviewCaseDetailDto>>(`${this.baseUrl}/${caseId}`).pipe(
       map(response => this.mapCaseDetail(response.data))
@@ -274,7 +577,13 @@ export class CasesService {
       closedAt: item.closedAt,
       cancelledAt: item.cancelledAt,
       submissions: item.submissions.map(submission => this.mapSubmission(submission)),
-      latestRereviewSubmissionId: item.latestRereviewSubmissionId
+      latestRereviewSubmissionId: item.latestRereviewSubmissionId,
+      initialReviewContext: item.initialReviewContext
+        ? this.mapInitialReviewContext(item.initialReviewContext)
+        : undefined,
+      rereviewContext: item.rereviewContext
+        ? this.mapRereviewContext(item.rereviewContext)
+        : undefined
     };
   }
 
@@ -290,6 +599,104 @@ export class CasesService {
       submittedAt: item.submittedAt,
       supersededBySubmissionId: item.supersededBySubmissionId,
       isCurrentEffective: item.status === 'SUBMITTED' && !item.supersededBySubmissionId
+    };
+  }
+
+  private mapSubmissionDetail(item: SubmissionDetailDto): SubmissionDetailViewModel {
+    return {
+      submissionId: item.submissionId,
+      caseId: item.caseId,
+      stage: item.stage,
+      revisionNo: item.revisionNo,
+      status: item.status,
+      reviewerId: item.reviewerId,
+      answers: item.answers.map(answer => ({
+        itemId: answer.itemId,
+        answerValue: answer.answerValue,
+        derivedScore: answer.derivedScore
+      })),
+      comment: item.comment,
+      attachmentRefsJson: item.attachmentRefsJson,
+      totalScore: item.totalScore,
+      createdAt: item.createdAt,
+      submittedAt: item.submittedAt,
+      maskedFields: item.maskedFields ?? []
+    };
+  }
+
+  private mapSaveDraftResponse(item: SaveDraftResponseDto): CommandResultViewModel {
+    return {
+      submissionId: item.submissionId,
+      status: item.status,
+      stage: item.stage,
+      totalScore: item.totalScore
+    };
+  }
+
+  private mapRevisionResult(item: RevisionResultResponseDto): CommandResultViewModel {
+    return {
+      caseId: item.caseId,
+      status: item.status,
+      stage: item.stage,
+      totalScore: item.totalScore,
+      revisionNo: item.revisionNo,
+      oldSubmissionId: item.oldSubmissionId,
+      newSubmissionId: item.newSubmissionId,
+      submissionId: item.newSubmissionId
+    };
+  }
+
+  private mapInitialReviewContext(item: InitialReviewBootstrapDto): InitialReviewBootstrapViewModel {
+    return {
+      pageMode: item.pageMode,
+      hasDraft: item.hasDraft,
+      hasSubmittedBase: item.hasSubmittedBase,
+      readonly: item.readonly,
+      blocked: item.blocked,
+      blockedReason: item.blockedReason,
+      scoreSheetVersionId: item.scoreSheetVersionId,
+      allowedActions: item.allowedActions,
+      currentSubmission: this.mapSubmissionRef(item.currentSubmission),
+      editableSubmission: this.mapSubmissionRef(item.editableSubmission),
+      basedOnVersion: this.mapSubmissionRef(item.basedOnVersion)
+    };
+  }
+
+  private mapRereviewContext(item: RereviewBootstrapDto): RereviewBootstrapViewModel {
+    return {
+      pageMode: item.pageMode,
+      hasDraft: item.hasDraft,
+      hasSubmittedBase: item.hasSubmittedBase,
+      closedRevisionException: item.closedRevisionException,
+      readonly: item.readonly,
+      blocked: item.blocked,
+      blockedReason: item.blockedReason,
+      scoreSheetVersionId: item.scoreSheetVersionId,
+      allowedActions: item.allowedActions,
+      currentSubmission: this.mapSubmissionRef(item.currentSubmission),
+      editableSubmission: this.mapSubmissionRef(item.editableSubmission),
+      basedOnVersion: this.mapSubmissionRef(item.basedOnVersion),
+      initialSubmissionId: item.initialSubmissionId,
+      initialSubmissionRevisionNo: item.initialSubmissionRevisionNo,
+      initialReviewerId: item.initialReviewerId,
+      initialReviewerName: item.initialReviewerName,
+      initialTotalScore: item.initialTotalScore,
+      initialSubmittedAt: item.initialSubmittedAt,
+      finalScore: item.finalScore,
+      finalConclusion: item.finalConclusion
+    };
+  }
+
+  private mapSubmissionRef(item?: ReviewSubmissionRefDto | null): ReviewSubmissionRef | undefined {
+    if (!item) {
+      return undefined;
+    }
+
+    return {
+      submissionId: item.submissionId,
+      version: item.revisionNo,
+      status: item.status,
+      submittedAt: item.submittedAt ?? undefined
     };
   }
 }

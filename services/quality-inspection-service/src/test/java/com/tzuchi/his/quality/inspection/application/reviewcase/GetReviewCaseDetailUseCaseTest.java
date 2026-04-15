@@ -55,6 +55,67 @@ class GetReviewCaseDetailUseCaseTest {
         assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, "c1"));
     }
 
+        @Test
+        void assignedReviewer_shouldReceiveInitialReviewDraftBootstrapContext() {
+        ReviewCaseDetailView detail = new ReviewCaseDetailView(
+            "c1", "p1", "b1", "H001", "INITIAL_REVIEW_IN_PROGRESS",
+            "reviewer-1", null, "OUTPATIENT", "SK-1",
+            null, null, null,
+            null, null, null, null, null,
+            "sub-init-draft", "ss-init-v1",
+            List.of(new SubmissionSummaryItem(
+                "sub-init-draft", "INITIAL", "reviewer-1", 1,
+                "DRAFT", BigDecimal.ZERO, null)),
+            null, null, null, false, null, null);
+        queryPort.setDetail("c1", detail);
+        ActorContext actor = new ActorContext(
+            "reviewer-1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
+
+        ReviewCaseDetailView result = useCase.execute(actor, "c1");
+
+        assertNotNull(result.getInitialReviewContext());
+        assertEquals("EDIT_DRAFT", result.getInitialReviewContext().getPageMode());
+        assertTrue(result.getInitialReviewContext().isHasDraft());
+        assertFalse(result.getInitialReviewContext().isHasSubmittedBase());
+        assertEquals("sub-init-draft",
+            result.getInitialReviewContext().getEditableSubmission().getSubmissionId());
+        assertEquals(List.of("SAVE_INITIAL_REVIEW_DRAFT", "SUBMIT_INITIAL_REVIEW"),
+            result.getInitialReviewContext().getAllowedActions());
+        }
+
+        @Test
+        void assignedRereviewer_shouldReceiveClosedRevisionExceptionBootstrapContext() {
+        ReviewCaseDetailView detail = new ReviewCaseDetailView(
+            "c1", "p1", "b1", "H001", "CLOSED",
+            "reviewer-1", "rereviewer-1", "OUTPATIENT", "SK-1",
+            BigDecimal.valueOf(82), BigDecimal.valueOf(85), "FINAL_PASS",
+            null, null, null, null, null,
+            "sub-init-1", "ss-rereview-v1",
+            List.of(
+                new SubmissionSummaryItem(
+                    "sub-init-1", "INITIAL", "reviewer-1", 1,
+                    "SUBMITTED", BigDecimal.valueOf(82), null),
+                new SubmissionSummaryItem(
+                    "sub-rereview-1", "REREVIEW", "rereviewer-1", 1,
+                    "SUBMITTED", BigDecimal.valueOf(88), null)),
+            "sub-rereview-1", null, null, false, null, null);
+        queryPort.setDetail("c1", detail);
+        ActorContext actor = new ActorContext(
+            "rereviewer-1", "ReReviewer", EnumSet.of(DomainRole.REREVIEWER), Optional.of("H001"));
+
+        ReviewCaseDetailView result = useCase.execute(actor, "c1");
+
+        assertNotNull(result.getRereviewContext());
+        assertEquals("REVISION_EXCEPTION_CLOSED", result.getRereviewContext().getPageMode());
+        assertTrue(result.getRereviewContext().isClosedRevisionException());
+        assertEquals("sub-rereview-1",
+            result.getRereviewContext().getBasedOnVersion().getSubmissionId());
+        assertEquals("sub-init-1", result.getRereviewContext().getInitialSubmissionId());
+        assertEquals("reviewer-1", result.getRereviewContext().getInitialReviewerId());
+        assertEquals(BigDecimal.valueOf(85), result.getRereviewContext().getFinalScore());
+        assertEquals(List.of("REVISE_REREVIEW"), result.getRereviewContext().getAllowedActions());
+        }
+
     static class InMemoryQueryPort implements ReviewCaseQueryPort {
         private final Map<String, ReviewCaseDetailView> details = new HashMap<>();
 
