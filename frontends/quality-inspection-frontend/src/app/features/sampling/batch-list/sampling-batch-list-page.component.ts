@@ -2,19 +2,25 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SamplingService, SamplingBatchSummaryItem } from '../services/sampling.service';
 
-/** SP-01 — SamplingBatchListPage (UI-007)
- *  Role-based tab matrix:
- *  ADMIN → MY_BATCHES / ALL_BATCHES
- *  MANAGER → MY_BATCHES / MY_PROJECTS
- *  SYSTEM_ADMIN → ALL_BATCHES
- *  REVIEWER → MY_BATCHES（唯讀） */
-export type BatchListTab = 'MY_BATCHES' | 'ALL_BATCHES' | 'MY_PROJECTS';
+export type SamplingBatchListRole =
+  | 'HOSPITAL_MANAGER'
+  | 'AUDITOR'
+  | 'SYSTEM_ADMIN'
+  | 'REVIEWER'
+  | 'REREVIEWER';
+
+export type BatchListTab = 'ALL_BATCHES' | 'COMPLETED' | 'FAILED' | 'RETRYABLE';
 
 export interface BatchListUIState {
   tab: BatchListTab;
-  status: string;
+  status: '' | 'COMPLETED' | 'FAILED' | 'RETRYABLE';
   page: number;
   size: number;
+}
+
+export interface BatchFilterState {
+  projectId: string;
+  batchId: string;
 }
 
 @Component({
@@ -24,25 +30,64 @@ export interface BatchListUIState {
 })
 export class SamplingBatchListPageComponent implements OnInit {
 
-  /** 注入當前使用者 role（mock，待 shell 注入替換） */
-  role = 'ADMIN';
+  role: SamplingBatchListRole = 'HOSPITAL_MANAGER';
 
   uiState: BatchListUIState = {
-    tab: 'MY_BATCHES',
+    tab: 'ALL_BATCHES',
     status: '',
     page: 0,
     size: 20
   };
 
+  filters: BatchFilterState = {
+    projectId: '',
+    batchId: ''
+  };
+
   batches: SamplingBatchSummaryItem[] = [];
 
-  /** Role-based 可顯示 tabs */
+  retryTargetBatchId: string | null = null;
+  showRetryModal = false;
+
+  get isMetadataOnly(): boolean {
+    return this.role === 'SYSTEM_ADMIN';
+  }
+
   get availableTabs(): Array<{ value: BatchListTab; label: string }> {
     switch (this.role) {
-      case 'MANAGER':    return [{ value: 'MY_BATCHES', label: '我的批次' }, { value: 'MY_PROJECTS', label: '我的專案' }];
-      case 'SYSTEM_ADMIN': return [{ value: 'ALL_BATCHES', label: '所有批次' }];
-      case 'REVIEWER':   return [{ value: 'MY_BATCHES', label: '我的批次' }];
-      default:           return [{ value: 'MY_BATCHES', label: '我的批次' }, { value: 'ALL_BATCHES', label: '所有批次' }];
+      case 'HOSPITAL_MANAGER':
+        return [
+          { value: 'ALL_BATCHES', label: '全部批次' },
+          { value: 'COMPLETED', label: '成功' },
+          { value: 'FAILED', label: '失敗' },
+          { value: 'RETRYABLE', label: '可重跑' }
+        ];
+      case 'AUDITOR':
+        return [
+          { value: 'ALL_BATCHES', label: '全部批次' },
+          { value: 'COMPLETED', label: '成功' },
+          { value: 'FAILED', label: '失敗' }
+        ];
+      case 'SYSTEM_ADMIN':
+        return [
+          { value: 'ALL_BATCHES', label: '全部批次' },
+          { value: 'FAILED', label: '失敗' }
+        ];
+      default:
+        return [];
+    }
+  }
+
+  get pageSummary(): string {
+    switch (this.role) {
+      case 'HOSPITAL_MANAGER':
+        return '本院抽選批次追蹤';
+      case 'AUDITOR':
+        return '授權範圍批次查詢';
+      case 'SYSTEM_ADMIN':
+        return '抽選批次 metadata 監控';
+      default:
+        return '抽選批次列表';
     }
   }
 
@@ -53,40 +98,93 @@ export class SamplingBatchListPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    const savedTab = this.route.snapshot.queryParamMap.get('tab');
-    if (savedTab) { this.uiState.tab = savedTab as BatchListTab; }
-    const savedStatus = this.route.snapshot.queryParamMap.get('status');
-    if (savedStatus) { this.uiState.status = savedStatus; }
-
-    this.uiState.tab = this._defaultTab();
-    this._loadBatches();
+    this.route.queryParams.subscribe(params => {
+      this.uiState.tab = (params['tab'] as BatchListTab) ?? this._defaultTab();
+      this.uiState.status = this._tabToStatus(this.uiState.tab);
+      this.filters = {
+        projectId: params['projectId'] ?? '',
+        batchId: params['batchId'] ?? ''
+      };
+      this._loadBatches();
+    });
   }
 
   private _defaultTab(): BatchListTab {
-    if (this.role === 'SYSTEM_ADMIN') { return 'ALL_BATCHES'; }
-    return 'MY_BATCHES';
+    return 'ALL_BATCHES';
   }
 
   private _loadBatches(): void {
-    this.samplingService.getBatches({ role: this.role, status: this.uiState.status }).subscribe(data => {
+    this.samplingService.getBatches({
+      role: this.role,
+      status: this.uiState.status,
+      projectId: this.filters.projectId || undefined,
+      batchId: this.filters.batchId || undefined,
+      page: this.uiState.page,
+      size: this.uiState.size
+    }).subscribe(data => {
       this.batches = data;
     });
   }
 
-  onTabChange(tab: BatchListTab): void {
-    this.uiState.tab = tab;
-    this.router.navigate([], { relativeTo: this.route, queryParams: { tab }, queryParamsHandling: 'merge' });
-    this._loadBatches();
+  private _tabToStatus(tab: BatchListTab): BatchListUIState['status'] {
+    switch (tab) {
+      case 'COMPLETED':
+        return 'COMPLETED';
+      case 'FAILED':
+        return 'FAILED';
+      case 'RETRYABLE':
+        return 'RETRYABLE';
+      default:
+        return '';
+    }
   }
 
-  onFilterChange(status: string): void {
-    this.uiState.status = status;
-    this.router.navigate([], { relativeTo: this.route, queryParams: { status }, queryParamsHandling: 'merge' });
-    this._loadBatches();
+  onTabChange(tab: string): void {
+    const nextTab = tab as BatchListTab;
+    this.uiState.tab = nextTab;
+    this.uiState.status = this._tabToStatus(nextTab);
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab: nextTab },
+      queryParamsHandling: 'merge'
+    });
   }
 
-  navigateToExecute(batchId: string): void {
-    this.router.navigate(['/sampling', batchId]);
+  onFilterChange(filters: Partial<BatchFilterState>): void {
+    this.filters = {
+      ...this.filters,
+      ...filters
+    };
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: this.filters,
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  onViewCases(batchId: string): void {
+    this.router.navigate(['/cases'], {
+      queryParams: { batchId }
+    });
+  }
+
+  onViewDetailStub(_batchId: string): void {
+    // PH-01: UI-008 尚未 ready；保持 no-op。
+  }
+
+  openRetryConfirm(batchId: string): void {
+    this.retryTargetBatchId = batchId;
+    this.showRetryModal = true;
+  }
+
+  cancelRetry(): void {
+    this.showRetryModal = false;
+    this.retryTargetBatchId = null;
+  }
+
+  confirmRetry(_batchId: string): void {
+    this.cancelRetry();
   }
 }
 

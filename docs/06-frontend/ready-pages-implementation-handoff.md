@@ -376,7 +376,7 @@ queryStatePolicy: preserve return query context from worklist
 #### 2.4.5 Action / mode / blocked grammar
 
 - **FULL_CONTROL_CENTER**：完整 navigate CTAs（→ assign / initial-review / rereview / revisions）；依 case status 動態縮減。
-- **ROLE_LIMITED**（REVIEWER/REREVIEWER）：initial review 入口可見若 ownership + status 合法；rereview section 可見性待 permission-matrix confirm（OQ §4）。
+- **ROLE_LIMITED**（REVIEWER/REREVIEWER）：initial review 入口可見若 ownership + status 合法；採最小收斂規則為「REVIEWER 顯示 C09 + C11、REREVIEWER 顯示 C09 + C10 + C11」，不延伸為 command flow。
 - **METADATA_CONTROL_CENTER**（SYSADMIN）：C04 banner；metadata whitelist fields 僅顯示 O3-C shared base + UI-010 extension；無任何 command CTA。
 - **READONLY_TERMINAL**（CLOSED/CANCELLED，非例外條件）：C02 terminal notice；command CTAs hidden；C24 jump entry 仍顯示但 CTA 視 case state。
 
@@ -447,9 +447,9 @@ O3-C projection：SYSADMIN 僅可見 shared base + UI-010 extension whitelist，
 
 #### 2.4.12 Pending confirmation before implementation
 
-- C10/C11 ROLE_LIMITED 可見性細節（OQ §4：需重查 permission-matrix）
+- C10/C11 ROLE_LIMITED 已採最小收斂規則：REVIEWER 不顯示 C10、REREVIEWER 可見 C10；兩者均保留 C09 + C11。
 - C24 最終置放位置（OQ §1：待 prototype 驗證）
-- O3-C UI-010 extension whitelist 精確欄位（shared base + UI-010 specific）
+- O3-C UI-010 extension whitelist 已由 `api-spec.md` §3.6 與 `permission-matrix.md` §5.1 固定；不再作為 Wave 3 pending。
 
 ---
 
@@ -754,8 +754,8 @@ interface RevisionHistoryViewModel {
 #### 2.8.12 Pending confirmation before implementation
 
 - Compare version 選擇 interaction spec（需 interaction spec layer 確認，OQ §3）
-- Stage tab pre-selection strategy（OQ §2）
-- C21 METADATA_HISTORY exact field whitelist（O3-C shared base + UI-014 extension）
+- Stage tab pre-selection 採 page spec 建議值作為 frontend default：manager/auditor=`ALL`、reviewer=`INITIAL_ONLY`、rereviewer=`REREVIEW_ONLY`；屬前端預設，不宣稱為 DDD truth。
+- C21 METADATA_HISTORY O3-C whitelist 已由 `api-spec.md` §3.6 與 `permission-matrix.md` §5.1 固定；不再作為 Wave 3 pending。
 
 ---
 

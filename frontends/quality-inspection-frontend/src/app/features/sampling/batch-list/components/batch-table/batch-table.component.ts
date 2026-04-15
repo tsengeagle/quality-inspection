@@ -22,14 +22,15 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
           <tr *ngFor="let b of batches">
             <td>{{ b.batchName }}</td>
             <td>{{ b.status }}</td>
-            <td>{{ b.createDate }}</td>
+            <td>{{ b.createdAt }}</td>
             <td>{{ b.projectName }}</td>
             <td>
-              <!-- SP-02: BatchRowActions -->
               <app-batch-row-actions
                 [batch]="b"
                 [role]="role"
-                (viewDetail)="viewDetail.emit($event)">
+                (viewDetailStub)="viewDetailStub.emit($event)"
+                (viewCases)="viewCases.emit($event)"
+                (retryBatch)="retryBatch.emit($event)">
               </app-batch-row-actions>
             </td>
           </tr>
@@ -47,6 +48,8 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
 })
 export class BatchTableComponent {
   @Input() batches: SamplingBatchSummaryItem[] = [];
-  @Input() role = 'ADMIN';
-  @Output() viewDetail = new EventEmitter<string>();
+  @Input() role = 'HOSPITAL_MANAGER';
+  @Output() viewDetailStub = new EventEmitter<string>();
+  @Output() viewCases = new EventEmitter<string>();
+  @Output() retryBatch = new EventEmitter<string>();
 }

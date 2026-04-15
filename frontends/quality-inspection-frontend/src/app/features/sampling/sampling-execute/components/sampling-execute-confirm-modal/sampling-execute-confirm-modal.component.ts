@@ -7,8 +7,8 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
     <div *ngIf="visible" class="modal-backdrop" (click)="cancelled.emit()">
       <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="確認執行抽選" (click)="$event.stopPropagation()">
         <h2 class="modal-title">確認執行抽選</h2>
-        <p class="modal-body">確認要執行此批次的抽選流程嗎？</p>
-        <p class="modal-sub">執行後系統將依抽選規則自動選取符合條件的病歷案件。</p>
+        <p class="modal-body">將依目前 preview 結果建立正式抽選批次。</p>
+        <p class="modal-sub">projectId: {{ projectId }}</p>
         <div class="modal-actions">
           <button class="btn cancel-btn" (click)="cancelled.emit()">取消</button>
           <button class="btn confirm-btn" (click)="confirmed.emit()">確認執行</button>
@@ -30,7 +30,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 })
 export class SamplingExecuteConfirmModalComponent {
   @Input() visible = false;
-  @Input() batchId = '';
+  @Input() projectId = '';
   @Output() confirmed = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 }

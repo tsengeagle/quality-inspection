@@ -31,6 +31,8 @@ export interface CaseDetailViewModel {
   role: string;
   projectionType: 'FULL' | 'METADATA_ONLY';
   isOwner: boolean;
+  lifecycleLatestStage?: string;
+  latestRevisionSummary?: string;
   initialReviewSummary?: string;
   reviewerName?: string;
   rereviewerName?: string;
@@ -39,9 +41,11 @@ export interface CaseDetailViewModel {
 /** Revision 歷史條目 */
 export interface RevisionHistoryItem {
   submissionId: string;
-  version: number;
+  stage: 'INITIAL' | 'REREVIEW';
+  revisionNo: number;
   submittedAt: string;
-  authorName: string;
+  submittedBy: string;
+  isCurrentEffective?: boolean;
   actionType: string;
 }
 

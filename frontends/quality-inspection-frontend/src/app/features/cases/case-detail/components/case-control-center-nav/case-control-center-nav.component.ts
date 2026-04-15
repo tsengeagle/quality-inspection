@@ -8,11 +8,12 @@ import { CaseDetailMode } from '../../case-detail-page.component';
   template: `
     <nav class="control-center-nav">
       <!-- 永遠顯示：查看初審作業 -->
-      <button class="nav-btn" (click)="navigate.emit('initial-review')">初審作業</button>
+      <button *ngIf="showInitialReview" type="button" class="nav-btn" (click)="navigate.emit('initial-review')">初審作業</button>
 
       <!-- 複審相關（非 READONLY_TERMINAL 才顯示） -->
       <button
-        *ngIf="mode !== 'READONLY_TERMINAL'"
+        *ngIf="showRereview"
+        type="button"
         class="nav-btn"
         (click)="navigate.emit('rereview')">
         複審作業
@@ -20,14 +21,15 @@ import { CaseDetailMode } from '../../case-detail-page.component';
 
       <!-- 指派（FULL_CONTROL_CENTER 才顯示） -->
       <button
-        *ngIf="mode === 'FULL_CONTROL_CENTER'"
+        *ngIf="showAssign"
+        type="button"
         class="nav-btn"
         (click)="navigate.emit('assign')">
         案件指派
       </button>
 
       <!-- 歷程查看 -->
-      <button class="nav-btn" (click)="navigate.emit('revision-history')">Revision 歷程</button>
+      <button type="button" class="nav-btn" (click)="navigate.emit('revision-history')">Revision 歷程</button>
     </nav>
   `,
   styles: [`
@@ -38,5 +40,20 @@ import { CaseDetailMode } from '../../case-detail-page.component';
 export class CaseControlCenterNavComponent {
   @Input() caseId = '';
   @Input() mode: CaseDetailMode = 'READONLY_TERMINAL';
+  @Input() actorRole = '';
   @Output() navigate = new EventEmitter<string>();
+
+  get showInitialReview(): boolean {
+    return this.mode === 'FULL_CONTROL_CENTER' ||
+      (this.mode === 'ROLE_LIMITED' && this.actorRole === 'REVIEWER');
+  }
+
+  get showRereview(): boolean {
+    return this.mode === 'FULL_CONTROL_CENTER' ||
+      (this.mode === 'ROLE_LIMITED' && this.actorRole === 'REREVIEWER');
+  }
+
+  get showAssign(): boolean {
+    return this.mode === 'FULL_CONTROL_CENTER';
+  }
 }

@@ -558,7 +558,7 @@ interface CaseDetailViewModel {
 
 | 項目 | 說明 |
 |---|---|
-| C10/C11 ROLE_LIMITED section visibility 細則 | OQ §4；需再次確認 permission-matrix REVIEWER/REREVIEWER 的 rereview summary 可見性 |
+| C10/C11 ROLE_LIMITED section visibility 細則 | 採最小收斂：REVIEWER=`C09+C11`、REREVIEWER=`C09+C10+C11`；不擴張為 command rule |
 | C03 `METADATA_CONTROL_CENTER` 精確文案 | OQ §3；「metadata-only」是否直接外露 |
 | O3-C UI-010 extension whitelist 精確欄位 | shared base + UI-010 specific 欄位 |
 
@@ -574,9 +574,9 @@ interface CaseDetailViewModel {
 
 #### H. Pending Confirmation
 
-- C10/C11 `ROLE_LIMITED` 可見性細則（OQ §4；permission-matrix REVIEWER/REREVIEWER rereview summary）。
+- C10/C11 `ROLE_LIMITED` 可見性以最小前端收斂固定：REVIEWER 不顯示 C10，REREVIEWER 可見 C10；兩者均保留 C09 + C11。
 - C24 最終置放位置（OQ §1；待 prototype 驗證）。
-- O3-C UI-010 extension whitelist 精確欄位。
+- O3-C UI-010 extension whitelist 已由 `api-spec.md` §3.6 與 `permission-matrix.md` §5.1 固定，Wave 3 可直接依 whitelist 落地。
 
 ---
 
@@ -953,9 +953,9 @@ interface RevisionHistoryViewModel {
 
 #### H. Pending Confirmation
 
-- Compare version selection interaction spec（OQ §3）。
-- Stage tab pre-selection strategy（OQ §2）。
-- C21 METADATA_HISTORY O3-C whitelist（shared base + UI-014 extension）精確欄位。
+- Compare version selection interaction spec（OQ §3）仍 deferred；本波僅固定為 non-interactive summary。
+- Stage tab pre-selection 採 page spec 建議作為 frontend default；query param 仍優先，未將此預設提升為 authority truth。
+- C21 METADATA_HISTORY O3-C whitelist 已由 `api-spec.md` §3.6 與 `permission-matrix.md` §5.1 固定，Wave 3 可直接依 whitelist 落地。
 
 ---
 
@@ -1034,14 +1034,21 @@ interface RevisionHistoryViewModel {
 |---|---|---|---|
 | OQ-C01 | C10/C11 ROLE_LIMITED（REVIEWER/REREVIEWER）RereviewSummary 可見性細則 | section visibility | UI-010 |
 | OQ-C02 | C24 RevisionHistoryJumpEntry 最終置放位置 | 佔位 → real layout | UI-010 |
-| OQ-C03 | O3-C UI-010 extension whitelist 精確欄位 | metadata projection fields | UI-010 |
+| OQ-C03 | O3-C UI-010 extension whitelist 精確欄位 | 已由 `api-spec.md` §3.6 + `permission-matrix.md` §5.1 關閉；不再阻塞 Wave 3 | UI-010 |
 | OQ-C04 | O3-C UI-009 extension whitelist 精確欄位 | metadata projection fields | UI-009 |
-| OQ-C05 | O3-C UI-014 extension whitelist 精確欄位 | METADATA_HISTORY C21 fields | UI-014 |
+| OQ-C05 | O3-C UI-014 extension whitelist 精確欄位 | 已由 `api-spec.md` §3.6 + `permission-matrix.md` §5.1 關閉；不再阻塞 Wave 3 | UI-014 |
 | OQ-C06 | UI-013 C16 button label for `CLOSED_REVISION_EXCEPTION` | PLACEHOLDER → real label | UI-013 |
 | OQ-C07 | UI-013 revision draft save API 可行性 | STUB → implement | UI-013 |
 | OQ-C08 | UI-013 C19 live score calculation timing（submit-time vs live） | C19 骨架 → live calc | UI-013 |
 | OQ-C09 | UI-014 compare version selection interaction spec | DEFERRED → interaction spec | UI-014 |
 | OQ-C10 | UI-014 stage tab pre-selection strategy | DEFERRED → strategy | UI-014 |
+
+### 7.4 Wave 3 Closure Pass Update
+
+- Frontend Wave 3 foundation gate 已由實測 evidence 關閉：`npm run typecheck`、`npm run test:unit:ci`、`npm run test:e2e` 均已通過，且 e2e 不再是 `No tests found`。
+- OQ-C03（UI-010 metadata extension whitelist）已由 authority 文件固定，改為 closed。
+- OQ-C05（UI-014 metadata extension whitelist）已由 authority 文件固定，改為 closed。
+- OQ-C01、OQ-C02、OQ-C09、OQ-C10 仍保留，但僅屬 Wave 3 non-blocking / deferred，不阻塞 UI-010、UI-014 的 test-first skeleton。
 
 ### 7.3 Cross-Cutting
 
@@ -1095,13 +1102,13 @@ interface RevisionHistoryViewModel {
 | EXECUTING animation | 視覺 baseline 定案 | UI-006 |
 | Confirm modal copy | UX writing | UI-006 |
 | Real-time batch refresh | API spec 新增 streaming | UI-007 |
-| C10/C11 ROLE_LIMITED 精確規則 | OQ-C01 resolved | UI-010 |
+| C10/C11 ROLE_LIMITED 精確規則 | OQ-C01 closed by minimal frontend convergence | UI-010 |
 | C24 final placement | OQ-C02 prototype validation | UI-010 |
 | Score item-level form controls | form controls spec | UI-012/013 |
 | Attachment upload/preview/delete | component planning | UI-012/013 |
 | C19 live score calculation | OQ-C08 resolved | UI-013 |
 | Compare version selection UI | OQ-C09 interaction spec | UI-014 |
-| Stage tab pre-selection strategy | OQ-C10 resolved | UI-014 |
+| Stage tab pre-selection strategy | OQ-C10 downgraded to frontend-default/non-blocking | UI-014 |
 | Cross-cluster back-navigation context restore | CC-04 strategy | UI-007/009 |
 
 ---

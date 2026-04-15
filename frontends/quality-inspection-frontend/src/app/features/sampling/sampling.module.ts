@@ -6,6 +6,7 @@ import { SamplingExecutePageComponent } from './sampling-execute/sampling-execut
 import { SamplingBatchListPageComponent } from './batch-list/sampling-batch-list-page.component';
 // SP-02: BatchList child components
 import { BatchStatusTabComponent } from './batch-list/components/batch-status-tab/batch-status-tab.component';
+import { BatchFilterBarComponent } from './batch-list/components/batch-filter-bar/batch-filter-bar.component';
 import { BatchTableComponent } from './batch-list/components/batch-table/batch-table.component';
 import { BatchRowActionsComponent } from './batch-list/components/batch-row-actions/batch-row-actions.component';
 // SP-03: RetryConfirmModal
@@ -23,6 +24,7 @@ import { SamplingExecuteConfirmModalComponent } from './sampling-execute/compone
     SamplingBatchListPageComponent,
     // SP-02
     BatchStatusTabComponent,
+    BatchFilterBarComponent,
     BatchTableComponent,
     BatchRowActionsComponent,
     // SP-03

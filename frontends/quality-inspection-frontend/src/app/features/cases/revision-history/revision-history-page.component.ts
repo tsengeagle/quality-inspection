@@ -32,11 +32,17 @@ export class RevisionHistoryPageComponent implements OnInit {
   /** C03 modeLabel */
   modeLabel = '';
 
+  showBanner = false;
+  bannerTone: 'blocked' | 'exception-amber' | 'info' = 'info';
+  bannerMessage = '';
+
   /** HR-1: METADATA_HISTORY → diff 不適用訊息 */
   showMetadataOnlyNotice = false;
 
   /** HR-2 / exception entry: CLOSED + originalRereviewer + baseSubmission */
   hasExceptionEntry = false;
+
+  private hasExplicitStageTab = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -49,12 +55,32 @@ export class RevisionHistoryPageComponent implements OnInit {
     const savedTab = this.route.snapshot.queryParamMap.get('stageTab');
     if (savedTab && ['ALL', 'INITIAL_ONLY', 'REREVIEW_ONLY'].includes(savedTab)) {
       this.stageTab = savedTab as RevisionStageTab;
+      this.hasExplicitStageTab = true;
     }
 
     this.casesService.getRevisionHistory(this.caseId).subscribe(vm => {
       this.vm = vm;
+      this._applyRecommendedStageTab();
       this._resolveMode();
     });
+  }
+
+  private _applyRecommendedStageTab(): void {
+    if (this.hasExplicitStageTab || !this.vm) {
+      return;
+    }
+
+    switch (this.vm.role) {
+      case 'REVIEWER':
+        this.stageTab = 'INITIAL_ONLY';
+        break;
+      case 'REREVIEWER':
+        this.stageTab = 'REREVIEW_ONLY';
+        break;
+      default:
+        this.stageTab = 'ALL';
+        break;
+    }
   }
 
   /** 3-mode resolution */
@@ -84,6 +110,7 @@ export class RevisionHistoryPageComponent implements OnInit {
       case 'FULL_HISTORY':
         this.modeLabel = '完整歷程';
         this.showMetadataOnlyNotice = false;
+        this.showBanner = false;
         // hasExceptionEntry: CLOSED + originalRereviewer + baseSubmission（FULL_HISTORY 不符，不顯示）
         this.hasExceptionEntry = false;
         break;
@@ -92,6 +119,7 @@ export class RevisionHistoryPageComponent implements OnInit {
         this.modeLabel = 'Metadata 歷程';
         // HR-1
         this.showMetadataOnlyNotice = true;
+        this.showBanner = false;
         this.hasExceptionEntry = false;
         break;
 
@@ -106,6 +134,11 @@ export class RevisionHistoryPageComponent implements OnInit {
           d.isOriginalRereviewer &&
           d.hasBaseSubmission
         );
+        this.showBanner = true;
+        this.bannerTone = this.hasExceptionEntry ? 'exception-amber' : 'info';
+        this.bannerMessage = this.hasExceptionEntry
+          ? '此案件已結案，但符合例外複審修正導頁條件。'
+          : '此案件處於終止狀態，僅可檢視歷程。';
         break;
     }
   }

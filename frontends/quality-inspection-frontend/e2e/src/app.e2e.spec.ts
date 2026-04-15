@@ -19,6 +19,45 @@ test.describe('frontend smoke baseline', () => {
     await page.goto('/sampling/batches');
 
     await expect(page.locator('.batch-list-tabs')).toBeVisible();
-    await expect(page.getByRole('button', { name: '我的批次' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '全部批次' })).toBeVisible();
+    await expect(page.locator('.batch-filter-bar')).toBeVisible();
+  });
+
+  test('keeps 查看詳情 as a Wave 4 no-op stub on /sampling/batches', async ({ page }) => {
+    await page.goto('/sampling/batches');
+
+    await page.getByRole('button', { name: '查看詳情' }).first().click();
+
+    await expect(page).toHaveURL(/\/sampling\/batches$/);
+  });
+
+  test('loads the sampling execute route without being shadowed by /sampling/batches', async ({ page }) => {
+    await page.goto('/sampling/PROJECT-001');
+
+    await expect(page.locator('.sampling-page-title')).toHaveText('抽選執行頁');
+    await expect(page.getByRole('button', { name: '預估抽選人數' })).toBeVisible();
+  });
+
+  test('does not let /sampling/batches get swallowed by the :projectId route', async ({ page }) => {
+    await page.goto('/sampling/batches');
+
+    await expect(page.locator('.sampling-page-title')).toHaveCount(0);
+    await expect(page.locator('.batch-list-title')).toHaveText('抽選批次列表');
+  });
+
+  test('loads the Wave 3 case detail control center route', async ({ page }) => {
+    await page.goto('/cases/CASE-010');
+
+    await expect(page.locator('.case-detail-content')).toBeVisible();
+    await expect(page.locator('.control-center-nav')).toBeVisible();
+  });
+
+  test('loads the Wave 3 revision history route', async ({ page }) => {
+    await page.goto('/cases/CASE-014/revisions');
+
+    await expect(page.locator('.stage-tabs')).toBeVisible();
+    await expect(page.locator('.compare-summary')).toBeVisible();
+    await expect(page.locator('.compare-summary')).toContainText('版本選擇互動尚未定案；目前採固定差異摘要檢視。');
+    await expect(page.locator('button[type="submit"]')).toHaveCount(0);
   });
 });

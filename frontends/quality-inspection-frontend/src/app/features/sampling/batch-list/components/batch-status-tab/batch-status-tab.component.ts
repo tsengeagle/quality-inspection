@@ -1,25 +1,17 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
-/** 批次狀態 chips */
-const BATCH_STATUSES = [
-  { value: '', label: '全部' },
-  { value: 'PENDING', label: '待執行' },
-  { value: 'COMPLETED', label: '已完成' },
-  { value: 'FAILED', label: '失敗' },
-  { value: 'CANCELLED', label: '已取消' }
-];
-
 /** SP-02 — BatchStatusTab: 批次狀態 filter chips */
 @Component({
   selector: 'app-batch-status-tab',
   template: `
     <div class="batch-status-tab">
       <button
-        *ngFor="let s of statuses"
+        *ngFor="let tab of tabs"
         class="chip"
-        [class.active]="currentStatus === s.value"
-        (click)="statusChange.emit(s.value)">
-        {{ s.label }}
+        type="button"
+        [class.active]="activeTab === tab.value"
+        (click)="tabChange.emit(tab.value)">
+        {{ tab.label }}
       </button>
     </div>
   `,
@@ -30,8 +22,7 @@ const BATCH_STATUSES = [
   `]
 })
 export class BatchStatusTabComponent {
-  @Input() currentStatus = '';
-  @Output() statusChange = new EventEmitter<string>();
-
-  readonly statuses = BATCH_STATUSES;
+  @Input() tabs: Array<{ value: string; label: string }> = [];
+  @Input() activeTab = '';
+  @Output() tabChange = new EventEmitter<string>();
 }

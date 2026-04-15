@@ -6,15 +6,22 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
   selector: 'app-batch-row-actions',
   template: `
     <div class="row-actions">
-      <!-- PH-01: [查看詳情] no-op STUB — 可見，但無路由；待 UI-010 / 詳情功能接入 -->
-      <button class="action-btn" (click)="viewDetail.emit(batch.batchId)">查看詳情</button>
+      <button type="button" class="action-btn" (click)="viewDetailStub.emit(batch.batchId)">查看詳情</button>
 
-      <!-- SP-03 trigger: Retry — 只在 canRetry + ADMIN/MANAGER 時顯示 -->
       <button
-        *ngIf="batch.canRetry && (role === 'ADMIN' || role === 'MANAGER')"
+        *ngIf="showViewCases"
+        type="button"
+        class="action-btn"
+        (click)="viewCases.emit(batch.batchId)">
+        查看案件
+      </button>
+
+      <button
+        *ngIf="showRetry"
+        type="button"
         class="action-btn retry"
-        (click)="onRetry()">
-        重試
+        (click)="retryBatch.emit(batch.batchId)">
+        重跑
       </button>
     </div>
   `,
@@ -26,11 +33,16 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
 })
 export class BatchRowActionsComponent {
   @Input() batch!: SamplingBatchSummaryItem;
-  @Input() role = 'ADMIN';
-  @Output() viewDetail = new EventEmitter<string>();
+  @Input() role = 'HOSPITAL_MANAGER';
+  @Output() viewDetailStub = new EventEmitter<string>();
+  @Output() viewCases = new EventEmitter<string>();
   @Output() retryBatch = new EventEmitter<string>();
 
-  onRetry(): void {
-    this.retryBatch.emit(this.batch.batchId);
+  get showRetry(): boolean {
+    return this.role === 'HOSPITAL_MANAGER' && this.batch.status === 'FAILED' && this.batch.canRetry;
+  }
+
+  get showViewCases(): boolean {
+    return this.role === 'HOSPITAL_MANAGER' || this.role === 'AUDITOR';
   }
 }

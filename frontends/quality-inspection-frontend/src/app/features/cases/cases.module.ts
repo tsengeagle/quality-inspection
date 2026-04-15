@@ -24,6 +24,8 @@ import { CaseRowActionSetComponent } from './cases-worklist/components/case-row-
 import { CaseControlCenterNavComponent } from './case-detail/components/case-control-center-nav/case-control-center-nav.component';
 import { InitialSummaryRegionComponent } from './case-detail/components/initial-summary-region/initial-summary-region.component';
 import { ReviewerAssignmentInfoComponent } from './case-detail/components/reviewer-assignment-info/reviewer-assignment-info.component';
+import { RereviewSummaryRegionComponent } from './case-detail/components/rereview-summary-region/rereview-summary-region.component';
+import { LifecycleProgressRegionComponent } from './case-detail/components/lifecycle-progress-region/lifecycle-progress-region.component';
 // Wave 3 — C-12 revision-history child components
 import { RevisionTimelineComponent } from './revision-history/components/revision-timeline/revision-timeline.component';
 import { RevisionCompareSummaryComponent } from './revision-history/components/revision-compare-summary/revision-compare-summary.component';
@@ -54,6 +56,8 @@ import { RevisionNavActionZoneComponent } from './revision-history/components/re
     CaseControlCenterNavComponent,    // C08
     InitialSummaryRegionComponent,    // C09
     ReviewerAssignmentInfoComponent,  // C10
+    RereviewSummaryRegionComponent,   // C10
+    LifecycleProgressRegionComponent, // C11
     // Wave 3 — C-12: RevisionHistoryPage child components
     RevisionTimelineComponent,        // C20
     RevisionCompareSummaryComponent,  // C21

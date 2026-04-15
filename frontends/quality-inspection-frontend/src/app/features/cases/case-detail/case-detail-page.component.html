@@ -26,19 +26,27 @@
   <app-case-control-center-nav
     [caseId]="caseId"
     [mode]="mode"
+    [actorRole]="actorRole"
     (navigate)="navigateTo($event)">
   </app-case-control-center-nav>
 
   <!-- C09 InitialSummaryRegion -->
   <app-initial-summary-region
+    *ngIf="showInitialSummary"
     [caseId]="caseId">
   </app-initial-summary-region>
 
-  <!-- C10/C11 ReviewerAssignmentInfo -->
-  <app-reviewer-assignment-info
-    [reviewerName]="caseDetail?.reviewerName ?? ''"
-    [rereviewerName]="caseDetail?.rereviewerName ?? ''">
-  </app-reviewer-assignment-info>
+  <!-- C10 RereviewSummaryRegion -->
+  <app-rereview-summary-region
+    *ngIf="showRereviewSummary"
+    [summary]="caseDetail?.latestRevisionSummary">
+  </app-rereview-summary-region>
+
+  <!-- C11 LifecycleProgressRegion -->
+  <app-lifecycle-progress-region
+    *ngIf="showLifecycleProgress"
+    [currentStage]="caseDetail?.lifecycleLatestStage ?? caseDetail?.stageLabel ?? ''">
+  </app-lifecycle-progress-region>
 
   <!-- PH-08: RevisionHistoryJumpEntry slot -->
   <div class="revision-history-jump-placeholder"><!-- PH-08: RevisionHistoryJumpEntry slot deferred --></div>

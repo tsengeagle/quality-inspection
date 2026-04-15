@@ -1,19 +1,18 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 
 /** SP-03 — RetryConfirmModal (UI-007)
- *  Fixed copy D-013: 確認重試此批次抽選？ */
+ *  Fixed copy D-013: 將以新的抽選批次重跑，原失敗批次會保留。 */
 @Component({
   selector: 'app-retry-confirm-modal',
   template: `
     <div *ngIf="visible" class="modal-backdrop" (click)="cancel.emit()">
       <div class="modal-dialog" role="dialog" aria-modal="true" aria-label="確認重試批次" (click)="$event.stopPropagation()">
-        <h2 class="modal-title">確認重試</h2>
-        <!-- D-013: 固定文案 -->
-        <p class="modal-body">確認重試此批次抽選？</p>
-        <p class="modal-sub">重試後系統將重新執行本批次的抽選流程。</p>
+        <h2 class="modal-title">確認重跑</h2>
+        <p class="modal-body">將以新的抽選批次重跑，原失敗批次會保留。</p>
+        <p class="modal-sub">此操作不會覆蓋原批次，也不得暗示改用最新版本重跑。</p>
         <div class="modal-actions">
           <button class="btn cancel-btn" (click)="cancel.emit()">取消</button>
-          <button class="btn confirm-btn" (click)="confirm.emit(batchId)">確認重試</button>
+          <button class="btn confirm-btn" (click)="confirm.emit(batchId)">確認重跑</button>
         </div>
       </div>
     </div>

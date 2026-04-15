@@ -6,12 +6,12 @@ import { CasesService, CaseDetailViewModel } from '../services/cases.service';
 export type CaseDetailMode =
   | 'FULL_CONTROL_CENTER'
   | 'METADATA_CONTROL_CENTER'
-  | 'REVIEW_ACCESS'
+  | 'ROLE_LIMITED'
   | 'READONLY_TERMINAL';
 
 /** C-03 — UI-010 CaseDetailPageComponent
  *  A2 control center — 案件生命週期控制中心。
- *  4-mode: FULL_CONTROL_CENTER / METADATA_CONTROL_CENTER / REVIEW_ACCESS / READONLY_TERMINAL
+ *  4-mode: FULL_CONTROL_CENTER / METADATA_CONTROL_CENTER / ROLE_LIMITED / READONLY_TERMINAL
  *  Mode 由 container 計算（role + caseState + ownership + projectionType），絕不從 URL 讀取。 */
 @Component({
   selector: 'app-case-detail-page',
@@ -40,6 +40,38 @@ export class CaseDetailPageComponent implements OnInit {
   /** READONLY_TERMINAL — 是否為 terminal 狀態 */
   get isTerminal(): boolean {
     return this.mode === 'READONLY_TERMINAL';
+  }
+
+  get actorRole(): string {
+    return this.caseDetail?.role ?? '';
+  }
+
+  get showInitialSummary(): boolean {
+    if (this.mode === 'METADATA_CONTROL_CENTER') {
+      return false;
+    }
+
+    if (this.mode === 'ROLE_LIMITED') {
+      return this.actorRole === 'REVIEWER' || this.actorRole === 'REREVIEWER';
+    }
+
+    return true;
+  }
+
+  get showRereviewSummary(): boolean {
+    if (this.mode === 'METADATA_CONTROL_CENTER') {
+      return true;
+    }
+
+    if (this.mode === 'ROLE_LIMITED') {
+      return this.actorRole === 'REREVIEWER';
+    }
+
+    return true;
+  }
+
+  get showLifecycleProgress(): boolean {
+    return true;
   }
 
   constructor(
@@ -71,10 +103,10 @@ export class CaseDetailPageComponent implements OnInit {
       this.mode = 'METADATA_CONTROL_CENTER';
     } else if (isTerminalState) {
       this.mode = 'READONLY_TERMINAL';
-    } else if (d.role === 'MANAGER' || d.role === 'ADMIN') {
+    } else if (d.role === 'HOSPITAL_MANAGER' || d.role === 'MANAGER' || d.role === 'ADMIN') {
       this.mode = 'FULL_CONTROL_CENTER';
-    } else if ((d.role === 'REVIEWER' || d.role === 'REREVIEWER') && d.isOwner) {
-      this.mode = 'REVIEW_ACCESS';
+    } else if (d.isOwner || d.role === 'AUDITOR') {
+      this.mode = 'ROLE_LIMITED';
     } else {
       this.mode = 'READONLY_TERMINAL';
     }
@@ -94,8 +126,8 @@ export class CaseDetailPageComponent implements OnInit {
         this.showBanner = false;
         this.showProjectionNotice = true;
         break;
-      case 'REVIEW_ACCESS':
-        this.modeLabel = '審查存取';
+      case 'ROLE_LIMITED':
+        this.modeLabel = '受限檢視';
         this.showBanner = false;
         this.showProjectionNotice = false;
         break;

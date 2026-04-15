@@ -9,14 +9,20 @@
   [showProjectionNotice]="mode === 'METADATA_HISTORY'">
 </app-case-summary-header>
 
+<app-status-or-blocked-banner
+  *ngIf="showBanner"
+  [tone]="bannerTone"
+  [message]="bannerMessage">
+</app-status-or-blocked-banner>
+
 <!-- C03 ModeIndicatorStrip -->
 <app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
 
 <!-- Stage 篩選 tabs（queryParams 持久化） -->
 <div class="stage-tabs">
-  <button class="tab-btn" [class.active]="stageTab === 'ALL'" (click)="onStageTabChange('ALL')">全部</button>
-  <button class="tab-btn" [class.active]="stageTab === 'INITIAL_ONLY'" (click)="onStageTabChange('INITIAL_ONLY')">僅初審</button>
-  <button class="tab-btn" [class.active]="stageTab === 'REREVIEW_ONLY'" (click)="onStageTabChange('REREVIEW_ONLY')">僅複審</button>
+  <button type="button" class="tab-btn" [class.active]="stageTab === 'ALL'" (click)="onStageTabChange('ALL')">全部</button>
+  <button type="button" class="tab-btn" [class.active]="stageTab === 'INITIAL_ONLY'" (click)="onStageTabChange('INITIAL_ONLY')">僅初審</button>
+  <button type="button" class="tab-btn" [class.active]="stageTab === 'REREVIEW_ONLY'" (click)="onStageTabChange('REREVIEW_ONLY')">僅複審</button>
 </div>
 
 <!-- C20 RevisionTimeline -->

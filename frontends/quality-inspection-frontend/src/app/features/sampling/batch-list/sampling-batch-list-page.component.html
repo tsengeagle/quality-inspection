@@ -1,29 +1,35 @@
-<!-- SP-01: SamplingBatchListPageComponent (UI-007) -->
+<section class="batch-list-page">
+  <div class="batch-list-page-header-placeholder">
+    <h1 class="batch-list-title">抽選批次列表</h1>
+    <p class="batch-list-summary">{{ pageSummary }}</p>
+    <p class="projection-notice" *ngIf="isMetadataOnly">SYSTEM_ADMIN 僅可檢視 metadata-only 欄位。</p>
+  </div>
 
-<!-- PH-02: PageHeader placeholder（待正式 PageHeader component 接入） -->
-<div class="batch-list-page-header-placeholder"><!-- PH-02: BatchListPageHeader placeholder --></div>
+  <app-batch-status-tab
+    class="batch-list-tabs"
+    [tabs]="availableTabs"
+    [activeTab]="uiState.tab"
+    (tabChange)="onTabChange($event)">
+  </app-batch-status-tab>
 
-<!-- Role-based 批次列表 tabs -->
-<div class="batch-list-tabs">
-  <button
-    *ngFor="let t of availableTabs"
-    class="tab-btn"
-    [class.active]="uiState.tab === t.value"
-    (click)="onTabChange(t.value)">
-    {{ t.label }}
-  </button>
-</div>
+  <app-batch-filter-bar
+    [metadataOnly]="isMetadataOnly"
+    (filterChange)="onFilterChange($event)">
+  </app-batch-filter-bar>
 
-<!-- SP-02: BatchStatusTab filter (role-aware) -->
-<app-batch-status-tab
-  [currentStatus]="uiState.status"
-  (statusChange)="onFilterChange($event)">
-</app-batch-status-tab>
+  <app-batch-table
+    [batches]="batches"
+    [role]="role"
+    (viewDetailStub)="onViewDetailStub($event)"
+    (viewCases)="onViewCases($event)"
+    (retryBatch)="openRetryConfirm($event)">
+  </app-batch-table>
 
-<!-- SP-02: BatchTable -->
-<app-batch-table
-  [batches]="batches"
-  [role]="role"
-  (viewDetail)="navigateToExecute($event)">
-</app-batch-table>
+  <app-retry-confirm-modal
+    [visible]="showRetryModal"
+    [batchId]="retryTargetBatchId ?? ''"
+    (confirm)="confirmRetry($event)"
+    (cancel)="cancelRetry()">
+  </app-retry-confirm-modal>
+</section>
 

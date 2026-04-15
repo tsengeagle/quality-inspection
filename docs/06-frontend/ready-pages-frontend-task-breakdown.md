@@ -776,7 +776,7 @@ parallelizable: true（Cases read-only wave）
 **Out of Scope：**
 - C10/C11 ROLE_LIMITED visibility rules（OQ-C01 Deferred）
 - C24 最終位置（OQ-C02 Deferred）
-- O3-C extension whitelist（OQ-C03 Deferred）
+- O3-C UI-010 extension whitelist 已由 `api-spec.md` §3.6 與 `permission-matrix.md` §5.1 固定；不再作為 Wave 3 pending
 
 **Deliverables：**
 - `case-detail/case-detail-page.component.ts/html/scss`
@@ -794,7 +794,7 @@ parallelizable: true（Cases read-only wave）
 **Blockers/Pending Confirmation：**
 - OQ-C01（C10/C11 ROLE_LIMITED visibility rules）
 - OQ-C02（C24 placement）
-- OQ-C03（O3-C UI-010 extension whitelist）
+- OQ-C03 已關閉（authority fixed whitelist；不再阻塞 Wave 3）
 
 ---
 
@@ -822,10 +822,10 @@ parallelizable: false
 
 **C10 ReviewerAssignmentInfo / C11 RereviewerAssignmentInfo：**
 - 顯示已指派的審查人員資訊
-- ROLE_LIMITED visibility 規則待 OQ-C01 解決前使用保守顯示（不建 ROLE_LIMITED 邏輯）
+- ROLE_LIMITED 以最小收斂規則實作：REVIEWER=`C09+C11`、REREVIEWER=`C09+C10+C11`；不擴張為 command/page truth
 
 **Out of Scope：**
-- C10/C11 ROLE_LIMITED visibility rules（Deferred，待 OQ-C01）
+- C10/C11 ROLE_LIMITED visibility rules（Closed，採最小前端收斂）
 - C24（RevisionHistoryJumpEntry）由 PH-08 負責
 
 **Deliverables：**
@@ -838,7 +838,7 @@ parallelizable: false
 2. READONLY_TERMINAL mode 時 command actions disabled 或 hidden
 3. 初審摘要以 mock data 顯示
 
-**Blockers/Pending Confirmation：** OQ-C01（C10/C11 ROLE_LIMITED）。
+**Blockers/Pending Confirmation：** 無新增 blocker；OQ-C01 已由最小前端收斂關閉。
 
 ---
 
@@ -1233,7 +1233,7 @@ GET /review-cases/{caseId}/revisions
 7. 單元測試：hasExceptionEntry 三條件缺一不可
 
 **Blockers/Pending Confirmation：**
-- OQ-C05（UI-014 O3-C extension whitelist）
+- OQ-C05 已關閉（authority fixed whitelist；不再阻塞 Wave 3）
 - OQ-C09（compare version selection interaction）— Deferred
 - OQ-C10（stage tab pre-selection strategy）— Deferred
 
@@ -1260,7 +1260,7 @@ parallelizable: false
 **C21 RevisionCompareSummaryComponent（FULL vs METADATA_ONLY variants）：**
 - FULL 模式：顯示版本間差異摘要（mock data 骨架）
 - METADATA_ONLY 模式：顯示 HR-1 固定文字 `"詳細差異內容不適用於此視角"`
-- Compare version selection 互動為 Deferred（OQ-C09）
+- Compare version selection 互動維持 Deferred（OQ-C09）；本波固定為 non-interactive summary，不建立 selector
 
 **C22 RevisionNavActionZoneComponent（navigate-only）：**
 - 條件顯示（hasExceptionEntry 時）
@@ -1271,7 +1271,7 @@ parallelizable: false
 **Out of Scope：**
 - C20 hover/expand 互動（Deferred）
 - Compare version selection 互動（OQ-C09 Deferred）
-- Stage tab pre-selection 策略（OQ-C10 Deferred）
+- Stage tab pre-selection 採 frontend default（query param 優先；無 query 時依角色帶入建議值）
 
 **Deliverables：**
 - `revision-history/components/revision-timeline/`
@@ -2103,16 +2103,23 @@ Wave 6 — Verification（所有任務完成後）
 
 | OQ ID | 問題 | 影響 | 建議臨時處理 |
 |-------|------|------|------------|
-| OQ-C01 | C10/C11 ROLE_LIMITED visibility rules | UI-010 reviewer/rereviewer assignment info 欄位 | Deferred，現顯示 base info（不建 ROLE_LIMITED 邏輯）|
+| OQ-C01 | C10/C11 ROLE_LIMITED visibility rules | UI-010 reviewer/rereviewer section 顯示規則 | Closed，以最小前端收斂固定 REVIEWER=`C09+C11`、REREVIEWER=`C09+C10+C11` |
 | OQ-C02 | C24 RevisionHistoryJumpEntry 最終位置 | UI-010 佈局 | Deferred，placeholder slot（PH-08）|
-| OQ-C03 | O3-C UI-010 extension whitelist | UI-010 SYSADMIN 欄位 | Deferred，只顯示 base whitelist |
+| OQ-C03 | O3-C UI-010 extension whitelist | UI-010 SYSADMIN 欄位 | Closed，`api-spec.md` §3.6 + `permission-matrix.md` §5.1 已固定 whitelist |
 | OQ-C04 | O3-C UI-009 extension whitelist | UI-009 SYSADMIN 欄位 | Deferred，只顯示 base whitelist |
-| OQ-C05 | O3-C UI-014 extension whitelist | UI-014 SYSADMIN 欄位 | Deferred，只顯示 base whitelist |
+| OQ-C05 | O3-C UI-014 extension whitelist | UI-014 SYSADMIN 欄位 | Closed，`api-spec.md` §3.6 + `permission-matrix.md` §5.1 已固定 whitelist |
 | OQ-C06 | C16 button label for CLOSED_REVISION_EXCEPTION mode | UI-013 example button text | STUB PLACEHOLDER（PH-07）|
 | OQ-C07 | CLOSED_REVISION_EXCEPTION 下的 revision draft save API | UI-013 exception mode draft save | Deferred，exception mode 不提供 save draft |
 | OQ-C08 | C19 FinalDecisionSummary live score calculation timing | UI-013 C19 即時計算 | Deferred，skeleton + static mock |
-| OQ-C09 | compare version selection UI interaction | UI-014 版本選擇互動 | Deferred，無 compare selector |
-| OQ-C10 | UI-014 stage tab pre-selection strategy | UI-014 tab 預選邏輯 | Deferred，預設 ALL tab |
+| OQ-C09 | compare version selection UI interaction | UI-014 版本選擇互動 | Deferred，維持 non-interactive summary，無 compare selector |
+| OQ-C10 | UI-014 stage tab pre-selection strategy | UI-014 tab 預選邏輯 | Downgraded，query param 優先；無 query 時採 page spec 建議值作為 frontend default |
+
+### Wave 3 closure pass
+
+- Closed：Wave 3 foundation gate readiness（typecheck / unit / e2e 已實測通過；e2e discovery 已解除）。
+- Closed：OQ-C03、OQ-C05。
+- Non-blocking / deferred for Wave 3：OQ-C02、OQ-C09、OQ-C10。
+- Deferred to later wave：OQ-C04（UI-009）、OQ-C06~OQ-C08（Wave 5 command pages）。
 
 ### Cross-cutting 相關
 

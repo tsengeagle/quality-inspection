@@ -69,3 +69,51 @@ Before any backend change, read in order:
 - B4+ — Complex Review / Audit and Reporting
 
 Do not extend into these stages without a separate work order.
+
+---
+
+## Terminal Execution Governance
+
+For backend terminal work in this multi-module repo, use these rules directly:
+
+1. Before running a backend command, identify and state:
+	- repo root
+	- target backend module root: `services\quality-inspection-service`
+	- current working directory
+	- exact command to run
+2. Do not guess relative paths from memory. Resolve the repo root first, then change explicitly into the backend module root before build, test, targeted test, or bootRun commands.
+3. PowerShell examples must use module-root execution, for example:
+	```powershell
+	$RepoRoot = git rev-parse --show-toplevel
+	$BackendRoot = Join-Path $RepoRoot 'services\quality-inspection-service'
+	Set-Location $BackendRoot
+	.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest
+	```
+4. Required pre-checks before running backend commands:
+	- `build.gradle`
+	- `settings.gradle`
+	- `gradlew.bat`
+	- `src\main\resources\application.yml` when the command depends on Spring Boot runtime config
+	- target test class under `src\test\java` when running a targeted test
+5. Command priority for backend Gradle work:
+	- first: module-root wrapper command such as `.\gradlew.bat <task>` on Windows
+	- second: `./gradlew <task>` when the shell is not PowerShell but still starts from the same module root
+	- last resort: system `gradle`, only when the wrapper is absent and the repo explicitly allows it
+6. Preferred execution order inside the backend module:
+	- build
+	- full test
+	- targeted test when narrowing failures or validating a focused area
+	- bootRun for local app execution
+7. Prohibited patterns:
+	- running backend Gradle commands from repo root
+	- running backend Gradle commands from `frontends\quality-inspection-frontend`
+	- bare `gradle test` when `gradlew.bat` exists
+	- mixing backend build in one directory with backend test or bootRun in another directory
+	- assuming a fully qualified test class name is runnable when the current working directory is not the backend module root
+8. Backend command baseline in this repo:
+	- build: `.\gradlew.bat build`
+	- full test: `.\gradlew.bat test`
+	- targeted test: `.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest`
+	- app run: `.\gradlew.bat bootRun`
+
+Treat backend execution as `partial` rather than `ready` when the wrapper or module-local Gradle files have not been confirmed in the target working directory.

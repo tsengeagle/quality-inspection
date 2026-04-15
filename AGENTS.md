@@ -690,6 +690,17 @@ Frontend terminal execution governance note:
 - e2e readiness requires `playwright.config.ts`, `e2e/`, and at least one Playwright-discoverable test file; config presence alone is not sufficient
 - do not treat repo-root lockfile as the frontend module lockfile
 
+Backend terminal execution governance note:
+
+- backend Gradle commands must execute from `services/quality-inspection-service`, not repo root and not `frontends/quality-inspection-frontend`
+- before any backend terminal command, explicitly identify repo root, target backend module root, current working directory, and the exact command to run
+- in PowerShell, resolve repo root first, then enter the backend module root before build / test / targeted test / bootRun commands
+- required pre-checks before backend execution: `build.gradle`, `settings.gradle`, `gradlew.bat`; targeted test also requires confirming the target test class exists under `src/test/java`
+- command priority for backend Gradle work: module-root `./gradlew` or `.\gradlew.bat` first; system `gradle` only when wrapper is absent and the repo explicitly allows it
+- keep backend build / full test / targeted test / app run in the same backend module root; do not mix backend Gradle execution across repo root or frontend module root
+- targeted backend tests use the standard Gradle `test --tests <fqcn-or-pattern>` path from the backend module root; do not assume the same command works from another cwd
+- module-local build artifacts and reports live under `services/quality-inspection-service/build`; do not use repo-root artifacts as backend execution evidence
+
 ### 9.2 尚未確認
 
 目前沒有足夠 repo evidence 證明以下入口已存在：

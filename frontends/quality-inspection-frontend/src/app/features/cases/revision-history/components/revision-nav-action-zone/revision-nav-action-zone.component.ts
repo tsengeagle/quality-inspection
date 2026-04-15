@@ -11,6 +11,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
     <div class="revision-nav-action-zone">
       <!-- HR-2: outlined warning-tone button，絕不設為 position:fixed -->
       <button
+        type="button"
         class="nav-action-btn outlined warning"
         (click)="navigateToRereview.emit()">
         前往複審修正

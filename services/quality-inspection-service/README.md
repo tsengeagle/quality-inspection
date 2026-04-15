@@ -327,6 +327,50 @@ pending_confirmation:
 
 若後續 source tree 建立並證實上述項目，應再回來更新本文件。
 
+### 10.3 Backend terminal execution governance
+
+backend terminal work 必須以 `services/quality-inspection-service` 為唯一 module root。
+在這個 multi-module repo 中，不得在 repo root 或 frontend module root 猜測 backend Gradle 相對路徑。
+
+執行 backend command 前，至少先確認：
+
+* repo root
+* backend module root
+* current working directory
+* `build.gradle`
+* `settings.gradle`
+* `gradlew.bat`
+* 若為 targeted test，目標 test class 是否存在於 `src/test/java`
+
+PowerShell canonical pattern：
+
+```powershell
+$RepoRoot = git rev-parse --show-toplevel
+$BackendRoot = Join-Path $RepoRoot 'services\quality-inspection-service'
+Set-Location $BackendRoot
+.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest
+```
+
+backend Gradle command priority：
+
+1. `.\gradlew.bat <task>`
+2. `./gradlew <task>`（僅限非 PowerShell shell，且仍在相同 module root）
+3. `gradle <task>` 只能在 wrapper 缺失且 repo 明確允許時使用
+
+backend command baseline：
+
+* build：`.\gradlew.bat build`
+* full test：`.\gradlew.bat test`
+* targeted test：`.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest`
+* app run：`.\gradlew.bat bootRun`
+
+禁止事項：
+
+* 在 repo root 直接執行 backend Gradle command
+* 在 `frontends/quality-inspection-frontend` 執行 backend Gradle command
+* wrapper 存在時改用裸 `gradle test`
+* 在不同目錄分別跑 backend build / test / bootRun
+
 ---
 
 ## 11. 初始實作順序建議
@@ -391,4 +435,4 @@ pending_confirmation:
 * CI pipeline 已確認
 * framework-specific instructions 已完整
 
-工程骨架已建立，可使用 `./gradlew build`、`./gradlew test`、`./gradlew bootRun`。
+工程骨架已建立，可使用 `.\gradlew.bat build`、`.\gradlew.bat test`、`.\gradlew.bat bootRun`，但前提是目前 working directory 已切到 `services/quality-inspection-service`。

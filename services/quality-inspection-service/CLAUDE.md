@@ -57,9 +57,27 @@ Formal API base path: `/api/quality-inspection/**`，required auth header: `api-
 開發期可使用 local dev proxy 模擬 api-gateway（須模擬 api-key header），upstream service 不足時可採 adapter-level stub。
 
 Commands:
-- Build: `./gradlew build`
-- Test: `./gradlew test`
-- Run: `./gradlew bootRun`
+- Build: `.\gradlew.bat build`
+- Test: `.\gradlew.bat test`
+- Targeted test: `.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest`
+- Run: `.\gradlew.bat bootRun`
+
+Backend terminal execution rules:
+
+- backend Gradle work must execute from `services/quality-inspection-service`, not repo root and not the frontend module root
+- before running a command, state repo root, target backend module root, current working directory, and the exact command
+- pre-check `build.gradle`, `settings.gradle`, and `gradlew.bat`; for targeted test also confirm the target class exists under `src/test/java`
+- prefer module-root wrapper commands first; do not fall back to bare `gradle` while `gradlew.bat` exists
+- keep build / full test / targeted test / bootRun in the same backend module root
+
+PowerShell canonical pattern:
+
+```powershell
+$RepoRoot = git rev-parse --show-toplevel
+$BackendRoot = Join-Path $RepoRoot 'services\quality-inspection-service'
+Set-Location $BackendRoot
+.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest
+```
 
 Package root: `com.tzuchi.his.quality.inspection`
 Layers: domain, application, interfaces, infrastructure, reporting
