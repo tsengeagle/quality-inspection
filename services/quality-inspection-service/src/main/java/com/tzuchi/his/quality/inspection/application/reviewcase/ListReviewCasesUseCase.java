@@ -9,6 +9,9 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCase
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @Transactional(readOnly = true)
 public class ListReviewCasesUseCase {
@@ -23,6 +26,12 @@ public class ListReviewCasesUseCase {
         actor.requireAnyRole(
                 DomainRole.HOSPITAL_MANAGER, DomainRole.REVIEWER,
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
-        return queryPort.findCases(criteria);
+
+        Page<ReviewCaseSummary> raw = queryPort.findCases(criteria);
+        String projectionType = actor.hasRole(DomainRole.SYSTEM_ADMIN) ? "METADATA_ONLY" : "FULL";
+        List<ReviewCaseSummary> enriched = raw.getContent().stream()
+                .map(s -> s.withProjectionType(projectionType))
+                .collect(Collectors.toList());
+        return new Page<>(enriched, raw.getPage(), raw.getSize(), raw.getTotalElements());
     }
 }

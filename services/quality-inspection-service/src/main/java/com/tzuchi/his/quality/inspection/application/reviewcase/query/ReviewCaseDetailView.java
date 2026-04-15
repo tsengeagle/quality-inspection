@@ -25,6 +25,9 @@ public class ReviewCaseDetailView {
     private final LocalDateTime cancelledAt;
     private final List<SubmissionSummaryItem> submissions;
     private final String latestRereviewSubmissionId;
+    private final String projectionType;
+    private final String actorRole;
+    private final boolean isOwner;
 
     public ReviewCaseDetailView(String caseId, String projectId, String batchId,
                                  String hospitalId, String status, String reviewerId,
@@ -35,7 +38,8 @@ public class ReviewCaseDetailView {
                                  LocalDateTime dueAt, LocalDateTime closedAt,
                                  LocalDateTime cancelledAt,
                                  List<SubmissionSummaryItem> submissions,
-                                 String latestRereviewSubmissionId) {
+                                 String latestRereviewSubmissionId,
+                                 String projectionType, String actorRole, boolean isOwner) {
         this.caseId = caseId;
         this.projectId = projectId;
         this.batchId = batchId;
@@ -55,6 +59,9 @@ public class ReviewCaseDetailView {
         this.cancelledAt = cancelledAt;
         this.submissions = submissions;
         this.latestRereviewSubmissionId = latestRereviewSubmissionId;
+        this.projectionType = projectionType;
+        this.actorRole = actorRole;
+        this.isOwner = isOwner;
     }
 
     public String getCaseId() { return caseId; }
@@ -76,4 +83,19 @@ public class ReviewCaseDetailView {
     public LocalDateTime getCancelledAt() { return cancelledAt; }
     public List<SubmissionSummaryItem> getSubmissions() { return submissions; }
     public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
+    public String getProjectionType() { return projectionType; }
+    public String getActorRole() { return actorRole; }
+    public boolean isOwner() { return isOwner; }
+
+    public ReviewCaseDetailView enrich(String projectionType, String actorRole, boolean isOwner) {
+        return new ReviewCaseDetailView(
+                this.caseId, this.projectId, this.batchId, this.hospitalId,
+                this.status, this.reviewerId, this.rereviewerId,
+                this.medicalRecordType, this.sourceCaseKey,
+                this.initialReviewScore, this.finalScore, this.finalConclusion,
+                this.createdAt, this.assignedAt, this.dueAt,
+                this.closedAt, this.cancelledAt, this.submissions,
+                this.latestRereviewSubmissionId,
+                projectionType, actorRole, isOwner);
+    }
 }

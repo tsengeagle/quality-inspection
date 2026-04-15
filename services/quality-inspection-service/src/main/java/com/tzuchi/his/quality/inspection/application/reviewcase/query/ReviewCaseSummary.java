@@ -16,12 +16,14 @@ public class ReviewCaseSummary {
     private final LocalDateTime createdAt;
     private final LocalDateTime assignedAt;
     private final LocalDateTime dueAt;
+    private final String projectionType;
 
     public ReviewCaseSummary(String caseId, String projectId, String batchId,
                               String hospitalId, String status, String reviewerId,
                               String rereviewerId, String medicalRecordType,
                               String sourceCaseKey, LocalDateTime createdAt,
-                              LocalDateTime assignedAt, LocalDateTime dueAt) {
+                              LocalDateTime assignedAt, LocalDateTime dueAt,
+                              String projectionType) {
         this.caseId = caseId;
         this.projectId = projectId;
         this.batchId = batchId;
@@ -34,6 +36,7 @@ public class ReviewCaseSummary {
         this.createdAt = createdAt;
         this.assignedAt = assignedAt;
         this.dueAt = dueAt;
+        this.projectionType = projectionType;
     }
 
     public String getCaseId() { return caseId; }
@@ -48,4 +51,14 @@ public class ReviewCaseSummary {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getAssignedAt() { return assignedAt; }
     public LocalDateTime getDueAt() { return dueAt; }
+    public String getProjectionType() { return projectionType; }
+
+    public ReviewCaseSummary withProjectionType(String projectionType) {
+        return new ReviewCaseSummary(
+                this.caseId, this.projectId, this.batchId, this.hospitalId,
+                this.status, this.reviewerId, this.rereviewerId,
+                this.medicalRecordType, this.sourceCaseKey,
+                this.createdAt, this.assignedAt, this.dueAt,
+                projectionType);
+    }
 }

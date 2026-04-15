@@ -11,9 +11,9 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.query.GetRerevie
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryCriteria;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryView;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -250,15 +250,15 @@ public class ReviewCaseController {
     public ResponseEntity<ApiResponse<RevisionHistoryResponse>> getRevisionHistory(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
-        List<ReviewSubmission> submissions =
-                getRevisionHistoryUseCase.execute(actor, caseId);
-        List<SubmissionSummaryDto> dtos = submissions.stream()
-                .map(s -> new SubmissionSummaryDto(
-                        s.getSubmissionId(), s.getStage().name(), s.getReviewerId(),
-                        s.getStatus().name(), s.getRevisionNo(), s.getTotalScore(),
-                        s.getComment(), s.getSubmittedAt(), s.getSupersededBySubmissionId()))
+        RevisionHistoryView view = getRevisionHistoryUseCase.execute(actor, caseId);
+        List<SubmissionSummaryDto> dtos = view.getEntries().stream()
+                .map(e -> new SubmissionSummaryDto(
+                        e.getSubmissionId(), e.getStage(), e.getReviewerId(),
+                        e.getStatus(), e.getRevisionNo(), e.getTotalScore(),
+                        e.getComment(), e.getSubmittedAt(), e.getSupersededBySubmissionId()))
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(ApiResponse.ok(new RevisionHistoryResponse(caseId, dtos)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                new RevisionHistoryResponse(view.getCaseId(), dtos, view.isHasExceptionEntry())));
     }
 
     // --- B4 Rereview Endpoints ---
@@ -392,13 +392,14 @@ public class ReviewCaseController {
             @PathVariable String caseId) {
         GetRereviewRevisionHistoryQuery query = new GetRereviewRevisionHistoryQuery();
         query.setCaseId(caseId);
-        List<ReviewSubmission> submissions = getRereviewRevisionHistoryUseCase.execute(actor, query);
-        List<SubmissionSummaryDto> dtos = submissions.stream()
-                .map(s -> new SubmissionSummaryDto(
-                        s.getSubmissionId(), s.getStage().name(), s.getReviewerId(),
-                        s.getStatus().name(), s.getRevisionNo(), s.getTotalScore(),
-                        s.getComment(), s.getSubmittedAt(), s.getSupersededBySubmissionId()))
+        RevisionHistoryView view = getRereviewRevisionHistoryUseCase.execute(actor, query);
+        List<SubmissionSummaryDto> dtos = view.getEntries().stream()
+                .map(e -> new SubmissionSummaryDto(
+                        e.getSubmissionId(), e.getStage(), e.getReviewerId(),
+                        e.getStatus(), e.getRevisionNo(), e.getTotalScore(),
+                        e.getComment(), e.getSubmittedAt(), e.getSupersededBySubmissionId()))
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(ApiResponse.ok(new RevisionHistoryResponse(caseId, dtos)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                new RevisionHistoryResponse(view.getCaseId(), dtos, view.isHasExceptionEntry())));
     }
 }

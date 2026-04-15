@@ -59,7 +59,7 @@ class ListReviewCasesUseCaseTest {
     @Test
     void delegatesToQueryPort() {
         queryPort.setPage(new Page<>(
-                Collections.singletonList(new ReviewCaseSummary("c1", "p1", "b1", "H001", "CLOSED", "r1", null, "OUTPATIENT", "SK-1", null, null, null)),
+                Collections.singletonList(new ReviewCaseSummary("c1", "p1", "b1", "H001", "CLOSED", "r1", null, "OUTPATIENT", "SK-1", null, null, null, null)),
                 0, 20, 1));
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20);

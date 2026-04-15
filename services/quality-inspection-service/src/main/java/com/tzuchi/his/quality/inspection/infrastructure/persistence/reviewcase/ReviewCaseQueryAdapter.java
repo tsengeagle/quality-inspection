@@ -104,7 +104,7 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort {
                 e.getCaseId(), e.getProjectId(), e.getBatchId(), e.getHospitalId(),
                 e.getStatus().name(), e.getReviewerId(), e.getRereviewerId(),
                 e.getMedicalRecordType(), e.getSourceCaseKey(),
-                null, e.getReviewerAssignedAt(), e.getDueAt());
+                null, e.getReviewerAssignedAt(), e.getDueAt(), null);
     }
 
     private ReviewCaseDetailView toDetailView(ReviewCaseEntity e,
@@ -116,6 +116,6 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort {
                 e.getInitialReviewScore(), e.getFinalScore(), e.getFinalConclusion(),
                 null, e.getReviewerAssignedAt(), e.getDueAt(),
                 e.getClosedAt(), e.getCancelledAt(), submissions,
-                e.getLatestRereviewSubmissionId());
+                e.getLatestRereviewSubmissionId(), null, null, false);
     }
 }

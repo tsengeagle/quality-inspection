@@ -22,7 +22,23 @@ public class GetReviewCaseDetailUseCase {
         actor.requireAnyRole(
                 DomainRole.HOSPITAL_MANAGER, DomainRole.REVIEWER,
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
-        return queryPort.findDetailById(caseId)
+
+        ReviewCaseDetailView raw = queryPort.findDetailById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
+
+        String projectionType = actor.hasRole(DomainRole.SYSTEM_ADMIN) ? "METADATA_ONLY" : "FULL";
+
+        String actorRole;
+        if (actor.hasRole(DomainRole.SYSTEM_ADMIN))           actorRole = "SYSTEM_ADMIN";
+        else if (actor.hasRole(DomainRole.HOSPITAL_MANAGER))  actorRole = "HOSPITAL_MANAGER";
+        else if (actor.hasRole(DomainRole.REREVIEWER))        actorRole = "REREVIEWER";
+        else if (actor.hasRole(DomainRole.REVIEWER))          actorRole = "REVIEWER";
+        else if (actor.hasRole(DomainRole.AUDITOR))           actorRole = "AUDITOR";
+        else                                                   actorRole = "UNKNOWN";
+
+        boolean isOwner = actor.getUserId().equals(raw.getReviewerId())
+                       || actor.getUserId().equals(raw.getRereviewerId());
+
+        return raw.enrich(projectionType, actorRole, isOwner);
     }
 }

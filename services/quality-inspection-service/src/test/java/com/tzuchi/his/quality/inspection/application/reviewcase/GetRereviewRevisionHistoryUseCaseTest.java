@@ -3,9 +3,13 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.GetRereviewRevisionHistoryQuery;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryView;
+import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
+import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewSubmissionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -21,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GetRereviewRevisionHistoryUseCaseTest {
 
     private InMemoryReviewSubmissionRepository submissionRepo;
+    private InMemoryReviewCaseRepository caseRepo;
     private GetRereviewRevisionHistoryUseCase useCase;
 
     private static final String CASE_ID = "c1";
@@ -32,7 +36,12 @@ class GetRereviewRevisionHistoryUseCaseTest {
     @BeforeEach
     void setUp() {
         submissionRepo = new InMemoryReviewSubmissionRepository();
-        useCase = new GetRereviewRevisionHistoryUseCase(submissionRepo);
+        caseRepo = new InMemoryReviewCaseRepository();
+        useCase = new GetRereviewRevisionHistoryUseCase(submissionRepo, caseRepo);
+
+        ReviewCase rc = ReviewCase.createFromSampling(
+                CASE_ID, "b1", "p1", HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
+        caseRepo.save(rc);
     }
 
     private ActorContext hospitalManagerActor() {
@@ -40,9 +49,15 @@ class GetRereviewRevisionHistoryUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of(HOSPITAL_ID));
     }
 
+    private GetRereviewRevisionHistoryQuery queryFor(String caseId) {
+        GetRereviewRevisionHistoryQuery q = new GetRereviewRevisionHistoryQuery();
+        q.setCaseId(caseId);
+        return q;
+    }
+
     @Test
     void execute_returnsOnlyRereviewSubmissions() {
-        // Seed initial review submission
+        // Seed initial review submission — should be filtered out
         ReviewSubmission initial = ReviewSubmission.createInitialDraft(
                 "sub-1", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
         initial.updateDraft(
@@ -64,14 +79,11 @@ class GetRereviewRevisionHistoryUseCaseTest {
         rereview.submit();
         submissionRepo.save(rereview);
 
-        GetRereviewRevisionHistoryQuery query = new GetRereviewRevisionHistoryQuery();
-        query.setCaseId(CASE_ID);
+        RevisionHistoryView view = useCase.execute(hospitalManagerActor(), queryFor(CASE_ID));
 
-        List<ReviewSubmission> result = useCase.execute(hospitalManagerActor(), query);
-
-        assertEquals(1, result.size());
-        assertEquals("sub-r1", result.get(0).getSubmissionId());
-        assertEquals(ReviewStage.REREVIEW, result.get(0).getStage());
+        assertEquals(1, view.getEntries().size());
+        assertEquals("sub-r1", view.getEntries().get(0).getSubmissionId());
+        assertEquals(ReviewStage.REREVIEW.name(), view.getEntries().get(0).getStage());
     }
 
     @Test
@@ -98,23 +110,18 @@ class GetRereviewRevisionHistoryUseCaseTest {
         submissionRepo.save(rereview1);
         submissionRepo.save(revision);
 
-        GetRereviewRevisionHistoryQuery query = new GetRereviewRevisionHistoryQuery();
-        query.setCaseId(CASE_ID);
+        RevisionHistoryView view = useCase.execute(hospitalManagerActor(), queryFor(CASE_ID));
 
-        List<ReviewSubmission> result = useCase.execute(hospitalManagerActor(), query);
-
-        assertEquals(2, result.size());
-        assertEquals(1, result.get(0).getRevisionNo());
-        assertEquals(2, result.get(1).getRevisionNo());
+        assertEquals(2, view.getEntries().size());
+        assertEquals(1, view.getEntries().get(0).getRevisionNo());
+        assertEquals(2, view.getEntries().get(1).getRevisionNo());
     }
 
     @Test
-    void execute_emptyCaseReturnsEmptyList() {
-        GetRereviewRevisionHistoryQuery query = new GetRereviewRevisionHistoryQuery();
-        query.setCaseId("nonexistent");
+    void execute_emptyCaseReturnsEmptyEntries() {
+        RevisionHistoryView view = useCase.execute(hospitalManagerActor(), queryFor(CASE_ID));
 
-        List<ReviewSubmission> result = useCase.execute(hospitalManagerActor(), query);
-
-        assertTrue(result.isEmpty());
+        assertTrue(view.getEntries().isEmpty());
+        assertFalse(view.isHasExceptionEntry());
     }
 }

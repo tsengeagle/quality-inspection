@@ -252,11 +252,10 @@ class RevisionApiTest {
     }
 
     @Test
-    void getRevisionHistory_emptyCase_returnsEmptyList() throws Exception {
+    void getRevisionHistory_nonexistentCase_returns404() throws Exception {
         mockMvc.perform(get(BASE + "/nonexistent/revision-history")
                         .header("api-key", reviewerToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.submissions", hasSize(0)));
+                .andExpect(status().isNotFound());
     }
 
     // --- FULL ROUND-TRIP ---
