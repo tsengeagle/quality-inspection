@@ -6,6 +6,7 @@ async function mockInitialReviewCase(
     caseId?: string;
     allowedActions?: string[];
     commandStatus?: number;
+    onReviseRequest?: (body: unknown) => void;
   }
 ): Promise<void> {
   const caseId = options?.caseId ?? 'CASE-012';
@@ -79,6 +80,7 @@ async function mockInitialReviewCase(
   });
 
   await page.route(`**/api/quality-inspection/review-cases/${caseId}/initial-review/submissions/SUB-INITIAL-002/revise`, async route => {
+    options?.onReviseRequest?.(route.request().postDataJSON());
     await route.fulfill({
       status: commandStatus,
       contentType: 'application/json',
@@ -109,6 +111,7 @@ async function mockRereviewCase(
     caseId?: string;
     allowedActions?: string[];
     commandStatus?: number;
+    onReviseRequest?: (body: unknown) => void;
   }
 ): Promise<void> {
   const caseId = options?.caseId ?? 'CASE-013';
@@ -189,6 +192,7 @@ async function mockRereviewCase(
   });
 
   await page.route(`**/api/quality-inspection/review-cases/${caseId}/rereview/submissions/SUB-REREVIEW-002/revise`, async route => {
+    options?.onReviseRequest?.(route.request().postDataJSON());
     await route.fulfill({
       status: commandStatus,
       contentType: 'application/json',
@@ -225,7 +229,12 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
   });
 
   test('consumes backend truth and executes initial-review revise successfully', async ({ page }) => {
-    await mockInitialReviewCase(page);
+    let requestBody: unknown;
+    await mockInitialReviewCase(page, {
+      onReviseRequest: body => {
+        requestBody = body;
+      }
+    });
     await page.goto('/cases/CASE-012/initial-review');
 
     await expect(page.locator('.initial-review-title')).toHaveText('初審作業頁');
@@ -235,8 +244,15 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
     await expect(page.locator('[data-testid="initial-review-append-only-baseline"]')).toBeVisible();
     await expect(page.getByRole('button', { name: '提交初審修正' })).toBeEnabled();
 
+    await page.getByTestId('initial-review-answer-input-0').fill('N');
+    await page.getByTestId('initial-review-comment-input').fill('updated from page state');
+
     await page.getByRole('button', { name: '提交初審修正' }).click();
 
+    expect(requestBody).toEqual({
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'updated from page state'
+    });
     await expect(page.getByText('初審修正已提交。')).toBeVisible();
   });
 
@@ -249,7 +265,12 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
   });
 
   test('shows minimal error handling when rereview revise fails', async ({ page }) => {
-    await mockRereviewCase(page);
+    let requestBody: unknown;
+    await mockRereviewCase(page, {
+      onReviseRequest: body => {
+        requestBody = body;
+      }
+    });
     await page.goto('/cases/CASE-013/rereview');
 
     await expect(page.locator('.rereview-title')).toHaveText('複審作業頁');
@@ -260,8 +281,15 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
     await expect(page.locator('[data-testid="rereview-final-decision-summary"]')).toContainText('PASS / 最終分數 84');
     await expect(page.getByRole('button', { name: '提交複審修正' })).toBeEnabled();
 
+    await page.getByTestId('rereview-answer-input-0').fill('Y');
+    await page.getByTestId('rereview-comment-input').fill('exception from page state');
+
     await page.getByRole('button', { name: '提交複審修正' }).click();
 
+    expect(requestBody).toEqual({
+      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
+      comment: 'exception from page state'
+    });
     await expect(page.getByText('複審 command 執行失敗，limited wiring 僅提供最小錯誤提示。')).toBeVisible();
   });
 });

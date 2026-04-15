@@ -46,16 +46,51 @@
 	</div>
 
 	<section class="rereview-form-placeholder" data-testid="rereview-form-placeholder">
-		<h2>複審表單 placeholder</h2>
-		<p>score item interaction 與 payload binding 皆 deferred。</p>
+		<h2>複審表單</h2>
+		<p>limited deep payload wiring：僅綁定既有 answer rows 與最小 comment / draft score state。</p>
+
+		<div *ngIf="formAnswers.length > 0; else rereviewNoAnswers">
+			<label *ngFor="let answer of formAnswers; let index = index" class="review-answer-row">
+				<span>{{ answer.itemId }}</span>
+				<input
+					type="text"
+					[name]="'rereview-answer-' + index"
+					[ngModel]="answer.answerValue"
+					(ngModelChange)="onAnswerValueChange(index, $event)"
+					[disabled]="mode === 'READONLY_BLOCKED'"
+					[attr.data-testid]="'rereview-answer-input-' + index">
+			</label>
+		</div>
+
+		<ng-template #rereviewNoAnswers>
+			<p data-testid="rereview-answer-empty">目前沒有可編輯 answer rows；本輪不自行補 score item 清單。</p>
+		</ng-template>
+
+		<label *ngIf="mode === 'EDIT_DRAFT'" class="review-total-score-field">
+			<span>草稿總分</span>
+			<input
+				type="number"
+				name="rereview-draft-total-score"
+				[ngModel]="draftTotalScoreInput"
+				(ngModelChange)="onDraftTotalScoreChange($event)"
+				data-testid="rereview-total-score-input">
+		</label>
 	</section>
 
 	<section class="commentary-placeholder" data-testid="rereview-commentary-placeholder">
-		commentary region placeholder
+		<label class="review-commentary-field">
+			<span>評語</span>
+			<textarea
+				name="rereview-comment"
+				[ngModel]="formComment"
+				(ngModelChange)="onCommentChange($event)"
+				[disabled]="mode === 'READONLY_BLOCKED'"
+				data-testid="rereview-comment-input"></textarea>
+		</label>
 	</section>
 
 	<section class="attachment-placeholder" data-testid="rereview-attachment-placeholder">
-		attachment region placeholder
+		attachment region placeholder：本輪仍不接 payload
 	</section>
 </section>
 

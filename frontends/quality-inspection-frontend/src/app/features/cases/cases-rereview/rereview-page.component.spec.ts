@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
@@ -38,6 +39,7 @@ describe('RereviewPageComponent', () => {
         ReviewCommandBarComponent,
         ReviewVersionSummaryRegionComponent
       ],
+      imports: [FormsModule],
       providers: [
         { provide: CasesService, useValue: casesService },
         {
@@ -53,6 +55,7 @@ describe('RereviewPageComponent', () => {
 
     fixture = TestBed.createComponent(RereviewPageComponent);
     component = fixture.componentInstance;
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
   });
 
   function buildDetail(overrides: Partial<CaseDetailViewModel> = {}): CaseDetailViewModel {
@@ -95,12 +98,35 @@ describe('RereviewPageComponent', () => {
     fixture.detectChanges();
   }
 
+  function buildSubmissionDetail(overrides: Record<string, unknown> = {}) {
+    return {
+      submissionId: 'SUB-REREVIEW-001',
+      caseId: 'CASE-013',
+      stage: 'REREVIEW' as const,
+      revisionNo: 1,
+      status: 'DRAFT',
+      reviewerId: 'rereviewer-1',
+      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
+      comment: 'draft comment',
+      totalScore: 88,
+      maskedFields: [],
+      ...overrides
+    };
+  }
+
   function getButtons(): HTMLButtonElement[] {
     return Array.from(fixture.nativeElement.querySelectorAll('button'));
   }
 
   function getButtonByText(label: string): HTMLButtonElement | undefined {
     return getButtons().find(button => button.textContent?.includes(label));
+  }
+
+  function setInputValue(selector: string, value: string): void {
+    const input = fixture.nativeElement.querySelector(selector) as HTMLInputElement | HTMLTextAreaElement;
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
   }
 
   it('covers NEW baseline with C18/C19 skeleton and rereview form placeholder', () => {
@@ -137,6 +163,7 @@ describe('RereviewPageComponent', () => {
       }
     })));
     casesService.startRereview.and.returnValue(of({ caseId: 'CASE-013' }));
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
 
     fixture.detectChanges();
     fixture.detectChanges();
@@ -176,7 +203,7 @@ describe('RereviewPageComponent', () => {
     expect(getButtonByText('提交複審')?.disabled).toBeTrue();
   });
 
-  it('saves rereview draft using submission detail as the minimal payload source', () => {
+  it('saves rereview draft using page form state as payload source', () => {
     render(buildDetail({
       status: 'REREVIEW_IN_PROGRESS',
       rereviewContext: {
@@ -198,33 +225,26 @@ describe('RereviewPageComponent', () => {
         finalConclusion: 'PENDING_FINAL_DECISION'
       }
     }));
-    casesService.getSubmissionDetail.and.returnValue(of({
-      submissionId: 'SUB-REREVIEW-001',
-      caseId: 'CASE-013',
-      stage: 'REREVIEW',
-      revisionNo: 1,
-      status: 'DRAFT',
-      reviewerId: 'rereviewer-1',
-      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
-      comment: 'draft comment',
-      totalScore: 88,
-      maskedFields: []
-    }));
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
     casesService.saveRereviewDraft.and.returnValue(of({ submissionId: 'SUB-REREVIEW-001', status: 'DRAFT', stage: 'REREVIEW', totalScore: 88 }));
+
+    setInputValue('[data-testid="rereview-answer-input-0"]', 'N');
+    setInputValue('[data-testid="rereview-comment-input"]', 'draft from page state');
+    setInputValue('[data-testid="rereview-total-score-input"]', '91');
 
     getButtonByText('保存複審草稿')?.click();
     fixture.detectChanges();
 
     expect(casesService.saveRereviewDraft).toHaveBeenCalledWith('CASE-013', {
       submissionId: 'SUB-REREVIEW-001',
-      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
-      comment: 'draft comment',
-      totalScore: 88
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'draft from page state',
+      totalScore: 91
     });
     expect(fixture.nativeElement.textContent).toContain('複審草稿已保存。');
   });
 
-  it('submits rereview through the backend submit path', () => {
+  it('submits rereview with page form state while leaving totalScore out of submit payload', () => {
     render(buildDetail({
       status: 'REREVIEW_IN_PROGRESS',
       rereviewContext: {
@@ -246,27 +266,20 @@ describe('RereviewPageComponent', () => {
         finalConclusion: 'PENDING_FINAL_DECISION'
       }
     }));
-    casesService.getSubmissionDetail.and.returnValue(of({
-      submissionId: 'SUB-REREVIEW-001',
-      caseId: 'CASE-013',
-      stage: 'REREVIEW',
-      revisionNo: 1,
-      status: 'DRAFT',
-      reviewerId: 'rereviewer-1',
-      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
-      comment: 'submit comment',
-      totalScore: 88,
-      maskedFields: []
-    }));
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail({ comment: 'submit comment' })));
     casesService.submitRereview.and.returnValue(of({ submissionId: 'SUB-REREVIEW-001', caseId: 'CASE-013', caseStatus: 'CLOSED', status: 'SUBMITTED', finalScore: 84 }));
+
+    setInputValue('[data-testid="rereview-answer-input-0"]', 'N');
+    setInputValue('[data-testid="rereview-comment-input"]', 'submit from page state');
+    setInputValue('[data-testid="rereview-total-score-input"]', '95');
 
     getButtonByText('提交複審')?.click();
     fixture.detectChanges();
 
     expect(casesService.submitRereview).toHaveBeenCalledWith('CASE-013', {
       submissionId: 'SUB-REREVIEW-001',
-      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
-      comment: 'submit comment'
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'submit from page state'
     });
     expect(fixture.nativeElement.textContent).toContain('複審已提交，最終分數 84。');
   });
@@ -297,7 +310,7 @@ describe('RereviewPageComponent', () => {
     expect(fixture.nativeElement.querySelector('app-review-version-summary-region')).not.toBeNull();
   });
 
-  it('revises rereview in CLOSED exception mode using backend truth only', () => {
+  it('revises rereview in CLOSED exception mode using backend truth and page form state', () => {
     render(buildDetail({
       status: 'CLOSED',
       rereviewContext: {
@@ -319,17 +332,13 @@ describe('RereviewPageComponent', () => {
         finalConclusion: 'PASS'
       }
     }));
-    casesService.getSubmissionDetail.and.returnValue(of({
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail({
       submissionId: 'SUB-REREVIEW-002',
-      caseId: 'CASE-013',
-      stage: 'REREVIEW',
       revisionNo: 2,
       status: 'SUBMITTED',
-      reviewerId: 'rereviewer-1',
       answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
-      comment: 'exception revise',
-      maskedFields: []
-    }));
+      comment: 'exception revise'
+    })));
     casesService.reviseRereview.and.returnValue(of({ submissionId: 'SUB-REREVIEW-003', revisionNo: 3 }));
 
     expect(component.mode).toBe('CLOSED_REVISION_EXCEPTION');
@@ -337,12 +346,15 @@ describe('RereviewPageComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-c16-placeholder-label"]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('reviewer-1');
 
+    setInputValue('[data-testid="rereview-answer-input-0"]', 'Y');
+    setInputValue('[data-testid="rereview-comment-input"]', 'exception from page state');
+
     getButtonByText('提交複審修正')?.click();
     fixture.detectChanges();
 
     expect(casesService.reviseRereview).toHaveBeenCalledWith('CASE-013', 'SUB-REREVIEW-002', {
-      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
-      comment: 'exception revise'
+      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
+      comment: 'exception from page state'
     });
     expect(fixture.nativeElement.textContent).toContain('已提交已結案例外複審修正。');
   });

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { finalize, map, Observable, switchMap } from 'rxjs';
+import { finalize, Observable, switchMap } from 'rxjs';
 
 import { SubmissionRef } from '../components/review-version-summary-region/review-version-summary-region.component';
 import {
@@ -25,6 +25,11 @@ export interface InitialReviewContext {
   basedOnVersion?: SubmissionRef;
 }
 
+interface InitialReviewAnswerState {
+  itemId: string;
+  answerValue: string;
+}
+
 @Component({
   selector: 'app-initial-review-page',
   templateUrl: './initial-review-page.component.html',
@@ -39,6 +44,11 @@ export class InitialReviewPageComponent implements OnInit {
   commandPending = false;
   commandFeedbackMessage = '';
   commandFeedbackTone: 'info' | 'blocked' = 'info';
+  formAnswers: InitialReviewAnswerState[] = [];
+  formComment = '';
+  formSourceSubmissionId?: string;
+  formStateLoaded = false;
+  formStateDirty = false;
   private bootstrap?: InitialReviewBootstrapViewModel;
 
   constructor(
@@ -75,6 +85,8 @@ export class InitialReviewPageComponent implements OnInit {
       hasSubmittedBase: bootstrap?.hasSubmittedBase ?? false,
       basedOnVersion: bootstrap?.basedOnVersion
     }, bootstrap);
+
+    this.syncFormState();
   }
 
   applyContext(context: InitialReviewContext, bootstrap?: InitialReviewBootstrapViewModel): void {
@@ -195,8 +207,16 @@ export class InitialReviewPageComponent implements OnInit {
     }
 
     if (this.mode === 'EDIT_DRAFT') {
+      const editableSubmissionId = this.resolveInitialEditableSubmissionId();
+      if (!editableSubmissionId) {
+        this.setCommandFeedback('無法取得可提交的初審草稿。', 'blocked');
+        return;
+      }
+
       this.executeCommand(
-        this.casesService.submitInitialReview(this.caseId),
+        this.casesService.saveInitialReviewDraft(this.caseId, this.buildInitialPayloadFromState()).pipe(
+          switchMap(() => this.casesService.submitInitialReview(this.caseId))
+        ),
         result => result.rereviewRequired ? '初審已提交，案件已送往複審。' : '初審已提交。'
       );
       return;
@@ -210,9 +230,7 @@ export class InitialReviewPageComponent implements OnInit {
       }
 
       this.executeCommand(
-        this.buildInitialPayload(baseSubmissionId).pipe(
-          switchMap(payload => this.casesService.reviseInitialReview(this.caseId, baseSubmissionId, payload))
-        ),
+        this.casesService.reviseInitialReview(this.caseId, baseSubmissionId, this.buildInitialPayloadFromState()),
         () => '初審修正已提交。'
       );
     }
@@ -230,11 +248,26 @@ export class InitialReviewPageComponent implements OnInit {
     }
 
     this.executeCommand(
-      this.buildInitialPayload(editableSubmissionId).pipe(
-        switchMap(payload => this.casesService.saveInitialReviewDraft(this.caseId, payload))
-      ),
+      this.casesService.saveInitialReviewDraft(this.caseId, this.buildInitialPayloadFromState()),
       () => '初審草稿已保存。'
     );
+  }
+
+  onAnswerValueChange(index: number, value: string): void {
+    if (!this.formAnswers[index]) {
+      return;
+    }
+
+    this.formAnswers[index] = {
+      ...this.formAnswers[index],
+      answerValue: value
+    };
+    this.formStateDirty = true;
+  }
+
+  onCommentChange(value: string): void {
+    this.formComment = value;
+    this.formStateDirty = true;
   }
 
   private createDefaultContext(caseId: string): InitialReviewContext {
@@ -268,20 +301,66 @@ export class InitialReviewPageComponent implements OnInit {
     }
   }
 
-  private buildInitialPayload(submissionId: string): Observable<InitialReviewDraftPayload> {
-    return this.casesService.getSubmissionDetail(submissionId).pipe(
-      map(detail => this.mapInitialPayload(detail))
-    );
-  }
-
-  private mapInitialPayload(detail: SubmissionDetailViewModel): InitialReviewDraftPayload {
+  private buildInitialPayloadFromState(): InitialReviewDraftPayload {
     return {
-      answers: detail.answers.map(answer => ({
+      answers: this.formAnswers.map(answer => ({
         itemId: answer.itemId,
         answerValue: answer.answerValue
       })),
-      comment: detail.comment ?? null
+      comment: this.formComment || null
     };
+  }
+
+  private syncFormState(): void {
+    const sourceSubmissionId = this.resolveFormSourceSubmissionId();
+
+    if (!sourceSubmissionId) {
+      this.resetFormState();
+      return;
+    }
+
+    if (this.formSourceSubmissionId === sourceSubmissionId && this.formStateLoaded) {
+      return;
+    }
+
+    this.casesService.getSubmissionDetail(sourceSubmissionId).subscribe({
+      next: detail => this.hydrateFormState(detail),
+      error: () => {
+        this.resetFormState(sourceSubmissionId);
+        this.setCommandFeedback('初審表單狀態載入失敗，僅保留最小骨架。', 'blocked');
+      }
+    });
+  }
+
+  private hydrateFormState(detail: SubmissionDetailViewModel): void {
+    this.formSourceSubmissionId = detail.submissionId;
+    this.formAnswers = detail.answers.map(answer => ({
+      itemId: answer.itemId,
+      answerValue: answer.answerValue
+    }));
+    this.formComment = detail.comment ?? '';
+    this.formStateLoaded = true;
+    this.formStateDirty = false;
+  }
+
+  private resetFormState(sourceSubmissionId?: string): void {
+    this.formSourceSubmissionId = sourceSubmissionId;
+    this.formAnswers = [];
+    this.formComment = '';
+    this.formStateLoaded = !sourceSubmissionId;
+    this.formStateDirty = false;
+  }
+
+  private resolveFormSourceSubmissionId(): string | undefined {
+    if (this.mode === 'EDIT_DRAFT') {
+      return this.resolveInitialEditableSubmissionId();
+    }
+
+    if (this.mode === 'REVISION') {
+      return this.resolveInitialRevisionBaseSubmissionId();
+    }
+
+    return undefined;
   }
 
   private resolveInitialEditableSubmissionId(): string | undefined {
@@ -308,6 +387,7 @@ export class InitialReviewPageComponent implements OnInit {
       this.commandPending = false;
     })).subscribe({
       next: result => {
+        this.formStateDirty = false;
         this.setCommandFeedback(successMessage(result), 'info');
         this.reloadCaseDetail();
       },

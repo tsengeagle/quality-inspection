@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { finalize, map, Observable, switchMap } from 'rxjs';
+import { finalize, Observable, switchMap } from 'rxjs';
 
 import { SubmissionRef } from '../components/review-version-summary-region/review-version-summary-region.component';
 import {
@@ -36,6 +36,11 @@ export interface RereviewContext {
   finalDecisionSummary: string;
 }
 
+interface RereviewAnswerState {
+  itemId: string;
+  answerValue: string;
+}
+
 @Component({
   selector: 'app-rereview-page',
   templateUrl: './rereview-page.component.html',
@@ -51,6 +56,12 @@ export class RereviewPageComponent implements OnInit {
   commandPending = false;
   commandFeedbackMessage = '';
   commandFeedbackTone: 'info' | 'blocked' = 'info';
+  formAnswers: RereviewAnswerState[] = [];
+  formComment = '';
+  draftTotalScoreInput: string | number = '';
+  formSourceSubmissionId?: string;
+  formStateLoaded = false;
+  formStateDirty = false;
   private bootstrap?: RereviewBootstrapViewModel;
 
   constructor(
@@ -92,6 +103,8 @@ export class RereviewPageComponent implements OnInit {
       initialTotalScore: bootstrap?.initialTotalScore != null ? String(bootstrap.initialTotalScore) : '未提供',
       finalDecisionSummary: this.buildFinalDecisionSummary(bootstrap)
     }, bootstrap);
+
+    this.syncFormState();
   }
 
   applyContext(context: RereviewContext, bootstrap?: RereviewBootstrapViewModel): void {
@@ -241,9 +254,7 @@ export class RereviewPageComponent implements OnInit {
       }
 
       this.executeCommand(
-        this.buildRereviewSubmitPayload(submissionId).pipe(
-          switchMap(payload => this.casesService.submitRereview(this.caseId, payload))
-        ),
+        this.casesService.submitRereview(this.caseId, this.buildRereviewSubmitPayloadFromState(submissionId)),
         result => result.finalScore != null ? `複審已提交，最終分數 ${result.finalScore}。` : '複審已提交。'
       );
       return;
@@ -257,9 +268,7 @@ export class RereviewPageComponent implements OnInit {
       }
 
       this.executeCommand(
-        this.buildRereviewRevisionPayload(submissionId).pipe(
-          switchMap(payload => this.casesService.reviseRereview(this.caseId, submissionId, payload))
-        ),
+        this.casesService.reviseRereview(this.caseId, submissionId, this.buildRereviewRevisionPayloadFromState()),
         () => this.mode === 'CLOSED_REVISION_EXCEPTION' ? '已提交已結案例外複審修正。' : '複審修正已提交。'
       );
     }
@@ -277,11 +286,31 @@ export class RereviewPageComponent implements OnInit {
     }
 
     this.executeCommand(
-      this.buildRereviewDraftPayload(submissionId).pipe(
-        switchMap(payload => this.casesService.saveRereviewDraft(this.caseId, payload))
-      ),
+      this.casesService.saveRereviewDraft(this.caseId, this.buildRereviewDraftPayloadFromState(submissionId)),
       () => '複審草稿已保存。'
     );
+  }
+
+  onAnswerValueChange(index: number, value: string): void {
+    if (!this.formAnswers[index]) {
+      return;
+    }
+
+    this.formAnswers[index] = {
+      ...this.formAnswers[index],
+      answerValue: value
+    };
+    this.formStateDirty = true;
+  }
+
+  onCommentChange(value: string): void {
+    this.formComment = value;
+    this.formStateDirty = true;
+  }
+
+  onDraftTotalScoreChange(value: string | number): void {
+    this.draftTotalScoreInput = value;
+    this.formStateDirty = true;
   }
 
   private createDefaultContext(caseId: string): RereviewContext {
@@ -327,43 +356,102 @@ export class RereviewPageComponent implements OnInit {
     return parts.join(' / ') || '最終結論未提供';
   }
 
-  private buildRereviewDraftPayload(submissionId: string): Observable<RereviewDraftPayload> {
-    return this.casesService.getSubmissionDetail(submissionId).pipe(
-      map(detail => ({
-        submissionId,
-        answers: detail.answers.map(answer => ({
-          itemId: answer.itemId,
-          answerValue: answer.answerValue
-        })),
-        comment: detail.comment ?? null,
-        totalScore: detail.totalScore
-      }))
-    );
+  private buildRereviewDraftPayloadFromState(submissionId: string): RereviewDraftPayload {
+    return {
+      submissionId,
+      answers: this.formAnswers.map(answer => ({
+        itemId: answer.itemId,
+        answerValue: answer.answerValue
+      })),
+      comment: this.formComment || null,
+      totalScore: this.parseDraftTotalScore()
+    };
   }
 
-  private buildRereviewSubmitPayload(submissionId: string): Observable<RereviewSubmitPayload> {
-    return this.casesService.getSubmissionDetail(submissionId).pipe(
-      map(detail => ({
-        submissionId,
-        answers: detail.answers.map(answer => ({
-          itemId: answer.itemId,
-          answerValue: answer.answerValue
-        })),
-        comment: detail.comment ?? null
-      }))
-    );
+  private buildRereviewSubmitPayloadFromState(submissionId: string): RereviewSubmitPayload {
+    return {
+      submissionId,
+      answers: this.formAnswers.map(answer => ({
+        itemId: answer.itemId,
+        answerValue: answer.answerValue
+      })),
+      comment: this.formComment || null
+    };
   }
 
-  private buildRereviewRevisionPayload(submissionId: string): Observable<Pick<RereviewSubmitPayload, 'answers' | 'comment'>> {
-    return this.casesService.getSubmissionDetail(submissionId).pipe(
-      map(detail => ({
-        answers: detail.answers.map(answer => ({
-          itemId: answer.itemId,
-          answerValue: answer.answerValue
-        })),
-        comment: detail.comment ?? null
-      }))
-    );
+  private buildRereviewRevisionPayloadFromState(): Pick<RereviewSubmitPayload, 'answers' | 'comment'> {
+    return {
+      answers: this.formAnswers.map(answer => ({
+        itemId: answer.itemId,
+        answerValue: answer.answerValue
+      })),
+      comment: this.formComment || null
+    };
+  }
+
+  private syncFormState(): void {
+    const sourceSubmissionId = this.resolveFormSourceSubmissionId();
+
+    if (!sourceSubmissionId) {
+      this.resetFormState();
+      return;
+    }
+
+    if (this.formSourceSubmissionId === sourceSubmissionId && this.formStateLoaded) {
+      return;
+    }
+
+    this.casesService.getSubmissionDetail(sourceSubmissionId).subscribe({
+      next: detail => this.hydrateFormState(detail),
+      error: () => {
+        this.resetFormState(sourceSubmissionId);
+        this.setCommandFeedback('複審表單狀態載入失敗，僅保留最小骨架。', 'blocked');
+      }
+    });
+  }
+
+  private hydrateFormState(detail: SubmissionDetailViewModel): void {
+    this.formSourceSubmissionId = detail.submissionId;
+    this.formAnswers = detail.answers.map(answer => ({
+      itemId: answer.itemId,
+      answerValue: answer.answerValue
+    }));
+    this.formComment = detail.comment ?? '';
+    this.draftTotalScoreInput = detail.totalScore != null ? String(detail.totalScore) : '';
+    this.formStateLoaded = true;
+    this.formStateDirty = false;
+  }
+
+  private resetFormState(sourceSubmissionId?: string): void {
+    this.formSourceSubmissionId = sourceSubmissionId;
+    this.formAnswers = [];
+    this.formComment = '';
+    this.draftTotalScoreInput = '';
+    this.formStateLoaded = !sourceSubmissionId;
+    this.formStateDirty = false;
+  }
+
+  private resolveFormSourceSubmissionId(): string | undefined {
+    if (this.mode === 'EDIT_DRAFT') {
+      return this.resolveRereviewEditableSubmissionId();
+    }
+
+    if (this.mode === 'REVISION' || this.mode === 'CLOSED_REVISION_EXCEPTION') {
+      return this.resolveRereviewRevisionBaseSubmissionId();
+    }
+
+    return undefined;
+  }
+
+  private parseDraftTotalScore(): number | null {
+    const raw = String(this.draftTotalScoreInput ?? '').trim();
+
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : null;
   }
 
   private resolveRereviewEditableSubmissionId(): string | undefined {
@@ -390,6 +478,7 @@ export class RereviewPageComponent implements OnInit {
       this.commandPending = false;
     })).subscribe({
       next: result => {
+        this.formStateDirty = false;
         this.setCommandFeedback(successMessage(result), 'info');
         this.reloadCaseDetail();
       },

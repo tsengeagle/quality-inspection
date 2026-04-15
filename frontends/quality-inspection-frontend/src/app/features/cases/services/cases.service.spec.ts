@@ -549,6 +549,7 @@ describe('CasesService', () => {
     const submitRequest = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-013/rereview/submit`);
     expect(submitRequest.request.method).toBe('POST');
     expect(submitRequest.request.body).toEqual(submitPayload);
+    expect(submitRequest.request.body.totalScore).toBeUndefined();
     submitRequest.flush({
       success: true,
       data: {

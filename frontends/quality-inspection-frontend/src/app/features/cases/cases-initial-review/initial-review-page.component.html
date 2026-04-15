@@ -38,16 +38,41 @@
 	</div>
 
 	<section class="review-form-placeholder" data-testid="initial-review-form-placeholder">
-		<h2>主作業表單 placeholder</h2>
-		<p>score item interaction 尚未定稿；本輪僅保留 region。</p>
+		<h2>主作業表單</h2>
+		<p>limited deep payload wiring：僅綁定既有 answer rows，不自行發明新的 score items。</p>
+
+		<div *ngIf="formAnswers.length > 0; else initialReviewNoAnswers">
+			<label *ngFor="let answer of formAnswers; let index = index" class="review-answer-row">
+				<span>{{ answer.itemId }}</span>
+				<input
+					type="text"
+					[name]="'initial-review-answer-' + index"
+					[ngModel]="answer.answerValue"
+					(ngModelChange)="onAnswerValueChange(index, $event)"
+					[disabled]="mode === 'READONLY_BLOCKED'"
+					[attr.data-testid]="'initial-review-answer-input-' + index">
+			</label>
+		</div>
+
+		<ng-template #initialReviewNoAnswers>
+			<p data-testid="initial-review-answer-empty">目前沒有可編輯 answer rows；本輪不自行補 score item 清單。</p>
+		</ng-template>
 	</section>
 
 	<section class="commentary-placeholder" data-testid="initial-review-commentary-placeholder">
-		commentary region placeholder
+		<label class="review-commentary-field">
+			<span>評語</span>
+			<textarea
+				name="initial-review-comment"
+				[ngModel]="formComment"
+				(ngModelChange)="onCommentChange($event)"
+				[disabled]="mode === 'READONLY_BLOCKED'"
+				data-testid="initial-review-comment-input"></textarea>
+		</label>
 	</section>
 
 	<section class="attachment-placeholder" data-testid="initial-review-attachment-placeholder">
-		attachment region placeholder
+		attachment region placeholder：本輪仍不接 payload
 	</section>
 </section>
 
