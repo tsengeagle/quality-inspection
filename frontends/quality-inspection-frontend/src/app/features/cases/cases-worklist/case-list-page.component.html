@@ -1,1 +1,50 @@
-<p>case-list-page works</p>
+<!-- C-01: CaseListPageComponent (UI-009) — A1 work queue -->
+
+<!-- C01 CaseSummaryHeader (含 C04 inline) -->
+<app-case-summary-header
+  caseId=""
+  caseTitle="案件佇列"
+  status=""
+  stageLabel=""
+  [showProjectionNotice]="showProjectionNotice">
+</app-case-summary-header>
+
+<!-- C03 ModeIndicatorStrip -->
+<app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
+
+<!-- Role-based tab 切換 -->
+<div class="case-list-tabs">
+  <button
+    class="tab-btn"
+    [class.active]="uiState.tab === 'MY_QUEUE'"
+    (click)="onTabChange('MY_QUEUE')">
+    我的佇列
+  </button>
+  <button
+    class="tab-btn"
+    [class.active]="uiState.tab === 'ALL_CASES'"
+    (click)="onTabChange('ALL_CASES')">
+    所有案件
+  </button>
+  <button
+    *ngIf="role === 'MANAGER' || role === 'ADMIN'"
+    class="tab-btn"
+    [class.active]="uiState.tab === 'MY_MANAGED_PROJECTS'"
+    (click)="onTabChange('MY_MANAGED_PROJECTS')">
+    我管理的專案
+  </button>
+</div>
+
+<!-- C05 FilterBar -->
+<app-case-work-queue-filter-bar
+  [role]="role"
+  [currentStatus]="uiState.status"
+  (filterChange)="onFilterChange($event)">
+</app-case-work-queue-filter-bar>
+
+<!-- C06 Table -->
+<app-case-work-queue-table
+  [cases]="cases"
+  [showBusinessCommands]="showBusinessCommands">
+</app-case-work-queue-table>
+

@@ -1,2 +1,29 @@
+<!-- SP-01: SamplingBatchListPageComponent (UI-007) -->
+
+<!-- PH-02: PageHeader placeholder（待正式 PageHeader component 接入） -->
 <div class="batch-list-page-header-placeholder"><!-- PH-02: BatchListPageHeader placeholder --></div>
-<p>sampling-batch-list-page works</p>
+
+<!-- Role-based 批次列表 tabs -->
+<div class="batch-list-tabs">
+  <button
+    *ngFor="let t of availableTabs"
+    class="tab-btn"
+    [class.active]="uiState.tab === t.value"
+    (click)="onTabChange(t.value)">
+    {{ t.label }}
+  </button>
+</div>
+
+<!-- SP-02: BatchStatusTab filter (role-aware) -->
+<app-batch-status-tab
+  [currentStatus]="uiState.status"
+  (statusChange)="onFilterChange($event)">
+</app-batch-status-tab>
+
+<!-- SP-02: BatchTable -->
+<app-batch-table
+  [batches]="batches"
+  [role]="role"
+  (viewDetail)="navigateToExecute($event)">
+</app-batch-table>
+

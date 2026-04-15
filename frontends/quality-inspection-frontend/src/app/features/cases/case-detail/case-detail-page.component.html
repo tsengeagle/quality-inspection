@@ -1,1 +1,47 @@
-<p>case-detail-page works</p>
+<!-- C-03: CaseDetailPageComponent (UI-010) — A2 control center -->
+
+<!-- C01 CaseSummaryHeader（含 C04 inline） -->
+<app-case-summary-header
+  [caseId]="caseId"
+  [caseTitle]="caseDetail?.caseTitle ?? ''"
+  [status]="caseDetail?.status ?? ''"
+  [stageLabel]="caseDetail?.stageLabel ?? ''"
+  [showProjectionNotice]="showProjectionNotice">
+</app-case-summary-header>
+
+<!-- C02 StatusOrBlockedBanner（READONLY_TERMINAL 時顯示） -->
+<app-status-or-blocked-banner
+  *ngIf="showBanner"
+  [tone]="bannerTone"
+  [message]="bannerMessage">
+</app-status-or-blocked-banner>
+
+<!-- C03 ModeIndicatorStrip -->
+<app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
+
+<!-- Page content: CaseControlCenter -->
+<div class="case-detail-content">
+
+  <!-- C08 CaseControlCenterNav -->
+  <app-case-control-center-nav
+    [caseId]="caseId"
+    [mode]="mode"
+    (navigate)="navigateTo($event)">
+  </app-case-control-center-nav>
+
+  <!-- C09 InitialSummaryRegion -->
+  <app-initial-summary-region
+    [caseId]="caseId">
+  </app-initial-summary-region>
+
+  <!-- C10/C11 ReviewerAssignmentInfo -->
+  <app-reviewer-assignment-info
+    [reviewerName]="caseDetail?.reviewerName ?? ''"
+    [rereviewerName]="caseDetail?.rereviewerName ?? ''">
+  </app-reviewer-assignment-info>
+
+  <!-- PH-08: RevisionHistoryJumpEntry slot -->
+  <div class="revision-history-jump-placeholder"><!-- PH-08: RevisionHistoryJumpEntry slot deferred --></div>
+
+</div>
+

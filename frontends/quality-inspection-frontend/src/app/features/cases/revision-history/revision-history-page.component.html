@@ -1,1 +1,41 @@
-<p>revision-history-page works</p>
+<!-- C-11: RevisionHistoryPageComponent (UI-014) — 3-mode -->
+
+<!-- C01 CaseSummaryHeader -->
+<app-case-summary-header
+  [caseId]="caseId"
+  [caseTitle]="vm?.caseTitle ?? ''"
+  [status]="vm?.status ?? ''"
+  [stageLabel]="vm?.stageLabel ?? ''"
+  [showProjectionNotice]="mode === 'METADATA_HISTORY'">
+</app-case-summary-header>
+
+<!-- C03 ModeIndicatorStrip -->
+<app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
+
+<!-- Stage 篩選 tabs（queryParams 持久化） -->
+<div class="stage-tabs">
+  <button class="tab-btn" [class.active]="stageTab === 'ALL'" (click)="onStageTabChange('ALL')">全部</button>
+  <button class="tab-btn" [class.active]="stageTab === 'INITIAL_ONLY'" (click)="onStageTabChange('INITIAL_ONLY')">僅初審</button>
+  <button class="tab-btn" [class.active]="stageTab === 'REREVIEW_ONLY'" (click)="onStageTabChange('REREVIEW_ONLY')">僅複審</button>
+</div>
+
+<!-- C20 RevisionTimeline -->
+<app-revision-timeline
+  [revisions]="vm?.revisions ?? []"
+  [stageTab]="stageTab">
+</app-revision-timeline>
+
+<!-- C21 RevisionCompareSummary -->
+<app-revision-compare-summary
+  [mode]="mode"
+  [showMetadataOnlyNotice]="showMetadataOnlyNotice">
+</app-revision-compare-summary>
+
+<!-- C22 RevisionNavActionZone — HR-2: outlined warning-tone，不可 fixed -->
+<!-- 只在 hasExceptionEntry 時顯示：CLOSED + originalRereviewer + baseSubmission -->
+<app-revision-nav-action-zone
+  *ngIf="hasExceptionEntry"
+  [caseId]="caseId"
+  (navigateToRereview)="navigateToRereview()">
+</app-revision-nav-action-zone>
+

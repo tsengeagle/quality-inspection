@@ -1,2 +1,52 @@
-<div class="sampling-page-header-placeholder"><!-- PH-02: SamplingPageHeader placeholder --></div>
-<p>sampling-execute-page works</p>
+<!-- PH-02: SamplingPageHeader placeholder -->
+<div class="sampling-page-header-placeholder"></div>
+
+<div class="sampling-execute-page">
+  <!-- 模式標示 -->
+  <div class="mode-indicator-strip mode-{{ mode.toLowerCase() }}">
+    {{ modeLabel }}
+  </div>
+
+  <div class="page-content" *ngIf="vm">
+    <!-- SP-05a: SamplingRuleSummary -->
+    <app-sampling-rule-summary
+      *ngIf="vm.ruleSnapshot"
+      [ruleSnapshot]="vm.ruleSnapshot">
+    </app-sampling-rule-summary>
+
+    <!-- SP-05b: PreviewStats — PREVIEW / COMPLETED 時顯示 -->
+    <app-sampling-preview-stats
+      *ngIf="vm.previewStats && (mode === 'PREVIEW' || mode === 'COMPLETED')"
+      [stats]="vm.previewStats">
+    </app-sampling-preview-stats>
+
+    <!-- SP-06b: PostExecuteRegion — COMPLETED -->
+    <app-sampling-post-execute-region
+      *ngIf="mode === 'COMPLETED' && vm.postExecuteResult"
+      [result]="vm.postExecuteResult">
+    </app-sampling-post-execute-region>
+
+    <!-- SP-06c: BlockedBanner — BLOCKED modes -->
+    <app-sampling-blocked-banner
+      *ngIf="mode === 'BLOCKED_ALREADY_EXECUTED' || mode === 'BLOCKED_NO_PERMISSION'"
+      [reason]="blockedReason">
+    </app-sampling-blocked-banner>
+
+    <!-- 執行確認按鈕 — IDLE / PREVIEW 時可操作 -->
+    <div *ngIf="mode === 'IDLE' || mode === 'PREVIEW'" class="action-zone">
+      <button class="execute-btn" (click)="openExecuteConfirm()">確認執行</button>
+    </div>
+
+    <!-- 執行中提示 -->
+    <div *ngIf="mode === 'EXECUTING'" class="executing-hint">抽選執行中，請稍候⋯</div>
+  </div>
+
+  <!-- SP-07: SamplingExecuteConfirmModal -->
+  <app-sampling-execute-confirm-modal
+    [visible]="showConfirmModal"
+    [batchId]="batchId"
+    (confirmed)="onConfirmModalConfirm()"
+    (cancelled)="onConfirmModalCancel()">
+  </app-sampling-execute-confirm-modal>
+</div>
+
