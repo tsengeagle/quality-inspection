@@ -632,14 +632,16 @@ UI IA 映射到 Angular route / feature module / guard 邊界。
 ```yaml
 confirmed:
   backend:
+    module_root: "services/quality-inspection-service"
     language: Java
     framework: Spring Boot
     build_tool: Gradle (Groovy DSL)
     integration_baseline: must integrate with organization existing api-gateway
     commands:
-      build: "./gradlew build"
-      test: "./gradlew test"
-      run: "./gradlew bootRun"
+      build: ".\\gradlew.bat build"
+      test: ".\\gradlew.bat test"
+      targeted_test: ".\\gradlew.bat test --tests <fqcn-or-pattern>"
+      run: ".\\gradlew.bat bootRun"
   frontend:
     module_root: "frontends/quality-inspection-frontend"
     framework: Angular 14
@@ -700,6 +702,26 @@ Backend terminal execution governance note:
 - keep backend build / full test / targeted test / app run in the same backend module root; do not mix backend Gradle execution across repo root or frontend module root
 - targeted backend tests use the standard Gradle `test --tests <fqcn-or-pattern>` path from the backend module root; do not assume the same command works from another cwd
 - module-local build artifacts and reports live under `services/quality-inspection-service/build`; do not use repo-root artifacts as backend execution evidence
+
+PowerShell canonical pre-check pattern:
+
+```powershell
+$RepoRoot = git rev-parse --show-toplevel
+$BackendRoot = Join-Path $RepoRoot 'services\quality-inspection-service'
+
+if (-not (Test-Path (Join-Path $BackendRoot 'build.gradle'))) { throw 'Missing build.gradle in backend module root.' }
+if (-not (Test-Path (Join-Path $BackendRoot 'settings.gradle'))) { throw 'Missing settings.gradle in backend module root.' }
+if (-not (Test-Path (Join-Path $BackendRoot 'gradlew.bat'))) { throw 'Missing gradlew.bat in backend module root.' }
+
+Set-Location $BackendRoot
+.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest
+```
+
+Additional prohibited patterns:
+
+- running `services\quality-inspection-service\gradlew.bat` from repo root instead of entering the backend module root first
+- verifying a targeted test class name without first confirming the corresponding file exists under `src/test/java`
+- using repo-root or frontend-root `build/` artifacts as evidence for backend execution readiness
 
 ### 9.2 尚未確認
 

@@ -1,1 +1,43 @@
-<p>case-assignment-page works</p>
+<app-case-summary-header
+	[caseId]="caseId"
+	[caseTitle]="context.caseTitle"
+	[status]="context.status"
+	[stageLabel]="context.stageLabel">
+</app-case-summary-header>
+
+<app-status-or-blocked-banner
+	*ngIf="showBlockedBanner"
+	tone="blocked"
+	[message]="bannerMessage">
+</app-status-or-blocked-banner>
+
+<app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
+
+<section class="assignment-mode-banner" data-testid="assignment-mode-banner">
+	<h1 class="assignment-page-title">案件分派頁</h1>
+	<p class="assignment-mode-copy">目前僅建立 Wave 5 assignment skeleton，不啟用真 picker 或 submit。</p>
+</section>
+
+<section *ngIf="showReviewerSection" class="assignment-section reviewer-assignment-section">
+	<h2>Reviewer 區塊</h2>
+	<p class="assignment-current-owner">目前初審醫師：{{ context.reviewerName || '尚未指派' }}</p>
+	<div class="picker-slot-placeholder" data-testid="reviewer-picker-slot">
+		reviewer picker slot placeholder
+	</div>
+	<div class="due-date-helper-slot" data-testid="assignment-due-date-helper-slot">
+		{{ context.dueDateHint }}
+	</div>
+</section>
+
+<section *ngIf="showRereviewerSection" class="assignment-section rereviewer-assignment-section">
+	<h2>Rereviewer 區塊</h2>
+	<p class="assignment-current-owner">目前複審醫師：{{ context.rereviewerName || '尚未指派' }}</p>
+	<div class="picker-slot-placeholder" data-testid="rereviewer-picker-slot">
+		rereviewer picker slot placeholder
+	</div>
+</section>
+
+<section *ngIf="showSubmitZone" class="assignment-submit-zone" data-testid="assignment-submit-zone">
+	<button type="button" disabled>{{ primaryActionLabel }}</button>
+	<button type="button">返回案件詳情</button>
+</section>

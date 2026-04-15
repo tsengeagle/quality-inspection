@@ -1,1 +1,23 @@
-// rereview-page styles
+.rereview-shell {
+	padding: 16px 16px 88px;
+}
+
+.rereview-title,
+.initial-summary-reference,
+.final-decision-summary,
+.closed-exception-command-label,
+.rereview-form-placeholder,
+.commentary-placeholder,
+.attachment-placeholder {
+	margin-bottom: 12px;
+}
+
+.initial-summary-reference,
+.final-decision-summary,
+.closed-exception-command-label,
+.rereview-form-placeholder,
+.commentary-placeholder,
+.attachment-placeholder {
+	padding: 12px;
+	border: 1px dashed #bdbdbd;
+}

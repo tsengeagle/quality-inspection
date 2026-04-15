@@ -1,1 +1,21 @@
-// initial-review-page styles
+.initial-review-shell {
+	padding: 16px 16px 88px;
+}
+
+.initial-review-title,
+.append-only-baseline,
+.readonly-form-guard,
+.review-form-placeholder,
+.commentary-placeholder,
+.attachment-placeholder {
+	margin-bottom: 12px;
+}
+
+.review-form-placeholder,
+.commentary-placeholder,
+.attachment-placeholder,
+.append-only-baseline,
+.readonly-form-guard {
+	padding: 12px;
+	border: 1px dashed #bdbdbd;
+}

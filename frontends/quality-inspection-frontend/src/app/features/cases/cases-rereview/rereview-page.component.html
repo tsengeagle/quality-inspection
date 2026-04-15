@@ -1,1 +1,61 @@
-<p>rereview-page works</p>
+<app-case-summary-header
+	[caseId]="caseId"
+	[caseTitle]="context.caseTitle"
+	[status]="context.status"
+	[stageLabel]="context.stageLabel">
+</app-case-summary-header>
+
+<app-status-or-blocked-banner
+	*ngIf="showExceptionBanner || showBlockedBanner"
+	[tone]="bannerTone"
+	[message]="bannerMessage">
+</app-status-or-blocked-banner>
+
+<app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
+
+<app-review-form-summary-strip [mode]="modeLabel"></app-review-form-summary-strip>
+
+<app-review-version-summary-region
+	[isRevisionMode]="showVersionSummary"
+	[basedOnVersion]="context.basedOnVersion">
+</app-review-version-summary-region>
+
+<section class="rereview-shell">
+	<h1 class="rereview-title">複審作業頁</h1>
+
+	<section class="initial-summary-reference" data-testid="rereview-initial-summary-reference">
+		<h2>C18 初審摘要參照</h2>
+		<p>submission: {{ context.initialSubmissionId }}</p>
+		<p>reviewer: {{ context.initialReviewerName }}</p>
+		<p>score: {{ context.initialTotalScore }}</p>
+	</section>
+
+	<section class="final-decision-summary" data-testid="rereview-final-decision-summary">
+		<h2>C19 最終結論摘要</h2>
+		<p>{{ context.finalDecisionSummary }}</p>
+	</section>
+
+	<div *ngIf="showExceptionBanner" class="closed-exception-command-label" data-testid="rereview-c16-placeholder-label">
+		C16 placeholder label：例外修正（已結案）
+	</div>
+
+	<section class="rereview-form-placeholder" data-testid="rereview-form-placeholder">
+		<h2>複審表單 placeholder</h2>
+		<p>score item interaction 與 payload binding 皆 deferred。</p>
+	</section>
+
+	<section class="commentary-placeholder" data-testid="rereview-commentary-placeholder">
+		commentary region placeholder
+	</section>
+
+	<section class="attachment-placeholder" data-testid="rereview-attachment-placeholder">
+		attachment region placeholder
+	</section>
+</section>
+
+<app-review-command-bar
+	*ngIf="mode !== 'READONLY_BLOCKED'"
+	[primaryLabel]="commandPrimaryLabel"
+	secondaryLabel="返回案件詳情"
+	[disabled]="true">
+</app-review-command-bar>

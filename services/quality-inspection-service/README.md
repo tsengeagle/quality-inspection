@@ -298,9 +298,10 @@ confirmed:
   package_root: com.tzuchi.his.quality.inspection
   layers: [domain, application, interfaces, infrastructure, reporting]
   commands:
-    build: "./gradlew build"
-    test: "./gradlew test"
-    run: "./gradlew bootRun"
+    build: ".\\gradlew.bat build"
+    test: ".\\gradlew.bat test"
+    targeted_test: ".\\gradlew.bat test --tests <fqcn-or-pattern>"
+    run: ".\\gradlew.bat bootRun"
   development_mode:
     gateway_layer_substitute: >
       local dev proxy 可模擬 api-gateway，須至少模擬 api-key header。
@@ -347,6 +348,9 @@ PowerShell canonical pattern：
 ```powershell
 $RepoRoot = git rev-parse --show-toplevel
 $BackendRoot = Join-Path $RepoRoot 'services\quality-inspection-service'
+if (-not (Test-Path (Join-Path $BackendRoot 'build.gradle'))) { throw 'Missing build.gradle in backend module root.' }
+if (-not (Test-Path (Join-Path $BackendRoot 'settings.gradle'))) { throw 'Missing settings.gradle in backend module root.' }
+if (-not (Test-Path (Join-Path $BackendRoot 'gradlew.bat'))) { throw 'Missing gradlew.bat in backend module root.' }
 Set-Location $BackendRoot
 .\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest
 ```
@@ -367,6 +371,7 @@ backend command baseline：
 禁止事項：
 
 * 在 repo root 直接執行 backend Gradle command
+* 在 repo root 以 `services\quality-inspection-service\gradlew.bat` 形式硬跑 backend Gradle command，而不是先進入 backend module root
 * 在 `frontends/quality-inspection-frontend` 執行 backend Gradle command
 * wrapper 存在時改用裸 `gradle test`
 * 在不同目錄分別跑 backend build / test / bootRun

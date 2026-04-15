@@ -1,1 +1,53 @@
-<p>initial-review-page works</p>
+<app-case-summary-header
+	[caseId]="caseId"
+	[caseTitle]="context.caseTitle"
+	[status]="context.status"
+	[stageLabel]="context.stageLabel">
+</app-case-summary-header>
+
+<app-status-or-blocked-banner
+	*ngIf="showBlockedBanner"
+	tone="blocked"
+	[message]="bannerMessage">
+</app-status-or-blocked-banner>
+
+<app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
+
+<app-review-form-summary-strip [mode]="modeLabel"></app-review-form-summary-strip>
+
+<app-review-version-summary-region
+	[isRevisionMode]="showVersionSummary"
+	[basedOnVersion]="context.basedOnVersion">
+</app-review-version-summary-region>
+
+<section class="initial-review-shell">
+	<h1 class="initial-review-title">初審作業頁</h1>
+
+	<div *ngIf="mode === 'REVISION'" class="append-only-baseline" data-testid="initial-review-append-only-baseline">
+		系統將建立新 revision，不會覆寫既有提交。
+	</div>
+
+	<div *ngIf="mode === 'READONLY_BLOCKED'" class="readonly-form-guard" data-testid="initial-review-readonly-guard">
+		主作業表單已鎖定，僅保留 readonly grammar 與 placeholder 結構。
+	</div>
+
+	<section class="review-form-placeholder" data-testid="initial-review-form-placeholder">
+		<h2>主作業表單 placeholder</h2>
+		<p>score item interaction 尚未定稿；本輪僅保留 region。</p>
+	</section>
+
+	<section class="commentary-placeholder" data-testid="initial-review-commentary-placeholder">
+		commentary region placeholder
+	</section>
+
+	<section class="attachment-placeholder" data-testid="initial-review-attachment-placeholder">
+		attachment region placeholder
+	</section>
+</section>
+
+<app-review-command-bar
+	*ngIf="mode !== 'READONLY_BLOCKED'"
+	[primaryLabel]="commandPrimaryLabel"
+	[secondaryLabel]="commandSecondaryLabel"
+	[disabled]="true">
+</app-review-command-bar>

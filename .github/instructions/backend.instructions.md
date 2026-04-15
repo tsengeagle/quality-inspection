@@ -82,10 +82,13 @@ For backend terminal work in this multi-module repo, use these rules directly:
 	- current working directory
 	- exact command to run
 2. Do not guess relative paths from memory. Resolve the repo root first, then change explicitly into the backend module root before build, test, targeted test, or bootRun commands.
-3. PowerShell examples must use module-root execution, for example:
+3. PowerShell examples must use module-root execution and pre-check the backend entry files, for example:
 	```powershell
 	$RepoRoot = git rev-parse --show-toplevel
 	$BackendRoot = Join-Path $RepoRoot 'services\quality-inspection-service'
+	if (-not (Test-Path (Join-Path $BackendRoot 'build.gradle'))) { throw 'Missing build.gradle in backend module root.' }
+	if (-not (Test-Path (Join-Path $BackendRoot 'settings.gradle'))) { throw 'Missing settings.gradle in backend module root.' }
+	if (-not (Test-Path (Join-Path $BackendRoot 'gradlew.bat'))) { throw 'Missing gradlew.bat in backend module root.' }
 	Set-Location $BackendRoot
 	.\gradlew.bat test --tests com.tzuchi.his.quality.inspection.interfaces.rest.ReviewCaseApiTest
 	```
@@ -106,10 +109,12 @@ For backend terminal work in this multi-module repo, use these rules directly:
 	- bootRun for local app execution
 7. Prohibited patterns:
 	- running backend Gradle commands from repo root
+	- running `services\quality-inspection-service\gradlew.bat` from repo root instead of entering the backend module root first
 	- running backend Gradle commands from `frontends\quality-inspection-frontend`
 	- bare `gradle test` when `gradlew.bat` exists
 	- mixing backend build in one directory with backend test or bootRun in another directory
 	- assuming a fully qualified test class name is runnable when the current working directory is not the backend module root
+ 	- using repo-root or frontend-root `build/` artifacts as evidence for backend execution readiness
 8. Backend command baseline in this repo:
 	- build: `.\gradlew.bat build`
 	- full test: `.\gradlew.bat test`
