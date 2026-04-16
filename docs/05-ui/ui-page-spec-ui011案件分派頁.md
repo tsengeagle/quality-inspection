@@ -234,7 +234,7 @@ page_modes:
 * 目前初審醫師摘要
 * reviewer 選擇器
 * dueAt 設定
-* 指派原因 / 備註 [可選]
+* 指派原因 / 備註 [pending clarification，不屬本版正式 command contract]
 
 ### reviewer 選擇器需求
 
@@ -245,6 +245,7 @@ page_modes:
   * 醫師代碼
   * 所屬院區 / 科別 [若可取得]
 * 僅顯示可作為 reviewer 的合法人員
+* 本版 contract 只固定候選人最小欄位與 selectability；候選資料來源在目前 repo 階段可由 dev-only stub adapter 提供
 
 ### 可用操作
 
@@ -270,8 +271,8 @@ page_modes:
 
 * 目前複審醫師摘要
 * rereviewer 選擇器
-* dueAt 設定 [若複審需單獨截止日，後續可擴充]
-* 指派原因 / 備註 [可選]
+* dueAt 設定
+* 指派原因 / 備註 [pending clarification，不屬本版正式 command contract]
 
 ### rereviewer 選擇器需求
 
@@ -282,6 +283,7 @@ page_modes:
   * 醫師代碼
   * 所屬院區 / 科別 [若可取得]
 * 僅顯示可作為 rereviewer 的合法人員
+* 本版 contract 只固定候選人最小欄位與 selectability；候選資料來源在目前 repo 階段可由 dev-only stub adapter 提供
 
 ### 可用操作
 
@@ -540,17 +542,18 @@ page_modes:
 ### 驗證
 
 * 必填
-* 不可早於目前時間 [若有此業務限制，可後續補]
-* 初審 / 複審是否共用同一 dueAt 欄位，本版先沿用案件單一 dueAt 模型
+* 本版正式 contract 只收斂「assign / reassign command 必須提供 dueAt」
+* 是否不可早於目前時間、是否需額外 upper bound、是否允許沿用舊 dueAt，皆屬後續 policy clarification
+* assignment context 可同時提供 `reviewerDueAt`、`rereviewerDueAt`、`effectiveDueAt` 供頁面摘要呈現
 
 ---
 
-## 8.4 備註 / 原因欄位 [可選]
+## 8.4 備註 / 原因欄位 [pending clarification]
 
 ### 用途
 
-* 讓 manager 補充改派原因
-* 提供後續 audit context
+* 若後續 authority 決定需要，可讓 manager 補充改派原因
+* 本版不將其視為 assign / reassign command 的正式必填或正式 request 欄位
 
 ### 類型
 
@@ -558,7 +561,8 @@ page_modes:
 
 ### 狀態
 
-* 可選欄位，後續若 audit 需求增強可升級為必填
+* 待 authority 釐清後再決定是否建立正式 contract
+* 本版先標記為 pending，不要求 backend / frontend 實作 request payload
 
 ---
 

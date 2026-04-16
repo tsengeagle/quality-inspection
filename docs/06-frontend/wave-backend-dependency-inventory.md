@@ -246,10 +246,14 @@ getExecuteContext(id)   → returns hardcoded project data // FIXTURE（hardcode
 
 ### Wave 5 — Cases Commands（UI-011 / UI-012 / UI-013）
 
+> 2026-04 更新：本節原始結論建基於 2025-07 的盤點。UI-011 已完成 Slice 3 backend closure 與 limited integration；以下保留 UI-012 / UI-013 gap，但 UI-011 不再屬於「page bootstrap 完全無 source」狀態。
+
 #### 前端依賴
 
 | 依賴類型 | 對應 API | 現況 |
 |---------|---------|------|
+| UI-011 assignment bootstrap context | `GET /review-cases/{caseId}/assignment-context` | ✅ REAL |
+| UI-011 assignment candidates | `GET /review-cases/{caseId}/assignment-candidates` | ✅ REAL（source = stub-backed dev-only adapter） |
 | 頁面 bootstrap context（初審） | 需要 `InitialReviewContext` | ❌ **GAP — 無對應 backend 端點** |
 | 頁面 bootstrap context（複審） | 需要 `RereviewContext` | ❌ **GAP — 無對應 backend 端點** |
 | 指派初審醫師 | `POST /assign-reviewer` | ✅ REAL（未接通） |
@@ -329,12 +333,17 @@ StartRereviewCommand, SubmitRereviewCommand
 B3 use cases（AssignReviewCase、StartInitialReview 等）**傳遞 primitives 而非 command objects**。  
 這是 consistency gap，不是功能 blocker，但代表 B3 use cases 缺乏明確的 command value object。
 
+#### UI-011 Contract Clarification / Closure（2026-04）
+
+- `assignment-context` 已提供 `pageMode`、`blocked`、`blockedReason`、`allowedActions`、`currentReviewer`、`currentRereviewer`、`reviewerDueAt`、`rereviewerDueAt`、`effectiveDueAt`
+- `assignment-candidates` 已提供最小正式候選人 contract：`userId`、`displayName`、`displayLabel`、`role`、`active`、`selectable`、`blockedReason`
+- 候選資料來源目前為 `StubAssignmentCandidateLookupAdapter`，只可視為 dev-only / limited-ready，不可宣稱 production-ready
+- `change reason` 尚未形成正式 command contract；UI-011 僅可標示 pending clarification
+- `dueAt` 的正式 contract 目前只收斂到 command requiredness；更深的 helper / validation policy 仍待 authority 定稿
+
 #### Wave 5 結論
 
-**COMMANDS READY；Page Bootstrap Context 是 blocker。**
-
-所有 B3+B4 command endpoints 均已在 ReviewCaseController 中接通，use cases 均已實作。  
-阻礙是**頁面初始化所需的 contextual bootstrap 資料**：`hasDraft`、`hasSubmittedBase`、`isClosedRevisionException` 等欄位目前無 backend source。
+**UI-011：limited integration 與最小 contract closure 已成立；UI-012 / UI-013 page bootstrap context 仍是後續 backend gap。**
 
 ---
 

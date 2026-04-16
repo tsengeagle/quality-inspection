@@ -710,6 +710,75 @@ Accept: application/json
 
 ## 10.3 指派初審醫師
 
+### `GET /review-cases/{caseId}/assignment-context`
+
+#### 權限
+
+* `HOSPITAL_MANAGER`
+
+#### 用途
+
+提供 UI-011 manager command page 的 bootstrap context。此端點回傳 assignment mode、blocked reason、allowed actions 與目前 reviewer / rereviewer / due date truth；不承擔 change reason policy。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "caseId": "CASE-011",
+    "projectId": "RP-001",
+    "batchId": "BATCH-001",
+    "hospitalId": "H001",
+    "medicalRecordType": "OUTPATIENT",
+    "status": "PENDING_REREVIEW",
+    "pageMode": "MIXED_ASSIGNMENT",
+    "blocked": false,
+    "blockedReason": null,
+    "allowedActions": ["ASSIGN_REREVIEWER"],
+    "currentReviewer": {
+      "userId": "reviewer-1",
+      "displayName": "Dr. Reviewer One",
+      "displayLabel": "reviewer-1 | Dr. Reviewer One",
+      "assignedAt": "2026-04-01T10:00:00+08:00"
+    },
+    "currentRereviewer": null,
+    "reviewerDueAt": "2026-04-10T23:59:59+08:00",
+    "rereviewerDueAt": null,
+    "effectiveDueAt": null
+  }
+}
+```
+
+### `GET /review-cases/{caseId}/assignment-candidates?role=REVIEWER|REREVIEWER&keyword=...`
+
+#### 權限
+
+* `HOSPITAL_MANAGER`
+
+#### 用途
+
+提供 UI-011 reviewer / rereviewer 候選人清單。回傳的是正式候選人 contract；候選資料來源可依環境由不同 adapter 提供。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "userId": "reviewer-1",
+      "displayName": "Dr. Reviewer One",
+      "displayLabel": "reviewer-1 | Dr. Reviewer One",
+      "role": "REVIEWER",
+      "active": true,
+      "selectable": true,
+      "blockedReason": null
+    }
+  ]
+}
+```
+
 ### `POST /review-cases/{caseId}/assign-reviewer`
 
 #### 權限
@@ -725,6 +794,8 @@ Accept: application/json
 }
 ```
 
+`dueAt` 為正式 command contract 的必填欄位。UI-011 可顯示 due date summary，但更細的 helper / validation policy 若未在 authority 定稿，不得由 frontend 自行發明。
+
 ---
 
 ## 10.4 改派初審醫師
@@ -734,6 +805,17 @@ Accept: application/json
 #### 權限
 
 * `HOSPITAL_MANAGER`
+
+#### Request
+
+```json
+{
+  "reviewerId": "DOC-1002",
+  "dueAt": "2026-04-12T23:59:59+08:00"
+}
+```
+
+不包含 `reason` 欄位。若後續需要 change reason，必須先由 authority 文件定稿。
 
 ---
 
@@ -745,6 +827,17 @@ Accept: application/json
 
 * `HOSPITAL_MANAGER`
 
+#### Request
+
+```json
+{
+  "rereviewerId": "DOC-2001",
+  "dueAt": "2026-04-20T23:59:59+08:00"
+}
+```
+
+`dueAt` 為必填。此處僅收斂 command requiredness，不宣稱更深的 due date business validation 已定稿。
+
 ---
 
 ## 10.6 改派複審醫師
@@ -754,6 +847,17 @@ Accept: application/json
 #### 權限
 
 * `HOSPITAL_MANAGER`
+
+#### Request
+
+```json
+{
+  "rereviewerId": "DOC-2002",
+  "dueAt": "2026-04-22T23:59:59+08:00"
+}
+```
+
+不包含 `reason` 欄位。若需改派原因，應先更新 accepted decision / UI page spec / API contract。
 
 ---
 

@@ -123,14 +123,16 @@ shared_sub_models:
 ## 5.5 AssignmentPageViewModel
 
 - 用於頁面：UI-011
-- 來源 API：`GET /review-cases/{caseId}` + assign/reassign command responses
+- 來源 API：`GET /review-cases/{caseId}/assignment-context` + `GET /review-cases/{caseId}/assignment-candidates` + assign/reassign command responses
 - 欄位：
-  - `caseSummary`, `assignmentMode`, `currentReviewer`, `currentRereviewer`, `dueAt`
-  - `candidateReviewerOptions[]`（若 API 支援）
-  - `candidateRereviewerOptions[]`（若 API 支援）
+  - `caseSummary`, `assignmentMode`, `currentReviewer`, `currentRereviewer`
+  - `reviewerDueAt`, `rereviewerDueAt`, `effectiveDueAt`
+  - `candidateReviewerOptions[]`
+  - `candidateRereviewerOptions[]`
   - `actionCapabilities[]`, `blockedReasons[]`
 - UI 聚合結果：`assignmentMode`, `actionCapabilities`
 - FULL only：候選人擴展資訊（若有）
+- contract note：本版 `dueAt` 正式 contract 只收斂到 command requiredness 與 summary truth；`changeReason` 仍為 pending clarification
 - METADATA_ONLY：不適用主情境（本頁預設 command-only）
 
 ## 5.6 InitialReviewPageViewModel

@@ -167,6 +167,41 @@ class ReviewCaseApiTest {
                 .andExpect(status().isConflict());
     }
 
+    // --- REREVIEW ASSIGN ---
+
+    @Test
+    void assignRereviewer_missingDueAt_shouldReturn400() throws Exception {
+        seedCase("c1", CaseStatus.PENDING_REREVIEW);
+
+        String body = "{\"rereviewerId\":\"rereviewer-1\"}";
+
+        mockMvc.perform(post(BASE + "/c1/assign-rereviewer")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void reassignRereviewer_missingDueAt_shouldReturn400() throws Exception {
+        seedCase("c1", CaseStatus.PENDING_REREVIEW);
+        ReviewCaseEntity e = jpaRepository.findById("c1").orElseThrow();
+        e.setReviewerId("reviewer-1");
+        e.setReviewerAssignedAt(LocalDateTime.now());
+        e.setRereviewerId("rereviewer-1");
+        e.setRereviewerAssignedAt(LocalDateTime.now());
+        e.setRereviewerDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
+        jpaRepository.save(e);
+
+        String body = "{\"rereviewerId\":\"rereviewer-2\"}";
+
+        mockMvc.perform(post(BASE + "/c1/reassign-rereviewer")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest());
+    }
+
     // --- CANCEL ---
 
     @Test
