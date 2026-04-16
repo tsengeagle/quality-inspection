@@ -121,8 +121,8 @@ export class SamplingBatchListPageComponent implements OnInit {
       batchId: this.filters.batchId || undefined,
       page: this.uiState.page,
       size: this.uiState.size
-    }).subscribe(data => {
-      this.batches = data;
+    }).subscribe(result => {
+      this.batches = result.items;
     });
   }
 
@@ -183,8 +183,14 @@ export class SamplingBatchListPageComponent implements OnInit {
     this.retryTargetBatchId = null;
   }
 
-  confirmRetry(_batchId: string): void {
+  confirmRetry(batchId: string): void {
     this.cancelRetry();
+    // F-001: 呼叫真實 POST /sampling-batches/{batchId}/retry
+    this.samplingService.retrySamplingBatch(batchId).subscribe({
+      next: () => {
+        this._loadBatches();
+      }
+    });
   }
 }
 

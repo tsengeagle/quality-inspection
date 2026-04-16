@@ -1,5 +1,10 @@
 # Wave 0–5 跨波次 Backend 依賴盤點 & Closure 排序建議
 
+> ⚠️ **SUPERSEDED — 本文件已被取代**  
+> 本文件的 Wave 3 / Wave 5 gap 描述均基於 2025-07 的採集基線，其中大多數 gap 已在後續實作中關閉。  
+> **現行 authority 請使用：`docs/06-frontend/frontend-backend-alignment-baseline.md`**  
+> 本文件僅保留作為歷史脈絡參考。Wave 3/5 的舊版 gap 描述與現況的差異，已詳列於新文件第 5 節。  
+>
 > 本文件為 Phase A（逐波依賴盤點）+ Phase B（Backend Closure 排序建議）。  
 > 目的：區分「純前端遞延」與「真正的 backend gap」，不宣稱 controller 存在即代表 page-friendly contract 就緒。  
 > 基線：Evidence gathered from source code reading (backend + frontend) on 2025-07.

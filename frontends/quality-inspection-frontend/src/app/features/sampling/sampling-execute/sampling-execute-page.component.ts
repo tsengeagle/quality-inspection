@@ -102,30 +102,52 @@ export class SamplingExecutePageComponent implements OnInit {
     if (!this.context) {
       return;
     }
-
-    this.context = {
-      ...this.context,
-      previewReady: true,
-      previewStats: {
-        populationCount: 120,
-        eligibleCount: 80,
-        excludedCount: 40
+    // B-002: 呼叫真實 POST /review-projects/{projectId}/sampling/preview
+    this.samplingService.previewSampling(this.projectId).subscribe({
+      next: stats => {
+        this.context = {
+          ...this.context!,
+          previewReady: true,
+          previewStats: stats
+        };
+        this.resolveMode(this.context);
       }
-    };
-    this.resolveMode(this.context);
+    });
   }
 
   onConfirmModalConfirm(): void {
     this.showConfirmModal = false;
     this.mode = 'EXECUTING';
     this.modeLabel = '執行中';
-
     if (this.context) {
-      this.context = {
-        ...this.context,
-        executing: true
-      };
+      this.context = { ...this.context, executing: true };
     }
+
+    // B-003: 呼叫真實 POST /review-projects/{projectId}/sampling/execute
+    this.samplingService.executeSampling(this.projectId).subscribe({
+      next: result => {
+        this.context = {
+          ...this.context!,
+          executing: false,
+          executedBatchId: result.batchId,
+          postExecuteSummary: {
+            tone: 'success',
+            title: '抽選完成',
+            description: `批次 ${result.batchId} 已完成抽選`,
+            batchId: result.batchId
+          }
+        };
+        this.resolveMode(this.context);
+      },
+      error: () => {
+        this.context = {
+          ...this.context!,
+          executing: false,
+          executeFailed: true
+        };
+        this.resolveMode(this.context!);
+      }
+    });
   }
 
   onConfirmModalCancel(): void {
