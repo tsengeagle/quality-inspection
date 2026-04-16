@@ -8,6 +8,9 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.GetRereviewRevisionHistoryQuery;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentBootstrapView;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateRole;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryCriteria;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView;
@@ -51,6 +54,8 @@ public class ReviewCaseController {
     private final GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase;
     private final ListReviewCasesUseCase listReviewCasesUseCase;
     private final GetReviewCaseDetailUseCase getReviewCaseDetailUseCase;
+        private final GetCaseAssignmentContextUseCase getCaseAssignmentContextUseCase;
+        private final ListCaseAssignmentCandidatesUseCase listCaseAssignmentCandidatesUseCase;
     private final GetCaseLifecycleUseCase getCaseLifecycleUseCase;
 
     public ReviewCaseController(AssignReviewCaseUseCase assignUseCase,
@@ -74,6 +79,8 @@ public class ReviewCaseController {
                                  GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase,
                                  ListReviewCasesUseCase listReviewCasesUseCase,
                                  GetReviewCaseDetailUseCase getReviewCaseDetailUseCase,
+                                 GetCaseAssignmentContextUseCase getCaseAssignmentContextUseCase,
+                                 ListCaseAssignmentCandidatesUseCase listCaseAssignmentCandidatesUseCase,
                                  GetCaseLifecycleUseCase getCaseLifecycleUseCase) {
         this.assignUseCase = assignUseCase;
         this.reassignUseCase = reassignUseCase;
@@ -96,6 +103,8 @@ public class ReviewCaseController {
         this.getRereviewRevisionHistoryUseCase = getRereviewRevisionHistoryUseCase;
         this.listReviewCasesUseCase = listReviewCasesUseCase;
         this.getReviewCaseDetailUseCase = getReviewCaseDetailUseCase;
+                this.getCaseAssignmentContextUseCase = getCaseAssignmentContextUseCase;
+                this.listCaseAssignmentCandidatesUseCase = listCaseAssignmentCandidatesUseCase;
         this.getCaseLifecycleUseCase = getCaseLifecycleUseCase;
     }
 
@@ -133,6 +142,31 @@ public class ReviewCaseController {
         ReviewCaseDetailView detail = getReviewCaseDetailUseCase.execute(actor, caseId);
         return ResponseEntity.ok(ApiResponse.ok(detail));
     }
+
+        @GetMapping("/{caseId}/assignment-context")
+        public ResponseEntity<ApiResponse<AssignmentBootstrapView>> getAssignmentContext(
+                        @CurrentActor ActorContext actor,
+                        @PathVariable String caseId) {
+                AssignmentBootstrapView view = getCaseAssignmentContextUseCase.execute(actor, caseId);
+                return ResponseEntity.ok(ApiResponse.ok(view));
+        }
+
+        @GetMapping("/{caseId}/assignment-candidates")
+        public ResponseEntity<ApiResponse<List<AssignmentCandidateView>>> listAssignmentCandidates(
+                        @CurrentActor ActorContext actor,
+                        @PathVariable String caseId,
+                        @RequestParam String role,
+                        @RequestParam(required = false) String keyword) {
+                AssignmentCandidateRole candidateRole;
+                try {
+                        candidateRole = AssignmentCandidateRole.valueOf(role);
+                } catch (IllegalArgumentException ex) {
+                        throw new BadRequestException("Invalid candidate role: " + role);
+                }
+                List<AssignmentCandidateView> candidates = listCaseAssignmentCandidatesUseCase.execute(
+                                actor, caseId, candidateRole, keyword);
+                return ResponseEntity.ok(ApiResponse.ok(candidates));
+        }
 
     @GetMapping("/{caseId}/lifecycle")
     public ResponseEntity<ApiResponse<List<AuditTrailEntry>>> getCaseLifecycle(

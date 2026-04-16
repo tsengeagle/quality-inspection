@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
-public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort {
+public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort, ReviewCaseAssignmentQueryPort {
 
     private final EntityManager em;
 
@@ -58,6 +58,27 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort {
         }
         List<SubmissionSummaryItem> submissions = loadSubmissions(caseId);
         return Optional.of(toDetailView(entity, submissions));
+    }
+
+    @Override
+    public Optional<AssignmentCaseSnapshotView> findAssignmentSnapshotById(String caseId) {
+        ReviewCaseEntity entity = em.find(ReviewCaseEntity.class, caseId);
+        if (entity == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new AssignmentCaseSnapshotView(
+                entity.getCaseId(),
+                entity.getProjectId(),
+                entity.getBatchId(),
+                entity.getHospitalId(),
+                entity.getMedicalRecordType(),
+                entity.getStatus().name(),
+                entity.getReviewerId(),
+                entity.getReviewerAssignedAt(),
+                entity.getDueAt(),
+                entity.getRereviewerId(),
+                entity.getRereviewerAssignedAt(),
+                entity.getRereviewerDueAt()));
     }
 
     private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<ReviewCaseEntity> root,

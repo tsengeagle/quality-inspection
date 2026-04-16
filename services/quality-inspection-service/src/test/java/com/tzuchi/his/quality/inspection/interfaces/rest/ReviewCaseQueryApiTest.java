@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -182,5 +183,87 @@ class ReviewCaseQueryApiTest {
         mockMvc.perform(get("/review-cases/missing")
                         .header("api-key", hmToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getAssignmentContext_returnsMixedAssignmentContext() throws Exception {
+        ReviewCaseEntity e = new ReviewCaseEntity();
+        e.setCaseId("c-assign");
+        e.setBatchId("b1");
+        e.setProjectId("p1");
+        e.setHospitalId("H001");
+        e.setSourceCaseKey("SK-001");
+        e.setMedicalRecordType("OUTPATIENT");
+        e.setStatus(CaseStatus.PENDING_REREVIEW);
+        e.setReviewerId("reviewer-1");
+        e.setReviewerAssignedAt(LocalDateTime.of(2026, 4, 1, 10, 0));
+        e.setDueAt(LocalDateTime.of(2026, 4, 10, 23, 59));
+        caseRepo.save(e);
+
+        mockMvc.perform(get("/review-cases/c-assign/assignment-context")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.pageMode").value("MIXED_ASSIGNMENT"))
+                .andExpect(jsonPath("$.data.allowedActions[0]").value("ASSIGN_REREVIEWER"))
+                .andExpect(jsonPath("$.data.currentReviewer.userId").value("reviewer-1"))
+                .andExpect(jsonPath("$.data.currentReviewer.displayName").value("Dr. Reviewer One"))
+                .andExpect(jsonPath("$.data.reviewerDueAt").value("2026-04-10T23:59:00"));
+    }
+
+    @Test
+    void getAssignmentContext_closedCase_returnsBlockedContext() throws Exception {
+        seedCase("c-blocked", CaseStatus.CLOSED);
+
+        mockMvc.perform(get("/review-cases/c-blocked/assignment-context")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.pageMode").value("READONLY_BLOCKED"))
+                .andExpect(jsonPath("$.data.blocked").value(true))
+                .andExpect(jsonPath("$.data.blockedReason").value("CASE_ALREADY_CLOSED"));
+    }
+
+    @Test
+    void listAssignmentCandidates_returnsSelectableReviewerCandidates() throws Exception {
+        seedCase("c-candidate", CaseStatus.SELECTED_PENDING_ASSIGNMENT);
+
+        mockMvc.perform(get("/review-cases/c-candidate/assignment-candidates")
+                        .param("role", "REVIEWER")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].role").value("REVIEWER"))
+                .andExpect(jsonPath("$.data[0].selectable").value(true));
+    }
+
+    @Test
+    void listAssignmentCandidates_rereviewerSameAsReviewer_isBlocked() throws Exception {
+        ReviewCaseEntity e = new ReviewCaseEntity();
+        e.setCaseId("c-rereview");
+        e.setBatchId("b1");
+        e.setProjectId("p1");
+        e.setHospitalId("H001");
+        e.setSourceCaseKey("SK-001");
+        e.setMedicalRecordType("OUTPATIENT");
+        e.setStatus(CaseStatus.PENDING_REREVIEW);
+        e.setReviewerId("reviewer-1");
+        caseRepo.save(e);
+
+        mockMvc.perform(get("/review-cases/c-rereview/assignment-candidates")
+                        .param("role", "REREVIEWER")
+                .param("keyword", "Dr. Reviewer One")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].userId").value("reviewer-1"))
+                .andExpect(jsonPath("$.data[0].selectable").value(false))
+                .andExpect(jsonPath("$.data[0].blockedReason").value("REREVIEWER_SAME_AS_REVIEWER"));
+    }
+
+    @Test
+    void listAssignmentCandidates_invalidRole_returns400() throws Exception {
+        seedCase("c-invalid-role", CaseStatus.SELECTED_PENDING_ASSIGNMENT);
+
+        mockMvc.perform(get("/review-cases/c-invalid-role/assignment-candidates")
+                        .param("role", "INVALID")
+                        .header("api-key", hmToken))
+                .andExpect(status().isBadRequest());
     }
 }
