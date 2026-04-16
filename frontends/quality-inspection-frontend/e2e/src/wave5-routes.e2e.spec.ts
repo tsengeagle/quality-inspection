@@ -1,5 +1,145 @@
 import { expect, test } from '@playwright/test';
 
+async function mockAssignmentCase(
+  page: Parameters<typeof test>[0]['page'],
+  options?: {
+    caseId?: string;
+    mode?: 'ASSIGN_INITIAL' | 'REASSIGN_INITIAL' | 'MIXED_ASSIGNMENT' | 'READONLY_BLOCKED';
+    blocked?: boolean;
+    blockedReason?: string | null;
+    allowedActions?: string[];
+    commandStatus?: number;
+    onCommandRequest?: (body: unknown) => void;
+  }
+): Promise<void> {
+  const caseId = options?.caseId ?? 'CASE-011';
+  const commandStatus = options?.commandStatus ?? 200;
+  let status = options?.mode === 'MIXED_ASSIGNMENT' ? 'PENDING_REREVIEW' : 'SELECTED_PENDING_ASSIGNMENT';
+  let mode = options?.mode ?? 'ASSIGN_INITIAL';
+  let blocked = options?.blocked ?? false;
+  let blockedReason = options?.blockedReason ?? null;
+  let allowedActions = options?.allowedActions ?? (mode === 'MIXED_ASSIGNMENT' ? ['ASSIGN_REREVIEWER'] : ['ASSIGN_REVIEWER']);
+  let currentReviewer: Record<string, unknown> | null = null;
+  let currentRereviewer: Record<string, unknown> | null = null;
+
+  await page.route(`**/api/quality-inspection/review-cases/${caseId}/assignment-context`, async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          caseId,
+          projectId: 'PROJECT-001',
+          batchId: 'BATCH-001',
+          hospitalId: 'H001',
+          medicalRecordType: 'OUTPATIENT',
+          status,
+          pageMode: mode,
+          blocked,
+          blockedReason,
+          allowedActions,
+          currentReviewer,
+          currentRereviewer,
+          reviewerDueAt: '2026-04-20T12:00:00+08:00',
+          rereviewerDueAt: mode === 'MIXED_ASSIGNMENT' ? '2026-04-26T12:00:00+08:00' : null,
+          effectiveDueAt: mode === 'MIXED_ASSIGNMENT' ? '2026-04-26T12:00:00+08:00' : '2026-04-20T12:00:00+08:00'
+        }
+      })
+    });
+  });
+
+  await page.route(`**/api/quality-inspection/review-cases/${caseId}/assignment-candidates?role=REVIEWER*`, async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [
+          {
+            userId: 'reviewer-1',
+            displayName: 'Dr. Reviewer One',
+            displayLabel: 'reviewer-1 | Dr. Reviewer One',
+            role: 'REVIEWER',
+            active: true,
+            selectable: true,
+            blockedReason: null
+          },
+          {
+            userId: 'reviewer-inactive',
+            displayName: 'Dr. Inactive',
+            displayLabel: 'reviewer-inactive | Dr. Inactive',
+            role: 'REVIEWER',
+            active: false,
+            selectable: false,
+            blockedReason: 'CANDIDATE_INACTIVE'
+          }
+        ]
+      })
+    });
+  });
+
+  await page.route(`**/api/quality-inspection/review-cases/${caseId}/assignment-candidates?role=REREVIEWER*`, async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: [
+          {
+            userId: 'rereviewer-1',
+            displayName: 'Dr. ReReviewer One',
+            displayLabel: 'rereviewer-1 | Dr. ReReviewer One',
+            role: 'REREVIEWER',
+            active: true,
+            selectable: true,
+            blockedReason: null
+          },
+          {
+            userId: 'reviewer-1',
+            displayName: 'Dr. Reviewer One',
+            displayLabel: 'reviewer-1 | Dr. Reviewer One',
+            role: 'REREVIEWER',
+            active: true,
+            selectable: false,
+            blockedReason: 'REREVIEWER_SAME_AS_REVIEWER'
+          }
+        ]
+      })
+    });
+  });
+
+  await page.route(`**/api/quality-inspection/review-cases/${caseId}/assign-reviewer`, async route => {
+    options?.onCommandRequest?.(route.request().postDataJSON());
+    if (commandStatus === 200) {
+      status = 'PENDING_INITIAL_REVIEW';
+      mode = 'REASSIGN_INITIAL';
+      allowedActions = ['REASSIGN_REVIEWER'];
+      currentReviewer = {
+        userId: 'reviewer-1',
+        displayName: 'Dr. Reviewer One',
+        displayLabel: 'reviewer-1 | Dr. Reviewer One',
+        assignedAt: '2026-04-18T09:00:00+08:00'
+      };
+    }
+    await route.fulfill({
+      status: commandStatus,
+      contentType: 'application/json',
+      body: JSON.stringify(commandStatus === 200
+        ? {
+            success: true,
+            data: {
+              caseId
+            }
+          }
+        : {
+            success: false,
+            message: 'assignment failed'
+          })
+    });
+  });
+}
+
 async function mockInitialReviewCase(
   page: Parameters<typeof test>[0]['page'],
   options?: {
@@ -218,14 +358,36 @@ async function mockRereviewCase(
 }
 
 test.describe('Wave 5 command-flow limited wiring smoke', () => {
-  test('loads /cases/:caseId/assign with Wave 5 assignment skeleton only', async ({ page }) => {
+  test('loads /cases/:caseId/assign with backend assignment truth and candidate state', async ({ page }) => {
+    await mockAssignmentCase(page);
     await page.goto('/cases/CASE-011/assign');
 
     await expect(page.locator('.assignment-page-title')).toHaveText('案件分派頁');
     await expect(page.locator('.mode-indicator-strip__label')).toHaveText('ASSIGN_INITIAL');
     await expect(page.locator('[data-testid="reviewer-picker-slot"]')).toBeVisible();
-    await expect(page.getByText('submit 成功')).toHaveCount(0);
-    await expect(page.getByText('save 成功')).toHaveCount(0);
+    await expect(page.getByText('reviewer-1 | Dr. Reviewer One')).toBeVisible();
+    await expect(page.getByText('CANDIDATE_INACTIVE')).toBeVisible();
+    await expect(page.getByRole('button', { name: '初審指派' })).toBeEnabled();
+  });
+
+  test('executes assignment command and refetches backend truth after success', async ({ page }) => {
+    let requestBody: unknown;
+    await mockAssignmentCase(page, {
+      onCommandRequest: body => {
+        requestBody = body;
+      }
+    });
+
+    await page.goto('/cases/CASE-011/assign');
+    await page.getByRole('button', { name: '初審指派' }).click();
+
+    expect(requestBody).toEqual({
+      reviewerId: 'reviewer-1',
+      dueAt: '2026-04-20T12:00:00+08:00'
+    });
+    await expect(page.getByText('初審指派已送出。')).toBeVisible();
+    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('REASSIGN_INITIAL');
+    await expect(page.getByText('目前初審醫師：Dr. Reviewer One')).toBeVisible();
   });
 
   test('consumes backend truth and executes initial-review revise successfully', async ({ page }) => {

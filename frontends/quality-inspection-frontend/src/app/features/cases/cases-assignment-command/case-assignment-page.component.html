@@ -15,29 +15,92 @@
 
 <section class="assignment-mode-banner" data-testid="assignment-mode-banner">
 	<h1 class="assignment-page-title">案件分派頁</h1>
-	<p class="assignment-mode-copy">目前僅建立 Wave 5 assignment skeleton，不啟用真 picker 或 submit。</p>
+	<p class="assignment-mode-copy">目前提供 UI-011 limited integration，直接消費 assignment context 與 candidate lookup；advanced picker 與 due date helper 仍保留 placeholder 邊界。</p>
 </section>
 
 <section *ngIf="showReviewerSection" class="assignment-section reviewer-assignment-section">
 	<h2>Reviewer 區塊</h2>
 	<p class="assignment-current-owner">目前初審醫師：{{ context.reviewerName || '尚未指派' }}</p>
-	<div class="picker-slot-placeholder" data-testid="reviewer-picker-slot">
-		reviewer picker slot placeholder
+	<p class="assignment-current-owner" *ngIf="context.reviewerDueAt">初審截止日：{{ context.reviewerDueAt }}</p>
+	<div class="assignment-search-row">
+		<input
+			type="text"
+			[(ngModel)]="reviewerKeyword"
+			placeholder="搜尋初審醫師"
+			[disabled]="reviewerSearchDisabled"
+			data-testid="reviewer-keyword-input">
+		<button type="button" (click)="onSearchReviewerCandidates()" [disabled]="reviewerSearchDisabled">
+			{{ reviewerLoading ? '搜尋中...' : '搜尋候選人' }}
+		</button>
 	</div>
-	<div class="due-date-helper-slot" data-testid="assignment-due-date-helper-slot">
-		{{ context.dueDateHint }}
+	<div class="candidate-list" data-testid="reviewer-picker-slot">
+		<label
+			class="candidate-option"
+			*ngFor="let candidate of reviewerCandidates; trackBy: trackCandidate"
+			[class.candidate-option--selected]="selectedReviewerId === candidate.userId"
+			[class.candidate-option--disabled]="!candidate.selectable || !isReviewerActionEnabled">
+			<input
+				type="radio"
+				name="reviewerCandidate"
+				[checked]="selectedReviewerId === candidate.userId"
+				[disabled]="!candidate.selectable || !isReviewerActionEnabled || commandPending"
+				(change)="selectReviewerCandidate(candidate)">
+			<span class="candidate-option__label">{{ candidate.displayLabel }}</span>
+			<small class="candidate-option__meta" *ngIf="candidate.blockedReason">{{ candidate.blockedReason }}</small>
+		</label>
+		<p class="candidate-list__empty" *ngIf="!reviewerCandidates.length && !reviewerLoading">目前沒有可顯示的初審候選人。</p>
 	</div>
 </section>
 
 <section *ngIf="showRereviewerSection" class="assignment-section rereviewer-assignment-section">
 	<h2>Rereviewer 區塊</h2>
 	<p class="assignment-current-owner">目前複審醫師：{{ context.rereviewerName || '尚未指派' }}</p>
-	<div class="picker-slot-placeholder" data-testid="rereviewer-picker-slot">
-		rereviewer picker slot placeholder
+	<p class="assignment-current-owner" *ngIf="context.rereviewerDueAt">複審截止日：{{ context.rereviewerDueAt }}</p>
+	<div class="assignment-search-row">
+		<input
+			type="text"
+			[(ngModel)]="rereviewerKeyword"
+			placeholder="搜尋複審醫師"
+			[disabled]="rereviewerSearchDisabled"
+			data-testid="rereviewer-keyword-input">
+		<button type="button" (click)="onSearchRereviewerCandidates()" [disabled]="rereviewerSearchDisabled">
+			{{ rereviewerLoading ? '搜尋中...' : '搜尋候選人' }}
+		</button>
+	</div>
+	<div class="candidate-list" data-testid="rereviewer-picker-slot">
+		<label
+			class="candidate-option"
+			*ngFor="let candidate of rereviewerCandidates; trackBy: trackCandidate"
+			[class.candidate-option--selected]="selectedRereviewerId === candidate.userId"
+			[class.candidate-option--disabled]="!candidate.selectable || !isRereviewerActionEnabled">
+			<input
+				type="radio"
+				name="rereviewerCandidate"
+				[checked]="selectedRereviewerId === candidate.userId"
+				[disabled]="!candidate.selectable || !isRereviewerActionEnabled || commandPending"
+				(change)="selectRereviewerCandidate(candidate)">
+			<span class="candidate-option__label">{{ candidate.displayLabel }}</span>
+			<small class="candidate-option__meta" *ngIf="candidate.blockedReason">{{ candidate.blockedReason }}</small>
+		</label>
+		<p class="candidate-list__empty" *ngIf="!rereviewerCandidates.length && !rereviewerLoading">目前沒有可顯示的複審候選人。</p>
+	</div>
+</section>
+
+<section class="assignment-section">
+	<h2>截止日 / 指派說明</h2>
+	<div class="due-date-helper-slot" data-testid="assignment-due-date-helper-slot">
+		{{ currentDueDateLabel }}
 	</div>
 </section>
 
 <section *ngIf="showSubmitZone" class="assignment-submit-zone" data-testid="assignment-submit-zone">
-	<button type="button" disabled>{{ primaryActionLabel }}</button>
-	<button type="button">返回案件詳情</button>
+	<button type="button" (click)="onPrimaryAction()" [disabled]="primaryActionDisabled">{{ commandPending ? '送出中...' : primaryActionLabel }}</button>
+	<button type="button" disabled>返回案件詳情</button>
 </section>
+
+<p
+	class="assignment-feedback"
+	*ngIf="showCommandFeedback"
+	[class.assignment-feedback--blocked]="commandFeedbackTone === 'blocked'">
+	{{ commandFeedbackMessage }}
+</p>

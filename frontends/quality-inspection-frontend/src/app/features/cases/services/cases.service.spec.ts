@@ -599,4 +599,156 @@ describe('CasesService', () => {
       }
     ]);
   });
+
+  it('maps assignment context and candidate lookup truth for UI-011', () => {
+    const actual: unknown[] = [];
+
+    service.getAssignmentContext('CASE-011').subscribe(result => actual.push(result));
+    service.getAssignmentCandidates('CASE-011', 'REREVIEWER', 'Reviewer').subscribe(result => actual.push(result));
+
+    const contextRequest = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-011/assignment-context`);
+    expect(contextRequest.request.method).toBe('GET');
+    contextRequest.flush({
+      success: true,
+      data: {
+        caseId: 'CASE-011',
+        projectId: 'PROJECT-001',
+        batchId: 'BATCH-001',
+        hospitalId: 'H001',
+        medicalRecordType: 'OUTPATIENT',
+        status: 'PENDING_REREVIEW',
+        pageMode: 'MIXED_ASSIGNMENT',
+        blocked: false,
+        blockedReason: null,
+        allowedActions: ['ASSIGN_REREVIEWER'],
+        currentReviewer: {
+          userId: 'reviewer-1',
+          displayName: 'Dr. Reviewer One',
+          displayLabel: 'reviewer-1 | Dr. Reviewer One',
+          assignedAt: '2026-04-18T09:00:00'
+        },
+        currentRereviewer: null,
+        reviewerDueAt: '2026-04-20T12:00:00',
+        rereviewerDueAt: '2026-04-26T12:00:00',
+        effectiveDueAt: '2026-04-26T12:00:00'
+      }
+    });
+
+    const candidateRequest = httpMock.expectOne(req => req.url === `${environment.apiBasePath}/review-cases/CASE-011/assignment-candidates`);
+    expect(candidateRequest.request.method).toBe('GET');
+    expect(candidateRequest.request.params.get('role')).toBe('REREVIEWER');
+    expect(candidateRequest.request.params.get('keyword')).toBe('Reviewer');
+    candidateRequest.flush({
+      success: true,
+      data: [
+        {
+          userId: 'rereviewer-1',
+          displayName: 'Dr. ReReviewer One',
+          displayLabel: 'rereviewer-1 | Dr. ReReviewer One',
+          role: 'REREVIEWER',
+          active: true,
+          selectable: true,
+          blockedReason: null
+        },
+        {
+          userId: 'reviewer-1',
+          displayName: 'Dr. Reviewer One',
+          displayLabel: 'reviewer-1 | Dr. Reviewer One',
+          role: 'REREVIEWER',
+          active: true,
+          selectable: false,
+          blockedReason: 'REREVIEWER_SAME_AS_REVIEWER'
+        }
+      ]
+    });
+
+    expect(actual).toEqual([
+      {
+        caseId: 'CASE-011',
+        projectId: 'PROJECT-001',
+        batchId: 'BATCH-001',
+        hospitalId: 'H001',
+        medicalRecordType: 'OUTPATIENT',
+        status: 'PENDING_REREVIEW',
+        pageMode: 'MIXED_ASSIGNMENT',
+        blocked: false,
+        blockedReason: null,
+        allowedActions: ['ASSIGN_REREVIEWER'],
+        currentReviewer: {
+          userId: 'reviewer-1',
+          displayName: 'Dr. Reviewer One',
+          displayLabel: 'reviewer-1 | Dr. Reviewer One',
+          assignedAt: '2026-04-18T09:00:00'
+        },
+        currentRereviewer: undefined,
+        reviewerDueAt: '2026-04-20T12:00:00',
+        rereviewerDueAt: '2026-04-26T12:00:00',
+        effectiveDueAt: '2026-04-26T12:00:00'
+      },
+      [
+        {
+          userId: 'rereviewer-1',
+          displayName: 'Dr. ReReviewer One',
+          displayLabel: 'rereviewer-1 | Dr. ReReviewer One',
+          role: 'REREVIEWER',
+          active: true,
+          selectable: true,
+          blockedReason: null
+        },
+        {
+          userId: 'reviewer-1',
+          displayName: 'Dr. Reviewer One',
+          displayLabel: 'reviewer-1 | Dr. Reviewer One',
+          role: 'REREVIEWER',
+          active: true,
+          selectable: false,
+          blockedReason: 'REREVIEWER_SAME_AS_REVIEWER'
+        }
+      ]
+    ]);
+  });
+
+  it('maps assignment command endpoints and payloads', () => {
+    const reviewerPayload = {
+      reviewerId: 'reviewer-1',
+      dueAt: '2026-04-20T12:00:00'
+    };
+    const rereviewerPayload = {
+      rereviewerId: 'rereviewer-1',
+      dueAt: '2026-04-26T12:00:00'
+    };
+    const actual: unknown[] = [];
+
+    service.assignReviewer('CASE-011', reviewerPayload).subscribe(result => actual.push(result));
+    service.reassignReviewer('CASE-011', reviewerPayload).subscribe(result => actual.push(result));
+    service.assignRereviewer('CASE-011', rereviewerPayload).subscribe(result => actual.push(result));
+    service.reassignRereviewer('CASE-011', rereviewerPayload).subscribe(result => actual.push(result));
+
+    const assignReviewerRequest = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-011/assign-reviewer`);
+    expect(assignReviewerRequest.request.method).toBe('POST');
+    expect(assignReviewerRequest.request.body).toEqual(reviewerPayload);
+    assignReviewerRequest.flush({ success: true, data: null });
+
+    const reassignReviewerRequest = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-011/reassign-reviewer`);
+    expect(reassignReviewerRequest.request.method).toBe('POST');
+    expect(reassignReviewerRequest.request.body).toEqual(reviewerPayload);
+    reassignReviewerRequest.flush({ success: true, data: null });
+
+    const assignRereviewerRequest = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-011/assign-rereviewer`);
+    expect(assignRereviewerRequest.request.method).toBe('POST');
+    expect(assignRereviewerRequest.request.body).toEqual(rereviewerPayload);
+    assignRereviewerRequest.flush({ success: true, data: null });
+
+    const reassignRereviewerRequest = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-011/reassign-rereviewer`);
+    expect(reassignRereviewerRequest.request.method).toBe('POST');
+    expect(reassignRereviewerRequest.request.body).toEqual(rereviewerPayload);
+    reassignRereviewerRequest.flush({ success: true, data: null });
+
+    expect(actual).toEqual([
+      { caseId: 'CASE-011' },
+      { caseId: 'CASE-011' },
+      { caseId: 'CASE-011' },
+      { caseId: 'CASE-011' }
+    ]);
+  });
 });

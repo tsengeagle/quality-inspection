@@ -60,6 +60,41 @@ interface ReviewSubmissionRefDto {
   submittedAt?: string | null;
 }
 
+interface AssignmentAssigneeSummaryDto {
+  userId: string;
+  displayName: string;
+  displayLabel: string;
+  assignedAt?: string | null;
+}
+
+interface AssignmentBootstrapDto {
+  caseId: string;
+  projectId: string;
+  batchId: string;
+  hospitalId: string;
+  medicalRecordType: string;
+  status: string;
+  pageMode: 'ASSIGN_INITIAL' | 'REASSIGN_INITIAL' | 'MIXED_ASSIGNMENT' | 'READONLY_BLOCKED';
+  blocked: boolean;
+  blockedReason?: string | null;
+  allowedActions: string[];
+  currentReviewer?: AssignmentAssigneeSummaryDto | null;
+  currentRereviewer?: AssignmentAssigneeSummaryDto | null;
+  reviewerDueAt?: string | null;
+  rereviewerDueAt?: string | null;
+  effectiveDueAt?: string | null;
+}
+
+interface AssignmentCandidateDto {
+  userId: string;
+  displayName: string;
+  displayLabel: string;
+  role: 'REVIEWER' | 'REREVIEWER';
+  active: boolean;
+  selectable: boolean;
+  blockedReason?: string | null;
+}
+
 interface InitialReviewBootstrapDto {
   pageMode: 'NEW_INITIAL_REVIEW' | 'EDIT_DRAFT' | 'REVISION' | 'READONLY_BLOCKED';
   hasDraft: boolean;
@@ -251,6 +286,51 @@ export interface ReviewSubmissionRef {
   submittedAt?: string;
 }
 
+export interface AssignmentAssigneeSummaryViewModel {
+  userId: string;
+  displayName: string;
+  displayLabel: string;
+  assignedAt?: string;
+}
+
+export interface AssignmentCandidateViewModel {
+  userId: string;
+  displayName: string;
+  displayLabel: string;
+  role: 'REVIEWER' | 'REREVIEWER';
+  active: boolean;
+  selectable: boolean;
+  blockedReason?: string | null;
+}
+
+export interface AssignmentContextViewModel {
+  caseId: string;
+  projectId: string;
+  batchId: string;
+  hospitalId: string;
+  medicalRecordType: string;
+  status: string;
+  pageMode: 'ASSIGN_INITIAL' | 'REASSIGN_INITIAL' | 'MIXED_ASSIGNMENT' | 'READONLY_BLOCKED';
+  blocked: boolean;
+  blockedReason?: string | null;
+  allowedActions: string[];
+  currentReviewer?: AssignmentAssigneeSummaryViewModel;
+  currentRereviewer?: AssignmentAssigneeSummaryViewModel;
+  reviewerDueAt?: string;
+  rereviewerDueAt?: string;
+  effectiveDueAt?: string;
+}
+
+export interface AssignReviewerPayload {
+  reviewerId: string;
+  dueAt?: string | null;
+}
+
+export interface AssignRereviewerPayload {
+  rereviewerId: string;
+  dueAt?: string | null;
+}
+
 export interface InitialReviewBootstrapViewModel {
   pageMode: 'NEW_INITIAL_REVIEW' | 'EDIT_DRAFT' | 'REVISION' | 'READONLY_BLOCKED';
   hasDraft: boolean;
@@ -440,6 +520,25 @@ export class CasesService {
     return this.fetchCaseDetail(caseId);
   }
 
+  /** GET /review-cases/{caseId}/assignment-context */
+  getAssignmentContext(caseId: string): Observable<AssignmentContextViewModel> {
+    return this.http.get<ApiResponse<AssignmentBootstrapDto>>(`${this.baseUrl}/${caseId}/assignment-context`).pipe(
+      map(response => this.mapAssignmentContext(response.data))
+    );
+  }
+
+  /** GET /review-cases/{caseId}/assignment-candidates?role=... */
+  getAssignmentCandidates(caseId: string, role: 'REVIEWER' | 'REREVIEWER', keyword?: string): Observable<AssignmentCandidateViewModel[]> {
+    let params = new HttpParams().set('role', role);
+    if (keyword?.trim()) {
+      params = params.set('keyword', keyword.trim());
+    }
+
+    return this.http.get<ApiResponse<AssignmentCandidateDto[]>>(`${this.baseUrl}/${caseId}/assignment-candidates`, { params }).pipe(
+      map(response => response.data.map(item => this.mapAssignmentCandidate(item)))
+    );
+  }
+
   /** GET /review-cases/{caseId}/revision-history + /review-cases/{caseId} */
   getRevisionHistory(caseId: string): Observable<RevisionHistoryViewModel> {
     return forkJoin({
@@ -529,6 +628,30 @@ export class CasesService {
       payload
     ).pipe(
       map(response => this.mapRevisionResult(response.data))
+    );
+  }
+
+  assignReviewer(caseId: string, payload: AssignReviewerPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<unknown>>(`${this.baseUrl}/${caseId}/assign-reviewer`, payload).pipe(
+      map(() => ({ caseId }))
+    );
+  }
+
+  reassignReviewer(caseId: string, payload: AssignReviewerPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<unknown>>(`${this.baseUrl}/${caseId}/reassign-reviewer`, payload).pipe(
+      map(() => ({ caseId }))
+    );
+  }
+
+  assignRereviewer(caseId: string, payload: AssignRereviewerPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<unknown>>(`${this.baseUrl}/${caseId}/assign-rereviewer`, payload).pipe(
+      map(() => ({ caseId }))
+    );
+  }
+
+  reassignRereviewer(caseId: string, payload: AssignRereviewerPayload): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<unknown>>(`${this.baseUrl}/${caseId}/reassign-rereviewer`, payload).pipe(
+      map(() => ({ caseId }))
     );
   }
 
@@ -697,6 +820,51 @@ export class CasesService {
       version: item.revisionNo,
       status: item.status,
       submittedAt: item.submittedAt ?? undefined
+    };
+  }
+
+  private mapAssignmentContext(item: AssignmentBootstrapDto): AssignmentContextViewModel {
+    return {
+      caseId: item.caseId,
+      projectId: item.projectId,
+      batchId: item.batchId,
+      hospitalId: item.hospitalId,
+      medicalRecordType: item.medicalRecordType,
+      status: item.status,
+      pageMode: item.pageMode,
+      blocked: item.blocked,
+      blockedReason: item.blockedReason,
+      allowedActions: item.allowedActions,
+      currentReviewer: this.mapAssignmentAssignee(item.currentReviewer),
+      currentRereviewer: this.mapAssignmentAssignee(item.currentRereviewer),
+      reviewerDueAt: item.reviewerDueAt ?? undefined,
+      rereviewerDueAt: item.rereviewerDueAt ?? undefined,
+      effectiveDueAt: item.effectiveDueAt ?? undefined
+    };
+  }
+
+  private mapAssignmentAssignee(item?: AssignmentAssigneeSummaryDto | null): AssignmentAssigneeSummaryViewModel | undefined {
+    if (!item) {
+      return undefined;
+    }
+
+    return {
+      userId: item.userId,
+      displayName: item.displayName,
+      displayLabel: item.displayLabel,
+      assignedAt: item.assignedAt ?? undefined
+    };
+  }
+
+  private mapAssignmentCandidate(item: AssignmentCandidateDto): AssignmentCandidateViewModel {
+    return {
+      userId: item.userId,
+      displayName: item.displayName,
+      displayLabel: item.displayLabel,
+      role: item.role,
+      active: item.active,
+      selectable: item.selectable,
+      blockedReason: item.blockedReason
     };
   }
 }
