@@ -6,6 +6,7 @@ import com.tzuchi.his.quality.inspection.application.sampling.*;
 import com.tzuchi.his.quality.inspection.domain.sampling.BatchStatus;
 import com.tzuchi.his.quality.inspection.domain.sampling.ExecutionMode;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse;
+import com.tzuchi.his.quality.inspection.interfaces.rest.dto.SamplingExecuteContextResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,19 +22,30 @@ public class SamplingController {
     private final ListSamplingBatchesUseCase listUseCase;
     private final GetSamplingBatchDetailUseCase detailUseCase;
     private final ExportSamplingBatchResultUseCase exportUseCase;
+    private final GetSamplingExecuteContextUseCase executeContextUseCase;
 
     public SamplingController(PreviewSamplingPopulationUseCase previewUseCase,
                                ExecuteSamplingUseCase executeUseCase,
                                RetrySamplingBatchUseCase retryUseCase,
                                ListSamplingBatchesUseCase listUseCase,
                                GetSamplingBatchDetailUseCase detailUseCase,
-                               ExportSamplingBatchResultUseCase exportUseCase) {
+                               ExportSamplingBatchResultUseCase exportUseCase,
+                               GetSamplingExecuteContextUseCase executeContextUseCase) {
         this.previewUseCase = previewUseCase;
         this.executeUseCase = executeUseCase;
         this.retryUseCase = retryUseCase;
         this.listUseCase = listUseCase;
         this.detailUseCase = detailUseCase;
         this.exportUseCase = exportUseCase;
+        this.executeContextUseCase = executeContextUseCase;
+    }
+
+    @GetMapping("/review-projects/{projectId}/sampling/execute-context")
+    public ResponseEntity<ApiResponse<SamplingExecuteContextResponse>> getExecuteContext(
+            @CurrentActor ActorContext actor,
+            @PathVariable String projectId) {
+        SamplingExecuteContextView view = executeContextUseCase.execute(actor, projectId);
+        return ResponseEntity.ok(ApiResponse.ok(toExecuteContextResponse(view)));
     }
 
     @PostMapping("/review-projects/{projectId}/sampling/preview")
@@ -106,5 +118,40 @@ public class SamplingController {
             @PathVariable String batchId) {
         SamplingBatchExportResult result = exportUseCase.execute(actor, batchId);
         return ResponseEntity.ok(ApiResponse.ok(result));
+    }
+
+    private SamplingExecuteContextResponse toExecuteContextResponse(SamplingExecuteContextView view) {
+        SamplingExecuteContextResponse.PreviewStatsDto previewStats = null;
+        if (view.getPreviewStats() != null) {
+            previewStats = new SamplingExecuteContextResponse.PreviewStatsDto(
+                    view.getPreviewStats().getPopulationCount(),
+                    view.getPreviewStats().getEligibleCount(),
+                    view.getPreviewStats().getExcludedCount()
+            );
+        }
+
+        SamplingExecuteContextResponse.PostExecuteSummaryDto postExecuteSummary = null;
+        if (view.getPostExecuteSummary() != null) {
+            postExecuteSummary = new SamplingExecuteContextResponse.PostExecuteSummaryDto(
+                    view.getPostExecuteSummary().getTone(),
+                    view.getPostExecuteSummary().getTitle(),
+                    view.getPostExecuteSummary().getDescription(),
+                    view.getPostExecuteSummary().getBatchId()
+            );
+        }
+
+        return new SamplingExecuteContextResponse(
+                view.getProjectId(),
+                view.getProjectName(),
+                view.getHospitalId(),
+                view.getRuleSummary(),
+                view.isPreviewReady(),
+                view.isExecuting(),
+                view.isExecuteFailed(),
+                view.getExecutedBatchId(),
+                view.getBlockedReason(),
+                previewStats,
+                postExecuteSummary
+        );
     }
 }

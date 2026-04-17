@@ -27,7 +27,13 @@ describe('SamplingBatchListPageComponent', () => {
     activatedRoute = new ActivatedRouteStub();
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     samplingService = jasmine.createSpyObj<SamplingService>('SamplingService', ['getBatches']);
-    samplingService.getBatches.and.returnValue(of([]));
+    samplingService.getBatches.and.returnValue(of({
+      items: [],
+      page: 0,
+      size: 20,
+      totalElements: 0,
+      totalPages: 0
+    }));
 
     await TestBed.configureTestingModule({
       declarations: [SamplingBatchListPageComponent],
@@ -90,12 +96,11 @@ describe('SamplingBatchListPageComponent', () => {
     });
   });
 
-  it('keeps 查看詳情 as a no-op stub without navigation', () => {
+  it('renders batch detail as an explicit deferred state instead of a no-op stub', () => {
     fixture.detectChanges();
 
-    component.onViewDetailStub('BATCH-FAILED-001');
-
-    expect(router.navigate).not.toHaveBeenCalled();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('批次詳情已正式 deferred，原因為 UI spec 尚未定。');
+    expect(router.navigate).not.toHaveBeenCalledWith(['/sampling/batches', 'BATCH-FAILED-001']);
   });
 
   it('persists role tab changes through query params before reloading the list', () => {

@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, map, of } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '@env/environment';
 
 // ── BE response shapes (private) ──────────────────────────────────────────
@@ -28,6 +28,41 @@ interface SamplingBatchSummaryDto {
   retryOfBatchId: string | null;
   startedAt: string | null;
   finishedAt: string | null;
+}
+
+interface SamplingExecuteContextDto {
+  projectId: string;
+  projectName: string;
+  hospitalId: string;
+  ruleSummary: string;
+  previewReady: boolean;
+  executing: boolean;
+  executeFailed: boolean;
+  executedBatchId: string | null;
+  blockedReason: string | null;
+  previewStats: {
+    populationCount: number;
+    eligibleCount: number;
+    excludedCount: number;
+  } | null;
+  postExecuteSummary: {
+    tone: 'success' | 'failed';
+    title: string;
+    description: string;
+    batchId: string | null;
+  } | null;
+}
+
+export type SamplingExecuteBlockedReason =
+  | 'PROJECT_NOT_ACTIVE'
+  | 'PROJECT_VERSION_NOT_PUBLISHED'
+  | null;
+
+export interface SamplingPostExecuteSummary {
+  tone: 'success' | 'failed';
+  title: string;
+  description: string;
+  batchId: string | null;
 }
 
 // ── Public view-model interfaces ──────────────────────────────────────────
@@ -64,18 +99,13 @@ export interface SamplingExecuteContext {
   executing: boolean;
   executeFailed: boolean;
   executedBatchId: string | null;
-  blockedReason: string | null;
+  blockedReason: SamplingExecuteBlockedReason;
   previewStats: {
     populationCount: number;
     eligibleCount: number;
     excludedCount: number;
   } | null;
-  postExecuteSummary: {
-    tone: 'success' | 'failed';
-    title: string;
-    description: string;
-    batchId: string | null;
-  } | null;
+  postExecuteSummary: SamplingPostExecuteSummary | null;
 }
 
 /** 抽選批次查詢條件 */
@@ -159,24 +189,10 @@ export class SamplingService {
       .pipe(map(res => res.data));
   }
 
-  // TODO [B-001]: 無對應 BE 專屬端點。
-  // projectName/hospitalId 可由 GET /review-projects/{projectId} 衍生；
-  // blockedReason(COMPLETED_BATCH_EXISTS) 需額外查詢或新端點。
-  // 待架構決策後（A: 新增 BE 端點 / B: FE 組合查詢）補齊。
   getExecuteContext(projectId: string): Observable<SamplingExecuteContext> {
-    return of({
-      projectId,
-      projectName: '',
-      hospitalId: '',
-      ruleSummary: '',
-      previewReady: false,
-      executing: false,
-      executeFailed: false,
-      executedBatchId: null,
-      blockedReason: null,
-      previewStats: null,
-      postExecuteSummary: null
-    });
+    return this.http
+      .get<ApiResponse<SamplingExecuteContextDto>>(`${this.projectBaseUrl}/${projectId}/sampling/execute-context`)
+      .pipe(map(res => res.data));
   }
 
   private mapBatchSummary(dto: SamplingBatchSummaryDto): SamplingBatchSummaryItem {

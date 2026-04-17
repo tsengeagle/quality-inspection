@@ -2,6 +2,8 @@
   <div class="sampling-page-header-placeholder">
     <h1 class="sampling-page-title">抽選執行頁</h1>
     <p class="sampling-page-subtitle">projectId: {{ projectId }}</p>
+    <p class="sampling-page-subtitle" *ngIf="context?.projectName">projectName: {{ context?.projectName }}</p>
+    <p class="sampling-page-subtitle" *ngIf="context?.hospitalId">hospitalId: {{ context?.hospitalId }}</p>
   </div>
 
   <div class="mode-indicator-strip">{{ modeLabel }}</div>
@@ -15,7 +17,7 @@
     <app-sampling-rule-summary [ruleSnapshot]="context.ruleSummary"></app-sampling-rule-summary>
 
     <div class="preview-action-zone" *ngIf="mode === 'READY_FOR_PREVIEW' || mode === 'EXECUTE_FAILED'">
-      <button type="button" class="preview-btn" (click)="openPreviewStub()">
+      <button type="button" class="preview-btn" (click)="requestPreview()">
         {{ mode === 'EXECUTE_FAILED' ? '重新預估' : '預估抽選人數' }}
       </button>
     </div>
@@ -48,4 +50,3 @@
     (cancelled)="onConfirmModalCancel()">
   </app-sampling-execute-confirm-modal>
 </section>
-

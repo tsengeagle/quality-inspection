@@ -169,10 +169,6 @@ export class SamplingBatchListPageComponent implements OnInit {
     });
   }
 
-  onViewDetailStub(_batchId: string): void {
-    // PH-01: UI-008 尚未 ready；保持 no-op。
-  }
-
   openRetryConfirm(batchId: string): void {
     this.retryTargetBatchId = batchId;
     this.showRetryModal = true;
@@ -193,4 +189,3 @@ export class SamplingBatchListPageComponent implements OnInit {
     });
   }
 }
-

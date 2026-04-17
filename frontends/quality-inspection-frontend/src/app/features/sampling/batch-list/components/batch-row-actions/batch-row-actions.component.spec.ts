@@ -32,9 +32,10 @@ describe('BatchRowActionsComponent', () => {
     fixture.detectChanges();
 
     const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).map(button => (button as HTMLButtonElement).textContent?.trim());
-    expect(buttons).toContain('查看詳情');
+    expect(buttons).toContain('查看詳情（未開放）');
     expect(buttons).toContain('查看案件');
     expect(buttons).toContain('重跑');
+    expect((fixture.nativeElement as HTMLElement).querySelector('button[disabled]')?.textContent).toContain('查看詳情（未開放）');
   });
 
   it('keeps SYSTEM_ADMIN in metadata-only actions baseline', () => {
@@ -43,7 +44,7 @@ describe('BatchRowActionsComponent', () => {
     fixture.detectChanges();
 
     const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).map(button => (button as HTMLButtonElement).textContent?.trim());
-    expect(buttons).toContain('查看詳情');
+    expect(buttons).toContain('查看詳情（未開放）');
     expect(buttons).not.toContain('查看案件');
     expect(buttons).not.toContain('重跑');
   });

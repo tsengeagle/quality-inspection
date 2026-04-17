@@ -1,13 +1,11 @@
 import { Component, Input } from '@angular/core';
 import { BlockedReason } from '../../sampling-execute-page.component';
 
-/** SP-06b — SamplingBlockedBanner: 4-reason READONLY_BLOCKED banner
+/** SP-06b — SamplingBlockedBanner: minimal READONLY_BLOCKED banner
  *  tone: blocked（符合 HR 規則，outlined warning tone） */
 const BLOCKED_MESSAGES: Record<string, string> = {
   PROJECT_NOT_ACTIVE: '專案尚未啟用，無法執行抽選。',
-  COMPLETED_BATCH_EXISTS: '同版本已有完成批次，不能再次執行。',
-  PROJECT_CLOSED: '此審查專案已關閉，無法執行抽選。',
-  PERMISSION_REVOKED: '您目前沒有執行此抽選頁面的權限。',
+  PROJECT_VERSION_NOT_PUBLISHED: '尚無正式版本，不可執行抽選。',
   OTHER:             '目前無法執行此批次，請聯絡系統管理員。',
   NONE:              ''
 };

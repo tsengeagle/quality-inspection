@@ -1,6 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SamplingExecuteContext, SamplingService } from '../services/sampling.service';
+import {
+  SamplingExecuteBlockedReason,
+  SamplingExecuteContext,
+  SamplingService
+} from '../services/sampling.service';
 
 export type SamplingExecuteMode =
   | 'READY_FOR_PREVIEW'
@@ -12,9 +16,7 @@ export type SamplingExecuteMode =
 
 export type BlockedReason =
   | 'PROJECT_NOT_ACTIVE'
-  | 'COMPLETED_BATCH_EXISTS'
-  | 'PROJECT_CLOSED'
-  | 'PERMISSION_REVOKED'
+  | 'PROJECT_VERSION_NOT_PUBLISHED'
   | null;
 
 @Component({
@@ -41,10 +43,7 @@ export class SamplingExecutePageComponent implements OnInit {
 
   ngOnInit(): void {
     this.projectId = this.route.snapshot.paramMap.get('projectId') ?? '';
-    this.samplingService.getExecuteContext(this.projectId).subscribe(context => {
-      this.context = context;
-      this.resolveMode(context);
-    });
+    this.loadExecuteContext();
   }
 
   resolveMode(context: SamplingExecuteContext): void {
@@ -98,16 +97,16 @@ export class SamplingExecutePageComponent implements OnInit {
     this.showConfirmModal = true;
   }
 
-  openPreviewStub(): void {
+  requestPreview(): void {
     if (!this.context) {
       return;
     }
-    // B-002: 呼叫真實 POST /review-projects/{projectId}/sampling/preview
     this.samplingService.previewSampling(this.projectId).subscribe({
       next: stats => {
         this.context = {
           ...this.context!,
           previewReady: true,
+          executeFailed: false,
           previewStats: stats
         };
         this.resolveMode(this.context);
@@ -123,29 +122,20 @@ export class SamplingExecutePageComponent implements OnInit {
       this.context = { ...this.context, executing: true };
     }
 
-    // B-003: 呼叫真實 POST /review-projects/{projectId}/sampling/execute
     this.samplingService.executeSampling(this.projectId).subscribe({
-      next: result => {
-        this.context = {
-          ...this.context!,
-          executing: false,
-          executedBatchId: result.batchId,
-          postExecuteSummary: {
-            tone: 'success',
-            title: '抽選完成',
-            description: `批次 ${result.batchId} 已完成抽選`,
-            batchId: result.batchId
-          }
-        };
-        this.resolveMode(this.context);
+      next: () => {
+        this.loadExecuteContext(true);
       },
       error: () => {
-        this.context = {
-          ...this.context!,
-          executing: false,
-          executeFailed: true
-        };
-        this.resolveMode(this.context!);
+        this.loadExecuteContext(true, {
+          executeFailed: true,
+          postExecuteSummary: {
+            tone: 'failed',
+            title: '抽選失敗',
+            description: '抽選執行失敗，請重新預估後再試。',
+            batchId: null
+          }
+        });
       }
     });
   }
@@ -157,5 +147,20 @@ export class SamplingExecutePageComponent implements OnInit {
   navigateToBatchList(): void {
     this.router.navigate(['/sampling/batches']);
   }
-}
 
+  private loadExecuteContext(
+    preservePreviewStats = false,
+    fallbackOverrides?: Partial<SamplingExecuteContext>
+  ): void {
+    const localPreviewStats = preservePreviewStats ? this.context?.previewStats ?? null : null;
+    this.samplingService.getExecuteContext(this.projectId).subscribe(context => {
+      this.context = {
+        ...context,
+        previewReady: false,
+        previewStats: localPreviewStats ?? context.previewStats,
+        ...fallbackOverrides
+      };
+      this.resolveMode(this.context);
+    });
+  }
+}

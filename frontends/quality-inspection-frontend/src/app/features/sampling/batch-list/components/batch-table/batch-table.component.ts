@@ -28,7 +28,6 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
               <app-batch-row-actions
                 [batch]="b"
                 [role]="role"
-                (viewDetailStub)="viewDetailStub.emit($event)"
                 (viewCases)="viewCases.emit($event)"
                 (retryBatch)="retryBatch.emit($event)">
               </app-batch-row-actions>
@@ -49,7 +48,6 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
 export class BatchTableComponent {
   @Input() batches: SamplingBatchSummaryItem[] = [];
   @Input() role = 'HOSPITAL_MANAGER';
-  @Output() viewDetailStub = new EventEmitter<string>();
   @Output() viewCases = new EventEmitter<string>();
   @Output() retryBatch = new EventEmitter<string>();
 }

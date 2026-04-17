@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface SamplingBatchQueryPort {
     Page<SamplingBatchSummary> findBatches(SamplingBatchQueryCriteria criteria);
     Optional<SamplingBatchDetailView> findDetailById(String batchId);
+    Optional<SamplingBatchDetailView> findLatestDetailByProjectId(String projectId);
 }

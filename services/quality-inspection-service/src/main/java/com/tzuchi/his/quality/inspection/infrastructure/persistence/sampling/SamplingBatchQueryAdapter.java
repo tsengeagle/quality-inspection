@@ -58,6 +58,26 @@ public class SamplingBatchQueryAdapter implements SamplingBatchQueryPort {
         return Optional.of(toDetailView(entity));
     }
 
+    @Override
+    public Optional<SamplingBatchDetailView> findLatestDetailByProjectId(String projectId) {
+        CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<SamplingBatchEntity> query = cb.createQuery(SamplingBatchEntity.class);
+        Root<SamplingBatchEntity> root = query.from(SamplingBatchEntity.class);
+
+        query.where(cb.equal(root.get("projectId"), projectId));
+        query.orderBy(cb.desc(root.get("startedAt")));
+
+        List<SamplingBatchEntity> results = em.createQuery(query)
+                .setMaxResults(1)
+                .getResultList();
+
+        if (results.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(toDetailView(results.get(0)));
+    }
+
     private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<SamplingBatchEntity> root,
                                              SamplingBatchQueryCriteria criteria) {
         List<Predicate> predicates = new ArrayList<>();

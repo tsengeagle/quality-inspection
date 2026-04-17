@@ -31,8 +31,10 @@ describe('SamplingExecutePageComponent', () => {
 
   beforeEach(async () => {
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
-    samplingService = jasmine.createSpyObj<SamplingService>('SamplingService', ['getExecuteContext']);
+    samplingService = jasmine.createSpyObj<SamplingService>('SamplingService', ['getExecuteContext', 'previewSampling', 'executeSampling']);
     samplingService.getExecuteContext.and.returnValue(of(buildContext()));
+    samplingService.previewSampling.and.returnValue(of({ populationCount: 120, eligibleCount: 80, excludedCount: 40 }));
+    samplingService.executeSampling.and.returnValue(of({ batchId: 'BATCH-COMPLETED-001' }));
 
     await TestBed.configureTestingModule({
       declarations: [SamplingExecutePageComponent],
@@ -64,7 +66,7 @@ describe('SamplingExecutePageComponent', () => {
       { context: buildContext({ previewReady: true, executing: true, previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 } }), expected: 'EXECUTING' },
       { context: buildContext({ executedBatchId: 'BATCH-COMPLETED-001', postExecuteSummary: { tone: 'success', title: '抽選完成', description: '已建立正式批次。', batchId: 'BATCH-COMPLETED-001' } }), expected: 'EXECUTE_SUCCESS' },
       { context: buildContext({ executeFailed: true, previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 }, postExecuteSummary: { tone: 'failed', title: '抽選失敗', description: '請重新預估後再試。', batchId: null } }), expected: 'EXECUTE_FAILED' },
-      { context: buildContext({ blockedReason: 'PROJECT_CLOSED' }), expected: 'READONLY_BLOCKED' }
+      { context: buildContext({ blockedReason: 'PROJECT_VERSION_NOT_PUBLISHED' }), expected: 'READONLY_BLOCKED' }
     ];
 
     for (const testCase of cases) {
@@ -76,7 +78,7 @@ describe('SamplingExecutePageComponent', () => {
   it('maps the four readonly blocked reasons into the blocked baseline', () => {
     fixture.detectChanges();
 
-    const reasons = ['PROJECT_NOT_ACTIVE', 'COMPLETED_BATCH_EXISTS', 'PROJECT_CLOSED', 'PERMISSION_REVOKED'] as const;
+    const reasons = ['PROJECT_NOT_ACTIVE', 'PROJECT_VERSION_NOT_PUBLISHED'] as const;
 
     for (const reason of reasons) {
       component.resolveMode(buildContext({ blockedReason: reason }));
@@ -149,5 +151,38 @@ describe('SamplingExecutePageComponent', () => {
 
     expect(component.showConfirmModal).toBeTrue();
     expect(fixture.nativeElement.querySelector('app-sampling-execute-confirm-modal')).not.toBeNull();
+  });
+
+  it('loads bootstrap context from the dedicated execute-context endpoint', () => {
+    fixture.detectChanges();
+
+    expect(samplingService.getExecuteContext).toHaveBeenCalledWith('PROJECT-001');
+    expect(component.context?.projectName).toBe('2026 年第二季品質審查');
+  });
+
+  it('reloads bootstrap context after execute completes', () => {
+    samplingService.getExecuteContext.and.returnValues(
+      of(buildContext({
+        previewReady: true,
+        previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 }
+      })),
+      of(buildContext({
+        executedBatchId: 'BATCH-COMPLETED-001',
+        postExecuteSummary: {
+          tone: 'success',
+          title: '抽選完成',
+          description: '已建立正式批次。',
+          batchId: 'BATCH-COMPLETED-001'
+        }
+      }))
+    );
+
+    fixture.detectChanges();
+    component.onConfirmModalConfirm();
+
+    expect(samplingService.executeSampling).toHaveBeenCalledWith('PROJECT-001');
+    expect(samplingService.getExecuteContext).toHaveBeenCalledTimes(2);
+    expect(component.mode).toBe('EXECUTE_SUCCESS');
+    expect(component.context?.executedBatchId).toBe('BATCH-COMPLETED-001');
   });
 });

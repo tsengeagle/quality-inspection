@@ -20,10 +20,11 @@
   <app-batch-table
     [batches]="batches"
     [role]="role"
-    (viewDetailStub)="onViewDetailStub($event)"
     (viewCases)="onViewCases($event)"
     (retryBatch)="openRetryConfirm($event)">
   </app-batch-table>
+
+  <p class="deferred-note">批次詳情已正式 deferred，原因為 UI spec 尚未定。</p>
 
   <app-retry-confirm-modal
     [visible]="showRetryModal"
@@ -32,4 +33,3 @@
     (cancel)="cancelRetry()">
   </app-retry-confirm-modal>
 </section>
-

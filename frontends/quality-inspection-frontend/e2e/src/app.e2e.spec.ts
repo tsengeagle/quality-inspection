@@ -138,6 +138,61 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
   });
 }
 
+async function mockSamplingApi(page: Parameters<typeof test>[0]['page']): Promise<void> {
+  await page.route('**/api/quality-inspection/sampling-batches?*', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          content: [
+            {
+              batchId: 'BATCH-FAILED-001',
+              projectId: 'PROJECT-001',
+              executionMode: 'MANUAL',
+              status: 'FAILED',
+              populationCount: 120,
+              eligibleCount: 80,
+              selectedCount: 0,
+              retryOfBatchId: null,
+              startedAt: '2026-04-01T08:00:00',
+              finishedAt: '2026-04-01T08:10:00'
+            }
+          ],
+          page: 0,
+          size: 20,
+          totalElements: 1,
+          totalPages: 1
+        }
+      })
+    });
+  });
+
+  await page.route('**/api/quality-inspection/review-projects/PROJECT-001/sampling/execute-context', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          projectId: 'PROJECT-001',
+          projectName: '2026 年第二季品質審查',
+          hospitalId: 'H001',
+          ruleSummary: '專案版本：v1\n病歷類型：OUTPATIENT\n評分表：ss-test\n品質門檻：未設定',
+          previewReady: false,
+          executing: false,
+          executeFailed: false,
+          executedBatchId: null,
+          blockedReason: null,
+          previewStats: null,
+          postExecuteSummary: null
+        }
+      })
+    });
+  });
+}
+
 test.describe('frontend smoke baseline', () => {
   test('loads the shell from the root route', async ({ page }) => {
     await page.goto('/');
@@ -155,6 +210,7 @@ test.describe('frontend smoke baseline', () => {
   });
 
   test('renders the sampling batch list placeholder region', async ({ page }) => {
+    await mockSamplingApi(page);
     await page.goto('/sampling/batches');
 
     await expect(page.locator('.batch-list-tabs')).toBeVisible();
@@ -162,15 +218,16 @@ test.describe('frontend smoke baseline', () => {
     await expect(page.locator('.batch-filter-bar')).toBeVisible();
   });
 
-  test('keeps 查看詳情 as a Wave 4 no-op stub on /sampling/batches', async ({ page }) => {
+  test('marks batch detail as deferred on /sampling/batches', async ({ page }) => {
+    await mockSamplingApi(page);
     await page.goto('/sampling/batches');
 
-    await page.getByRole('button', { name: '查看詳情' }).first().click();
-
-    await expect(page).toHaveURL(/\/sampling\/batches$/);
+    await expect(page.getByRole('button', { name: '查看詳情（未開放）' }).first()).toBeDisabled();
+    await expect(page.locator('.deferred-note')).toContainText('批次詳情已正式 deferred，原因為 UI spec 尚未定。');
   });
 
   test('loads the sampling execute route without being shadowed by /sampling/batches', async ({ page }) => {
+    await mockSamplingApi(page);
     await page.goto('/sampling/PROJECT-001');
 
     await expect(page.locator('.sampling-page-title')).toHaveText('抽選執行頁');

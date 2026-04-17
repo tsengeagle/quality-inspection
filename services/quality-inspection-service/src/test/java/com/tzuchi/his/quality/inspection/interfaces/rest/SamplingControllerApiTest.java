@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Set;
 
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -52,6 +53,65 @@ class SamplingControllerApiTest {
                 .andExpect(jsonPath("$.data.eligibleCount").exists())
                 .andExpect(jsonPath("$.data.excludedCount").exists())
                 .andExpect(jsonPath("$.data.sourceCaseKeys").doesNotExist());
+    }
+
+    @Test
+    void getExecuteContext_activeProject_shouldReturnBootstrapContext() throws Exception {
+        String projectId = createAndActivateProject("Execute Context Test");
+
+        mockMvc.perform(get("/review-projects/" + projectId + "/sampling/execute-context")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.projectId").value(projectId))
+                .andExpect(jsonPath("$.data.projectName").value("Execute Context Test"))
+                .andExpect(jsonPath("$.data.hospitalId").value("H001"))
+                .andExpect(jsonPath("$.data.previewReady").value(false))
+                .andExpect(jsonPath("$.data.executing").value(false))
+                .andExpect(jsonPath("$.data.executeFailed").value(false))
+                .andExpect(jsonPath("$.data.executedBatchId").value(nullValue()))
+                .andExpect(jsonPath("$.data.previewStats").value(nullValue()))
+                .andExpect(jsonPath("$.data.postExecuteSummary").value(nullValue()));
+    }
+
+    @Test
+    void getExecuteContext_failedBatch_shouldReturnFailureSummary() throws Exception {
+        String projectId = createAndActivateProject("Execute Context Failed Test");
+
+        SamplingBatch failedBatch = SamplingBatch.start(
+                "failed-context-batch", projectId, ExecutionMode.MANUAL,
+                new RuleSnapshot("PV-" + projectId + "-v1", 1, "SS-001-v1", "MANUAL", null));
+        failedBatch.fail("simulated failure");
+        batchRepository.save(failedBatch);
+
+        mockMvc.perform(get("/review-projects/" + projectId + "/sampling/execute-context")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.executeFailed").value(true))
+                .andExpect(jsonPath("$.data.postExecuteSummary.tone").value("failed"))
+                .andExpect(jsonPath("$.data.postExecuteSummary.batchId").value("failed-context-batch"));
+    }
+
+    @Test
+    void getExecuteContext_completedBatch_shouldReturnSuccessSummary() throws Exception {
+        String projectId = createAndActivateProject("Execute Context Completed Test");
+
+        MvcResult execResult = mockMvc.perform(
+                        post("/review-projects/" + projectId + "/sampling/execute")
+                                .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String batchId = objectMapper.readTree(
+                execResult.getResponse().getContentAsString())
+                .get("data").get("batchId").asText();
+
+        mockMvc.perform(get("/review-projects/" + projectId + "/sampling/execute-context")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.executedBatchId").value(batchId))
+                .andExpect(jsonPath("$.data.postExecuteSummary.tone").value("success"))
+                .andExpect(jsonPath("$.data.postExecuteSummary.batchId").value(batchId));
     }
 
     @Test

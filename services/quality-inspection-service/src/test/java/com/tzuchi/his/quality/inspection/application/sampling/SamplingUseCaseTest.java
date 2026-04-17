@@ -36,6 +36,7 @@ class SamplingUseCaseTest {
     private PreviewSamplingPopulationUseCase previewUseCase;
     private ExecuteSamplingUseCase executeUseCase;
     private RetrySamplingBatchUseCase retryUseCase;
+    private GetSamplingExecuteContextUseCase executeContextUseCase;
 
     private ActorContext hospitalManagerActor;
 
@@ -50,6 +51,7 @@ class SamplingUseCaseTest {
         previewUseCase = new PreviewSamplingPopulationUseCase(projectRepo, candidateSource);
         executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher);
         retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher);
+        executeContextUseCase = new GetSamplingExecuteContextUseCase(projectRepo, new InMemoryBatchQueryPort());
 
         hospitalManagerActor = new ActorContext("u-test", "Test", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
     }
@@ -322,6 +324,81 @@ class SamplingUseCaseTest {
         assertThrows(AccessDeniedException.class, () -> executeUseCase.execute(wrongHospital, "p1"));
     }
 
+    @Test
+    void getExecuteContext_activeProject_shouldReturnBootstrapContext() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+
+        SamplingExecuteContextView context = executeContextUseCase.execute(hospitalManagerActor, "p1");
+
+        assertEquals("p1", context.getProjectId());
+        assertEquals("Test Project", context.getProjectName());
+        assertEquals("H001", context.getHospitalId());
+        assertFalse(context.isPreviewReady());
+        assertFalse(context.isExecuting());
+        assertFalse(context.isExecuteFailed());
+        assertNull(context.getExecutedBatchId());
+        assertNull(context.getBlockedReason());
+        assertNull(context.getPreviewStats());
+        assertNull(context.getPostExecuteSummary());
+    }
+
+    @Test
+    void getExecuteContext_failedLatestBatch_shouldExposeFailureSummary() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        queryPort.latestDetail = new SamplingBatchDetailView(
+                "failed-batch", "p1", ExecutionMode.MANUAL, BatchStatus.FAILED,
+                10, 8, 2, 0, null, "simulated failure",
+                Instant.now(), Instant.now(),
+                new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
+                List.of());
+        GetSamplingExecuteContextUseCase useCase = new GetSamplingExecuteContextUseCase(projectRepo, queryPort);
+
+        SamplingExecuteContextView context = useCase.execute(hospitalManagerActor, "p1");
+
+        assertTrue(context.isExecuteFailed());
+        assertNotNull(context.getPostExecuteSummary());
+        assertEquals("failed", context.getPostExecuteSummary().getTone());
+        assertEquals("failed-batch", context.getPostExecuteSummary().getBatchId());
+    }
+
+    @Test
+    void getExecuteContext_completedLatestBatch_shouldExposeExecutedBatchId() {
+        ReviewProject project = createActiveProject("p1");
+        projectRepo.save(project);
+
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        queryPort.latestDetail = new SamplingBatchDetailView(
+                "completed-batch", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+                10, 8, 2, 3, null, null,
+                Instant.now(), Instant.now(),
+                new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
+                List.of());
+        GetSamplingExecuteContextUseCase useCase = new GetSamplingExecuteContextUseCase(projectRepo, queryPort);
+
+        SamplingExecuteContextView context = useCase.execute(hospitalManagerActor, "p1");
+
+        assertFalse(context.isExecuteFailed());
+        assertEquals("completed-batch", context.getExecutedBatchId());
+        assertNotNull(context.getPostExecuteSummary());
+        assertEquals("success", context.getPostExecuteSummary().getTone());
+    }
+
+    @Test
+    void getExecuteContext_draftProject_shouldExposePublishedVersionBlockedReason() {
+        ReviewProject draftProject = ReviewProject.create("p-draft", "H001", "Draft Project",
+                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        projectRepo.save(draftProject);
+
+        SamplingExecuteContextView context = executeContextUseCase.execute(hospitalManagerActor, "p-draft");
+
+        assertEquals("PROJECT_NOT_ACTIVE", context.getBlockedReason());
+        assertNull(context.getExecutedBatchId());
+    }
+
     // --- Helpers ---
 
     private ReviewProject createActiveProject(String projectId) {
@@ -338,6 +415,7 @@ class SamplingUseCaseTest {
     static class InMemoryBatchQueryPort implements SamplingBatchQueryPort {
         final List<SamplingBatchSummary> summaries = new ArrayList<>();
         final Map<String, SamplingBatchDetailView> details = new HashMap<>();
+        SamplingBatchDetailView latestDetail;
 
         @Override
         public Page<SamplingBatchSummary> findBatches(SamplingBatchQueryCriteria criteria) {
@@ -351,6 +429,11 @@ class SamplingUseCaseTest {
         @Override
         public Optional<SamplingBatchDetailView> findDetailById(String batchId) {
             return Optional.ofNullable(details.get(batchId));
+        }
+
+        @Override
+        public Optional<SamplingBatchDetailView> findLatestDetailByProjectId(String projectId) {
+            return Optional.ofNullable(latestDetail);
         }
     }
 
