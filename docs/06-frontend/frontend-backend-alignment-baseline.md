@@ -1,7 +1,7 @@
 # Frontend-Backend Alignment Baseline
 
 > **文件定位**：本文件是 UI-006 ~ UI-014 的前後端對齊基線。  
-> **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事校正為 limited-scope implemented、deferred、pending 與 stub-backed。  
+> **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事校正為 limited-scope implemented、deferred、pending 與最小 source replacement。  
 > **Evidence 範圍**：僅採 source code、existing tests、現有 route/e2e mock；不把尚未落地的 shell integration 或外部系統契約包裝成已實作。
 
 ---
@@ -26,7 +26,7 @@
 | F-002 | 採方案 C：暫不做 batch detail | **deferred**。UI-007 detail action 改為明確 disabled + deferred 訊息 |
 | I-001 | Route Guard 正式化不可直接實作 | **pending / decision-required** |
 | I-002 | hardcoded role 不可直接實作 | **pending / decision-required** |
-| I-003 | assignment candidate 正式資料源不可直接替換 | **stub-backed / decision-required** |
+| I-003 | assignment candidate source replacement slice | **limited-scope implemented** |
 
 ---
 
@@ -49,7 +49,7 @@
 | `SamplingController` | `services/quality-inspection-service/src/main/java/.../interfaces/rest/SamplingController.java` | ✅ REAL — 含 preview / execute / list / detail / export / retry / **execute-context** |
 | `ReviewCaseController` | `services/quality-inspection-service/src/main/java/.../interfaces/rest/ReviewCaseController.java` | ✅ REAL |
 | `ApiKeyAuthFilter` + `TzJwtParser` | `services/quality-inspection-service/src/main/java/.../infrastructure/security/` | ✅ REAL — backend 已有 `userId / userName / roles / hospitalId` actor context 來源 |
-| `StubAssignmentCandidateLookupAdapter` | `services/quality-inspection-service/src/main/java/.../infrastructure/StubAssignmentCandidateLookupAdapter.java` | ⚠️ STUB-BACKED |
+| `HisStaffDirectoryAssignmentCandidateAdapter` | `services/quality-inspection-service/src/main/java/.../infrastructure/persistence/staffdirectory/HisStaffDirectoryAssignmentCandidateAdapter.java` | ✅ REAL — JPA-backed persisted staff directory source；local profile 以 seed 維持最小可運作資料 |
 
 ### 3.3 Validation Evidence
 
@@ -109,7 +109,7 @@
 | UI-007 抽選批次列表頁 | ✅ REAL（列表 / retry） | 仍有 I-002：batch-list role hardcoded |
 | UI-009 案件列表頁 | ✅ REAL（含 `projectionType`） | 仍有 I-002：worklist role hardcoded |
 | UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供 |
-| UI-011 案件分派頁 | ⚠️ STUB-BACKED | 命令已真實；candidate source 仍為 stub adapter |
+| UI-011 案件分派頁 | ✅ REAL（limited source replacement） | 命令與 query contract 維持不變；candidate lookup 已改走 persisted staff directory source |
 | UI-012 初審作業頁 | ✅ REAL | bootstrap context 已嵌入 case detail |
 | UI-013 複審作業頁 | ✅ REAL | CLOSED revision exception 已對齊 |
 | UI-014 revision 歷程頁 | ✅ REAL | `hasExceptionEntry` 已由 backend 計算 |
@@ -145,7 +145,7 @@
 |---|---|---|
 | I-001 | Route Guard 正式化 | 🕓 DECISION-REQUIRED |
 | I-002 | hardcoded role 移除 | 🕓 DECISION-REQUIRED |
-| I-003 | Assignment candidate 正式資料來源 | 🕓 DECISION-REQUIRED |
+| I-003 | Assignment candidate source replacement slice | ✅ LIMITED-SCOPE IMPLEMENTED |
 
 ---
 
@@ -242,42 +242,29 @@
 
 ---
 
-### 6.3 I-003 — Assignment Candidate 正式資料來源
-
-> 以下內容僅整理待決策選項與限制，**不視為已拍板方案**。
+### 6.3 I-003 — Assignment Candidate Source Replacement Slice
 
 #### 現況
 
-- `StubAssignmentCandidateLookupAdapter` 目前契約輸入：`hospitalId`、`role`、`keyword`。
-- 目前來源輸出欄位：`userId`、`displayName`、`displayLabel`、`role`、`active`。
-- application layer 再補：
+- `HisStaffDirectoryAssignmentCandidateAdapter` 目前契約輸入仍為：`hospitalId`、`role`、`keyword`。
+- 目前來源輸出欄位仍為：`userId`、`displayName`、`displayLabel`、`role`、`active`。
+- application layer 持續補：
   - `selectable`
   - `blockedReason`
-- 關鍵結論：**資格過濾目前屬 application layer，不應直接下沉到外部來源。**
+- 關鍵結論：**資格過濾仍屬 application layer，不下沉到 source。**
 
-#### 方案比較
+#### 本輪落地
 
-| 方案 | 可能來源 | 可提供欄位 | 搜尋能力 | reviewer / rereviewer 資格過濾落點 | 成本 | 風險 |
-|---|---|---|---|---|---|---|
-| A | HIS staff master | staffId、name、hospitalId、職類/科別、在職狀態 | 醫院內搜尋通常足夠 | application layer 保持現況；source 只回 directory entry | 中 | 可能缺少跨院/組織角色資訊 |
-| B | HR org directory | employeeId、name、org unit、title、active | 組織樹 / keyword 通常較完整 | application layer；必要時另補 reviewer eligibility mapping | 中高 | 醫療審查角色未必直接存在 |
-| C | IAM / AD / LDAP | account、displayName、group、active | account / group 搜尋 | application layer；group -> role mapping 另做 adapter | 中高 | 群組不一定能表達審查業務資格 |
+- source adapter 改為單一 persisted staff directory source，責任限於 directory lookup 與欄位映射。
+- local profile 以 seed 資料維持最小可運作來源，避免回退成 hardcoded stub component。
+- `AssignmentCandidateDirectoryPort`、`AssignmentCandidateDirectoryEntry`、`AssignmentCandidateView`、`assignment-context`、`assignment-candidates` contract 皆未改 shape。
+- 目前 repo 內仍無可驗證的外部 HIS / doctor master 接線 evidence，因此本輪不宣稱最終 upstream architecture 已完成。
 
-#### 暫不定稿方向
+#### 後續仍待演進範圍
 
-目前僅能確認 UI-011 仍是 stub-backed，且正式 candidate source strategy 待拍板；以下方向僅作 pending options 討論。
-
-**理由**
-
-1. 現有 use case 已把 business eligibility 放在 application layer，替換 source 不必重寫 UI/command contract。
-2. `AssignmentCandidateDirectoryPort` 已是穩定 seam，能讓 production source 漸進替換。
-3. 直接用 IAM/LDAP 當唯一真相風險較高，因其 group 通常不等於審查業務資格。
-
-#### 待使用者拍板的最小問題集
-
-1. 正式 source 優先採 HIS staff master 還是 HR org directory？
-2. reviewer / rereviewer 資格是否已存在於來源欄位，或需由本系統另做 mapping？
-3. 搜尋範圍是否限同院，或允許跨組織候選？
+1. persisted staff directory 如何與真正的 HIS staff master 或 doctor master 同步，repo 內仍無現成 evidence。
+2. 若未來需要跨院 / 跨組織候選或多來源聚合，應另開 slice，不在本輪處理。
+3. 若未來來源能提供 specialty / qualification 等欄位，可在不破壞 seam 的前提下擴充 entry 映射，但 business eligibility 仍應留在 application layer。
 
 ---
 
