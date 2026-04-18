@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SamplingService, SamplingBatchSummaryItem } from '../services/sampling.service';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
+
 export type SamplingBatchListRole =
   | 'HOSPITAL_MANAGER'
   | 'AUDITOR'
@@ -94,10 +96,13 @@ export class SamplingBatchListPageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private samplingService: SamplingService
+    private samplingService: SamplingService,
+    private actorContextService: ActorContextService
   ) {}
 
   ngOnInit(): void {
+    this.role = this.actorContextService.resolvePrimaryRole('HOSPITAL_MANAGER');
+
     this.route.queryParams.subscribe(params => {
       this.uiState.tab = (params['tab'] as BatchListTab) ?? this._defaultTab();
       this.uiState.status = this._tabToStatus(this.uiState.tab);

@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { SamplingService } from '../services/sampling.service';
 import { SamplingBatchListPageComponent } from './sampling-batch-list-page.component';
 
@@ -16,17 +17,45 @@ class ActivatedRouteStub {
   }
 }
 
+class ActorContextServiceStub {
+  private readonly subject = new BehaviorSubject({
+    userId: 'U-MANAGER',
+    userName: 'Manager',
+    roles: ['HOSPITAL_MANAGER'] as string[],
+    currentRole: 'HOSPITAL_MANAGER' as string | null,
+    hospitalId: 'H-001'
+  });
+
+  readonly context$ = this.subject.asObservable();
+
+  setRole(role: string): void {
+    this.subject.next({
+      userId: 'U-MANAGER',
+      userName: 'Manager',
+      roles: [role],
+      currentRole: role,
+      hospitalId: 'H-001'
+    });
+  }
+
+  resolvePrimaryRole(fallbackRole: string): string {
+    return this.subject.getValue().currentRole ?? fallbackRole;
+  }
+}
+
 describe('SamplingBatchListPageComponent', () => {
   let fixture: ComponentFixture<SamplingBatchListPageComponent>;
   let component: SamplingBatchListPageComponent;
   let activatedRoute: ActivatedRouteStub;
   let router: jasmine.SpyObj<Router>;
   let samplingService: jasmine.SpyObj<SamplingService>;
+  let actorContextService: ActorContextServiceStub;
 
   beforeEach(async () => {
     activatedRoute = new ActivatedRouteStub();
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     samplingService = jasmine.createSpyObj<SamplingService>('SamplingService', ['getBatches']);
+    actorContextService = new ActorContextServiceStub();
     samplingService.getBatches.and.returnValue(of({
       items: [],
       page: 0,
@@ -40,7 +69,8 @@ describe('SamplingBatchListPageComponent', () => {
       providers: [
         { provide: ActivatedRoute, useValue: activatedRoute },
         { provide: Router, useValue: router },
-        { provide: SamplingService, useValue: samplingService }
+        { provide: SamplingService, useValue: samplingService },
+        { provide: ActorContextService, useValue: actorContextService }
       ],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
@@ -65,7 +95,7 @@ describe('SamplingBatchListPageComponent', () => {
   });
 
   it('resolves the SYSTEM_ADMIN metadata-only baseline', () => {
-    component.role = 'SYSTEM_ADMIN';
+    actorContextService.setRole('SYSTEM_ADMIN');
     activatedRoute.setQueryParams({});
 
     fixture.detectChanges();

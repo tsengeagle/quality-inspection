@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Params, Router } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CasesService } from '../services/cases.service';
 import { CaseListPageComponent } from './case-list-page.component';
 
@@ -16,17 +17,45 @@ class ActivatedRouteStub {
   }
 }
 
+class ActorContextServiceStub {
+  private readonly subject = new BehaviorSubject({
+    userId: 'U-REVIEWER',
+    userName: 'Reviewer',
+    roles: ['REVIEWER'] as string[],
+    currentRole: 'REVIEWER' as string | null,
+    hospitalId: 'H-001'
+  });
+
+  readonly context$ = this.subject.asObservable();
+
+  setRole(role: string): void {
+    this.subject.next({
+      userId: 'U-REVIEWER',
+      userName: 'Reviewer',
+      roles: [role],
+      currentRole: role,
+      hospitalId: 'H-001'
+    });
+  }
+
+  resolvePrimaryRole(fallbackRole: string): string {
+    return this.subject.getValue().currentRole ?? fallbackRole;
+  }
+}
+
 describe('CaseListPageComponent', () => {
   let fixture: ComponentFixture<CaseListPageComponent>;
   let component: CaseListPageComponent;
   let activatedRoute: ActivatedRouteStub;
   let router: jasmine.SpyObj<Router>;
   let casesService: jasmine.SpyObj<CasesService>;
+  let actorContextService: ActorContextServiceStub;
 
   beforeEach(async () => {
     activatedRoute = new ActivatedRouteStub();
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     casesService = jasmine.createSpyObj<CasesService>('CasesService', ['getCases']);
+    actorContextService = new ActorContextServiceStub();
     casesService.getCases.and.returnValue(of({
       items: [],
       page: 0,
@@ -41,7 +70,8 @@ describe('CaseListPageComponent', () => {
       providers: [
         { provide: ActivatedRoute, useValue: activatedRoute },
         { provide: Router, useValue: router },
-        { provide: CasesService, useValue: casesService }
+        { provide: CasesService, useValue: casesService },
+        { provide: ActorContextService, useValue: actorContextService }
       ],
       schemas: [NO_ERRORS_SCHEMA]
     }).compileComponents();
@@ -76,7 +106,7 @@ describe('CaseListPageComponent', () => {
   });
 
   it('uses the manager default tab and persists tab changes through query params', () => {
-    component.role = 'MANAGER';
+    actorContextService.setRole('HOSPITAL_MANAGER');
     activatedRoute.setQueryParams({});
 
     fixture.detectChanges();

@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CaseListResult, CasesService, CaseSummaryItem, CasesQueryCriteria } from '../services/cases.service';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
+
 /** C-01 CaseListPage UI state */
 export interface CaseListUIState {
   tab: string;
@@ -20,8 +22,10 @@ export interface CaseListUIState {
 })
 export class CaseListPageComponent implements OnInit {
 
+  private readonly fallbackRole = 'REVIEWER';
+
   /** 模擬 role（正式實作由 shell 注入） */
-  role = 'REVIEWER';
+  role = this.fallbackRole;
   /** backend list response 提供的 projection truth */
   projectionType?: 'FULL' | 'METADATA_ONLY';
 
@@ -43,10 +47,13 @@ export class CaseListPageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private casesService: CasesService
+    private casesService: CasesService,
+    private actorContextService: ActorContextService
   ) {}
 
   ngOnInit(): void {
+    this.role = this.actorContextService.resolvePrimaryRole('REVIEWER');
+
     // 從 query params 還原 UI state（filter/tab 持久化）
     this.route.queryParams.subscribe(params => {
       this.uiState = {
@@ -96,7 +103,9 @@ export class CaseListPageComponent implements OnInit {
     } else {
       this.showBusinessCommands = true;
       this.showProjectionNotice = false;
-      this.modeLabel = this.role === 'MANAGER' ? '管理者視角' : '審查佇列';
+      this.modeLabel = this.role === 'MANAGER' || this.role === 'HOSPITAL_MANAGER'
+        ? '管理者視角'
+        : '審查佇列';
     }
   }
 
