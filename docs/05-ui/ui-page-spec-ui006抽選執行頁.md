@@ -94,7 +94,7 @@
 - 排除後剩多少
 - 正式執行之後會產生什麼結果
 
-頁面初始化時，應先向 `GET /review-projects/{projectId}/sampling/execute-context` 取得 bootstrap context，再決定首屏狀態與可見區塊。現階段此端點僅作為頁面 bootstrap context 來源；preview / execute 後的 session state ownership 仍待後續收斂。
+頁面初始化時，應先向 `GET /review-projects/{projectId}/sampling/execute-context` 取得 bootstrap context，再決定首屏狀態與可見區塊。現階段此端點僅作為頁面 bootstrap context 來源；preview / execute 後的 session state ownership 仍待後續收斂。當前實作下，`previewStats` 仍屬 page-local session state，execute failure 也仍允許 explicit fallback summary 補足短暫 UI 狀態。
 
 ---
 
@@ -282,6 +282,7 @@
 
 * 本區是執行決策關鍵
 * 不應只用 toast 一閃而過
+* 當前畫面上的 preview 統計不等於 backend persisted truth；本輪實作仍允許以 page-local session state 暫存
 
 ---
 
@@ -379,6 +380,7 @@ page_modes:
 
 * 已取得統計
 * 可正式執行
+* 此狀態可由當前頁面的 preview session 建立，不等於 backend 已持久化相同狀態
 
 #### `EXECUTING`
 
@@ -388,11 +390,13 @@ page_modes:
 #### `EXECUTE_SUCCESS`
 
 * batch 已成功建立
+* 畫面進入 success 仍以 execute 後重新讀取的 bootstrap context 為準，不以 execute command response 單獨承擔完整頁面恢復
 
 #### `EXECUTE_FAILED`
 
 * 抽選失敗
 * 顯示錯誤訊息與下一步建議
+* 若 backend 最新批次失敗態尚未即時反映，頁面可先用 explicit fallback summary 顯示失敗
 
 #### `READONLY_BLOCKED`
 

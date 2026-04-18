@@ -1,7 +1,7 @@
 # Frontend-Backend Alignment Baseline
 
 > **文件定位**：本文件是 UI-006 ~ UI-014 的前後端對齊基線。  
-> **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事降回 partial、deferred、pending 與 stub-backed。  
+> **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事校正為 limited-scope implemented、deferred、pending 與 stub-backed。  
 > **Evidence 範圍**：僅採 source code、existing tests、現有 route/e2e mock；不把尚未落地的 shell integration 或外部系統契約包裝成已實作。
 
 ---
@@ -118,23 +118,28 @@
 
 ## 5. Gap 分類（本輪後）
 
-### 5.1 Closed
+### 5.1 Limited-Scope Implemented
 
 | ID | 頁面 / 範圍 | 描述 |
 |---|---|---|
-| B-001 | UI-006 | execute bootstrap context endpoint 與前端接線已存在 |
+| B-001 | UI-006 | execute-context bootstrap endpoint 與前端接線已存在；但 previewStats 仍為 page-local session state，execute failure 仍保留 explicit fallback，故不寫成 fully closed |
+
+### 5.2 Closed
+
+| ID | 頁面 / 範圍 | 描述 |
+|---|---|---|
 | B-002 | UI-006 | preview command 已接真實 API |
 | B-003 | UI-006 | execute command 已接真實 API |
 | B-004 | UI-007 | batch list 已接真實 API |
 | F-001 | UI-007 | retry command 已接真實 API |
 
-### 5.2 Deferred
+### 5.3 Deferred
 
 | ID | 頁面 / 範圍 | 狀態 | Deferred 原因 |
 |---|---|---|---|
 | F-002 | UI-007 batch detail | ⏸️ DEFERRED | UI spec 尚未定；本輪不做 route / drawer / modal |
 
-### 5.3 Decision-Required
+### 5.4 Decision-Required
 
 | ID | 範圍 | 狀態 |
 |---|---|---|
@@ -285,7 +290,7 @@
 | UI-006 狀態是否改變 | **是**，由 fixture bootstrap 轉為 execute-context bootstrap |
 | UI-007 detail gap 是否仍是含糊 stub | **否**，已改為明確 deferred |
 | I-001 / I-002 / I-003 是否已 fully resolved | **否**；目前仍屬 pending / decision-required |
-| 是否仍有文件同步缺口 | **是**；B-001 與 F-002 相關 contract / page spec 仍需同步 |
+| 是否仍有文件同步缺口 | **否**；本輪允許範圍內的 B-001 direct docs 已同步 |
 
 ---
 
@@ -293,6 +298,6 @@
 
 本輪對齊盤點的保守結論如下：
 
-1. **B-001 為 limited-scope implemented**：UI-006 已改接 `GET /review-projects/{projectId}/sampling/execute-context` 作為頁面 bootstrap API，但 preview / execute 後的部分畫面狀態仍未收口成單一 truth source。
+1. **B-001 為 limited-scope implemented**：UI-006 已改接 `GET /review-projects/{projectId}/sampling/execute-context` 作為頁面 bootstrap API；但 `previewStats` 仍由 page-local session state 維持，execute failure 仍保留 explicit fallback，因此尚未收口成單一 truth source。
 2. **F-002 為 deferred**：repo 已明確表達目前不開放 batch detail page / route / drawer / modal，前端 detail action 維持 disabled / 未開放。
 3. **I-001 / I-002 / I-003 仍為 pending / decision-required**：這三項目前僅能描述現況限制與待決問題，不應寫成 resolved 或 ready-to-implement。

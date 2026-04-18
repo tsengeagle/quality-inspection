@@ -529,7 +529,7 @@ Accept: application/json
 
 #### 用途
 
-提供 UI-006 抽選執行頁載入時所需的最小 bootstrap context。此端點回傳專案摘要、blocked reason 與最新批次衍生狀態，供頁面決定初始 mode 與首屏顯示；不定義 preview / execute session state 的最終責任歸屬。
+提供 UI-006 抽選執行頁載入時所需的最小 bootstrap context。此端點回傳專案摘要、blocked reason 與最新批次衍生狀態，供頁面決定初始 mode 與首屏顯示；不定義 preview / execute session state 的最終責任歸屬，也不應被解讀為完整 preview/session persistence contract。
 
 #### Response
 
