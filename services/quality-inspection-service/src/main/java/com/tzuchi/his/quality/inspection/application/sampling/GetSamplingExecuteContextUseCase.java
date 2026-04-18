@@ -65,11 +65,11 @@ public class GetSamplingExecuteContextUseCase {
     }
 
     private String resolveBlockedReason(ReviewProject project) {
-        if (project.getStatus() != ProjectStatus.ACTIVE) {
-            return "PROJECT_NOT_ACTIVE";
-        }
         if (!project.getCurrentVersion().isPublished()) {
             return "PROJECT_VERSION_NOT_PUBLISHED";
+        }
+        if (project.getStatus() != ProjectStatus.ACTIVE) {
+            return "PROJECT_NOT_ACTIVE";
         }
         return null;
     }

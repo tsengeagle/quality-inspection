@@ -1,313 +1,290 @@
-# Frontend–Backend Alignment Baseline
+# Frontend-Backend Alignment Baseline
 
-> **文件定位**：本文件是 UI-006 ~ UI-014 的 **前後端對齊基線**（Authoritative Baseline）。  
-> 所有結論均來自實際 source code 讀取，不依賴文件描述或假設。  
-> 本文件取代 `wave-backend-dependency-inventory.md` 作為現行 wave-boundary 的 alignment truth。  
->
-> 基線採集日期：2025-07（初版）→ 更新於本次掃描（see Git log）  
-> Evidence 來源：source code scan（不含 docs 推論；docs 只作舊版對比參考）
+> **文件定位**：本文件是 UI-006 ~ UI-014 的前後端對齊基線。  
+> **本輪更新重點**：關閉 B-001、將 F-002 正式轉為 deferred，並把 I-001 / I-002 / I-003 收斂成可拍板的 architecture options pack。  
+> **Evidence 範圍**：僅採 source code、existing tests、現有 route/e2e mock；不把尚未落地的 shell integration 或外部系統契約包裝成已實作。
 
 ---
 
 ## 1. 狀態定義
 
 | 符號 | 狀態 | 定義 |
-|------|------|------|
-| ✅ REAL | 真實實作 | FE 呼叫 HttpClient 或 BE 有完整 controller → usecase → port 鏈結 |
-| ⚠️ FIXTURE | Fixture 替身 | FE 使用 `of(hardcoded)` / 本地 array；無 HttpClient 呼叫 |
-| ⚠️ PASSTHROUGH | 通過哨 | 邏輯存在但 `return true`；無實質驗證 |
-| ⚠️ STUB-BACKED | Stub 資料來源 | 端點存在且 FE 已接通，但 BE 資料來源為 dev-only stub adapter |
-| ❌ ABSENT | 缺失 | 端點不存在、use case 未建立或 FE 未消費 |
+|---|---|---|
+| ✅ REAL | 真實實作 | FE/BE 已接通正式程式碼路徑 |
+| ⚠️ PASSTHROUGH | 通過哨 | 結構存在，但邏輯仍為 `return true` 或未正式授權 |
+| ⚠️ STUB-BACKED | Stub 資料來源 | API 已存在，但資料來源仍為 dev-only stub adapter |
+| ⏸️ DEFERRED | 正式遞延 | 本輪明確不做，且 repo 已表達為 deferred，不再是假性 stub |
+| 📦 DECISION PACK READY | 可決策 | 尚未實作，但已整理成可拍板的小問題集 |
 
 ---
 
-## 2. Evidence Inventory 摘要
+## 2. 本輪決策輸入與落地結果
 
-### 2.1 Frontend Angular Services
-
-| Service | 路徑 | HTTP 狀態 | Citation |
-|---------|------|----------|----------|
-| `CasesService` | `features/cases/services/cases.service.ts` | ✅ REAL — `HttpClient` 注入，所有方法呼叫真實端點 | L1-50 (imports), L450-800 (methods) |
-| `SamplingService` | `features/sampling/services/sampling.service.ts` | ✅ REAL (partial) — `HttpClient` 注入；`getBatches()`/`previewSampling()`/`executeSampling()`/`retrySamplingBatch()` 均已接通真實端點；`getExecuteContext()` 仍為 fixture pending B-001 架構決策 | 本次 gap closure scan |
-
-### 2.2 Frontend Route Guards
-
-| Guard | 路徑 | 狀態 | Citation |
-|-------|------|------|----------|
-| `RoleGuard` | `guards/role.guard.ts` | ⚠️ PASSTHROUGH — `return true` | L6-8 |
-| `ScopeGuard` | `guards/scope.guard.ts` | ⚠️ PASSTHROUGH — `return true` | L6-8 |
-| `ProjectionGuard` | `guards/projection.guard.ts` | ⚠️ PASSTHROUGH — `return true` | L6-8 |
-
-三個 Guard 均以 `canActivate(): boolean { return true }` 實作，並有 comment 標記「formal logic 實作於 post-Wave 1」。  
-**根本原因**：Shell integration gate — 正式 actor context 由 MFE shell 注入；standalone mode 繞過。
-
-### 2.3 Backend Controllers（確認存在）
-
-| Controller | 路徑 | 端點 |
-|-----------|------|------|
-| `ReviewCaseController` | `interfaces/rest/ReviewCaseController.java` | GET /review-cases, GET /{caseId}, GET /{caseId}/assignment-context, GET /{caseId}/assignment-candidates, GET /{caseId}/revision-history, GET /{caseId}/lifecycle, POST /assign-reviewer, /reassign-reviewer, /assign-rereviewer, /reassign-rereviewer, /initial-review/start, /initial-review/draft, /initial-review/submit, /initial-review/submissions/{id}/revise, /start-rereview, /rereview/draft, /rereview/submit, /rereview/submissions/{id}/revise, /close-without-rereview, /send-to-rereview, /cancel, /initial-review/return, /reopen |
-| `SamplingController` | `interfaces/rest/SamplingController.java` | GET /sampling-batches, GET /sampling-batches/{batchId}, GET /sampling-batches/{batchId}/export, POST /review-projects/{projectId}/sampling/preview, POST /review-projects/{projectId}/sampling/execute, POST /sampling-batches/{batchId}/retry |
-| `SubmissionController` | `interfaces/rest/SubmissionController.java` | GET /review-submissions/{submissionId} |
-
-### 2.4 Key Capability Fields（Backend 端計算結果）
-
-| 欄位 | 計算位置 | Citation |
-|------|---------|----------|
-| `projectionType` (list) | `ListReviewCasesUseCase.execute()` — `SYSTEM_ADMIN` → `METADATA_ONLY`，其餘 → `FULL` | `ListReviewCasesUseCase.java:31-35` |
-| `projectionType` (detail) | `GetReviewCaseDetailUseCase.execute()` — 同上邏輯 | `GetReviewCaseDetailUseCase.java:38` |
-| `actorRole` | `GetReviewCaseDetailUseCase.execute()` — 依 DomainRole priority 計算字串 | `GetReviewCaseDetailUseCase.java:40-47` |
-| `isOwner` | `GetReviewCaseDetailUseCase.execute()` — `userId == reviewerId OR rereviewerId` | `GetReviewCaseDetailUseCase.java:49` |
-| `initialReviewContext` | `GetReviewCaseDetailUseCase.buildInitialReviewContext()` — `pageMode`, `hasDraft`, `allowedActions`, `blockedReason` 等 | `GetReviewCaseDetailUseCase.java:54-97` |
-| `rereviewContext` | `GetReviewCaseDetailUseCase.buildRereviewContext()` — 包含 `isClosedRevisionException` | `GetReviewCaseDetailUseCase.java:99-155` |
-| `hasExceptionEntry` | `GetRevisionHistoryUseCase` → `RevisionHistoryView.isHasExceptionEntry()` → `RevisionHistoryResponse` constructor 第三參數 | `ReviewCaseController.java:284-295` |
-
-### 2.5 E2E Test Strategy
-
-| 檔案 | 策略 | 覆蓋 |
-|------|------|------|
-| `e2e/src/app.e2e.spec.ts` | Playwright route-fulfill mock | UI-009, UI-010, UI-014, UI-006, UI-007 smoke |
-| `e2e/src/wave5-routes.e2e.spec.ts` | Playwright route-fulfill mock | UI-011 (assignment ASSIGN/REASSIGN/MIXED modes), UI-012 (initial-review revision) |
-
-兩份 E2E 均使用 route-fulfill 攔截，**非真實 backend 整合**。  
-Wave 5 E2E mock 的 shape 已對齊目前 BE 回應結構（`projectionType`, `actorRole`, `isOwner`, `initialReviewContext`, `hasExceptionEntry` 均出現在 mock body）。
+| ID | 決策 | 本輪結果 |
+|---|---|---|
+| B-001 | 採方案 A：新增 `GET /review-projects/{projectId}/sampling/execute-context` | **已落地**。UI-006 改為以單一 backend context 作 bootstrap |
+| F-002 | 採方案 C：暫不做 batch detail | **已落地**。UI-007 detail action 改為明確 disabled + deferred 訊息 |
+| I-001 | Route Guard 正式化不可直接實作 | **已收斂**為 decision pack |
+| I-002 | hardcoded role 不可直接實作 | **已收斂**為 decision pack |
+| I-003 | assignment candidate 正式資料源不可直接替換 | **已收斂**為 decision pack |
 
 ---
 
-## 3. 前後端 Alignment 矩陣
+## 3. Evidence Inventory 摘要
 
-### 3.1 Sampling Cluster
+### 3.1 Frontend Services / Guards
+
+| 類別 | 路徑 | 現況 |
+|---|---|---|
+| `SamplingService` | `frontends/quality-inspection-frontend/src/app/features/sampling/services/sampling.service.ts` | ✅ REAL — `getBatches()`、`previewSampling()`、`executeSampling()`、`retrySamplingBatch()`、`getExecuteContext()` 均為真實 HTTP |
+| `CasesService` | `frontends/quality-inspection-frontend/src/app/features/cases/services/cases.service.ts` | ✅ REAL |
+| `RoleGuard` | `frontends/quality-inspection-frontend/src/app/guards/role.guard.ts` | ⚠️ PASSTHROUGH |
+| `ScopeGuard` | `frontends/quality-inspection-frontend/src/app/guards/scope.guard.ts` | ⚠️ PASSTHROUGH |
+| `ProjectionGuard` | `frontends/quality-inspection-frontend/src/app/guards/projection.guard.ts` | ⚠️ PASSTHROUGH |
+
+### 3.2 Backend Controllers / Sources
+
+| 類別 | 路徑 | 現況 |
+|---|---|---|
+| `SamplingController` | `services/quality-inspection-service/src/main/java/.../interfaces/rest/SamplingController.java` | ✅ REAL — 含 preview / execute / list / detail / export / retry / **execute-context** |
+| `ReviewCaseController` | `services/quality-inspection-service/src/main/java/.../interfaces/rest/ReviewCaseController.java` | ✅ REAL |
+| `ApiKeyAuthFilter` + `TzJwtParser` | `services/quality-inspection-service/src/main/java/.../infrastructure/security/` | ✅ REAL — backend 已有 `userId / userName / roles / hospitalId` actor context 來源 |
+| `StubAssignmentCandidateLookupAdapter` | `services/quality-inspection-service/src/main/java/.../infrastructure/StubAssignmentCandidateLookupAdapter.java` | ⚠️ STUB-BACKED |
+
+### 3.3 Validation Evidence
+
+| 類型 | 指令 / 範圍 | 結果 |
+|---|---|---|
+| Backend targeted tests | `.\gradlew.bat test --tests ...SamplingControllerApiTest --tests ...SamplingUseCaseTest` | ✅ PASS |
+| Frontend typecheck/build | `npm run typecheck` | ✅ PASS |
+| Frontend unit tests | `npm run test:unit:ci -- --include src/app/features/sampling/**/*.spec.ts` | ✅ PASS |
+| Frontend e2e smoke | `npm run e2e -- --grep "marks batch detail as deferred..."` | ✅ PASS |
+
+---
+
+## 4. Alignment Matrix
+
+### 4.1 Sampling Cluster
 
 #### UI-006 — 抽選執行頁（`/sampling/:projectId`）
 
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| 載入執行 context | `samplingService.getExecuteContext(projectId)` → `of({...})` fixture（TODO B-001）| `GET /review-projects/{projectId}` 或衍生端點（**仍待架構決策**） | ❌ MISALIGNED | **Blocker** — B-001 pending user decision |
-| 預估母體（preview） | `openPreviewStub()` → 呼叫 `samplingService.previewSampling(projectId)` → `POST /review-projects/{projectId}/sampling/preview` ✅ REAL | `POST /review-projects/{projectId}/sampling/preview` ✅ REAL | ✅ ALIGNED | — |
-| 執行抽選 | `onConfirmModalConfirm()` → 呼叫 `samplingService.executeSampling(projectId)` → `POST /review-projects/{projectId}/sampling/execute` ✅ REAL | `POST /review-projects/{projectId}/sampling/execute` ✅ REAL | ✅ ALIGNED | — |
-| 模式切換（6 modes） | `resolveMode(context)` → 依 context 欄位計算，邏輯正確 | N/A（純前端 mode 計算） | ✅ N/A | Documentation Debt |
+| 能力項目 | FE 端 | BE 端 | 對齊狀態 | 備註 |
+|---|---|---|---|---|
+| Bootstrap context | `SamplingService.getExecuteContext(projectId)` | `GET /review-projects/{projectId}/sampling/execute-context` | ✅ REAL | B-001 已關閉 |
+| Preview command | `POST /review-projects/{projectId}/sampling/preview` | `PreviewSamplingPopulationUseCase` | ✅ REAL | 舊合約未改語意 |
+| Execute command | `POST /review-projects/{projectId}/sampling/execute` | `ExecuteSamplingUseCase` | ✅ REAL | 舊合約未改語意 |
+| Page mode resolution | `SamplingExecutePageComponent.resolveMode()` | backend 提供 context flags | ✅ ALIGNED | 仍由 FE 做單點 mode resolution，未散落多 API 推導 |
 
-**UI-006 整體狀態：PARTIAL WIRED**  
-Preview/Execute 命令已接通真實 HTTP（B-002/B-003 CLOSED）。  
-**剩餘 gap**：`getExecuteContext()` 仍為 fixture — `getExecuteContext` 對應的 backend 端點不存在，需架構決策後補齊（B-001 pending user decision）。
+**UI-006 新基線**
 
----
+1. bootstrap 不再使用 fixture。
+2. backend context 欄位維持最小集合：`projectId`、`projectName`、`hospitalId`、`ruleSummary`、`previewReady`、`executing`、`executeFailed`、`executedBatchId`、`blockedReason`、`previewStats`、`postExecuteSummary`。
+3. 採保守推導：
+   - `previewReady = false`：因 preview 結果未做 server-side persistence。
+   - `executedBatchId = null`：不把「歷史已完成批次」誤當成「本次 page session 已完成」。
+   - `executeFailed = true` 僅在最新批次為 `FAILED` 時回傳，並附最小 failure summary。
+4. `ruleSummary` 直接由 backend 以專案版本、病歷類型、評分表、品質門檻組字串，避免 FE 再拆散判斷。
 
 #### UI-007 — 抽選批次列表頁（`/sampling/batches`）
 
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| 批次列表資料 | `samplingService.getBatches(criteria)` → `GET /sampling-batches` ✅ REAL；返回 `SamplingBatchListResult` | `GET /sampling-batches?projectId&status&page&size` ✅ REAL | ✅ ALIGNED | — |
-| 批次詳情（查看詳情） | no-op stub — `onViewDetailStub()` 維持 no-op（F-002 pending user decision） | `GET /sampling-batches/{batchId}` ✅ REAL | ⚠️ MISALIGNED | Functional Gap — F-002 pending user decision |
-| 重跑批次（retry） | `confirmRetry(batchId)` → 呼叫 `samplingService.retrySamplingBatch(batchId)` → `POST /sampling-batches/{batchId}/retry` ✅ REAL | `POST /sampling-batches/{batchId}/retry` ✅ REAL | ✅ ALIGNED | — |
+| 能力項目 | FE 端 | BE 端 | 對齊狀態 | 備註 |
+|---|---|---|---|---|
+| 批次列表 | `SamplingService.getBatches()` | `GET /sampling-batches` | ✅ REAL | 已對齊 |
+| Retry command | `retrySamplingBatch()` | `POST /sampling-batches/{batchId}/retry` | ✅ REAL | 已對齊 |
+| Batch detail action | disabled `查看詳情（未開放）` + deferred note | `GET /sampling-batches/{batchId}` 存在但未綁 UI | ⏸️ DEFERRED | F-002 已正式遞延 |
 
-**UI-007 整體狀態：PARTIAL WIRED**  
-`getBatches()` 已接通真實 HTTP（B-004 CLOSED）；retry 命令已接通（F-001 CLOSED）。  
-**剩餘 gap**：F-002（批次詳情路由）pending user decision。
+**UI-007 新基線**
 
----
-
-### 3.2 Cases Cluster
-
-#### UI-009 — 案件列表頁（`/cases`）
-
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| 案件列表資料 | `casesService.getCases(criteria)` → `GET /review-cases` ✅ REAL | `GET /review-cases` → `ListReviewCasesUseCase` ✅ REAL | ✅ ALIGNED | — |
-| `projectionType` | `CaseSummaryItem.projectionType` → mapped from `ReviewCaseSummary.projectionType` | `ListReviewCasesUseCase` 計算並注入 `projectionType` ✅ | ✅ ALIGNED | — |
-| Role-based tab / filter | `CaseListPageComponent.role` — 目前 **hardcoded** `'REVIEWER'` | N/A（shell 應注入） | ⚠️ Integration Debt | Shell integration gate |
-| `showBusinessCommands` | `projectionType === 'FULL'` 計算 | `projectionType` 由 BE 提供 | ✅ ALIGNED | — |
-| 分頁 / filter params | HttpParams 建構 → `status`, `reviewerId`, `projectId`, `page`, `size` | `ReviewCaseQueryCriteria` 對應欄位 | ✅ ALIGNED | — |
-| Route guards | `RoleGuard + ScopeGuard + ProjectionGuard` canActivate | — | ⚠️ PASSTHROUGH | Integration Debt — shell gate |
-
-**UI-009 整體狀態：WIRED**  
-FE 已接通真實 HTTP，`projectionType` 對齊。  
-唯一遞延：`role` hardcoded `'REVIEWER'`（應由 shell context 注入）。
+1. 不新增 `/sampling/batches/:batchId` route。
+2. 不做 drawer / modal detail。
+3. 不保留 no-op stub；改為 disabled action 與明確文案：**批次詳情已正式 deferred，原因為 UI spec 尚未定。**
 
 ---
 
-#### UI-010 — 案件詳情頁（`/cases/:caseId`）
+### 4.2 Cases Cluster
 
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| 案件詳情資料 | `casesService.getCaseDetail(caseId)` → `GET /review-cases/{caseId}` ✅ REAL | `GetReviewCaseDetailUseCase` → `ReviewCaseDetailView.enrich(...)` ✅ REAL | ✅ ALIGNED | — |
-| `projectionType` | `CaseDetailViewModel.projectionType` ← mapped from API | `GetReviewCaseDetailUseCase` 計算並 enrich ✅ | ✅ ALIGNED | — |
-| `actorRole` | `CaseDetailViewModel.actorRole` ← mapped from API `ReviewCaseDetailDto.actorRole` | `GetReviewCaseDetailUseCase` 依 DomainRole priority 計算 ✅ | ✅ ALIGNED | — |
-| `isOwner` | `CaseDetailViewModel.isOwner` ← mapped from API | `GetReviewCaseDetailUseCase` 計算 ✅ | ✅ ALIGNED | — |
-| `initialReviewContext` | `CaseDetailViewModel.initialReviewContext` ← mapped from `InitialReviewBootstrapDto` | `GetReviewCaseDetailUseCase.buildInitialReviewContext()` ✅ | ✅ ALIGNED | — |
-| `rereviewContext` | `CaseDetailViewModel.rereviewContext` ← mapped from `RereviewBootstrapDto` | `GetReviewCaseDetailUseCase.buildRereviewContext()` ✅ | ✅ ALIGNED | — |
-| 4-mode resolution | `CaseDetailPageComponent._resolveMode()` | 由 BE 提供 `projectionType`, `actorRole`, `isOwner` | ✅ ALIGNED | — |
-| 導航 CTA（無 form submit） | navigate-only（`router.navigate`） | N/A | ✅ N/A | — |
-
-**UI-010 整體狀態：WIRED**  
-所有 key capability 欄位均已對齊；FE mapper 已實作（`mapCaseDetail`）。
+| 頁面 | 現況 | 備註 |
+|---|---|---|
+| UI-009 案件列表頁 | ✅ REAL（含 `projectionType`） | 仍有 I-002：worklist role hardcoded |
+| UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供 |
+| UI-011 案件分派頁 | ⚠️ STUB-BACKED | 命令已真實；candidate source 仍為 stub adapter |
+| UI-012 初審作業頁 | ✅ REAL | bootstrap context 已嵌入 case detail |
+| UI-013 複審作業頁 | ✅ REAL | CLOSED revision exception 已對齊 |
+| UI-014 revision 歷程頁 | ✅ REAL | `hasExceptionEntry` 已由 backend 計算 |
 
 ---
 
-#### UI-011 — 案件分派頁（`/cases/:caseId/assign`）
+## 5. Gap 分類（本輪後）
 
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| Assignment context bootstrap | `casesService.getAssignmentContext(caseId)` → `GET /review-cases/{caseId}/assignment-context` ✅ REAL | `GetCaseAssignmentContextUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 候選人列表（reviewer） | `casesService.getAssignmentCandidates(caseId, 'REVIEWER', keyword)` ✅ REAL | `ListCaseAssignmentCandidatesUseCase` → `StubAssignmentCandidateLookupAdapter` ⚠️ STUB-BACKED | ⚠️ STUB-BACKED | Integration Debt — dev-only stub adapter |
-| 候選人列表（rereviewer） | 同上，role = `'REREVIEWER'` ✅ REAL | 同上 ⚠️ STUB-BACKED | ⚠️ STUB-BACKED | Integration Debt |
-| `pageMode` 4 modes | `CaseAssignmentPageComponent.resolveMode()` ← from `AssignmentContextViewModel.pageMode` | `AssignmentBootstrapView.pageMode` ✅ REAL | ✅ ALIGNED | — |
-| 指派初審醫師 | `casesService.assignReviewer(caseId, payload)` → `POST /review-cases/{caseId}/assign-reviewer` ✅ REAL | `AssignReviewCaseUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 重新指派初審醫師 | `casesService.reassignReviewer(caseId, payload)` ✅ REAL | `ReassignReviewCaseUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 指派複審醫師 | `casesService.assignRereviewer(caseId, payload)` ✅ REAL | `AssignRereviewerUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 重新指派複審醫師 | `casesService.reassignRereviewer(caseId, payload)` ✅ REAL | `ReassignRereviewerUseCase` ✅ REAL | ✅ ALIGNED | — |
-| `dueAt` required | `AssignReviewerPayload`, `AssignRereviewerPayload` 均含 `dueAt` | `AssignReviewerRequest.dueAt`, `AssignRereviewerRequest.dueAt` 均存在 | ✅ ALIGNED | — |
+### 5.1 Closed
 
-**UI-011 整體狀態：WIRED**（Integration Debt：候選人 stub）  
-命令端全部 REAL；候選人端點合約正確，但資料來源為 `StubAssignmentCandidateLookupAdapter`（production 前需替換）。
+| ID | 頁面 / 範圍 | 描述 |
+|---|---|---|
+| B-001 | UI-006 | execute bootstrap context 改為 backend 專屬端點 |
+| B-002 | UI-006 | preview command 已接真實 API |
+| B-003 | UI-006 | execute command 已接真實 API |
+| B-004 | UI-007 | batch list 已接真實 API |
+| F-001 | UI-007 | retry command 已接真實 API |
 
----
+### 5.2 Deferred
 
-#### UI-012 — 初審作業頁（`/cases/:caseId/initial-review`）
+| ID | 頁面 / 範圍 | 狀態 | Deferred 原因 |
+|---|---|---|---|
+| F-002 | UI-007 batch detail | ⏸️ DEFERRED | UI spec 尚未定；本輪不做 route / drawer / modal |
 
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| 頁面 bootstrap context | `casesService.getCaseDetail(caseId)` → `detail.initialReviewContext` ✅ REAL | `GetReviewCaseDetailUseCase.buildInitialReviewContext()` 嵌入 detail response ✅ REAL | ✅ ALIGNED | — |
-| `pageMode` 4 modes（NEW / EDIT_DRAFT / REVISION / READONLY_BLOCKED） | `InitialReviewPageComponent.applyCaseDetail()` ← `bootstrap.pageMode` | `buildInitialReviewContext()` 計算 `pageMode` ✅ | ✅ ALIGNED | — |
-| `allowedActions` | `bootstrap.allowedActions` | `resolveInitialAllowedActions(pageMode)` ✅ | ✅ ALIGNED | — |
-| 載入 submission 詳情 | `casesService.getSubmissionDetail(submissionId)` → `GET /review-submissions/{id}` ✅ REAL | `SubmissionController` ✅ REAL | ✅ ALIGNED | — |
-| 開始初審 | `casesService.startInitialReview(caseId)` → `POST /initial-review/start` ✅ REAL | `StartInitialReviewUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 儲存草稿 | `casesService.saveInitialReviewDraft(caseId, payload)` ✅ REAL | `SaveInitialReviewDraftUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 提交初審 | `casesService.submitInitialReview(caseId)` ✅ REAL | `SubmitInitialReviewUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 修正初審（REVISION mode） | `casesService.reviseInitialReview(caseId, submissionId, payload)` ✅ REAL | `ReviseInitialReviewUseCase` ✅ REAL | ✅ ALIGNED | — |
+### 5.3 Decision Pack Ready
 
-**UI-012 整體狀態：WIRED**  
-Bootstrap context 嵌入 case detail 回應，無需獨立端點。所有命令對齊。
+| ID | 範圍 | 狀態 |
+|---|---|---|
+| I-001 | Route Guard 正式化 | 📦 DECISION PACK READY |
+| I-002 | hardcoded role 移除 | 📦 DECISION PACK READY |
+| I-003 | Assignment candidate 正式資料來源 | 📦 DECISION PACK READY |
 
 ---
 
-#### UI-013 — 複審作業頁（`/cases/:caseId/rereview`）
+## 6. Architecture Decision Pack
 
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| 頁面 bootstrap context | `casesService.getCaseDetail(caseId)` → `detail.rereviewContext` ✅ REAL | `GetReviewCaseDetailUseCase.buildRereviewContext()` 嵌入 detail ✅ REAL | ✅ ALIGNED | — |
-| `pageMode` 5 modes（NEW / EDIT_DRAFT / REVISION / REVISION_EXCEPTION_CLOSED / READONLY_BLOCKED） | `RereviewPageComponent.applyCaseDetail()` ← `bootstrap.pageMode` | `buildRereviewContext()` 計算，含 `isClosedRevisionException` ✅ | ✅ ALIGNED | — |
-| CLOSED revision exception | `RereviewMode = 'CLOSED_REVISION_EXCEPTION'` | `isClosedRevisionException = CLOSED + userId == rereviewerId + hasSubmittedBase` ✅ | ✅ ALIGNED | — |
-| 開始複審 | `casesService.startRereview(caseId)` → `POST /start-rereview` ✅ REAL | `StartRereviewUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 儲存複審草稿 | `casesService.saveRereviewDraft(caseId, payload)` ✅ REAL | `SaveRereviewDraftUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 提交複審 | `casesService.submitRereview(caseId, payload)` ✅ REAL | `SubmitRereviewUseCase` ✅ REAL | ✅ ALIGNED | — |
-| 修正複審（REVISION / CLOSED_EXCEPTION） | `casesService.reviseRereview(caseId, submissionId, payload)` ✅ REAL | `ReviseRereviewUseCase` ✅ REAL | ✅ ALIGNED | — |
+### 6.1 I-001 — Route Guard 正式化
 
-**UI-013 整體狀態：WIRED**  
-CLOSED revision exception 邏輯於 FE 與 BE 均已對齊。
+#### 現況
 
----
+- `RoleGuard` / `ScopeGuard` / `ProjectionGuard` 全部是 `return true`。
+- backend actor context 已存在：`userId`、`userName`、`roles`、`hospitalId`。
+- frontend 尚無正式 actor context store / provider。
 
-#### UI-014 — Revision 歷程頁（`/cases/:caseId/revisions`）
+#### Guard 最小所需欄位
 
-| 能力項目 | FE 端 | BE 端 | 對齊狀態 | Gap 分類 |
-|---------|-------|-------|----------|---------|
-| 歷程資料 | `casesService.getRevisionHistory(caseId)` → `forkJoin([getCaseDetail, GET /revision-history])` ✅ REAL | `GET /review-cases/{caseId}/revision-history` → `GetRevisionHistoryUseCase` ✅ REAL | ✅ ALIGNED | — |
-| `hasExceptionEntry` | `RevisionHistoryViewModel.hasExceptionEntry` ← mapped from `RevisionHistoryResponseDto.hasExceptionEntry` | `RevisionHistoryResponse(view.getCaseId(), dtos, view.isHasExceptionEntry())` ✅ REAL | ✅ ALIGNED | — |
-| `actorRole`（tab recommendation） | `RevisionHistoryViewModel.actorRole` ← from case detail `actorRole` | `GetReviewCaseDetailUseCase` 計算 ✅ | ✅ ALIGNED | — |
-| 3-mode（FULL_HISTORY / METADATA_HISTORY / READONLY_TERMINAL） | `RevisionHistoryPageComponent._resolveMode()` | `projectionType`, `actorRole` 由 BE 提供 | ✅ ALIGNED | — |
-| C22 navigate-to-rereview（exception entry） | `hasExceptionEntry` ← true → 顯示 outlined warning button | `hasExceptionEntry` 由 `GetRevisionHistoryUseCase` 計算 ✅ | ✅ ALIGNED | — |
+| 欄位 | 用途 | repo 現況 |
+|---|---|---|
+| `userId` | owner / audit trace | backend 已存在；frontend 未正式注入 |
+| `roles` | route-level role guard | backend 已存在；frontend 未正式注入 |
+| `hospitalId` | hospital scope guard | backend 已存在；frontend 未正式注入 |
+| `projectionType` | metadata-only route gating（若做頁面級限制） | cases detail/list API 已存在；shell bootstrap 不存在 |
 
-**UI-014 整體狀態：WIRED**  
-所有 key capability 對齊；`hasExceptionEntry` 已在 BE 計算並在 FE 消費。
+#### 方案比較
 
----
+| 方案 | Context 來源 | FE 接入方式 | 對 guard / component 影響 | Standalone 影響 | 測試影響 | 成本 | 風險 |
+|---|---|---|---|---|---|---|---|
+| A | Shell 直接注入 actor context | shell adapter -> shared actor context service | guard 可直接正式化；component 少改 | 需 local mock provider | guard unit test + shell contract test | 中 | 依賴正式 shell contract |
+| B | frontend 啟動時呼叫 `/me` 或 equivalent bootstrap API | app initializer / actor context store | guard 依 store 判斷；component 可共用 | standalone 可用 mock `/me` | 需補 bootstrap API mock | 中高 | repo 內目前沒有 `/me` 契約 |
+| C | 延後 shell，先以 route resolver + page API 拼裝 | 每頁各自 resolver | guard 與 component 邏輯分裂 | standalone 容易做 | 測試分散 | 低 | 會把 auth truth 散落在 page routes，不推薦 |
 
-## 4. Key Capability Matrix（跨頁彙整）
+#### 推薦方案
 
-| 欄位 | UI-006 | UI-007 | UI-009 | UI-010 | UI-011 | UI-012 | UI-013 | UI-014 |
-|------|--------|--------|--------|--------|--------|--------|--------|--------|
-| `projectionType` | N/A | N/A | ✅ ALIGNED | ✅ ALIGNED | N/A | N/A | N/A | ✅ ALIGNED (via detail) |
-| `actorRole` | N/A | N/A | ⚠️ hardcoded role | ✅ ALIGNED | N/A | N/A | N/A | ✅ ALIGNED |
-| `isOwner` | N/A | N/A | N/A | ✅ ALIGNED | N/A | N/A | N/A | N/A |
-| `initialReviewContext` | N/A | N/A | N/A | ✅ ALIGNED | N/A | ✅ ALIGNED | N/A | N/A |
-| `rereviewContext` | N/A | N/A | N/A | ✅ ALIGNED | N/A | N/A | ✅ ALIGNED | N/A |
-| `hasExceptionEntry` | N/A | N/A | N/A | N/A | N/A | N/A | N/A | ✅ ALIGNED |
-| `pageMode` (assignment) | N/A | N/A | N/A | N/A | ✅ ALIGNED | N/A | N/A | N/A |
-| `pageMode` (initial-review) | N/A | N/A | N/A | N/A | N/A | ✅ ALIGNED | N/A | N/A |
-| `pageMode` (rereview) | N/A | N/A | N/A | N/A | N/A | N/A | ✅ ALIGNED | N/A |
-| Route Guard 授權 | ⚠️ PASSTHROUGH | ⚠️ PASSTHROUGH | ⚠️ PASSTHROUGH | ⚠️ PASSTHROUGH | ⚠️ PASSTHROUGH | ⚠️ PASSTHROUGH | ⚠️ PASSTHROUGH | ⚠️ PASSTHROUGH |
+**推薦 A：Shell 直接注入 actor context，frontend 維持單一 actor context service。**
+
+**理由**
+
+1. 最接近 repo 既有 integration baseline：正式 login / user context 由 shell 提供。
+2. 可重用 backend 已成熟的 actor 欄位語意，不必再發明第二套 bootstrap API。
+3. guard / component 都能吃同一份 truth，避免 page-level 拼裝。
+
+#### 待使用者拍板的最小問題集
+
+1. shell 注入欄位是否固定為 `userId / userName / roles / hospitalId`？
+2. frontend 是否允許在 standalone mode 用 mock actor provider 模擬同 shape contract？
+3. `projectionType` 是否只走 page API，不進 shell actor contract？
 
 ---
 
-## 5. 與 wave-backend-dependency-inventory.md 的差異（舊版 vs 現況）
+### 6.2 I-002 — hardcoded role 移除
 
-> 舊版文件採集基線：2025-07。以下逐條對比。
+#### 現況
 
-| 舊版描述 | 舊版判斷 | 現況判斷 | 變化原因 |
-|---------|---------|---------|---------|
-| Wave 3：`CasesService` 三個方法均為 `of(null)` / `of([])` stub | ❌ STUBBED | ✅ REAL | 已換成 HttpClient 實作 |
-| Wave 3：`projectionType` / `actorRole` / `isOwner` 欄位不存在於 BE | ❌ GAP | ✅ ALIGNED | `GetReviewCaseDetailUseCase` 和 `ListReviewCasesUseCase` 均已計算並返回 |
-| Wave 3：`hasExceptionEntry` 欄位不存在 | ❌ GAP | ✅ ALIGNED | `GetRevisionHistoryUseCase` 已計算；`RevisionHistoryResponse` 含第三參數 |
-| Wave 3：revision history 返回 domain objects | ❌ DESIGN GAP | ✅ RESOLVED | `ReviewCaseController` 已將 `RevisionHistoryView` 轉成 `RevisionHistoryResponse` DTO |
-| Wave 3：SYSTEM_ADMIN projection 未實作 | ❌ GAP | ✅ ALIGNED | `ListReviewCasesUseCase` + `GetReviewCaseDetailUseCase` 均依 `DomainRole.SYSTEM_ADMIN` 設定 `projectionType` |
-| Wave 5：UI-012 / UI-013 bootstrap context「無對應 backend 端點」 | ❌ GAP | ✅ ALIGNED | Bootstrap context 嵌入 `GetReviewCaseDetailUseCase` response（`initialReviewContext` / `rereviewContext`） |
-| Wave 5：UI-012 / UI-013 component 無 service call | ❌ NO CALL | ✅ REAL | 兩個 component 均呼叫 `casesService.getCaseDetail()` 取得 bootstrap |
-| Wave 4：UI-006 / UI-007 SamplingService 為 fixture | ⚠️ FIXTURE | ⚠️ FIXTURE | **不變** — SamplingService 仍為 fixture，尚未接通 |
-| Wave 4：`SamplingExecuteContext` 無對應 BE 端點 | ⚠️ 待確認 | ❌ ABSENT | `SamplingController` 無 getExecuteContext 端點；仍為 gap |
+- 已確認 hardcoded role 主來源：`cases-worklist/case-list-page.component.ts`。
+- 該 hardcoded role 影響：
+  - default tab
+  - default status
+  - mode label
+  - 某些列表操作可見性
+- `CaseDetailPageComponent` / `RevisionHistoryPageComponent` 已消費 backend `actorRole`，但仍容忍 legacy alias（如 `MANAGER` / `ADMIN`）。
 
----
+#### 方案比較
 
-## 6. Gap 分類清單
+| 方案 | 真實 role 來源 | 多角色處理 | Standalone 退化 | 成本 | 風險 |
+|---|---|---|---|---|---|
+| A | shell actor context.roles | FE 定一個 primary-role resolver + priority | standalone mock 同 shape roles | 中 | 需拍板 role priority |
+| B | page API 回傳 `actorRole`，列表頁也補同欄位 | backend 決 primary role | standalone 需 mock page API | 中高 | 讓列表頁過度依賴單一 page API 回傳 |
+| C | FE 自己從 token / local storage 解 role | FE 自算 | standalone 最容易 | 低 | 破壞 shell boundary，不推薦 |
 
-### ✅ Closed（本次 gap closure cycle 關閉）
+#### 推薦方案
 
-| ID | Page | 描述 | 關閉方式 |
-|----|------|------|---------|
-| B-002 | UI-006 | `openPreviewStub()` 已替換為呼叫 `samplingService.previewSampling(projectId)` | FE code change |
-| B-003 | UI-006 | `onConfirmModalConfirm()` 已替換為呼叫 `samplingService.executeSampling(projectId)`，含 success/error handler | FE code change |
-| B-004 | UI-007 | `SamplingService.getBatches()` 已替換為呼叫 `GET /sampling-batches`，返回 `SamplingBatchListResult` | FE code change |
-| F-001 | UI-007 | `confirmRetry()` 已替換為呼叫 `samplingService.retrySamplingBatch(batchId)`，成功後 reload list | FE code change |
+**推薦 A：以 shell 提供 `roles[]`，frontend 明確定義 primary-role resolver。**
 
-### Blocker（仍開放 — 待決策）
+#### 建議 primary-role 規則
 
-| ID | Page | 描述 | 影響 |
-|----|------|------|------|
-| B-001 | UI-006 | `SamplingService.getExecuteContext()` 仍為 fixture；`SamplingController` 無對應端點；需架構決策（選項 A: 新增 BE 端點 / 選項 B: FE 組合查詢） | 執行頁 projectName/hospitalId/blockedReason 無法取得真實資料 |
+| 優先順序 | 角色 |
+|---|---|
+| 1 | `SYSTEM_ADMIN` |
+| 2 | `HOSPITAL_MANAGER` |
+| 3 | `AUDITOR` |
+| 4 | `REREVIEWER` |
+| 5 | `REVIEWER` |
 
-### Functional Gap（仍開放 — 待決策）
+> 這是**建議值**，不是本輪已拍板規則。
 
-| ID | Page | 描述 | 影響 |
-|----|------|------|------|
-| F-002 | UI-007 | 查看詳情為 no-op stub；`GET /sampling-batches/{batchId}` 端點已就緒但無 routing；待 UI-008 規格或路由方案決定 | 批次詳情無法顯示 |
+#### 待使用者拍板的最小問題集
 
-### Integration Debt（合約正確，資料或整合層待補）
-
-| ID | Page | 描述 | 影響 |
-|----|------|------|------|
-| I-001 | All | 三個 Route Guard 均為 PASSTHROUGH；role / scope / projection 授權不執行 | Shell 整合完成前無法強制授權 |
-| I-002 | UI-009, 010 | `CaseListPageComponent.role` hardcoded `'REVIEWER'`；正式需由 shell context 注入 | 其他 role 的 tab/filter default 不正確 |
-| I-003 | UI-011 | `StubAssignmentCandidateLookupAdapter` 為 dev-only；assignment candidate 資料為合成 | Production 前必須替換為真實 HIS 資料來源 |
-
-### Validation Gap（邏輯已對齊，但缺乏整合測試覆蓋）
-
-| ID | Page | 描述 |
-|----|------|------|
-| V-001 | UI-009~014 | E2E 使用 route-fulfill mock，非真實 backend integration test；BE 邏輯正確性未被 E2E 驗證 |
-| V-002 | UI-012/013 | `blockedReason` 種類（ROLE_DENIED、NOT_ASSIGNED_REVIEWER 等）未被前端 E2E 全部覆蓋 |
-| V-003 | UI-014 | `hasExceptionEntry = true` 的完整路徑（CLOSED + originalRereviewer + baseSubmission）未有整合測試 |
-
-### Documentation Debt（實作正確，文件未更新）
-
-| ID | 描述 |
-|----|------|
-| D-001 | `wave-backend-dependency-inventory.md` 描述 Wave 3/5 gap 均已不再成立，但文件未更新 — 本文件取代之 |
-| D-002 | Wave 5 E2E spec 中 `pageMode = 'REVISION_EXCEPTION_CLOSED'` vs BE 計算的 `'REVISION_EXCEPTION_CLOSED'` — 字串對齊，無問題；但 api-spec.md 中的描述需確認一致 |
+1. 多角色使用者是否允許存在？若允許，是否接受上述 priority？
+2. worklist / batch list 是否以 primary role 決定 default tab，或允許 UI 手動切 role 視角？
+3. legacy alias（`MANAGER` / `ADMIN`）是暫時相容還是可直接移除？
 
 ---
 
-## 7. Formal Closure Statement
+### 6.3 I-003 — Assignment Candidate 正式資料來源
 
-| Page | Alignment 狀態 | 接通前置條件 |
-|------|--------------|-------------|
-| UI-006 | **PARTIAL WIRED** — Preview/Execute 命令已接通（B-002/B-003 CLOSED）；`getExecuteContext()` 仍為 fixture | B-001 (pending decision) |
-| UI-007 | **PARTIAL WIRED** — 批次列表/retry 已接通（B-004/F-001 CLOSED）；批次詳情 no-op | F-002 (pending decision) |
-| UI-009 | **WIRED** — `projectionType` 對齊；shell 注入 role 後 I-001/I-002 可關閉 | I-001, I-002 |
-| UI-010 | **WIRED** — 所有 key capability 對齊；shell 整合後可關閉 I-001 | I-001 |
-| UI-011 | **WIRED** — 合約對齊；I-003 為 pre-production 必填 | I-001, I-003 |
-| UI-012 | **WIRED** — bootstrap 嵌入 detail，所有命令對齊 | I-001 |
-| UI-013 | **WIRED** — CLOSED exception 邏輯已對齊 | I-001 |
-| UI-014 | **WIRED** — `hasExceptionEntry` 完全對齊 | I-001 |
+#### 現況
+
+- `StubAssignmentCandidateLookupAdapter` 目前契約輸入：`hospitalId`、`role`、`keyword`。
+- 目前來源輸出欄位：`userId`、`displayName`、`displayLabel`、`role`、`active`。
+- application layer 再補：
+  - `selectable`
+  - `blockedReason`
+- 關鍵結論：**資格過濾目前屬 application layer，不應直接下沉到外部來源。**
+
+#### 方案比較
+
+| 方案 | 可能來源 | 可提供欄位 | 搜尋能力 | reviewer / rereviewer 資格過濾落點 | 成本 | 風險 |
+|---|---|---|---|---|---|---|
+| A | HIS staff master | staffId、name、hospitalId、職類/科別、在職狀態 | 醫院內搜尋通常足夠 | application layer 保持現況；source 只回 directory entry | 中 | 可能缺少跨院/組織角色資訊 |
+| B | HR org directory | employeeId、name、org unit、title、active | 組織樹 / keyword 通常較完整 | application layer；必要時另補 reviewer eligibility mapping | 中高 | 醫療審查角色未必直接存在 |
+| C | IAM / AD / LDAP | account、displayName、group、active | account / group 搜尋 | application layer；group -> role mapping 另做 adapter | 中高 | 群組不一定能表達審查業務資格 |
+
+#### 推薦方向
+
+**推薦先以 A 或 B 類 directory source 取代 stub，但維持 `AssignmentCandidateDirectoryPort` 不變。**
+
+**理由**
+
+1. 現有 use case 已把 business eligibility 放在 application layer，替換 source 不必重寫 UI/command contract。
+2. `AssignmentCandidateDirectoryPort` 已是穩定 seam，能讓 production source 漸進替換。
+3. 直接用 IAM/LDAP 當唯一真相風險較高，因其 group 通常不等於審查業務資格。
+
+#### 待使用者拍板的最小問題集
+
+1. 正式 source 優先採 HIS staff master 還是 HR org directory？
+2. reviewer / rereviewer 資格是否已存在於來源欄位，或需由本系統另做 mapping？
+3. 搜尋範圍是否限同院，或允許跨組織候選？
 
 ---
 
-*本文件由 source code scan 產生。如需更新，請重新掃描對應 service / controller / usecase 並更新本節的 Citation 欄位。*
+## 7. Re-scan 結論
+
+| 項目 | 本輪結論 |
+|---|---|
+| B-001 是否已關閉 | **是** |
+| F-002 是否已正式轉為 deferred | **是** |
+| UI-006 狀態是否改變 | **是**，由 PARTIAL / FIXTURE 轉為 REAL bootstrap |
+| UI-007 detail gap 是否仍是含糊 stub | **否**，已改為明確 deferred |
+| I-001 / I-002 / I-003 是否已從模糊 pending 轉為可決策方案包 | **是** |
+| 是否發現新 gap | **無新增功能 gap**；僅確認 e2e 必須補 sampling mocks，已同步處理 |
+
+---
+
+## 8. Formal Closure Statement
+
+本輪 gap closure cycle 的正式結論如下：
+
+1. **B-001 已關閉**：UI-006 抽選執行頁現在以專屬 backend 端點 `GET /review-projects/{projectId}/sampling/execute-context` 作為唯一 bootstrap context 來源，不再依賴 frontend fixture 或多 API 自組。
+2. **F-002 已正式遞延**：repo 已明確表達「batch detail 暫不做」，不再保留含糊 no-op stub；deferred 原因為 **UI spec 尚未定**。
+3. **I-001 / I-002 / I-003 仍未實作，但已完成決策空間收斂**：三項均已整理成可供使用者快速拍板的 architecture options pack，後續可直接進入決策而非再做模糊盤點。
