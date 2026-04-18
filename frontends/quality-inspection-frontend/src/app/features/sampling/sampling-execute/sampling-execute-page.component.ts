@@ -28,6 +28,8 @@ export class SamplingExecutePageComponent implements OnInit {
 
   projectId = '';
   context: SamplingExecuteContext | null = null;
+  private localPreviewStats: SamplingExecuteContext['previewStats'] = null;
+  private executeFailureFallback: SamplingExecuteContext['postExecuteSummary'] | null = null;
 
   mode: SamplingExecuteMode = 'READY_FOR_PREVIEW';
   blockedReason: BlockedReason = null;
@@ -103,11 +105,14 @@ export class SamplingExecutePageComponent implements OnInit {
     }
     this.samplingService.previewSampling(this.projectId).subscribe({
       next: stats => {
+        this.localPreviewStats = stats;
+        this.executeFailureFallback = null;
         this.context = {
           ...this.context!,
           previewReady: true,
           executeFailed: false,
-          previewStats: stats
+          previewStats: stats,
+          postExecuteSummary: null
         };
         this.resolveMode(this.context);
       }
@@ -119,23 +124,27 @@ export class SamplingExecutePageComponent implements OnInit {
     this.mode = 'EXECUTING';
     this.modeLabel = '執行中';
     if (this.context) {
-      this.context = { ...this.context, executing: true };
+      this.context = {
+        ...this.context,
+        executing: true,
+        executeFailed: false,
+        postExecuteSummary: null
+      };
     }
 
     this.samplingService.executeSampling(this.projectId).subscribe({
       next: () => {
-        this.loadExecuteContext(true);
+        this.executeFailureFallback = null;
+        this.loadExecuteContext();
       },
       error: () => {
-        this.loadExecuteContext(true, {
-          executeFailed: true,
-          postExecuteSummary: {
-            tone: 'failed',
-            title: '抽選失敗',
-            description: '抽選執行失敗，請重新預估後再試。',
-            batchId: null
-          }
-        });
+        this.executeFailureFallback = {
+          tone: 'failed',
+          title: '抽選失敗',
+          description: '抽選執行失敗，請重新預估後再試。',
+          batchId: null
+        };
+        this.loadExecuteContext(true);
       }
     });
   }
@@ -148,17 +157,25 @@ export class SamplingExecutePageComponent implements OnInit {
     this.router.navigate(['/sampling/batches']);
   }
 
-  private loadExecuteContext(
-    preservePreviewStats = false,
-    fallbackOverrides?: Partial<SamplingExecuteContext>
-  ): void {
-    const localPreviewStats = preservePreviewStats ? this.context?.previewStats ?? null : null;
+  private loadExecuteContext(preserveLocalPreviewStats = false): void {
+    if (!preserveLocalPreviewStats) {
+      this.localPreviewStats = null;
+    }
+
     this.samplingService.getExecuteContext(this.projectId).subscribe(context => {
+      const previewStats = preserveLocalPreviewStats
+        ? this.localPreviewStats ?? this.context?.previewStats ?? context.previewStats
+        : context.previewStats;
+
       this.context = {
         ...context,
-        previewReady: false,
-        previewStats: localPreviewStats ?? context.previewStats,
-        ...fallbackOverrides
+        previewStats,
+        ...(this.executeFailureFallback
+          ? {
+              executeFailed: true,
+              postExecuteSummary: this.executeFailureFallback
+            }
+          : {})
       };
       this.resolveMode(this.context);
     });

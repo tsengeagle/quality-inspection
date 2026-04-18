@@ -42,7 +42,7 @@ Archetype 定義範圍：SA1 / SA2 為 sampling cluster 專屬。A1–A5 為 cas
 | OQ-S02 | execute response 缺 startedAt/finishedAt；SUCCESS variant 是否需 extra GET？ | UI-006 |
 | OQ-S04 | SYSTEM_ADMIN SamplingBatch metadata projection 欄位白名單未定義 | UI-007 |
 | OQ-S05 | REVIEWER / REREVIEWER route guard 行為未確認 | UI-007 |
-| OQ-S06 | UI-008 page spec 不存在；[查看詳情] 目標頁為 STUB | UI-007 |
+| OQ-S06 | UI-008 page spec 不存在；UI-007 的 [查看詳情] 目前屬 deferred / 未啟用 detail action | UI-007 |
 
 P2 extension coordination brief: [ui-wireframe-brief-p2-extension.md](../ui-wireframe-brief-p2-extension.md)
 

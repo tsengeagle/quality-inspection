@@ -42,6 +42,7 @@
 - `SamplingBatch`
 
 ### 對應主要 API
+- `GET /review-projects/{projectId}/sampling/execute-context`
 - `POST /review-projects/{projectId}/sampling/preview`
 - `POST /review-projects/{projectId}/sampling/execute`
 
@@ -51,6 +52,7 @@
 
 本頁負責：
 
+1. 載入頁面時先取得 execute-context bootstrap 資訊
 1. 呈現本次抽選所依據的專案與版本摘要
 2. 顯示抽樣方式、分層依據、排除規則等關鍵資訊
 3. 讓 manager 先做預估
@@ -91,6 +93,8 @@
 - 預估母體有多少
 - 排除後剩多少
 - 正式執行之後會產生什麼結果
+
+頁面初始化時，應先向 `GET /review-projects/{projectId}/sampling/execute-context` 取得 bootstrap context，再決定首屏狀態與可見區塊。現階段此端點僅作為頁面 bootstrap context 來源；preview / execute 後的 session state ownership 仍待後續收斂。
 
 ---
 
@@ -171,6 +175,7 @@
 ### 補充
 
 * 若 project 未 active 或無 published version，要在這區明顯顯示 warning
+* 本區首屏資料以 execute-context 回傳欄位為準
 
 ---
 
@@ -325,12 +330,16 @@
 * batchId
 * batch status
 * selectedCount
-* startedAt / finishedAt
+* post-execute summary [若 bootstrap context 已回傳]
 * 導向按鈕：
 
-  * 查看抽選批次詳情
   * 查看抽選批次列表
-  * 前往案件列表
+
+### 現況限制
+
+* batch detail page / route 尚未落地，故不以「查看抽選批次詳情」作為現行完成動線
+* 前往案件列表的成功導頁尚無 repo 內明確落地 evidence，不列為現行完成動線
+* `startedAt / finishedAt` 目前不視為 execute success response 的穩定輸出；若需顯示，屬 pending confirmation
 
 ### 失敗後應顯示
 
@@ -500,11 +509,12 @@ page_modes:
 ```text id="y7k27e"
 審查專案詳情頁
   -> 進入抽選執行頁
+  -> 讀取 execute-context bootstrap
   -> 查看規則摘要
   -> 預估母體
   -> 查看 preview 統計
   -> 正式執行抽選
-  -> 成功後前往抽選批次詳情頁 / 案件列表
+  -> 成功後前往抽選批次列表頁
 ```
 
 ### 9.2 專案 blocked 流程
@@ -530,19 +540,23 @@ page_modes:
 
 ## 10. 對應 API 規劃
 
-### 10.1 preview
+### 10.1 bootstrap context
+
+* `GET /review-projects/{projectId}/sampling/execute-context`
+
+### 10.2 preview
 
 * `POST /review-projects/{projectId}/sampling/preview`
 
-### 10.2 execute
+### 10.3 execute
 
 * `POST /review-projects/{projectId}/sampling/execute`
 
-### 10.3 導頁相關
+### 10.4 導頁相關
 
-* `GET /sampling-batches/{batchId}`
 * `GET /sampling-batches`
-* `GET /review-cases?batchId=...`
+
+> `GET /sampling-batches/{batchId}` 與 `GET /review-cases?batchId=...` 目前不作為本頁已落地成功動線的必要前提。
 
 ---
 
@@ -586,12 +600,12 @@ page_modes:
   "data": {
     "batchId": "BATCH-001",
     "status": "COMPLETED",
-    "selectedCount": 30,
-    "startedAt": "2026-04-02T09:00:00+08:00",
-    "finishedAt": "2026-04-02T09:01:12+08:00"
+    "selectedCount": 30
   }
 }
 ```
+
+> 若成功後需顯示 `startedAt` / `finishedAt`，目前屬 pending confirmation，不在本頁現行穩定 contract 內。
 
 ### 11.5 execute failed response
 
@@ -663,6 +677,7 @@ page_modes:
 7. eligibleCount = 0 時 execute 是否正確 disabled
 8. execute 進行中是否防重複提交
 9. 成功後是否正確導向 batch / case 視角
+9. 成功後是否正確導向批次列表
 10. 失敗時是否提供清楚下一步
 
 ---
@@ -678,8 +693,9 @@ page_modes:
 這些應由：
 
 * `UI-007 抽選批次列表頁`
-* `UI-008 抽選批次詳情頁`
 * `UI-011 案件分派頁`
 * `UI-003 審查專案編輯頁`
+
+> `UI-008 抽選批次詳情頁` 目前未落地，不列為本頁現行依賴。
 
 負責。

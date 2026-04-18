@@ -1,7 +1,7 @@
 # Frontend-Backend Alignment Baseline
 
 > **文件定位**：本文件是 UI-006 ~ UI-014 的前後端對齊基線。  
-> **本輪更新重點**：關閉 B-001、將 F-002 正式轉為 deferred，並把 I-001 / I-002 / I-003 收斂成可拍板的 architecture options pack。  
+> **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事降回 partial、deferred、pending 與 stub-backed。  
 > **Evidence 範圍**：僅採 source code、existing tests、現有 route/e2e mock；不把尚未落地的 shell integration 或外部系統契約包裝成已實作。
 
 ---
@@ -14,7 +14,7 @@
 | ⚠️ PASSTHROUGH | 通過哨 | 結構存在，但邏輯仍為 `return true` 或未正式授權 |
 | ⚠️ STUB-BACKED | Stub 資料來源 | API 已存在，但資料來源仍為 dev-only stub adapter |
 | ⏸️ DEFERRED | 正式遞延 | 本輪明確不做，且 repo 已表達為 deferred，不再是假性 stub |
-| 📦 DECISION PACK READY | 可決策 | 尚未實作，但已整理成可拍板的小問題集 |
+| 🕓 DECISION-REQUIRED | 待決策 | 尚未實作，且正式方向仍待拍板 |
 
 ---
 
@@ -22,11 +22,11 @@
 
 | ID | 決策 | 本輪結果 |
 |---|---|---|
-| B-001 | 採方案 A：新增 `GET /review-projects/{projectId}/sampling/execute-context` | **已落地**。UI-006 改為以單一 backend context 作 bootstrap |
-| F-002 | 採方案 C：暫不做 batch detail | **已落地**。UI-007 detail action 改為明確 disabled + deferred 訊息 |
-| I-001 | Route Guard 正式化不可直接實作 | **已收斂**為 decision pack |
-| I-002 | hardcoded role 不可直接實作 | **已收斂**為 decision pack |
-| I-003 | assignment candidate 正式資料源不可直接替換 | **已收斂**為 decision pack |
+| B-001 | 採方案 A：新增 `GET /review-projects/{projectId}/sampling/execute-context` | **limited-scope implemented**。API 與 bootstrap 接線已存在，但尚未宣稱為唯一 truth source |
+| F-002 | 採方案 C：暫不做 batch detail | **deferred**。UI-007 detail action 改為明確 disabled + deferred 訊息 |
+| I-001 | Route Guard 正式化不可直接實作 | **pending / decision-required** |
+| I-002 | hardcoded role 不可直接實作 | **pending / decision-required** |
+| I-003 | assignment candidate 正式資料源不可直接替換 | **stub-backed / decision-required** |
 
 ---
 
@@ -70,12 +70,12 @@
 
 | 能力項目 | FE 端 | BE 端 | 對齊狀態 | 備註 |
 |---|---|---|---|---|
-| Bootstrap context | `SamplingService.getExecuteContext(projectId)` | `GET /review-projects/{projectId}/sampling/execute-context` | ✅ REAL | B-001 已關閉 |
+| Bootstrap context | `SamplingService.getExecuteContext(projectId)` | `GET /review-projects/{projectId}/sampling/execute-context` | ✅ REAL | limited-scope implemented；尚未宣稱為唯一 truth source |
 | Preview command | `POST /review-projects/{projectId}/sampling/preview` | `PreviewSamplingPopulationUseCase` | ✅ REAL | 舊合約未改語意 |
 | Execute command | `POST /review-projects/{projectId}/sampling/execute` | `ExecuteSamplingUseCase` | ✅ REAL | 舊合約未改語意 |
 | Page mode resolution | `SamplingExecutePageComponent.resolveMode()` | backend 提供 context flags | ✅ ALIGNED | 仍由 FE 做單點 mode resolution，未散落多 API 推導 |
 
-**UI-006 新基線**
+**UI-006 目前基線**
 
 1. bootstrap 不再使用 fixture。
 2. backend context 欄位維持最小集合：`projectId`、`projectName`、`hospitalId`、`ruleSummary`、`previewReady`、`executing`、`executeFailed`、`executedBatchId`、`blockedReason`、`previewStats`、`postExecuteSummary`。
@@ -84,6 +84,7 @@
    - `executedBatchId = null`：不把「歷史已完成批次」誤當成「本次 page session 已完成」。
    - `executeFailed = true` 僅在最新批次為 `FAILED` 時回傳，並附最小 failure summary。
 4. `ruleSummary` 直接由 backend 以專案版本、病歷類型、評分表、品質門檻組字串，避免 FE 再拆散判斷。
+5. preview / execute 後的部分畫面狀態仍由 frontend local merge 維持，故 B-001 目前不寫成 fully closed。
 
 #### UI-007 — 抽選批次列表頁（`/sampling/batches`）
 
@@ -105,6 +106,7 @@
 
 | 頁面 | 現況 | 備註 |
 |---|---|---|
+| UI-007 抽選批次列表頁 | ✅ REAL（列表 / retry） | 仍有 I-002：batch-list role hardcoded |
 | UI-009 案件列表頁 | ✅ REAL（含 `projectionType`） | 仍有 I-002：worklist role hardcoded |
 | UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供 |
 | UI-011 案件分派頁 | ⚠️ STUB-BACKED | 命令已真實；candidate source 仍為 stub adapter |
@@ -120,7 +122,7 @@
 
 | ID | 頁面 / 範圍 | 描述 |
 |---|---|---|
-| B-001 | UI-006 | execute bootstrap context 改為 backend 專屬端點 |
+| B-001 | UI-006 | execute bootstrap context endpoint 與前端接線已存在 |
 | B-002 | UI-006 | preview command 已接真實 API |
 | B-003 | UI-006 | execute command 已接真實 API |
 | B-004 | UI-007 | batch list 已接真實 API |
@@ -132,19 +134,21 @@
 |---|---|---|---|
 | F-002 | UI-007 batch detail | ⏸️ DEFERRED | UI spec 尚未定；本輪不做 route / drawer / modal |
 
-### 5.3 Decision Pack Ready
+### 5.3 Decision-Required
 
 | ID | 範圍 | 狀態 |
 |---|---|---|
-| I-001 | Route Guard 正式化 | 📦 DECISION PACK READY |
-| I-002 | hardcoded role 移除 | 📦 DECISION PACK READY |
-| I-003 | Assignment candidate 正式資料來源 | 📦 DECISION PACK READY |
+| I-001 | Route Guard 正式化 | 🕓 DECISION-REQUIRED |
+| I-002 | hardcoded role 移除 | 🕓 DECISION-REQUIRED |
+| I-003 | Assignment candidate 正式資料來源 | 🕓 DECISION-REQUIRED |
 
 ---
 
 ## 6. Architecture Decision Pack
 
 ### 6.1 I-001 — Route Guard 正式化
+
+> 以下內容僅整理待決策選項與限制，**不視為已拍板方案**。
 
 #### 現況
 
@@ -169,9 +173,9 @@
 | B | frontend 啟動時呼叫 `/me` 或 equivalent bootstrap API | app initializer / actor context store | guard 依 store 判斷；component 可共用 | standalone 可用 mock `/me` | 需補 bootstrap API mock | 中高 | repo 內目前沒有 `/me` 契約 |
 | C | 延後 shell，先以 route resolver + page API 拼裝 | 每頁各自 resolver | guard 與 component 邏輯分裂 | standalone 容易做 | 測試分散 | 低 | 會把 auth truth 散落在 page routes，不推薦 |
 
-#### 推薦方案
+#### 暫不定稿
 
-**推薦 A：Shell 直接注入 actor context，frontend 維持單一 actor context service。**
+目前僅能確認 shell 注入 actor context 與 frontend actor context store 仍待正式決策；以下比較表僅作 pending options 討論。
 
 **理由**
 
@@ -189,9 +193,11 @@
 
 ### 6.2 I-002 — hardcoded role 移除
 
+> 以下內容僅整理待決策選項與限制，**不視為已拍板方案**。
+
 #### 現況
 
-- 已確認 hardcoded role 主來源：`cases-worklist/case-list-page.component.ts`。
+- 已確認 hardcoded role 現有範圍至少包含：`cases-worklist/case-list-page.component.ts`、`sampling/batch-list/sampling-batch-list-page.component.ts`。
 - 該 hardcoded role 影響：
   - default tab
   - default status
@@ -207,9 +213,9 @@
 | B | page API 回傳 `actorRole`，列表頁也補同欄位 | backend 決 primary role | standalone 需 mock page API | 中高 | 讓列表頁過度依賴單一 page API 回傳 |
 | C | FE 自己從 token / local storage 解 role | FE 自算 | standalone 最容易 | 低 | 破壞 shell boundary，不推薦 |
 
-#### 推薦方案
+#### 暫不定稿
 
-**推薦 A：以 shell 提供 `roles[]`，frontend 明確定義 primary-role resolver。**
+目前僅能確認 role context strategy 與 primary-role resolver 仍待正式決策；以下比較表僅作 pending options 討論。
 
 #### 建議 primary-role 規則
 
@@ -233,6 +239,8 @@
 
 ### 6.3 I-003 — Assignment Candidate 正式資料來源
 
+> 以下內容僅整理待決策選項與限制，**不視為已拍板方案**。
+
 #### 現況
 
 - `StubAssignmentCandidateLookupAdapter` 目前契約輸入：`hospitalId`、`role`、`keyword`。
@@ -250,9 +258,9 @@
 | B | HR org directory | employeeId、name、org unit、title、active | 組織樹 / keyword 通常較完整 | application layer；必要時另補 reviewer eligibility mapping | 中高 | 醫療審查角色未必直接存在 |
 | C | IAM / AD / LDAP | account、displayName、group、active | account / group 搜尋 | application layer；group -> role mapping 另做 adapter | 中高 | 群組不一定能表達審查業務資格 |
 
-#### 推薦方向
+#### 暫不定稿方向
 
-**推薦先以 A 或 B 類 directory source 取代 stub，但維持 `AssignmentCandidateDirectoryPort` 不變。**
+目前僅能確認 UI-011 仍是 stub-backed，且正式 candidate source strategy 待拍板；以下方向僅作 pending options 討論。
 
 **理由**
 
@@ -272,19 +280,19 @@
 
 | 項目 | 本輪結論 |
 |---|---|
-| B-001 是否已關閉 | **是** |
+| B-001 是否已 fully closed | **否**；目前為 limited-scope implemented |
 | F-002 是否已正式轉為 deferred | **是** |
-| UI-006 狀態是否改變 | **是**，由 PARTIAL / FIXTURE 轉為 REAL bootstrap |
+| UI-006 狀態是否改變 | **是**，由 fixture bootstrap 轉為 execute-context bootstrap |
 | UI-007 detail gap 是否仍是含糊 stub | **否**，已改為明確 deferred |
-| I-001 / I-002 / I-003 是否已從模糊 pending 轉為可決策方案包 | **是** |
-| 是否發現新 gap | **無新增功能 gap**；僅確認 e2e 必須補 sampling mocks，已同步處理 |
+| I-001 / I-002 / I-003 是否已 fully resolved | **否**；目前仍屬 pending / decision-required |
+| 是否仍有文件同步缺口 | **是**；B-001 與 F-002 相關 contract / page spec 仍需同步 |
 
 ---
 
-## 8. Formal Closure Statement
+## 8. Current Status Statement
 
-本輪 gap closure cycle 的正式結論如下：
+本輪對齊盤點的保守結論如下：
 
-1. **B-001 已關閉**：UI-006 抽選執行頁現在以專屬 backend 端點 `GET /review-projects/{projectId}/sampling/execute-context` 作為唯一 bootstrap context 來源，不再依賴 frontend fixture 或多 API 自組。
-2. **F-002 已正式遞延**：repo 已明確表達「batch detail 暫不做」，不再保留含糊 no-op stub；deferred 原因為 **UI spec 尚未定**。
-3. **I-001 / I-002 / I-003 仍未實作，但已完成決策空間收斂**：三項均已整理成可供使用者快速拍板的 architecture options pack，後續可直接進入決策而非再做模糊盤點。
+1. **B-001 為 limited-scope implemented**：UI-006 已改接 `GET /review-projects/{projectId}/sampling/execute-context` 作為頁面 bootstrap API，但 preview / execute 後的部分畫面狀態仍未收口成單一 truth source。
+2. **F-002 為 deferred**：repo 已明確表達目前不開放 batch detail page / route / drawer / modal，前端 detail action 維持 disabled / 未開放。
+3. **I-001 / I-002 / I-003 仍為 pending / decision-required**：這三項目前僅能描述現況限制與待決問題，不應寫成 resolved 或 ready-to-implement。

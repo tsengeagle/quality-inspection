@@ -18,9 +18,8 @@
 - 查看歷次抽選結果
 - 辨識成功 / 失敗批次
 - 篩選特定 project / status / 時間區間
-- 進入批次詳情
+- 由 batch 導到案件列表
 - 對 failed batch 發起 retry
-- 從 batch 導到案件列表
 
 ### 頁面型態
 `List / Execution Tracking`
@@ -56,9 +55,9 @@
 2. 提供篩選、排序、分頁
 3. 顯示每個 batch 的關鍵執行結果摘要
 4. 區分 completed / failed / retry chain
-5. 提供進入批次詳情的入口
+5. 提供由 batch 導向案件列表的入口
 6. 在合法條件下提供 retry 入口
-7. 提供由 batch 導向案件列表的入口
+7. 對尚未開放的 batch detail action 維持 disabled / 未開放表述
 
 本頁不負責：
 
@@ -89,7 +88,7 @@
 - 執行結果可讀性
 - status 辨識
 - retry chain 可追蹤性
-- 從 batch 到 detail / cases 的導頁效率
+- 從 batch 到 cases 的導頁效率
 
 ---
 
@@ -243,7 +242,7 @@ tab_filters:
 | startedAt       | 開始時間                            | 全角色                          |
 | finishedAt      | 結束時間                            | 全角色                          |
 | retry 來源        | retryOfBatchId 摘要               | manager / auditor / sysadmin |
-| 操作              | detail / retry / 查看案件           | 依角色                          |
+| 操作              | disabled detail / retry / 查看案件 | 依角色                          |
 
 ### 視覺重點
 
@@ -276,9 +275,15 @@ tab_filters:
 
 | 按鈕   | 用途                             | 角色                           |
 | ---- | ------------------------------ | ---------------------------- |
-| 查看詳情 | 進入批次詳情頁                        | manager / auditor / sysadmin |
+| 查看詳情 | 目前未開放；僅保留 disabled action 提示 | manager / auditor / sysadmin |
 | 查看案件 | 進入案件列表並帶 batchId filter        | manager / auditor / sysadmin |
 | 重跑   | 對 failed batch 建立新 batch retry | manager only                 |
+
+### detail 目前狀態
+
+* 目前不提供 batch detail page / route / drawer / modal
+* 若頁面保留 detail action，應以 disabled / 未開放文案呈現
+* 不以「現行可查看詳情」描述本頁能力
 
 ---
 
@@ -295,7 +300,6 @@ tab_filters:
 
 ### 可用操作
 
-* 查看詳情
 * 查看案件
 
 ### 不可用操作
@@ -314,13 +318,12 @@ tab_filters:
 
 ### manager 可用操作
 
-* 查看詳情
 * 重跑
 * 查看案件 [若失敗前已產生部分資料，實作上可決定是否開放；本版預設不強調]
 
 ### auditor / sysadmin
 
-* 僅查看詳情
+* 僅可查看列表 metadata 與查看案件入口
 * 不可重跑
 
 ---
@@ -335,7 +338,7 @@ tab_filters:
 
 ### 可用操作
 
-* 查看詳情
+* 無 detail drill-down；維持列表追蹤
 
 ### 不可用操作
 
@@ -400,7 +403,6 @@ tab_filters:
 
 可做：
 
-* 查看詳情
 * 查看案件
 * retry failed batch
 
@@ -466,7 +468,7 @@ tab_filters:
 ### 9.5 Metadata-only
 
 * 對 system admin 不需額外拆頁
-* 但 detail action 進入後仍應維持 metadata only 視角
+* 目前不提供 detail 進入行為；metadata-only 僅作用於列表顯示範圍
 
 ---
 
@@ -479,7 +481,7 @@ tab_filters:
   -> 正式執行抽選
   -> 成功後進入抽選批次列表頁
   -> 找到新 batch
-  -> 點查看詳情 / 查看案件
+  -> 點查看案件
 ```
 
 ### 10.2 manager 重跑失敗批次
@@ -498,7 +500,6 @@ tab_filters:
 ```text id="nthjlwm"
 抽選批次列表頁
   -> 篩選 project / status / 時間
-  -> 查看詳情
   -> 導向案件列表
 ```
 
@@ -516,8 +517,9 @@ tab_filters:
 
 ### 11.3 下游導頁
 
-* `GET /sampling-batches/{batchId}`
 * `GET /review-cases?batchId=...`
+
+> `GET /sampling-batches/{batchId}` 目前存在 backend contract，但不作為本頁已開放的前端 detail flow。
 
 ---
 

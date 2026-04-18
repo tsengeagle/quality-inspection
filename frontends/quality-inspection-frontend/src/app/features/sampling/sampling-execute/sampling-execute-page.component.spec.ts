@@ -1,7 +1,7 @@
 import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { SamplingExecuteContext, SamplingService } from '../services/sampling.service';
 import { SamplingExecutePageComponent } from './sampling-execute-page.component';
@@ -160,6 +160,19 @@ describe('SamplingExecutePageComponent', () => {
     expect(component.context?.projectName).toBe('2026 年第二季品質審查');
   });
 
+  it('keeps backend preview readiness when execute-context already marks preview completed', () => {
+    samplingService.getExecuteContext.and.returnValue(of(buildContext({
+      previewReady: true,
+      previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 }
+    })));
+
+    fixture.detectChanges();
+
+    expect(component.mode).toBe('PREVIEW_COMPLETED');
+    expect(component.context?.previewReady).toBeTrue();
+    expect(component.context?.previewStats).toEqual({ populationCount: 120, eligibleCount: 80, excludedCount: 40 });
+  });
+
   it('reloads bootstrap context after execute completes', () => {
     samplingService.getExecuteContext.and.returnValues(
       of(buildContext({
@@ -184,5 +197,30 @@ describe('SamplingExecutePageComponent', () => {
     expect(samplingService.getExecuteContext).toHaveBeenCalledTimes(2);
     expect(component.mode).toBe('EXECUTE_SUCCESS');
     expect(component.context?.executedBatchId).toBe('BATCH-COMPLETED-001');
+  });
+
+  it('keeps local preview stats and uses an explicit fallback summary when execute fails before backend state catches up', () => {
+    samplingService.getExecuteContext.and.returnValues(
+      of(buildContext({
+        previewReady: true,
+        previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 }
+      })),
+      of(buildContext())
+    );
+    samplingService.executeSampling.and.returnValue(throwError(() => new Error('execute failed')));
+
+    fixture.detectChanges();
+    component.onConfirmModalConfirm();
+
+    expect(samplingService.getExecuteContext).toHaveBeenCalledTimes(2);
+    expect(component.mode).toBe('EXECUTE_FAILED');
+    expect(component.context?.previewStats).toEqual({ populationCount: 120, eligibleCount: 80, excludedCount: 40 });
+    expect(component.context?.executeFailed).toBeTrue();
+    expect(component.context?.postExecuteSummary).toEqual({
+      tone: 'failed',
+      title: '抽選失敗',
+      description: '抽選執行失敗，請重新預估後再試。',
+      batchId: null
+    });
   });
 });

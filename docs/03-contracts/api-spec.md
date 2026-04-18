@@ -519,7 +519,42 @@ Accept: application/json
 
 ---
 
-## 9.1 預估抽選母體
+## 9.1 取得抽選執行頁 bootstrap context
+
+### `GET /review-projects/{projectId}/sampling/execute-context`
+
+#### 權限
+
+* `HOSPITAL_MANAGER`
+
+#### 用途
+
+提供 UI-006 抽選執行頁載入時所需的最小 bootstrap context。此端點回傳專案摘要、blocked reason 與最新批次衍生狀態，供頁面決定初始 mode 與首屏顯示；不定義 preview / execute session state 的最終責任歸屬。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "projectId": "RP-001",
+    "projectName": "2026 門診病歷品質審查",
+    "hospitalId": "H001",
+    "ruleSummary": "專案版本：v3\n病歷類型：OUTPATIENT\n評分表：SS-001\n品質門檻：85",
+    "previewReady": false,
+    "executing": false,
+    "executeFailed": false,
+    "executedBatchId": null,
+    "blockedReason": null,
+    "previewStats": null,
+    "postExecuteSummary": null
+  }
+}
+```
+
+---
+
+## 9.2 預估抽選母體
 
 ### `POST /review-projects/{projectId}/sampling/preview`
 
@@ -550,7 +585,7 @@ Accept: application/json
 
 ---
 
-## 9.2 執行抽選
+## 9.3 執行抽選
 
 ### `POST /review-projects/{projectId}/sampling/execute`
 
@@ -587,7 +622,7 @@ Accept: application/json
 
 ---
 
-## 9.3 重跑失敗批次
+## 9.4 重跑失敗批次
 
 ### `POST /sampling-batches/{batchId}/retry`
 
@@ -609,7 +644,7 @@ Accept: application/json
 
 ---
 
-## 9.4 查詢批次清單
+## 9.5 查詢批次清單
 
 ### `GET /sampling-batches`
 
@@ -632,7 +667,7 @@ Accept: application/json
 
 ---
 
-## 9.5 查詢批次詳情
+## 9.6 查詢批次詳情
 
 ### `GET /sampling-batches/{batchId}`
 

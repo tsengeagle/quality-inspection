@@ -192,7 +192,12 @@ export class SamplingService {
   getExecuteContext(projectId: string): Observable<SamplingExecuteContext> {
     return this.http
       .get<ApiResponse<SamplingExecuteContextDto>>(`${this.projectBaseUrl}/${projectId}/sampling/execute-context`)
-      .pipe(map(res => res.data));
+      .pipe(
+        map(res => ({
+          ...res.data,
+          blockedReason: res.data.blockedReason as SamplingExecuteBlockedReason
+        }))
+      );
   }
 
   private mapBatchSummary(dto: SamplingBatchSummaryDto): SamplingBatchSummaryItem {
