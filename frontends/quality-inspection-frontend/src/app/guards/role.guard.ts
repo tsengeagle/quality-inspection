@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot, CanActivate } from '@angular/router';
+import { ActivatedRouteSnapshot, CanActivate, CanActivateChild, RouterStateSnapshot } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
@@ -7,10 +7,18 @@ import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
 
 @Injectable({ providedIn: 'root' })
-export class RoleGuard implements CanActivate {
+export class RoleGuard implements CanActivate, CanActivateChild {
   constructor(private readonly actorContextService: ActorContextService) {}
 
-  canActivate(route: ActivatedRouteSnapshot): Observable<boolean> {
+  canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<boolean> {
+    return this.evaluateRoute(route);
+  }
+
+  canActivateChild(childRoute: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<boolean> {
+    return this.evaluateRoute(childRoute);
+  }
+
+  private evaluateRoute(route: ActivatedRouteSnapshot): Observable<boolean> {
     return this.actorContextService.context$.pipe(
       take(1),
       map(context => {
