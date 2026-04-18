@@ -38,11 +38,29 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
     </div>
   `,
   styles: [`
-    .batch-table-wrapper { padding: 0 16px 16px; }
-    .empty-hint { color: #999; font-size: 13px; padding: 16px 0; }
-    .batch-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    .batch-table th, .batch-table td { padding: 10px 12px; border-bottom: 1px solid #e0e0e0; text-align: left; }
-    .batch-table th { font-weight: 600; background: #f5f5f5; }
+    .batch-table-wrapper { padding: 0; }
+    .empty-hint { color: var(--qi-text-secondary); font-size: 13px; padding: 16px 0; }
+    .batch-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      border: 1px solid var(--qi-border-subtle);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .batch-table th,
+    .batch-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--qi-border-subtle);
+      text-align: left;
+      background: var(--qi-surface-base);
+      color: var(--qi-text-primary);
+    }
+    .batch-table th {
+      font-weight: 600;
+      background: var(--qi-surface-subtle);
+      color: var(--qi-text-secondary);
+    }
   `]
 })
 export class BatchTableComponent {

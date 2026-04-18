@@ -1,1 +1,57 @@
-// sampling-execute-page styles
+.sampling-execute-page {
+	padding: 16px;
+	display: grid;
+	gap: 12px;
+}
+
+.sampling-page-header {
+	border: 1px solid var(--qi-border-subtle);
+	border-radius: 10px;
+	padding: 12px 16px;
+	background: var(--qi-surface-base);
+}
+
+.sampling-page-title {
+	margin: 0;
+	color: var(--qi-text-primary);
+}
+
+.sampling-page-subtitle {
+	margin: 6px 0 0;
+	color: var(--qi-text-secondary);
+	font-size: 14px;
+}
+
+.mode-indicator-strip {
+	padding: 8px 12px;
+	border-radius: 6px;
+	width: fit-content;
+	background: var(--qi-surface-subtle);
+	border: 1px solid var(--qi-border-subtle);
+	color: var(--qi-text-secondary);
+}
+
+.page-content {
+	border: 1px solid var(--qi-border-subtle);
+	border-radius: 10px;
+	padding: 16px;
+	background: var(--qi-surface-base);
+	display: grid;
+	gap: 14px;
+}
+
+.preview-btn,
+.execute-btn,
+.navigate-btn {
+	height: 36px;
+	border-radius: 6px;
+	padding: 0 14px;
+	border: 1px solid var(--qi-accent);
+	background: var(--qi-accent);
+	color: var(--qi-surface-base);
+	font-weight: 600;
+}
+
+.executing-hint {
+	color: var(--qi-text-secondary);
+}

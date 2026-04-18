@@ -3,3 +3,21 @@
  * portal51-lib is the shared UI library baseline and wrapper/style priority reference.
  * Component-level usage detail pending confirmation.
  */
+
+:root {
+	--qi-surface-base: #ffffff;
+	--qi-surface-subtle: #f4f8fc;
+	--qi-border-subtle: #d6deea;
+	--qi-border-muted: #b9c5d6;
+	--qi-text-primary: #1e2d3d;
+	--qi-text-secondary: #4d5f75;
+	--qi-accent: #005ea8;
+	--qi-danger-text: #bb2f2f;
+}
+
+body {
+	margin: 0;
+	background: linear-gradient(180deg, #eef3f8 0%, #f8fbff 160px, #f5f8fc 100%);
+	color: var(--qi-text-primary);
+	font-family: "Segoe UI", "Noto Sans TC", sans-serif;
+}

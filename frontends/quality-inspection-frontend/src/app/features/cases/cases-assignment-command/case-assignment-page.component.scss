@@ -1,24 +1,49 @@
 .assignment-mode-banner,
 .assignment-section,
-.assignment-submit-zone {
+.assignment-submit-zone,
+.assignment-navigation-zone {
 	padding: 16px;
-	border-bottom: 1px solid var(--qi-border-subtle, #d9d9d9);
+	border-bottom: 1px solid var(--qi-border-subtle);
 }
 
 .assignment-page-title {
 	margin: 0 0 8px;
 }
 
+.assignment-mode-copy {
+	margin: 0;
+	color: var(--qi-text-secondary);
+}
+
 .candidate-list,
 .due-date-helper-slot {
 	margin-top: 8px;
 	padding: 12px;
-	border: 1px dashed var(--qi-border-muted, #bdbdbd);
+	border: 1px dashed var(--qi-border-muted);
+	border-radius: 8px;
+}
+
+.due-date-input-group {
+	display: grid;
+	gap: 8px;
+	margin-top: 12px;
+}
+
+.due-date-input-group input {
+	max-width: 280px;
 }
 
 .assignment-submit-zone {
 	display: flex;
 	gap: 12px;
+}
+
+.secondary-nav-button {
+	padding: 8px 14px;
+	border: 1px solid var(--qi-border-subtle);
+	border-radius: 6px;
+	background: var(--qi-surface-base);
+	color: var(--qi-text-primary);
 }
 
 .assignment-search-row {
@@ -43,11 +68,11 @@
 	padding: 8px;
 	border-radius: 4px;
 	cursor: pointer;
-	background: var(--qi-surface-subtle, #fafafa);
+	background: var(--qi-surface-subtle);
 }
 
 .candidate-option--selected {
-	outline: 1px solid var(--qi-accent, #1a73e8);
+	outline: 1px solid var(--qi-accent);
 }
 
 .candidate-option--disabled {
@@ -67,5 +92,5 @@
 }
 
 .assignment-feedback--blocked {
-	color: var(--qi-danger-text, #b3261e);
+	color: var(--qi-danger-text);
 }

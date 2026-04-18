@@ -33,9 +33,17 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
   `,
   styles: [`
     .row-actions { display: flex; gap: 8px; }
-    .action-btn { padding: 4px 10px; border: 1px solid #1565c0; border-radius: 4px; cursor: pointer; background: #fff; color: #1565c0; font-size: 13px; }
-    .action-btn.retry { border-color: #e65100; color: #e65100; }
-    .action-btn.deferred { border-color: #9e9e9e; color: #9e9e9e; cursor: not-allowed; }
+    .action-btn {
+      padding: 4px 10px;
+      border: 1px solid var(--qi-accent);
+      border-radius: 4px;
+      cursor: pointer;
+      background: var(--qi-surface-base);
+      color: var(--qi-accent);
+      font-size: 13px;
+    }
+    .action-btn.retry { border-color: var(--qi-danger-text); color: var(--qi-danger-text); }
+    .action-btn.deferred { border-color: var(--qi-border-muted); color: var(--qi-text-secondary); cursor: not-allowed; }
   `]
 })
 export class BatchRowActionsComponent {

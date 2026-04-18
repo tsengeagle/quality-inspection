@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, Observable } from 'rxjs';
 
 import {
@@ -55,10 +55,13 @@ export class CaseAssignmentPageComponent implements OnInit {
   rereviewerCandidates: AssignmentCandidateViewModel[] = [];
   selectedReviewerId: string | null = null;
   selectedRereviewerId: string | null = null;
+  reviewerDueAtInput = '';
+  rereviewerDueAtInput = '';
   private assignmentContext?: AssignmentContextViewModel;
 
   constructor(
     private readonly route: ActivatedRoute,
+    private readonly router: Router,
     private readonly casesService: CasesService
   ) {}
 
@@ -135,6 +138,14 @@ export class CaseAssignmentPageComponent implements OnInit {
     return '目前未提供初審截止日；helper slot 仍維持 limited boundary。';
   }
 
+  get dueDateInputLabel(): string {
+    return this.mode === 'MIXED_ASSIGNMENT' ? '複審截止日' : '初審截止日';
+  }
+
+  get activeDueAtInput(): string {
+    return this.mode === 'MIXED_ASSIGNMENT' ? this.rereviewerDueAtInput : this.reviewerDueAtInput;
+  }
+
   get reviewerSearchDisabled(): boolean {
     return this.commandPending || this.reviewerLoading || !this.isReviewerActionEnabled;
   }
@@ -157,10 +168,10 @@ export class CaseAssignmentPageComponent implements OnInit {
     }
 
     if (this.mode === 'MIXED_ASSIGNMENT') {
-      return !this.isRereviewerActionEnabled || !this.selectedRereviewerId;
+      return !this.isRereviewerActionEnabled || !this.selectedRereviewerId || !this.hasValidDueAtInput(this.rereviewerDueAtInput);
     }
 
-    return !this.isReviewerActionEnabled || !this.selectedReviewerId;
+    return !this.isReviewerActionEnabled || !this.selectedReviewerId || !this.hasValidDueAtInput(this.reviewerDueAtInput);
   }
 
   get primaryActionLabel(): string {
@@ -201,6 +212,15 @@ export class CaseAssignmentPageComponent implements OnInit {
     this.loadRereviewerCandidates();
   }
 
+  onDueAtInputChange(value: string): void {
+    if (this.mode === 'MIXED_ASSIGNMENT') {
+      this.rereviewerDueAtInput = value;
+      return;
+    }
+
+    this.reviewerDueAtInput = value;
+  }
+
   onPrimaryAction(): void {
     if (this.primaryActionDisabled) {
       return;
@@ -213,9 +233,15 @@ export class CaseAssignmentPageComponent implements OnInit {
         return;
       }
 
+      const dueAt = this.normalizeDueAtInput(this.rereviewerDueAtInput);
+      if (!dueAt) {
+        this.setCommandFeedback('請先設定複審截止日。', 'blocked');
+        return;
+      }
+
       const payload: AssignRereviewerPayload = {
         rereviewerId,
-        dueAt: this.context.rereviewerDueAt ?? this.context.effectiveDueAt ?? null
+        dueAt
       };
       this.executeCommand(
         this.hasAllowedAction('REASSIGN_REREVIEWER')
@@ -232,9 +258,15 @@ export class CaseAssignmentPageComponent implements OnInit {
       return;
     }
 
+    const dueAt = this.normalizeDueAtInput(this.reviewerDueAtInput);
+    if (!dueAt) {
+      this.setCommandFeedback('請先設定初審截止日。', 'blocked');
+      return;
+    }
+
     const payload: AssignReviewerPayload = {
       reviewerId,
-      dueAt: this.context.reviewerDueAt ?? this.context.effectiveDueAt ?? null
+      dueAt
     };
     this.executeCommand(
       this.hasAllowedAction('REASSIGN_REVIEWER')
@@ -242,6 +274,10 @@ export class CaseAssignmentPageComponent implements OnInit {
         : this.casesService.assignReviewer(this.caseId, payload),
       () => this.hasAllowedAction('REASSIGN_REVIEWER') ? '初審改派已送出。' : '初審指派已送出。'
     );
+  }
+
+  onBackToCaseDetail(): void {
+    this.router.navigate(['/cases', this.caseId]);
   }
 
   private createDefaultContext(caseId: string): CaseAssignmentContext {
@@ -295,6 +331,9 @@ export class CaseAssignmentPageComponent implements OnInit {
       rereviewerDueAt: context.rereviewerDueAt,
       effectiveDueAt: context.effectiveDueAt
     }, context);
+
+    this.reviewerDueAtInput = this.toDateTimeLocalInput(context.reviewerDueAt ?? context.effectiveDueAt);
+    this.rereviewerDueAtInput = this.toDateTimeLocalInput(context.rereviewerDueAt ?? context.effectiveDueAt);
   }
 
   private loadReviewerCandidates(): void {
@@ -367,7 +406,7 @@ export class CaseAssignmentPageComponent implements OnInit {
       case 'CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS':
         return '此案件目前狀態不允許分派或改派。';
       case 'ASSIGNMENT_CONTEXT_LOAD_FAILED':
-        return '案件分派資料載入失敗，limited integration 僅提供最小阻擋提示。';
+        return '案件分派資料載入失敗，請稍後重試或返回案件詳情。';
       default:
         return '此案件目前不可進行分派或改派。';
     }
@@ -389,7 +428,7 @@ export class CaseAssignmentPageComponent implements OnInit {
           this.loadAssignmentPage();
         },
         error: () => {
-          this.setCommandFeedback('案件分派 command 執行失敗，limited integration 僅提供最小錯誤提示。', 'blocked');
+          this.setCommandFeedback('案件分派執行失敗，請確認指派資訊後再試。', 'blocked');
         }
       });
   }
@@ -397,5 +436,35 @@ export class CaseAssignmentPageComponent implements OnInit {
   private setCommandFeedback(message: string, tone: 'info' | 'blocked'): void {
     this.commandFeedbackMessage = message;
     this.commandFeedbackTone = tone;
+  }
+
+  private hasValidDueAtInput(value: string): boolean {
+    return this.normalizeDueAtInput(value) !== null;
+  }
+
+  private normalizeDueAtInput(value: string): string | null {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) {
+      return null;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmedValue)) {
+      return `${trimmedValue}:00`;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(trimmedValue)) {
+      return trimmedValue;
+    }
+
+    return null;
+  }
+
+  private toDateTimeLocalInput(value?: string): string {
+    if (!value) {
+      return '';
+    }
+
+    const matchedValue = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+    return matchedValue ? matchedValue[1] : '';
   }
 }

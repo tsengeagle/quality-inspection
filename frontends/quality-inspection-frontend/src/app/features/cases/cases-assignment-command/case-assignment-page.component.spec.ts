@@ -2,6 +2,7 @@ import { FormsModule } from '@angular/forms';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
+import { Router } from '@angular/router';
 
 import { CaseSummaryHeaderComponent } from '../components/case-summary-header/case-summary-header.component';
 import { ModeIndicatorStripComponent } from '../components/mode-indicator-strip/mode-indicator-strip.component';
@@ -18,6 +19,7 @@ describe('CaseAssignmentPageComponent', () => {
   let fixture: ComponentFixture<CaseAssignmentPageComponent>;
   let component: CaseAssignmentPageComponent;
   let casesService: jasmine.SpyObj<CasesService>;
+  let router: jasmine.SpyObj<Router>;
 
   beforeEach(async () => {
     casesService = jasmine.createSpyObj<CasesService>('CasesService', [
@@ -28,6 +30,7 @@ describe('CaseAssignmentPageComponent', () => {
       'assignRereviewer',
       'reassignRereviewer'
     ]);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
 
     casesService.getAssignmentContext.and.returnValue(of(buildAssignmentContext()));
     casesService.getAssignmentCandidates.and.callFake((_: string, role: 'REVIEWER' | 'REREVIEWER') => {
@@ -59,6 +62,10 @@ describe('CaseAssignmentPageComponent', () => {
         {
           provide: CasesService,
           useValue: casesService
+        },
+        {
+          provide: Router,
+          useValue: router
         }
       ]
     }).compileComponents();
@@ -225,7 +232,15 @@ describe('CaseAssignmentPageComponent', () => {
     component.onPrimaryAction();
     fixture.detectChanges();
 
-    expect(component.commandFeedbackMessage).toBe('案件分派 command 執行失敗，limited integration 僅提供最小錯誤提示。');
+    expect(component.commandFeedbackMessage).toBe('案件分派執行失敗，請確認指派資訊後再試。');
     expect(component.commandFeedbackTone).toBe('blocked');
+  });
+
+  it('navigates back to case detail', () => {
+    fixture.detectChanges();
+
+    component.onBackToCaseDetail();
+
+    expect(router.navigate).toHaveBeenCalledWith(['/cases', 'CASE-011']);
   });
 });

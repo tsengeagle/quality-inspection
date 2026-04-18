@@ -1,5 +1,5 @@
 <section class="batch-list-page">
-  <div class="batch-list-page-header-placeholder">
+  <div class="batch-list-page-header">
     <h1 class="batch-list-title">抽選批次列表</h1>
     <p class="batch-list-summary">{{ pageSummary }}</p>
     <p class="projection-notice" *ngIf="isMetadataOnly">SYSTEM_ADMIN 僅可檢視 metadata-only 欄位。</p>
@@ -24,7 +24,7 @@
     (retryBatch)="openRetryConfirm($event)">
   </app-batch-table>
 
-  <p class="deferred-note">批次詳情已正式 deferred，原因為 UI spec 尚未定。</p>
+  <p class="helper-note">批次詳情功能規劃中；展示流程請使用「查看案件」延續操作。</p>
 
   <app-retry-confirm-modal
     [visible]="showRetryModal"

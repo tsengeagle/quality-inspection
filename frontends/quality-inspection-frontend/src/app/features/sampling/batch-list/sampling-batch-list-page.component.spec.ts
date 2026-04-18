@@ -133,7 +133,7 @@ describe('SamplingBatchListPageComponent', () => {
   it('renders batch detail as an explicit deferred state instead of a no-op stub', () => {
     fixture.detectChanges();
 
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('批次詳情已正式 deferred，原因為 UI spec 尚未定。');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('批次詳情功能規劃中；展示流程請使用「查看案件」延續操作。');
     expect(router.navigate).not.toHaveBeenCalledWith(['/sampling/batches', 'BATCH-FAILED-001']);
   });
 

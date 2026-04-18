@@ -15,7 +15,7 @@
 
 <section class="assignment-mode-banner" data-testid="assignment-mode-banner">
 	<h1 class="assignment-page-title">案件分派頁</h1>
-	<p class="assignment-mode-copy">目前提供 UI-011 limited integration，直接消費 assignment context 與 candidate lookup；advanced picker 與 due date helper 仍保留 placeholder 邊界。</p>
+	<p class="assignment-mode-copy">本頁提供初審與複審指派，候選人與可執行操作會依案件狀態即時更新。</p>
 </section>
 
 <section *ngIf="showReviewerSection" class="assignment-section reviewer-assignment-section">
@@ -89,13 +89,25 @@
 <section class="assignment-section">
 	<h2>截止日 / 指派說明</h2>
 	<div class="due-date-helper-slot" data-testid="assignment-due-date-helper-slot">
-		{{ currentDueDateLabel }}
+		<p class="assignment-current-owner">{{ currentDueDateLabel }}</p>
+		<label class="due-date-input-group">
+			<span>{{ dueDateInputLabel }}</span>
+			<input
+				type="datetime-local"
+				[ngModel]="activeDueAtInput"
+				(ngModelChange)="onDueAtInputChange($event)"
+				[disabled]="commandPending || showBlockedBanner"
+				data-testid="assignment-due-at-input">
+		</label>
 	</div>
 </section>
 
 <section *ngIf="showSubmitZone" class="assignment-submit-zone" data-testid="assignment-submit-zone">
 	<button type="button" (click)="onPrimaryAction()" [disabled]="primaryActionDisabled">{{ commandPending ? '送出中...' : primaryActionLabel }}</button>
-	<button type="button" disabled>返回案件詳情</button>
+</section>
+
+<section class="assignment-navigation-zone" data-testid="assignment-navigation-zone">
+	<button type="button" class="secondary-nav-button" (click)="onBackToCaseDetail()">返回案件詳情</button>
 </section>
 
 <p

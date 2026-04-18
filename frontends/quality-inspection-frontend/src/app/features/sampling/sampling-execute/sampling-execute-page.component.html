@@ -1,9 +1,9 @@
 <section class="sampling-execute-page">
-  <div class="sampling-page-header-placeholder">
+  <div class="sampling-page-header">
     <h1 class="sampling-page-title">抽選執行頁</h1>
-    <p class="sampling-page-subtitle">projectId: {{ projectId }}</p>
-    <p class="sampling-page-subtitle" *ngIf="context?.projectName">projectName: {{ context?.projectName }}</p>
-    <p class="sampling-page-subtitle" *ngIf="context?.hospitalId">hospitalId: {{ context?.hospitalId }}</p>
+    <p class="sampling-page-subtitle">專案代碼：{{ projectId }}</p>
+    <p class="sampling-page-subtitle" *ngIf="context?.projectName">專案名稱：{{ context?.projectName }}</p>
+    <p class="sampling-page-subtitle" *ngIf="context?.hospitalId">院區：{{ context?.hospitalId }}</p>
   </div>
 
   <div class="mode-indicator-strip">{{ modeLabel }}</div>

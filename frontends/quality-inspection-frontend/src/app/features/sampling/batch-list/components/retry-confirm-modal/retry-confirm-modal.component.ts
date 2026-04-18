@@ -18,15 +18,15 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
     </div>
   `,
   styles: [`
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-    .modal-dialog { background: #fff; border-radius: 8px; padding: 24px; width: 400px; max-width: 90vw; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, .35); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .modal-dialog { background: var(--qi-surface-base); border-radius: 8px; border: 1px solid var(--qi-border-subtle); padding: 24px; width: 400px; max-width: 90vw; }
     .modal-title { font-size: 18px; font-weight: 600; margin: 0 0 12px; }
     .modal-body { font-size: 15px; margin: 0 0 4px; }
-    .modal-sub { font-size: 13px; color: #666; margin: 0 0 20px; }
+    .modal-sub { font-size: 13px; color: var(--qi-text-secondary); margin: 0 0 20px; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 12px; }
     .btn { padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; border: none; }
-    .cancel-btn { background: #f5f5f5; color: #333; }
-    .confirm-btn { background: #1565c0; color: #fff; }
+    .cancel-btn { background: var(--qi-surface-subtle); color: var(--qi-text-primary); }
+    .confirm-btn { background: var(--qi-accent); color: var(--qi-surface-base); }
   `]
 })
 export class RetryConfirmModalComponent {

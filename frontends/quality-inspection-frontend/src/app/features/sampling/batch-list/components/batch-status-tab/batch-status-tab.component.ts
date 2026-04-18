@@ -16,9 +16,18 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
     </div>
   `,
   styles: [`
-    .batch-status-tab { display: flex; gap: 8px; padding: 8px 16px; flex-wrap: wrap; }
-    .chip { padding: 4px 12px; border: 1px solid #ccc; border-radius: 16px; cursor: pointer; background: #fff; font-size: 13px; }
-    .chip.active { background: #1565c0; color: #fff; border-color: #1565c0; }
+    .batch-status-tab { display: flex; gap: 8px; padding: 4px 0; flex-wrap: wrap; }
+    .chip {
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--qi-border-subtle);
+      border-radius: 16px;
+      cursor: pointer;
+      background: var(--qi-surface-base);
+      color: var(--qi-text-secondary);
+      font-size: 13px;
+    }
+    .chip.active { background: var(--qi-accent); color: var(--qi-surface-base); border-color: var(--qi-accent); }
   `]
 })
 export class BatchStatusTabComponent {
