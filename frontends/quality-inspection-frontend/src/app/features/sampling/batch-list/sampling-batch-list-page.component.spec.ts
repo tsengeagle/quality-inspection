@@ -41,6 +41,10 @@ class ActorContextServiceStub {
   resolvePrimaryRole(fallbackRole: string): string {
     return this.subject.getValue().currentRole ?? fallbackRole;
   }
+
+  isMetadataOnlyRole(role: string | null | undefined): boolean {
+    return role === 'SYSTEM_ADMIN';
+  }
 }
 
 describe('SamplingBatchListPageComponent', () => {

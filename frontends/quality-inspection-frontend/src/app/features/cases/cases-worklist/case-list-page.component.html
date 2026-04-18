@@ -27,7 +27,7 @@
     所有案件
   </button>
   <button
-    *ngIf="role === 'MANAGER' || role === 'HOSPITAL_MANAGER' || role === 'ADMIN' || role === 'SYSTEM_ADMIN'"
+    *ngIf="showManagedProjectsTab"
     class="tab-btn"
     [class.active]="uiState.tab === 'MY_MANAGED_PROJECTS'"
     (click)="onTabChange('MY_MANAGED_PROJECTS')">

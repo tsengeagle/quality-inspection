@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CaseSummaryHeaderComponent } from '../components/case-summary-header/case-summary-header.component';
 import { ModeIndicatorStripComponent } from '../components/mode-indicator-strip/mode-indicator-strip.component';
 import { ProjectionNoticeBannerComponent } from '../components/projection-notice-banner/projection-notice-banner.component';
@@ -44,6 +45,26 @@ function buildVm(overrides: Partial<RevisionHistoryViewModel> = {}): RevisionHis
   };
 }
 
+class ActorContextServiceStub {
+  toCanonicalRole(role: string | null | undefined): string | null {
+    switch (role) {
+      case 'MANAGER':
+        return 'HOSPITAL_MANAGER';
+      case 'ADMIN':
+      case 'SYSADMIN':
+        return 'SYSTEM_ADMIN';
+      case 'SYSTEM_ADMIN':
+      case 'HOSPITAL_MANAGER':
+      case 'AUDITOR':
+      case 'REREVIEWER':
+      case 'REVIEWER':
+        return role;
+      default:
+        return null;
+    }
+  }
+}
+
 describe('RevisionHistoryPageComponent', () => {
   let fixture: ComponentFixture<RevisionHistoryPageComponent>;
   let component: RevisionHistoryPageComponent;
@@ -76,7 +97,8 @@ describe('RevisionHistoryPageComponent', () => {
       providers: [
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: Router, useValue: router },
-        { provide: CasesService, useValue: casesService }
+        { provide: CasesService, useValue: casesService },
+        { provide: ActorContextService, useValue: new ActorContextServiceStub() }
       ]
     }).compileComponents();
 
@@ -157,6 +179,13 @@ describe('RevisionHistoryPageComponent', () => {
   it('defaults to ALL when the actor is a manager and no query param overrides it', () => {
     activatedRouteStub.snapshot.queryParamMap = convertToParamMap({});
     render(buildVm({ actorRole: 'HOSPITAL_MANAGER' }));
+
+    expect(component.stageTab).toBe('ALL');
+  });
+
+  it('keeps legacy manager aliases compatible through foundation canonicalization only', () => {
+    activatedRouteStub.snapshot.queryParamMap = convertToParamMap({});
+    render(buildVm({ actorRole: 'MANAGER' }));
 
     expect(component.stageTab).toBe('ALL');
   });

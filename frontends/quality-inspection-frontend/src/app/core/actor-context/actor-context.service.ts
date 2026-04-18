@@ -4,7 +4,7 @@ import { distinctUntilChanged, map, shareReplay } from 'rxjs/operators';
 
 import { ACTOR_CONTEXT_SOURCE, ActorContextSource } from './actor-context-source';
 import { ActorContext, CanonicalActorRole, EMPTY_ACTOR_CONTEXT } from './actor-context.model';
-import { normalizeActorContext } from './actor-role.resolver';
+import { canonicalizeRole, normalizeActorContext } from './actor-role.resolver';
 
 @Injectable({ providedIn: 'root' })
 export class ActorContextService {
@@ -35,6 +35,18 @@ export class ActorContextService {
     return this.currentSnapshot.currentRole
       ?? this.currentSnapshot.roles[0]
       ?? fallbackRole;
+  }
+
+  toCanonicalRole(role: string | null | undefined): CanonicalActorRole | null {
+    return canonicalizeRole(role);
+  }
+
+  isManagementRole(role: string | null | undefined): boolean {
+    return this.toCanonicalRole(role) === 'HOSPITAL_MANAGER';
+  }
+
+  isMetadataOnlyRole(role: string | null | undefined): boolean {
+    return this.toCanonicalRole(role) === 'SYSTEM_ADMIN';
   }
 
   hasRoleContext(context: ActorContext = this.currentSnapshot): boolean {

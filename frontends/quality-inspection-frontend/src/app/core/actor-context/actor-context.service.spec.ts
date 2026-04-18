@@ -57,4 +57,12 @@ describe('ActorContextService', () => {
     expect(service.hasRoleContext()).toBeFalse();
     expect(service.hasHospitalScope()).toBeFalse();
   });
+
+  it('exposes canonical page-level role helpers without reintroducing aliases', () => {
+    const service = new ActorContextService(new ActorContextSourceStub());
+
+    expect(service.toCanonicalRole('admin')).toBe('SYSTEM_ADMIN');
+    expect(service.isManagementRole('MANAGER')).toBeTrue();
+    expect(service.isMetadataOnlyRole('SYSADMIN')).toBeTrue();
+  });
 });

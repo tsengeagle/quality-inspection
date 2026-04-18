@@ -3,13 +3,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SamplingService, SamplingBatchSummaryItem } from '../services/sampling.service';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
 
-export type SamplingBatchListRole =
-  | 'HOSPITAL_MANAGER'
-  | 'AUDITOR'
-  | 'SYSTEM_ADMIN'
-  | 'REVIEWER'
-  | 'REREVIEWER';
+export type SamplingBatchListRole = CanonicalActorRole;
 
 export type BatchListTab = 'ALL_BATCHES' | 'COMPLETED' | 'FAILED' | 'RETRYABLE';
 
@@ -52,7 +48,7 @@ export class SamplingBatchListPageComponent implements OnInit {
   showRetryModal = false;
 
   get isMetadataOnly(): boolean {
-    return this.role === 'SYSTEM_ADMIN';
+    return this.actorContextService.isMetadataOnlyRole(this.role);
   }
 
   get availableTabs(): Array<{ value: BatchListTab; label: string }> {

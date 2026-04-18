@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { CaseListResult, CasesService, CaseSummaryItem, CasesQueryCriteria } from '../services/cases.service';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
 
 /** C-01 CaseListPage UI state */
 export interface CaseListUIState {
@@ -22,9 +23,9 @@ export interface CaseListUIState {
 })
 export class CaseListPageComponent implements OnInit {
 
-  private readonly fallbackRole = 'REVIEWER';
+  private readonly fallbackRole: CanonicalActorRole = 'REVIEWER';
 
-  /** 模擬 role（正式實作由 shell 注入） */
+  /** 正式 primary role 來源為 shared actor context，fallback 僅作過渡保護。 */
   role = this.fallbackRole;
   /** backend list response 提供的 projection truth */
   projectionType?: 'FULL' | 'METADATA_ONLY';
@@ -43,6 +44,11 @@ export class CaseListPageComponent implements OnInit {
 
   /** 案件列表 */
   cases: CaseSummaryItem[] = [];
+
+  get showManagedProjectsTab(): boolean {
+    return this.actorContextService.isManagementRole(this.role)
+      || this.actorContextService.isMetadataOnlyRole(this.role);
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -71,10 +77,7 @@ export class CaseListPageComponent implements OnInit {
     switch (this.role) {
       case 'REVIEWER': return 'MY_QUEUE';
       case 'REREVIEWER': return 'MY_QUEUE';
-      case 'MANAGER': return 'MY_MANAGED_PROJECTS';
       case 'HOSPITAL_MANAGER': return 'MY_MANAGED_PROJECTS';
-      case 'ADMIN': return 'ALL_CASES';
-      case 'SYSADMIN': return 'ALL_CASES';
       case 'SYSTEM_ADMIN': return 'ALL_CASES';
       default: return 'MY_QUEUE';
     }
@@ -103,7 +106,7 @@ export class CaseListPageComponent implements OnInit {
     } else {
       this.showBusinessCommands = true;
       this.showProjectionNotice = false;
-      this.modeLabel = this.role === 'MANAGER' || this.role === 'HOSPITAL_MANAGER'
+      this.modeLabel = this.actorContextService.isManagementRole(this.role)
         ? '管理者視角'
         : '審查佇列';
     }

@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CasesService, CaseDetailViewModel } from '../services/cases.service';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
+
 /** C-03 CaseDetailPage mode 列舉 */
 export type CaseDetailMode =
   | 'FULL_CONTROL_CENTER'
@@ -46,6 +49,10 @@ export class CaseDetailPageComponent implements OnInit {
     return this.caseDetail?.actorRole ?? '';
   }
 
+  get canonicalActorRole(): CanonicalActorRole | null {
+    return this.actorContextService.toCanonicalRole(this.caseDetail?.actorRole);
+  }
+
   get caseTitle(): string {
     return '案件詳情';
   }
@@ -84,7 +91,7 @@ export class CaseDetailPageComponent implements OnInit {
     }
 
     if (this.mode === 'ROLE_LIMITED') {
-      return this.actorRole === 'REVIEWER' || this.actorRole === 'REREVIEWER';
+      return this.canonicalActorRole === 'REVIEWER' || this.canonicalActorRole === 'REREVIEWER';
     }
 
     return true;
@@ -96,7 +103,7 @@ export class CaseDetailPageComponent implements OnInit {
     }
 
     if (this.mode === 'ROLE_LIMITED') {
-      return this.actorRole === 'REREVIEWER';
+      return this.canonicalActorRole === 'REREVIEWER';
     }
 
     return true;
@@ -109,7 +116,8 @@ export class CaseDetailPageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private casesService: CasesService
+    private casesService: CasesService,
+    private actorContextService: ActorContextService
   ) {}
 
   ngOnInit(): void {
@@ -135,9 +143,9 @@ export class CaseDetailPageComponent implements OnInit {
       this.mode = 'METADATA_CONTROL_CENTER';
     } else if (isTerminalState) {
       this.mode = 'READONLY_TERMINAL';
-    } else if (d.actorRole === 'HOSPITAL_MANAGER' || d.actorRole === 'MANAGER' || d.actorRole === 'ADMIN') {
+    } else if (this.actorContextService.isManagementRole(d.actorRole)) {
       this.mode = 'FULL_CONTROL_CENTER';
-    } else if (d.isOwner || d.actorRole === 'AUDITOR') {
+    } else if (d.isOwner || this.canonicalActorRole === 'AUDITOR') {
       this.mode = 'ROLE_LIMITED';
     } else {
       this.mode = 'READONLY_TERMINAL';

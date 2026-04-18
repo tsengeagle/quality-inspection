@@ -41,6 +41,14 @@ class ActorContextServiceStub {
   resolvePrimaryRole(fallbackRole: string): string {
     return this.subject.getValue().currentRole ?? fallbackRole;
   }
+
+  isManagementRole(role: string | null | undefined): boolean {
+    return role === 'HOSPITAL_MANAGER';
+  }
+
+  isMetadataOnlyRole(role: string | null | undefined): boolean {
+    return role === 'SYSTEM_ADMIN';
+  }
 }
 
 describe('CaseListPageComponent', () => {

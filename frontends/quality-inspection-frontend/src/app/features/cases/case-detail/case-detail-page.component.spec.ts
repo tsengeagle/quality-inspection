@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
 import { of } from 'rxjs';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CaseSummaryHeaderComponent } from '../components/case-summary-header/case-summary-header.component';
 import { ModeIndicatorStripComponent } from '../components/mode-indicator-strip/mode-indicator-strip.component';
 import { ProjectionNoticeBannerComponent } from '../components/projection-notice-banner/projection-notice-banner.component';
@@ -30,6 +31,30 @@ function buildDetail(overrides: Partial<CaseDetailViewModel> = {}): CaseDetailVi
     latestRereviewSubmissionId: null,
     ...overrides
   };
+}
+
+class ActorContextServiceStub {
+  toCanonicalRole(role: string | null | undefined): string | null {
+    switch (role) {
+      case 'MANAGER':
+        return 'HOSPITAL_MANAGER';
+      case 'ADMIN':
+      case 'SYSADMIN':
+        return 'SYSTEM_ADMIN';
+      case 'SYSTEM_ADMIN':
+      case 'HOSPITAL_MANAGER':
+      case 'AUDITOR':
+      case 'REREVIEWER':
+      case 'REVIEWER':
+        return role;
+      default:
+        return null;
+    }
+  }
+
+  isManagementRole(role: string | null | undefined): boolean {
+    return this.toCanonicalRole(role) === 'HOSPITAL_MANAGER';
+  }
 }
 
 describe('CaseDetailPageComponent', () => {
@@ -61,7 +86,8 @@ describe('CaseDetailPageComponent', () => {
       providers: [
         { provide: ActivatedRoute, useValue: activatedRouteStub },
         { provide: Router, useValue: jasmine.createSpyObj<Router>('Router', ['navigate']) },
-        { provide: CasesService, useValue: casesService }
+        { provide: CasesService, useValue: casesService },
+        { provide: ActorContextService, useValue: new ActorContextServiceStub() }
       ]
     }).compileComponents();
 
@@ -133,6 +159,17 @@ describe('CaseDetailPageComponent', () => {
     expect(tags.slice(0, 2)).toEqual(['app-case-summary-header', 'app-mode-indicator-strip']);
     expect(fixture.nativeElement.textContent).toContain('案件指派');
     expect(fixture.nativeElement.textContent).toContain('Revision 歷程');
+  });
+
+  it('keeps legacy manager aliases scoped to foundation canonicalization only', () => {
+    render(buildDetail({
+      status: 'PENDING_REREVIEW',
+      actorRole: 'MANAGER',
+      projectionType: 'FULL',
+      isOwner: false
+    }));
+
+    expect(component.mode).toBe('FULL_CONTROL_CENTER');
   });
 
   it('resolves role-limited access for owned reviewer cases', () => {

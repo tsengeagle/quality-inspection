@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CasesService, RevisionHistoryViewModel } from '../services/cases.service';
 
+import { ActorContextService } from '@core/actor-context/actor-context.service';
+
 /** C-11 RevisionHistoryPage mode 列舉 */
 export type RevisionHistoryMode =
   | 'FULL_HISTORY'
@@ -47,7 +49,8 @@ export class RevisionHistoryPageComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private casesService: CasesService
+    private casesService: CasesService,
+    private actorContextService: ActorContextService
   ) {}
 
   ngOnInit(): void {
@@ -70,7 +73,7 @@ export class RevisionHistoryPageComponent implements OnInit {
       return;
     }
 
-    switch (this.vm.actorRole) {
+    switch (this.actorContextService.toCanonicalRole(this.vm.actorRole)) {
       case 'REVIEWER':
         this.stageTab = 'INITIAL_ONLY';
         break;
