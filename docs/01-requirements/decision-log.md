@@ -1158,3 +1158,82 @@ metadata-only 為 projection，不是獨立頁，不得取得 FULL-only 欄位�
 
 * 白名單成為 metadata-only mapper 的唯一來源
 * FULL-only 欄位不得在 metadata-only response 出現
+
+---
+
+## D-029 — Frontend Access Control Strategy: Guard + Directive
+
+### Status
+
+`accepted`
+
+### Category
+
+`frontend-access-control`
+
+### Decision
+
+Frontend 正式採用 **guard + directive** 雙層 access control 策略：
+
+- **Route guard**（`guards/`）負責 **page-level gate**：在 Angular route resolution 階段，以 actor context（`roles`、`hospitalId`）決定頁面是否可進入。
+- **Directive**（component-level）負責 **page-internal / component-level gate**：在頁面內根據 actor context 控制個別 UI 元素（按鈕、操作欄、區塊）的可見性與可用性。
+
+兩者共用同一份 actor context 來源，不得各自維護獨立 role truth。
+
+### Rationale
+
+* 分層清晰：guard 不管 component 細節，directive 不管路由切換
+* 避免 guard 過度膨脹或 component 自行實作隱式路由攔截
+* 對應 I-001 的 pending decision，現已拍板
+
+### Affected Artifacts
+
+* `frontends/quality-inspection-frontend/src/app/guards/` — RoleGuard、ScopeGuard、ProjectionGuard 改為正式實作（目前為 PASSTHROUGH，待 actor context 注入完成後補實）
+* `frontends/quality-inspection-frontend/src/app/` — 後續新增 directive 應放入 shared 或對應 feature module
+* `frontend.instructions.md` — 補記 access control placement rule
+* `frontend-backend-alignment-baseline.md` — I-001 狀態改為 accepted
+
+### Consequences
+
+* `RoleGuard` / `ScopeGuard` / `ProjectionGuard` 目前仍為 PASSTHROUGH；正式化前提為 actor context provider 已完成注入
+* 新開發功能不得在 component 內自寫路由跳轉邏輯作為 page-level gate 替代
+* component-level 可見性控制統一走 directive，不得硬寫在 template `*ngIf="role === 'xxx'"`
+
+---
+
+## D-030 — Frontend Role Context: RBAC as Formal Source (I-002)
+
+### Status
+
+`accepted`
+
+### Category
+
+`frontend-role-context`
+
+### Decision
+
+Frontend 正式採用 **RBAC**（Role-Based Access Control，以 actor context 的 `roles` 欄位為來源）作為 access policy 的正式來源：
+
+1. **逐步移除 hardcoded role**：既有 hardcoded role（如 `'REVIEWER'`、`'MANAGER'`、`'ADMIN'` 字串）應在涉及修改時優先改接 RBAC-backed guard 或 directive。
+2. **新碼禁止新增 hardcoded role**：任何新實作不得引入新的 hardcoded role 字串比對。
+3. **Legacy grandfathering**：目前已確認的 hardcoded role 範圍（`cases-worklist/case-list-page.component.ts`、`sampling/batch-list/sampling-batch-list-page.component.ts`）在未被主動修改前，允許暫時維持現況。被修改時，應同步改接 RBAC-backed 機制。
+
+### Rationale
+
+* 消除 frontend role 的 single source of truth 模糊性
+* 長期維護性：角色新增 / 異動時只改 actor context provider，不改各頁面
+* 對應 I-002 的 pending decision，現已拍板
+
+### Affected Artifacts
+
+* `frontends/quality-inspection-frontend/src/app/features/cases/cases-worklist/case-list-page.component.ts` — 後續修改時應改接 RBAC-backed guard / directive
+* `frontends/quality-inspection-frontend/src/app/features/sampling/sampling-batch-list/sampling-batch-list-page.component.ts` — 同上
+* `frontend.instructions.md` — 補記 RBAC 優先原則與 hardcoded role 禁止規則
+* `frontend-backend-alignment-baseline.md` — I-002 狀態改為 accepted
+
+### Consequences
+
+* 既有 legacy hardcoded role 不強制立即重構，但一旦碰到該 component 就必須改
+* 新增任何 access control 邏輯必須以 guard 或 directive 配合 actor context 實作
+* `CaseDetailPageComponent` / `RevisionHistoryPageComponent` 已消費 backend `actorRole` 的做法符合本規則，可保留；但 `MANAGER` / `ADMIN` legacy alias 在下次碰到時應同步清除

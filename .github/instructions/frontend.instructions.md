@@ -80,6 +80,17 @@ state/       # client state (不得冒充 domain truth)
 
 ---
 
+## Access Control Strategy（D-029 / D-030）
+
+- **Route Guard**（`guards/`）：page-level gate（RoleGuard / ScopeGuard / ProjectionGuard）控制「能不能進這頁」。目前為 PASSTHROUGH；actor context provider 完成注入後正式化。
+- **Directive**：component / element-level gate，控制頁面內 UI 元素的可見性與操作啟用。
+- 兩者共用同一份 actor context 來源（`userId / userName / roles / hospitalId`），不得各自維護獨立 role truth。
+- **RBAC 為正式 role 來源**：新碼不得新增 hardcoded role 字串比對；所有新 access check 一律走 RBAC-backed guard 或 directive。
+- **Legacy grandfathering**：`case-list-page` / `batch-list-page` 現有 hardcoded role 暫時允許；被修改時必須同步改接 RBAC-backed 機制。
+- 詳見 `docs/01-requirements/decision-log.md` D-029 / D-030
+
+---
+
 ## Role-Based Visibility
 
 Frontend must correctly represent (do not invent rules):

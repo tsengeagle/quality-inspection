@@ -24,8 +24,8 @@
 |---|---|---|
 | B-001 | 採方案 A：新增 `GET /review-projects/{projectId}/sampling/execute-context` | **limited-scope implemented**。API 與 bootstrap 接線已存在，但尚未宣稱為唯一 truth source |
 | F-002 | 採方案 C：暫不做 batch detail | **deferred**。UI-007 detail action 改為明確 disabled + deferred 訊息 |
-| I-001 | Route Guard 正式化不可直接實作 | **pending / decision-required** |
-| I-002 | hardcoded role 不可直接實作 | **pending / decision-required** |
+| I-001 | Route Guard 正式化：guard + directive 雙層策略 | **accepted**（D-029）— guard 待 actor context 注入後正式化；PASSTHROUGH 暫維持 |
+| I-002 | hardcoded role 移除：RBAC 為正式來源 | **accepted**（D-030）— legacy grandfathering；新碼禁止 hardcoded role |
 | I-003 | assignment candidate source replacement slice | **limited-scope implemented** |
 
 ---
@@ -139,13 +139,13 @@
 |---|---|---|---|
 | F-002 | UI-007 batch detail | ⏸️ DEFERRED | UI spec 尚未定；本輪不做 route / drawer / modal |
 
-### 5.4 Decision-Required
+### 5.4 Accepted（原 Decision-Required）
 
-| ID | 範圍 | 狀態 |
-|---|---|---|
-| I-001 | Route Guard 正式化 | 🕓 DECISION-REQUIRED |
-| I-002 | hardcoded role 移除 | 🕓 DECISION-REQUIRED |
-| I-003 | Assignment candidate source replacement slice | ✅ LIMITED-SCOPE IMPLEMENTED |
+| ID | 範圍 | 狀態 | 決策 |
+|---|---|---|---|
+| I-001 | Route Guard 正式化 | ✅ ACCEPTED | D-029：guard（page-level）+ directive（component-level）；guard 待 actor context 注入後正式化 |
+| I-002 | hardcoded role 移除 | ✅ ACCEPTED | D-030：RBAC 為正式來源；legacy grandfathering；新碼禁止 hardcoded role |
+| I-003 | Assignment candidate source replacement slice | ✅ LIMITED-SCOPE IMPLEMENTED | 來源改為 persisted staff directory；application layer eligibility 不變 |
 
 ---
 
@@ -153,7 +153,7 @@
 
 ### 6.1 I-001 — Route Guard 正式化
 
-> 以下內容僅整理待決策選項與限制，**不視為已拍板方案**。
+> **已拍板（D-029）**：guard（page-level）+ directive（component-level）雙層策略。以下保留歷史選項比較，供實作參考。
 
 #### 現況
 
@@ -178,27 +178,24 @@
 | B | frontend 啟動時呼叫 `/me` 或 equivalent bootstrap API | app initializer / actor context store | guard 依 store 判斷；component 可共用 | standalone 可用 mock `/me` | 需補 bootstrap API mock | 中高 | repo 內目前沒有 `/me` 契約 |
 | C | 延後 shell，先以 route resolver + page API 拼裝 | 每頁各自 resolver | guard 與 component 邏輯分裂 | standalone 容易做 | 測試分散 | 低 | 會把 auth truth 散落在 page routes，不推薦 |
 
-#### 暫不定稿
+#### 已拍板決策（D-029）
 
-目前僅能確認 shell 注入 actor context 與 frontend actor context store 仍待正式決策；以下比較表僅作 pending options 討論。
+- **page-level gate**：Route guard（`RoleGuard` / `ScopeGuard` / `ProjectionGuard`）在 Angular route resolution 階段執行
+- **component-level gate**：Directive 控制頁面內 UI 元素可見性
+- 兩者共用同一 actor context 來源（shell 注入或 actor context store）
+- Guard 目前仍為 PASSTHROUGH，待 actor context provider 完成注入後補正式化
 
-**理由**
+#### 實作前提（尚待完成）
 
-1. 最接近 repo 既有 integration baseline：正式 login / user context 由 shell 提供。
-2. 可重用 backend 已成熟的 actor 欄位語意，不必再發明第二套 bootstrap API。
-3. guard / component 都能吃同一份 truth，避免 page-level 拼裝。
-
-#### 待使用者拍板的最小問題集
-
-1. shell 注入欄位是否固定為 `userId / userName / roles / hospitalId`？
-2. frontend 是否允許在 standalone mode 用 mock actor provider 模擬同 shape contract？
-3. `projectionType` 是否只走 page API，不進 shell actor contract？
+1. actor context provider 完成注入（shell 注入欄位：`userId / userName / roles / hospitalId`）
+2. standalone mode 需對應 mock actor provider（shape 與正式相同）
+3. `projectionType` 走 page API，不進 shell actor contract
 
 ---
 
 ### 6.2 I-002 — hardcoded role 移除
 
-> 以下內容僅整理待決策選項與限制，**不視為已拍板方案**。
+> **已拍板（D-030）**：RBAC 為正式來源；逐步移除；新碼禁止 hardcoded role；legacy grandfathering。以下保留現況描述與選項比較。
 
 #### 現況
 
@@ -218,11 +215,14 @@
 | B | page API 回傳 `actorRole`，列表頁也補同欄位 | backend 決 primary role | standalone 需 mock page API | 中高 | 讓列表頁過度依賴單一 page API 回傳 |
 | C | FE 自己從 token / local storage 解 role | FE 自算 | standalone 最容易 | 低 | 破壞 shell boundary，不推薦 |
 
-#### 暫不定稿
+#### 已拍板決策（D-030）
 
-目前僅能確認 role context strategy 與 primary-role resolver 仍待正式決策；以下比較表僅作 pending options 討論。
+- RBAC（actor context `roles`）為正式 access policy 來源
+- 新碼不得新增 hardcoded role 字串比對
+- Legacy（`case-list-page`、`batch-list-page`）grandfathered，被修改時須同步改接 RBAC-backed 機制
+- `MANAGER` / `ADMIN` legacy alias 在下次碰到該 component 時應清除
 
-#### 建議 primary-role 規則
+#### 建議 primary-role 規則（供 RBAC resolver 實作參考）
 
 | 優先順序 | 角色 |
 |---|---|
@@ -232,13 +232,7 @@
 | 4 | `REREVIEWER` |
 | 5 | `REVIEWER` |
 
-> 這是**建議值**，不是本輪已拍板規則。
-
-#### 待使用者拍板的最小問題集
-
-1. 多角色使用者是否允許存在？若允許，是否接受上述 priority？
-2. worklist / batch list 是否以 primary role 決定 default tab，或允許 UI 手動切 role 視角？
-3. legacy alias（`MANAGER` / `ADMIN`）是暫時相容還是可直接移除？
+> 此 priority 建議值配合 D-030 RBAC 策略使用；primary-role resolver 的具體實作在 guard / directive 落地時依此決定。
 
 ---
 
@@ -276,7 +270,8 @@
 | F-002 是否已正式轉為 deferred | **是** |
 | UI-006 狀態是否改變 | **是**，由 fixture bootstrap 轉為 execute-context bootstrap |
 | UI-007 detail gap 是否仍是含糊 stub | **否**，已改為明確 deferred |
-| I-001 / I-002 / I-003 是否已 fully resolved | **否**；目前仍屬 pending / decision-required |
+| I-001 / I-002 是否已 fully resolved | **I-001、I-002 已拍板**（D-029、D-030）；guard 正式化仍待 actor context 注入；legacy hardcoded role 清除仍在 grandfathering |
+| I-003 是否已 fully resolved | **limited-scope implemented**；persisted staff directory 已接入；外部 HIS 同步仍待演進 |
 | 是否仍有文件同步缺口 | **否**；本輪允許範圍內的 B-001 direct docs 已同步 |
 
 ---
@@ -287,4 +282,4 @@
 
 1. **B-001 為 limited-scope implemented**：UI-006 已改接 `GET /review-projects/{projectId}/sampling/execute-context` 作為頁面 bootstrap API；但 `previewStats` 仍由 page-local session state 維持，execute failure 仍保留 explicit fallback，因此尚未收口成單一 truth source。
 2. **F-002 為 deferred**：repo 已明確表達目前不開放 batch detail page / route / drawer / modal，前端 detail action 維持 disabled / 未開放。
-3. **I-001 / I-002 / I-003 仍為 pending / decision-required**：這三項目前僅能描述現況限制與待決問題，不應寫成 resolved 或 ready-to-implement。
+3. **I-001 / I-002 已拍板（D-029 / D-030）**：策略方向已定稿。I-001 guard 正式化仍待 actor context provider 完成注入；I-002 legacy hardcoded role 處於 grandfathering，被修改時強制改接 RBAC。I-003 為 limited-scope implemented，外部 HIS 同步仍待演進。
