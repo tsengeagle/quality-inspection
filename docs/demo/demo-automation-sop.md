@@ -16,6 +16,8 @@
 - gateway integration demo ready
 - 所有頁面都已納入 demo automation
 
+本 SOP 的正式啟動入口是 launcher。`demo:preflight`、`demo:run`、`demo:e2e` 都不是 startup command，只會對已啟動的 live standalone chain 執行 Playwright。
+
 ---
 
 ## 2. 前置條件
@@ -68,6 +70,8 @@ Set-Location frontends/quality-inspection-frontend
 npm run demo:launch:preflight
 ```
 
+第一次操作若只想照 SOP 成功把 demo 跑起來，優先使用這條命令。
+
 ---
 
 ## 4. 檢查目前狀態
@@ -94,6 +98,10 @@ Set-Location frontends/quality-inspection-frontend
 npm run demo:preflight
 ```
 
+前置條件：
+
+- `npm run demo:launch` 已成功完成，或 backend / frontend / proxy 已由你自行啟動且 ready
+
 Preflight 會驗：
 
 1. backend 8080 execute-context 直連 ready
@@ -117,6 +125,10 @@ Set-Location frontends/quality-inspection-frontend
 npm run demo:run
 ```
 
+前置條件：
+
+- `npm run demo:launch` 已成功完成，或 backend / frontend / proxy 已由你自行啟動且 ready
+
 Demo mode 特性：
 
 - headed
@@ -124,6 +136,8 @@ Demo mode 特性：
 - deliberate pacing
 - 依 demo-script 的固定順序停留 UI-006 → UI-007 → UI-011
 - 仍保留最小必要 assert，失敗時可定位頁面
+
+`demo:run` 不是完整入口，也不會幫你啟動 backend / frontend。若環境未 ready，命令會直接提示改跑 launcher。
 
 Canonical flow：
 
@@ -142,6 +156,10 @@ Canonical flow：
 Set-Location frontends/quality-inspection-frontend
 npm run demo:e2e
 ```
+
+前置條件：
+
+- `npm run demo:launch` 已成功完成，或 backend / frontend / proxy 已由你自行啟動且 ready
 
 E2E mode 特性：
 
