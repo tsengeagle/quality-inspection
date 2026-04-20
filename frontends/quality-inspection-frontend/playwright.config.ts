@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const playwrightFlow = process.env['QI_PLAYWRIGHT_FLOW'];
+
 /**
  * Playwright e2e test configuration.
  *
@@ -11,10 +13,10 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e/src',
   testMatch: '**/*.e2e.spec.ts',
-  fullyParallel: true,
+  fullyParallel: playwrightFlow !== 'demo',
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
-  workers: process.env['CI'] ? 1 : undefined,
+  workers: process.env['CI'] || playwrightFlow === 'demo' || playwrightFlow === 'preflight' || playwrightFlow === 'e2e' ? 1 : undefined,
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:4200',

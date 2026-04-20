@@ -11,7 +11,7 @@
       </div>
     </div>
 
-    <div class="sampling-summary-grid" *ngIf="context">
+    <div class="sampling-summary-grid" *ngIf="context" data-testid="sampling-execute-summary-grid">
       <article
         class="sampling-summary-card"
         *ngFor="let item of projectSummaryItems"
@@ -85,7 +85,7 @@
       </div>
     </section>
 
-    <section class="result-panel" *ngIf="showResultZone">
+    <section class="result-panel" *ngIf="showResultZone" data-testid="sampling-execute-result-panel">
       <div class="section-heading section-heading--compact">
         <div>
           <p class="section-eyebrow">Step 3</p>

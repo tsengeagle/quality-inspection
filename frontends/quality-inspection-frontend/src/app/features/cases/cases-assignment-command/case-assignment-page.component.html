@@ -18,7 +18,7 @@
 	<h1 class="assignment-page-title">{{ modeBannerTitle }}</h1>
 	<p class="assignment-mode-copy">{{ modeBannerCopy }}</p>
 
-	<div class="assignment-summary-grid">
+	<div class="assignment-summary-grid" data-testid="assignment-summary-grid">
 		<article class="assignment-summary-card" *ngFor="let item of summaryItems">
 			<span class="assignment-summary-card__label">{{ item.label }}</span>
 			<strong class="assignment-summary-card__value">{{ item.value }}</strong>
@@ -35,7 +35,7 @@
 		<p class="assignment-section__copy">清楚區分目前責任人、候選名單與截止日設定，避免將指派與改派混成單一 generic form。</p>
 	</div>
 
-	<div class="assignment-current-summary">
+	<div class="assignment-current-summary" data-testid="assignment-current-reviewer-summary">
 		<p class="assignment-current-owner">目前初審醫師：{{ context.reviewerName || '尚未指派' }}</p>
 		<p class="assignment-current-owner">初審指派時間：{{ context.reviewerAssignedAt || '尚未指派' }}</p>
 		<p class="assignment-current-owner">初審截止日：{{ context.reviewerDueAt || '尚未設定' }}</p>
@@ -95,7 +95,7 @@
 		<p class="assignment-section__copy">保留與初審分離的業務語意，只有在案件進入對應階段時才開放複審指派。</p>
 	</div>
 
-	<div class="assignment-current-summary">
+	<div class="assignment-current-summary" data-testid="assignment-current-rereviewer-summary">
 		<p class="assignment-current-owner">目前複審醫師：{{ context.rereviewerName || '尚未指派' }}</p>
 		<p class="assignment-current-owner">複審指派時間：{{ context.rereviewerAssignedAt || '尚未指派' }}</p>
 		<p class="assignment-current-owner">複審截止日：{{ context.rereviewerDueAt || '尚未設定' }}</p>

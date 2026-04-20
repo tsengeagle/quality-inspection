@@ -22,9 +22,9 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let b of batches">
+          <tr *ngFor="let b of batches" [attr.data-testid]="'batch-row-' + b.batchId">
             <td>
-              <div class="cell-stack">
+              <div class="cell-stack" [attr.data-testid]="'batch-row-summary-' + b.batchId">
                 <strong>{{ b.batchName }}</strong>
                 <span>專案：{{ b.projectName || b.projectId }}</span>
                 <span>專案代碼：{{ b.projectId }}</span>
@@ -38,7 +38,7 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
               </div>
             </td>
             <td>
-              <div class="cell-stack" *ngIf="!isMetadataOnly; else metadataOnlySummary">
+              <div class="cell-stack" *ngIf="!isMetadataOnly; else metadataOnlySummary" [attr.data-testid]="'batch-row-counts-' + b.batchId">
                 <span>母體件數：{{ b.populationCount ?? '-' }}</span>
                 <span>符合件數：{{ b.eligibleCount ?? '-' }}</span>
                 <span>排除件數：{{ b.excludedCount ?? '-' }}</span>
@@ -52,7 +52,7 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
               </ng-template>
             </td>
             <td>
-              <div class="cell-stack">
+              <div class="cell-stack" [attr.data-testid]="'batch-row-timing-' + b.batchId">
                 <span>開始時間：{{ b.createdAt || '-' }}</span>
                 <span>完成時間：{{ b.finishedAt || '-' }}</span>
                 <span>重跑來源：{{ b.retryOfBatchId || '無' }}</span>
