@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SharedModule } from '../../shared/shared.module';
 
 import { CasesRoutingModule } from './cases-routing.module';
 import { CaseListPageComponent } from './cases-worklist/case-list-page.component';
@@ -67,6 +68,7 @@ import { RevisionNavActionZoneComponent } from './revision-history/components/re
   imports: [
     CommonModule,
     FormsModule,
+    SharedModule,
     CasesRoutingModule
   ]
 })

@@ -3,7 +3,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 @Component({
   selector: 'app-batch-filter-bar',
   template: `
-    <div class="batch-filter-card">
+    <div class="batch-filter-card batch-filter-bar">
+      <p class="batch-filter-card__hint">支援最小必要的專案與批次精準查詢；資料範圍仍以角色授權為準。</p>
       <div class="batch-filter-fields">
         <label class="field-group">
           <span>專案代碼</span>
@@ -11,7 +12,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
             type="text"
             [ngModel]="projectId"
             (ngModelChange)="projectId = $event"
-            placeholder="例如：f8f933a7-..."
+            placeholder="輸入專案代碼"
             data-testid="batch-filter-project-id">
         </label>
 
@@ -21,7 +22,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
             type="text"
             [ngModel]="batchId"
             (ngModelChange)="batchId = $event"
-            placeholder="例如：BATCH-20260418-01"
+            placeholder="輸入批次代碼"
             data-testid="batch-filter-batch-id">
         </label>
 
@@ -39,11 +40,16 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
   `,
   styles: [`
     .batch-filter-card {
-      margin: 0 16px 16px;
-      padding: 12px;
-      border: 1px solid var(--qi-border-subtle);
-      border-radius: 8px;
-      background: var(--qi-surface-base);
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+    }
+    .batch-filter-card__hint {
+      margin: 0 0 12px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--qi-text-secondary);
     }
     .batch-filter-fields {
       display: grid;
@@ -57,20 +63,20 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       color: var(--qi-text-secondary);
     }
     .field-group input {
-      height: 36px;
+      height: 40px;
       border: 1px solid var(--qi-border-subtle);
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 0 10px;
       color: var(--qi-text-primary);
       background: var(--qi-surface-base);
     }
     .scope-hint {
       margin: 0;
-      min-height: 36px;
+      min-height: 40px;
       display: flex;
       align-items: center;
       padding: 0 10px;
-      border-radius: 6px;
+      border-radius: 8px;
       background: var(--qi-surface-subtle);
       color: var(--qi-text-secondary);
     }
@@ -81,8 +87,8 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
       margin-top: 12px;
     }
     .filter-action {
-      height: 34px;
-      border-radius: 6px;
+      height: 38px;
+      border-radius: 8px;
       padding: 0 12px;
       border: 1px solid var(--qi-border-subtle);
       cursor: pointer;

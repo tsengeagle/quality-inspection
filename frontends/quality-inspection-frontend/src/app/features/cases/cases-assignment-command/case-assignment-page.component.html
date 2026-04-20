@@ -1,7 +1,7 @@
 <app-case-summary-header
 	[caseId]="caseId"
 	[caseTitle]="context.caseTitle"
-	[status]="context.status"
+	[status]="statusDisplayLabel"
 	[stageLabel]="context.stageLabel">
 </app-case-summary-header>
 
@@ -14,19 +14,38 @@
 <app-mode-indicator-strip [modeLabel]="modeLabel"></app-mode-indicator-strip>
 
 <section class="assignment-mode-banner" data-testid="assignment-mode-banner">
-	<h1 class="assignment-page-title">案件分派頁</h1>
-	<p class="assignment-mode-copy">本頁提供初審與複審指派，候選人與可執行操作會依案件狀態即時更新。</p>
+	<p class="assignment-mode-banner__eyebrow">UI-011 案件分派</p>
+	<h1 class="assignment-page-title">{{ modeBannerTitle }}</h1>
+	<p class="assignment-mode-copy">{{ modeBannerCopy }}</p>
+
+	<div class="assignment-summary-grid">
+		<article class="assignment-summary-card" *ngFor="let item of summaryItems">
+			<span class="assignment-summary-card__label">{{ item.label }}</span>
+			<strong class="assignment-summary-card__value">{{ item.value }}</strong>
+		</article>
+	</div>
 </section>
 
 <section *ngIf="showReviewerSection" class="assignment-section reviewer-assignment-section">
-	<h2>Reviewer 區塊</h2>
-	<p class="assignment-current-owner">目前初審醫師：{{ context.reviewerName || '尚未指派' }}</p>
-	<p class="assignment-current-owner" *ngIf="context.reviewerDueAt">初審截止日：{{ context.reviewerDueAt }}</p>
+	<div class="assignment-section__header">
+		<div>
+			<p class="assignment-section__eyebrow">初審責任人</p>
+			<h2>初審醫師指派</h2>
+		</div>
+		<p class="assignment-section__copy">清楚區分目前責任人、候選名單與截止日設定，避免將指派與改派混成單一 generic form。</p>
+	</div>
+
+	<div class="assignment-current-summary">
+		<p class="assignment-current-owner">目前初審醫師：{{ context.reviewerName || '尚未指派' }}</p>
+		<p class="assignment-current-owner">初審截止日：{{ context.reviewerDueAt || '尚未設定' }}</p>
+	</div>
+
+	<ng-container *ngIf="showReviewerInputs; else reviewerReadonlyBlock">
 	<div class="assignment-search-row">
 		<input
 			type="text"
 			[(ngModel)]="reviewerKeyword"
-			placeholder="搜尋初審醫師"
+			placeholder="搜尋初審醫師姓名或代碼"
 			[disabled]="reviewerSearchDisabled"
 			data-testid="reviewer-keyword-input">
 		<button type="button" (click)="onSearchReviewerCandidates()" [disabled]="reviewerSearchDisabled">
@@ -46,21 +65,46 @@
 				[disabled]="!candidate.selectable || !isReviewerActionEnabled || commandPending"
 				(change)="selectReviewerCandidate(candidate)">
 			<span class="candidate-option__label">{{ candidate.displayLabel }}</span>
-			<small class="candidate-option__meta" *ngIf="candidate.blockedReason">{{ candidate.blockedReason }}</small>
+			<small class="candidate-option__meta" *ngIf="candidate.blockedReason">{{ formatCandidateBlockedReason(candidate.blockedReason) }}</small>
 		</label>
 		<p class="candidate-list__empty" *ngIf="!reviewerCandidates.length && !reviewerLoading">目前沒有可顯示的初審候選人。</p>
 	</div>
+	<label class="due-date-input-group">
+		<span>初審截止日</span>
+		<input
+			type="datetime-local"
+			[ngModel]="reviewerDueAtInput"
+			(ngModelChange)="reviewerDueAtInput = $event"
+			[disabled]="commandPending"
+			data-testid="assignment-due-at-input">
+	</label>
+	</ng-container>
+
+	<ng-template #reviewerReadonlyBlock>
+		<p class="assignment-section__readonly-hint">{{ reviewerReadonlyHint }}</p>
+	</ng-template>
 </section>
 
 <section *ngIf="showRereviewerSection" class="assignment-section rereviewer-assignment-section">
-	<h2>Rereviewer 區塊</h2>
-	<p class="assignment-current-owner">目前複審醫師：{{ context.rereviewerName || '尚未指派' }}</p>
-	<p class="assignment-current-owner" *ngIf="context.rereviewerDueAt">複審截止日：{{ context.rereviewerDueAt }}</p>
+	<div class="assignment-section__header">
+		<div>
+			<p class="assignment-section__eyebrow">複審責任人</p>
+			<h2>複審醫師指派</h2>
+		</div>
+		<p class="assignment-section__copy">保留與初審分離的業務語意，只有在案件進入對應階段時才開放複審指派。</p>
+	</div>
+
+	<div class="assignment-current-summary">
+		<p class="assignment-current-owner">目前複審醫師：{{ context.rereviewerName || '尚未指派' }}</p>
+		<p class="assignment-current-owner">複審截止日：{{ context.rereviewerDueAt || '尚未設定' }}</p>
+	</div>
+
+	<ng-container *ngIf="showRereviewerInputs; else rereviewerReadonlyBlock">
 	<div class="assignment-search-row">
 		<input
 			type="text"
 			[(ngModel)]="rereviewerKeyword"
-			placeholder="搜尋複審醫師"
+			placeholder="搜尋複審醫師姓名或代碼"
 			[disabled]="rereviewerSearchDisabled"
 			data-testid="rereviewer-keyword-input">
 		<button type="button" (click)="onSearchRereviewerCandidates()" [disabled]="rereviewerSearchDisabled">
@@ -80,33 +124,32 @@
 				[disabled]="!candidate.selectable || !isRereviewerActionEnabled || commandPending"
 				(change)="selectRereviewerCandidate(candidate)">
 			<span class="candidate-option__label">{{ candidate.displayLabel }}</span>
-			<small class="candidate-option__meta" *ngIf="candidate.blockedReason">{{ candidate.blockedReason }}</small>
+			<small class="candidate-option__meta" *ngIf="candidate.blockedReason">{{ formatCandidateBlockedReason(candidate.blockedReason) }}</small>
 		</label>
 		<p class="candidate-list__empty" *ngIf="!rereviewerCandidates.length && !rereviewerLoading">目前沒有可顯示的複審候選人。</p>
 	</div>
-</section>
+	<label class="due-date-input-group">
+		<span>複審截止日</span>
+		<input
+			type="datetime-local"
+			[ngModel]="rereviewerDueAtInput"
+			(ngModelChange)="rereviewerDueAtInput = $event"
+			[disabled]="commandPending"
+			data-testid="assignment-due-at-input">
+	</label>
+	</ng-container>
 
-<section class="assignment-section">
-	<h2>截止日 / 指派說明</h2>
-	<div class="due-date-helper-slot" data-testid="assignment-due-date-helper-slot">
-		<p class="assignment-current-owner">{{ currentDueDateLabel }}</p>
-		<label class="due-date-input-group">
-			<span>{{ dueDateInputLabel }}</span>
-			<input
-				type="datetime-local"
-				[ngModel]="activeDueAtInput"
-				(ngModelChange)="onDueAtInputChange($event)"
-				[disabled]="commandPending || showBlockedBanner"
-				data-testid="assignment-due-at-input">
-		</label>
-	</div>
+	<ng-template #rereviewerReadonlyBlock>
+		<p class="assignment-section__readonly-hint">{{ rereviewerReadonlyHint }}</p>
+	</ng-template>
 </section>
 
 <section *ngIf="showSubmitZone" class="assignment-submit-zone" data-testid="assignment-submit-zone">
 	<button type="button" (click)="onPrimaryAction()" [disabled]="primaryActionDisabled">{{ commandPending ? '送出中...' : primaryActionLabel }}</button>
+	<button type="button" class="secondary-nav-button" (click)="onBackToCaseDetail()">返回案件詳情</button>
 </section>
 
-<section class="assignment-navigation-zone" data-testid="assignment-navigation-zone">
+<section class="assignment-navigation-zone" data-testid="assignment-navigation-zone" *ngIf="!showSubmitZone">
 	<button type="button" class="secondary-nav-button" (click)="onBackToCaseDetail()">返回案件詳情</button>
 </section>
 

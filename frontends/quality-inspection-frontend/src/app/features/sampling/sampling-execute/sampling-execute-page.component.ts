@@ -37,6 +37,95 @@ export class SamplingExecutePageComponent implements OnInit {
 
   showConfirmModal = false;
 
+  get canPreview(): boolean {
+    return this.mode === 'READY_FOR_PREVIEW' || this.mode === 'EXECUTE_FAILED';
+  }
+
+  get hasPreviewStats(): boolean {
+    return !!this.context?.previewStats;
+  }
+
+  get showExecuteZone(): boolean {
+    return this.mode === 'PREVIEW_COMPLETED' || this.mode === 'EXECUTING';
+  }
+
+  get showResultZone(): boolean {
+    return !!this.context?.postExecuteSummary && (this.mode === 'EXECUTE_SUCCESS' || this.mode === 'EXECUTE_FAILED');
+  }
+
+  get previewActionLabel(): string {
+    return this.mode === 'EXECUTE_FAILED' ? '重新預估母體' : '預估母體';
+  }
+
+  get previewActionHint(): string {
+    if (this.mode === 'EXECUTE_FAILED') {
+      return '先重新確認本次母體與排除規則，再決定是否再次執行。';
+    }
+
+    return '此步驟只做預估，不會建立正式抽選批次。';
+  }
+
+  get executeActionHint(): string {
+    if (this.mode === 'EXECUTING') {
+      return '系統正在建立正式抽選批次，請勿重複送出。';
+    }
+
+    return '確認預估結果後，再正式建立抽選批次。';
+  }
+
+  get resultZoneTitle(): string {
+    if (this.mode === 'EXECUTE_SUCCESS') {
+      return '執行結果';
+    }
+
+    if (this.mode === 'EXECUTE_FAILED') {
+      return '執行狀態';
+    }
+
+    return '尚未執行';
+  }
+
+  get projectSummaryItems(): Array<{ label: string; value: string; emphasis?: boolean }> {
+    if (!this.context) {
+      return [];
+    }
+
+    return [
+      { label: '專案編號', value: this.projectId },
+      { label: '專案名稱', value: this.context.projectName || '尚未提供' , emphasis: true},
+      { label: '院區', value: this.context.hospitalId || '尚未提供' },
+      { label: '目前階段', value: this.modeLabel }
+    ];
+  }
+
+  get stageCards(): Array<{ key: string; title: string; description: string; status: 'done' | 'active' | 'pending' | 'blocked' }> {
+    const blocked = this.mode === 'READONLY_BLOCKED';
+    const previewDone = this.mode === 'PREVIEW_COMPLETED' || this.mode === 'EXECUTING' || this.mode === 'EXECUTE_SUCCESS' || this.mode === 'EXECUTE_FAILED';
+    const executeDone = this.mode === 'EXECUTE_SUCCESS';
+    const executeFailed = this.mode === 'EXECUTE_FAILED';
+
+    return [
+      {
+        key: 'preview',
+        title: '1. 預估母體',
+        description: '先確認母體、符合條件與排除件數。',
+        status: blocked ? 'blocked' : previewDone ? 'done' : 'active'
+      },
+      {
+        key: 'execute',
+        title: '2. 正式執行',
+        description: '建立正式抽選批次，保留本次執行結果。',
+        status: blocked ? 'blocked' : executeDone || executeFailed ? 'done' : this.mode === 'PREVIEW_COMPLETED' || this.mode === 'EXECUTING' ? 'active' : 'pending'
+      },
+      {
+        key: 'result',
+        title: '3. 執行結果',
+        description: '確認成功或失敗摘要，接續前往批次或案件列表。',
+        status: blocked ? 'blocked' : executeDone || executeFailed ? 'active' : 'pending'
+      }
+    ];
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -155,6 +244,17 @@ export class SamplingExecutePageComponent implements OnInit {
 
   navigateToBatchList(): void {
     this.router.navigate(['/sampling/batches']);
+  }
+
+  navigateToCases(): void {
+    const batchId = this.context?.postExecuteSummary?.batchId;
+    if (!batchId) {
+      return;
+    }
+
+    this.router.navigate(['/cases'], {
+      queryParams: { batchId }
+    });
   }
 
   private loadExecuteContext(preserveLocalPreviewStats = false): void {

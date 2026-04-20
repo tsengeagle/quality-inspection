@@ -2,46 +2,145 @@
 .assignment-section,
 .assignment-submit-zone,
 .assignment-navigation-zone {
-	padding: 16px;
-	border-bottom: 1px solid var(--qi-border-subtle);
+	padding: 18px;
+	border: 1px solid var(--qi-border-subtle);
+	border-radius: 14px;
+	background: var(--qi-surface-base);
+	box-shadow: 0 8px 20px rgba(26, 43, 71, 0.05);
+}
+
+:host {
+	display: grid;
+	gap: 16px;
+	padding: 20px;
+	background: linear-gradient(180deg, rgba(247, 249, 252, 0.92) 0%, rgba(255, 255, 255, 0.97) 100%);
+}
+
+.assignment-mode-banner__eyebrow,
+.assignment-section__eyebrow {
+	margin: 0 0 6px;
+	font-size: 12px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--qi-text-secondary);
 }
 
 .assignment-page-title {
 	margin: 0 0 8px;
+	font-size: 28px;
 }
 
 .assignment-mode-copy {
 	margin: 0;
 	color: var(--qi-text-secondary);
+	font-size: 15px;
+	line-height: 1.6;
+}
+
+.assignment-summary-grid {
+	margin-top: 18px;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 12px;
+}
+
+.assignment-summary-card {
+	display: grid;
+	gap: 8px;
+	padding: 14px;
+	border-radius: 12px;
+	border: 1px solid var(--qi-border-subtle);
+	background: linear-gradient(180deg, rgba(248, 250, 252, 0.82) 0%, rgba(255, 255, 255, 1) 100%);
+}
+
+.assignment-summary-card__label {
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--qi-text-secondary);
+}
+
+.assignment-summary-card__value {
+	font-size: 15px;
+	line-height: 1.5;
+	color: var(--qi-text-primary);
+}
+
+.assignment-section {
+	display: grid;
+	gap: 16px;
+}
+
+.assignment-section__header {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	align-items: flex-start;
+}
+
+.assignment-section__header h2 {
+	margin: 0;
+	font-size: 21px;
+}
+
+.assignment-section__copy,
+.assignment-section__readonly-hint {
+	margin: 0;
+	max-width: 520px;
+	font-size: 14px;
+	line-height: 1.6;
+	color: var(--qi-text-secondary);
+}
+
+.assignment-current-summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 10px;
 }
 
 .candidate-list,
 .due-date-helper-slot {
 	margin-top: 8px;
-	padding: 12px;
+	padding: 14px;
 	border: 1px dashed var(--qi-border-muted);
-	border-radius: 8px;
+	border-radius: 12px;
+	background: rgba(248, 250, 252, 0.72);
 }
 
 .due-date-input-group {
 	display: grid;
 	gap: 8px;
-	margin-top: 12px;
+	margin-top: 0;
 }
 
 .due-date-input-group input {
-	max-width: 280px;
+	max-width: 320px;
+	height: 40px;
+	border-radius: 8px;
+	border: 1px solid var(--qi-border-subtle);
+	padding: 0 10px;
 }
 
 .assignment-submit-zone {
 	display: flex;
 	gap: 12px;
+	flex-wrap: wrap;
+}
+
+.assignment-submit-zone button {
+	height: 40px;
+	padding: 0 16px;
+	border-radius: 8px;
+	border: 1px solid var(--qi-accent);
+	background: var(--qi-accent);
+	color: var(--qi-surface-base);
+	font-weight: 700;
 }
 
 .secondary-nav-button {
 	padding: 8px 14px;
 	border: 1px solid var(--qi-border-subtle);
-	border-radius: 6px;
+	border-radius: 8px;
 	background: var(--qi-surface-base);
 	color: var(--qi-text-primary);
 }
@@ -49,12 +148,25 @@
 .assignment-search-row {
 	display: flex;
 	gap: 8px;
-	margin-top: 8px;
+	margin-top: 0;
 }
 
 .assignment-search-row input {
 	flex: 1 1 auto;
 	min-width: 0;
+	height: 40px;
+	border-radius: 8px;
+	border: 1px solid var(--qi-border-subtle);
+	padding: 0 10px;
+}
+
+.assignment-search-row button {
+	height: 40px;
+	padding: 0 16px;
+	border-radius: 8px;
+	border: 1px solid var(--qi-border-subtle);
+	background: var(--qi-surface-base);
+	color: var(--qi-text-primary);
 }
 
 .candidate-list {
@@ -65,14 +177,16 @@
 .candidate-option {
 	display: grid;
 	gap: 4px;
-	padding: 8px;
-	border-radius: 4px;
+	padding: 10px 12px;
+	border-radius: 10px;
 	cursor: pointer;
 	background: var(--qi-surface-subtle);
+	border: 1px solid transparent;
 }
 
 .candidate-option--selected {
-	outline: 1px solid var(--qi-accent);
+	border-color: var(--qi-accent);
+	background: rgba(10, 102, 194, 0.06);
 }
 
 .candidate-option--disabled {
@@ -91,6 +205,21 @@
 	margin-top: 8px;
 }
 
+.assignment-feedback {
+	padding: 14px 16px;
+	border-radius: 12px;
+	border: 1px solid rgba(10, 102, 194, 0.16);
+	background: rgba(10, 102, 194, 0.06);
+}
+
 .assignment-feedback--blocked {
 	color: var(--qi-danger-text);
+	border-color: rgba(168, 61, 61, 0.2);
+	background: rgba(168, 61, 61, 0.08);
+}
+
+@media (max-width: 960px) {
+	.assignment-section__header {
+		flex-direction: column;
+	}
 }

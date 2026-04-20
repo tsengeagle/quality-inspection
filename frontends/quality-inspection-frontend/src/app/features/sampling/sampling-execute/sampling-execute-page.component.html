@@ -1,12 +1,26 @@
 <section class="sampling-execute-page">
-  <div class="sampling-page-header">
-    <h1 class="sampling-page-title">抽選執行頁</h1>
-    <p class="sampling-page-subtitle">專案代碼：{{ projectId }}</p>
-    <p class="sampling-page-subtitle" *ngIf="context?.projectName">專案名稱：{{ context?.projectName }}</p>
-    <p class="sampling-page-subtitle" *ngIf="context?.hospitalId">院區：{{ context?.hospitalId }}</p>
-  </div>
+  <header class="sampling-page-header">
+    <div class="sampling-page-header__content">
+      <p class="sampling-page-eyebrow">UI-006 抽選執行</p>
+      <div class="sampling-page-header__title-row">
+        <div>
+          <h1 class="sampling-page-title">抽選前確認與正式執行</h1>
+          <p class="sampling-page-description">先預估母體，再建立正式抽選批次；本頁只負責執行前確認與結果導流。</p>
+        </div>
+        <span class="sampling-page-mode-pill">{{ modeLabel }}</span>
+      </div>
+    </div>
 
-  <div class="mode-indicator-strip">{{ modeLabel }}</div>
+    <div class="sampling-summary-grid" *ngIf="context">
+      <article
+        class="sampling-summary-card"
+        *ngFor="let item of projectSummaryItems"
+        [class.sampling-summary-card--emphasis]="item.emphasis">
+        <span class="sampling-summary-card__label">{{ item.label }}</span>
+        <strong class="sampling-summary-card__value">{{ item.value }}</strong>
+      </article>
+    </div>
+  </header>
 
   <app-sampling-blocked-banner
     *ngIf="mode === 'READONLY_BLOCKED'"
@@ -14,33 +28,88 @@
   </app-sampling-blocked-banner>
 
   <div class="page-content" *ngIf="context">
+    <section class="sampling-flow-panel">
+      <div class="section-heading">
+        <div>
+          <p class="section-eyebrow">執行流程</p>
+          <h2>預估、執行、確認三段式</h2>
+        </div>
+        <p class="section-copy">依 wireframe 的 sequential command 方式，正式執行前先完成預估，執行後再進入結果導流。</p>
+      </div>
+
+      <div class="sampling-stage-grid">
+        <article
+          class="sampling-stage-card"
+          *ngFor="let stage of stageCards"
+          [attr.data-status]="stage.status">
+          <span class="sampling-stage-card__status">{{ stage.status === 'done' ? '已完成' : stage.status === 'active' ? '目前所在' : stage.status === 'blocked' ? '不可執行' : '待進行' }}</span>
+          <h3>{{ stage.title }}</h3>
+          <p>{{ stage.description }}</p>
+        </article>
+      </div>
+    </section>
+
     <app-sampling-rule-summary [ruleSnapshot]="context.ruleSummary"></app-sampling-rule-summary>
 
-    <div class="preview-action-zone" *ngIf="mode === 'READY_FOR_PREVIEW' || mode === 'EXECUTE_FAILED'">
-      <button type="button" class="preview-btn" (click)="requestPreview()">
-        {{ mode === 'EXECUTE_FAILED' ? '重新預估' : '預估抽選人數' }}
-      </button>
-    </div>
+    <section class="action-panel" *ngIf="canPreview">
+      <div class="section-heading section-heading--compact">
+        <div>
+          <p class="section-eyebrow">Step 1</p>
+          <h2>預估母體</h2>
+        </div>
+        <p class="section-copy">{{ previewActionHint }}</p>
+      </div>
+      <div class="action-panel__footer">
+        <button type="button" class="preview-btn" (click)="requestPreview()">{{ previewActionLabel }}</button>
+      </div>
+    </section>
 
     <app-sampling-preview-stats
-      *ngIf="context.previewStats && (mode === 'PREVIEW_COMPLETED' || mode === 'EXECUTING' || mode === 'EXECUTE_FAILED')"
-      [stats]="context.previewStats">
+      *ngIf="hasPreviewStats"
+      [stats]="context.previewStats!">
     </app-sampling-preview-stats>
 
-    <div class="execute-confirm-zone" *ngIf="mode === 'PREVIEW_COMPLETED'">
-      <button type="button" class="execute-btn" (click)="openExecuteConfirm()">正式執行抽選</button>
-    </div>
+    <section class="action-panel action-panel--accent execute-confirm-zone" *ngIf="showExecuteZone">
+      <div class="section-heading section-heading--compact">
+        <div>
+          <p class="section-eyebrow">Step 2</p>
+          <h2>正式執行抽選</h2>
+        </div>
+        <p class="section-copy">{{ executeActionHint }}</p>
+      </div>
 
-    <div class="executing-hint" *ngIf="mode === 'EXECUTING'">抽選執行中，請稍候。</div>
+      <div class="executing-hint" *ngIf="mode === 'EXECUTING'">抽選執行中，系統會在完成後回到執行結果區。</div>
 
-    <app-sampling-post-execute-region
-      *ngIf="context.postExecuteSummary && (mode === 'EXECUTE_SUCCESS' || mode === 'EXECUTE_FAILED')"
-      [result]="context.postExecuteSummary">
-    </app-sampling-post-execute-region>
+      <div class="action-panel__footer" *ngIf="mode === 'PREVIEW_COMPLETED'">
+        <button type="button" class="execute-btn" (click)="openExecuteConfirm()">正式執行抽選</button>
+      </div>
+    </section>
 
-    <div class="post-execute-actions" *ngIf="mode === 'EXECUTE_SUCCESS'">
-      <button type="button" class="navigate-btn" (click)="navigateToBatchList()">前往抽選批次列表</button>
-    </div>
+    <section class="result-panel" *ngIf="showResultZone">
+      <div class="section-heading section-heading--compact">
+        <div>
+          <p class="section-eyebrow">Step 3</p>
+          <h2>{{ resultZoneTitle }}</h2>
+        </div>
+        <p class="section-copy">將結果區與操作區分離，避免與正式執行按鈕混在一起。</p>
+      </div>
+
+      <app-sampling-post-execute-region [result]="context.postExecuteSummary!"></app-sampling-post-execute-region>
+
+      <div class="post-execute-actions" *ngIf="mode === 'EXECUTE_SUCCESS'">
+        <button type="button" class="navigate-btn" (click)="navigateToBatchList()">前往抽選批次列表</button>
+        <button type="button" class="secondary-btn" (click)="navigateToCases()">前往案件列表</button>
+      </div>
+
+      <div class="post-execute-actions" *ngIf="mode === 'EXECUTE_FAILED'">
+        <button type="button" class="navigate-btn" (click)="navigateToBatchList()">前往抽選批次列表</button>
+      </div>
+    </section>
+
+    <section class="result-placeholder" *ngIf="!showResultZone && mode !== 'READONLY_BLOCKED'">
+      <h2>執行結果區</h2>
+      <p>完成預估並正式執行後，系統會在此顯示成功或失敗摘要。</p>
+    </section>
   </div>
 
   <app-sampling-execute-confirm-modal

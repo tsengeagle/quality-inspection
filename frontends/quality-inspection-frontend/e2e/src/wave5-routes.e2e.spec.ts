@@ -362,12 +362,12 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
     await mockAssignmentCase(page);
     await page.goto('/cases/CASE-011/assign');
 
-    await expect(page.locator('.assignment-page-title')).toHaveText('案件分派頁');
-    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('ASSIGN_INITIAL');
+    await expect(page.locator('.assignment-page-title')).toHaveText('初審指派');
+    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('待初審指派');
     await expect(page.locator('[data-testid="reviewer-picker-slot"]')).toBeVisible();
     await expect(page.getByText('reviewer-1 | Dr. Reviewer One')).toBeVisible();
-    await expect(page.getByText('CANDIDATE_INACTIVE')).toBeVisible();
-    await expect(page.getByRole('button', { name: '初審指派' })).toBeEnabled();
+    await expect(page.getByText('此候選人目前未啟用，不能指派。')).toBeVisible();
+    await expect(page.getByRole('button', { name: '提交初審指派' })).toBeEnabled();
   });
 
   test('executes assignment command and refetches backend truth after success', async ({ page }) => {
@@ -379,14 +379,14 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
     });
 
     await page.goto('/cases/CASE-011/assign');
-    await page.getByRole('button', { name: '初審指派' }).click();
+    await page.getByRole('button', { name: '提交初審指派' }).click();
 
     expect(requestBody).toEqual({
       reviewerId: 'reviewer-1',
-      dueAt: '2026-04-20T12:00:00+08:00'
+      dueAt: '2026-04-20T12:00:00'
     });
     await expect(page.getByText('初審指派已送出。')).toBeVisible();
-    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('REASSIGN_INITIAL');
+    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('初審改派');
     await expect(page.getByText('目前初審醫師：Dr. Reviewer One')).toBeVisible();
   });
 

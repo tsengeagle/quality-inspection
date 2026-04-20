@@ -43,9 +43,39 @@ export class SamplingBatchListPageComponent implements OnInit {
   };
 
   batches: SamplingBatchSummaryItem[] = [];
+  totalElements = 0;
+  totalPages = 0;
 
   retryTargetBatchId: string | null = null;
   showRetryModal = false;
+
+  get totalCount(): number {
+    return this.totalElements;
+  }
+
+  get failedCount(): number {
+    return this.batches.filter(batch => batch.status === 'FAILED').length;
+  }
+
+  get retryableCount(): number {
+    return this.batches.filter(batch => batch.status === 'FAILED' && batch.canRetry).length;
+  }
+
+  get activeFilterChips(): string[] {
+    const chips: string[] = [];
+
+    if (this.uiState.tab !== 'ALL_BATCHES') {
+      chips.push(`狀態：${this.availableTabs.find(tab => tab.value === this.uiState.tab)?.label ?? this.uiState.tab}`);
+    }
+    if (this.filters.projectId) {
+      chips.push(`專案：${this.filters.projectId}`);
+    }
+    if (this.filters.batchId) {
+      chips.push(`批次：${this.filters.batchId}`);
+    }
+
+    return chips;
+  }
 
   get isMetadataOnly(): boolean {
     return this.actorContextService.isMetadataOnlyRole(this.role);
@@ -124,6 +154,8 @@ export class SamplingBatchListPageComponent implements OnInit {
       size: this.uiState.size
     }).subscribe(result => {
       this.batches = result.items;
+      this.totalElements = result.totalElements;
+      this.totalPages = result.totalPages;
     });
   }
 

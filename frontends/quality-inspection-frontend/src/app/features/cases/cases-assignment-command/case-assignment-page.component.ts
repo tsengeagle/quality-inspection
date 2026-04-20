@@ -41,7 +41,7 @@ export class CaseAssignmentPageComponent implements OnInit {
   caseId = '';
   context: CaseAssignmentContext = this.createDefaultContext('');
   mode: CaseAssignmentMode = 'ASSIGN_INITIAL';
-  modeLabel = 'ASSIGN_INITIAL';
+  modeLabel = '待初審指派';
   bannerMessage = '';
   commandPending = false;
   loading = false;
@@ -82,27 +82,27 @@ export class CaseAssignmentPageComponent implements OnInit {
 
     if (backendMode === 'READONLY_BLOCKED' || context.blocked || ['CLOSED', 'CANCELLED'].includes(context.status)) {
       this.mode = 'READONLY_BLOCKED';
-      this.modeLabel = 'READONLY_BLOCKED';
+      this.modeLabel = '不可指派';
       this.bannerMessage = this.resolveBlockedBannerMessage(context.blockedReason);
       return;
     }
 
     if (backendMode === 'MIXED_ASSIGNMENT') {
       this.mode = 'MIXED_ASSIGNMENT';
-      this.modeLabel = 'MIXED_ASSIGNMENT';
+      this.modeLabel = '複審指派';
       this.bannerMessage = '';
       return;
     }
 
     if (backendMode === 'REASSIGN_INITIAL') {
       this.mode = 'REASSIGN_INITIAL';
-      this.modeLabel = 'REASSIGN_INITIAL';
+      this.modeLabel = '初審改派';
       this.bannerMessage = '';
       return;
     }
 
     this.mode = 'ASSIGN_INITIAL';
-    this.modeLabel = 'ASSIGN_INITIAL';
+    this.modeLabel = '待初審指派';
     this.bannerMessage = '';
   }
 
@@ -115,15 +115,86 @@ export class CaseAssignmentPageComponent implements OnInit {
   }
 
   get showReviewerSection(): boolean {
-    return this.mode !== 'READONLY_BLOCKED';
+    return true;
   }
 
   get showRereviewerSection(): boolean {
-    return this.mode === 'MIXED_ASSIGNMENT';
+    return true;
   }
 
   get showSubmitZone(): boolean {
     return this.mode !== 'READONLY_BLOCKED';
+  }
+
+  get showReviewerInputs(): boolean {
+    return this.mode !== 'READONLY_BLOCKED' && this.mode !== 'MIXED_ASSIGNMENT' && this.isReviewerActionEnabled;
+  }
+
+  get showRereviewerInputs(): boolean {
+    return this.mode !== 'READONLY_BLOCKED' && this.mode === 'MIXED_ASSIGNMENT' && this.isRereviewerActionEnabled;
+  }
+
+  get statusDisplayLabel(): string {
+    return this.resolveStatusLabel(this.context.status);
+  }
+
+  get modeBannerTitle(): string {
+    switch (this.mode) {
+      case 'REASSIGN_INITIAL':
+        return '初審改派';
+      case 'MIXED_ASSIGNMENT':
+        return '複審指派';
+      case 'READONLY_BLOCKED':
+        return '指派已封鎖';
+      default:
+        return '初審指派';
+    }
+  }
+
+  get modeBannerCopy(): string {
+    switch (this.mode) {
+      case 'REASSIGN_INITIAL':
+        return '此案件已有初審醫師，可重新指定新的初審責任人與截止日。';
+      case 'MIXED_ASSIGNMENT':
+        return '初審責任人已固定，當前任務是完成複審醫師指派與截止日設定。';
+      case 'READONLY_BLOCKED':
+        return '此案件目前不可做任何指派或改派，頁面只保留摘要與返回動作。';
+      default:
+        return '請先完成初審醫師與截止日設定，再讓案件進入待初審流程。';
+    }
+  }
+
+  get summaryItems(): Array<{ label: string; value: string }> {
+    return [
+      { label: '批次編號', value: this.assignmentContext?.batchId ?? '尚未提供' },
+      { label: '院區 / 病歷類型', value: `${this.assignmentContext?.hospitalId ?? '未提供'} / ${this.assignmentContext?.medicalRecordType ?? '未提供'}` },
+      { label: '目前狀態', value: this.statusDisplayLabel },
+      { label: '目前截止日', value: this.context.effectiveDueAt || '尚未設定' }
+    ];
+  }
+
+  get reviewerReadonlyHint(): string {
+    if (this.mode === 'READONLY_BLOCKED') {
+      return '此案件目前只提供初審資訊摘要，不開放指派或改派。';
+    }
+
+    if (this.mode === 'MIXED_ASSIGNMENT') {
+      return '初審醫師已固定，本頁此階段不再調整初審責任人。';
+    }
+
+    return '目前沒有可執行的初審指派動作。';
+  }
+
+  get rereviewerReadonlyHint(): string {
+    if (this.mode === 'READONLY_BLOCKED') {
+      return '此案件目前只提供複審資訊摘要，不開放指派或改派。';
+    }
+
+    if (this.mode !== 'MIXED_ASSIGNMENT') {
+      return '案件尚未進入複審指派階段，先完成初審流程後再處理。';
+    }
+
+    return '目前沒有可執行的複審指派動作。';
   }
 
   get currentDueDateLabel(): string {
@@ -132,10 +203,10 @@ export class CaseAssignmentPageComponent implements OnInit {
     }
 
     if (this.mode === 'MIXED_ASSIGNMENT') {
-      return '目前未提供複審截止日；helper slot 仍維持 limited boundary。';
+      return '目前未設定複審截止日。';
     }
 
-    return '目前未提供初審截止日；helper slot 仍維持 limited boundary。';
+    return '目前未設定初審截止日。';
   }
 
   get dueDateInputLabel(): string {
@@ -176,10 +247,10 @@ export class CaseAssignmentPageComponent implements OnInit {
 
   get primaryActionLabel(): string {
     if (this.mode === 'MIXED_ASSIGNMENT') {
-      return this.hasAllowedAction('REASSIGN_REREVIEWER') ? '複審改派' : '複審指派';
+      return this.hasAllowedAction('REASSIGN_REREVIEWER') ? '提交複審改派' : '提交複審指派';
     }
 
-    return this.hasAllowedAction('REASSIGN_REVIEWER') ? '初審改派' : '初審指派';
+    return this.hasAllowedAction('REASSIGN_REVIEWER') ? '提交初審改派' : '提交初審指派';
   }
 
   trackCandidate(_: number, candidate: AssignmentCandidateViewModel): string {
@@ -397,6 +468,29 @@ export class CaseAssignmentPageComponent implements OnInit {
     }
   }
 
+  private resolveStatusLabel(status: string): string {
+    switch (status) {
+      case 'SELECTED_PENDING_ASSIGNMENT':
+        return '待分派';
+      case 'PENDING_INITIAL_REVIEW':
+        return '待初審';
+      case 'INITIAL_REVIEW_IN_PROGRESS':
+        return '初審進行中';
+      case 'INITIAL_REVIEW_COMPLETED':
+        return '初審完成';
+      case 'PENDING_REREVIEW':
+        return '待複審';
+      case 'REREVIEW_IN_PROGRESS':
+        return '複審進行中';
+      case 'CLOSED':
+        return '已結案';
+      case 'CANCELLED':
+        return '已取消';
+      default:
+        return '狀態待確認';
+    }
+  }
+
   private resolveBlockedBannerMessage(blockedReason: string | null): string {
     switch (blockedReason) {
       case 'CASE_ALREADY_CLOSED':
@@ -409,6 +503,19 @@ export class CaseAssignmentPageComponent implements OnInit {
         return '案件分派資料載入失敗，請稍後重試或返回案件詳情。';
       default:
         return '此案件目前不可進行分派或改派。';
+    }
+  }
+
+  formatCandidateBlockedReason(blockedReason: string | null | undefined): string {
+    switch (blockedReason) {
+      case 'CANDIDATE_INACTIVE':
+        return '此候選人目前未啟用，不能指派。';
+      case 'REREVIEWER_SAME_AS_REVIEWER':
+        return '複審醫師不可與目前初審醫師相同。';
+      case 'HOSPITAL_SCOPE_MISMATCH':
+        return '此候選人不在目前院區或授權範圍內。';
+      default:
+        return blockedReason ?? '';
     }
   }
 

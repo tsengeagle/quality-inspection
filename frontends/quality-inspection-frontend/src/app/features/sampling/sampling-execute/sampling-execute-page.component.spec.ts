@@ -115,7 +115,7 @@ describe('SamplingExecutePageComponent', () => {
 
     expect(fixture.nativeElement.querySelector('app-sampling-preview-stats')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('.executing-hint')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.execute-confirm-zone')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.execute-btn')).toBeNull();
   });
 
   it('shows the post execute region in EXECUTE_SUCCESS', () => {

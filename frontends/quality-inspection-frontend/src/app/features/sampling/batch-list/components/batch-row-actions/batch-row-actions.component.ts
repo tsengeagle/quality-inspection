@@ -11,7 +11,7 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
         class="action-btn deferred"
         disabled
         title="Batch detail 已正式 deferred，等待 UI spec 定案。">
-        查看詳情（未開放）
+        查看詳情（Deferred）
       </button>
 
       <button
@@ -32,18 +32,20 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
     </div>
   `,
   styles: [`
-    .row-actions { display: flex; gap: 8px; }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
     .action-btn {
-      padding: 4px 10px;
+      min-height: 34px;
+      padding: 0 12px;
       border: 1px solid var(--qi-accent);
-      border-radius: 4px;
+      border-radius: 8px;
       cursor: pointer;
       background: var(--qi-surface-base);
       color: var(--qi-accent);
       font-size: 13px;
+      font-weight: 600;
     }
     .action-btn.retry { border-color: var(--qi-danger-text); color: var(--qi-danger-text); }
-    .action-btn.deferred { border-color: var(--qi-border-muted); color: var(--qi-text-secondary); cursor: not-allowed; }
+    .action-btn.deferred { border-color: var(--qi-border-muted); color: var(--qi-text-secondary); cursor: not-allowed; background: var(--qi-surface-subtle); }
   `]
 })
 export class BatchRowActionsComponent {

@@ -1,6 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SharedModule } from '../../shared/shared.module';
 
 import { SamplingRoutingModule } from './sampling-routing.module';
 import { SamplingExecutePageComponent } from './sampling-execute/sampling-execute-page.component';
@@ -40,6 +41,7 @@ import { SamplingExecuteConfirmModalComponent } from './sampling-execute/compone
   imports: [
     CommonModule,
     FormsModule,
+    SharedModule,
     SamplingRoutingModule
   ]
 })

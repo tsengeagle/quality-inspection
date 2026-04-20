@@ -1,30 +1,88 @@
 <section class="batch-list-page">
-  <div class="batch-list-page-header">
-    <h1 class="batch-list-title">抽選批次列表</h1>
-    <p class="batch-list-summary">{{ pageSummary }}</p>
-    <p class="projection-notice" *ngIf="isMetadataOnly">SYSTEM_ADMIN 僅可檢視 metadata-only 欄位。</p>
-  </div>
+  <header class="batch-list-page-header">
+    <div class="batch-list-page-header__content">
+      <div>
+        <p class="batch-list-eyebrow">UI-007 抽選批次列表</p>
+        <h1 class="batch-list-title">抽選批次追蹤</h1>
+        <p class="batch-list-summary">{{ pageSummary }}</p>
+      </div>
+      <p class="projection-notice" *ngIf="isMetadataOnly">SYSTEM_ADMIN 僅顯示 metadata-only 欄位，統計數值維持遮罩。</p>
+    </div>
 
-  <app-batch-status-tab
-    class="batch-list-tabs"
-    [tabs]="availableTabs"
-    [activeTab]="uiState.tab"
-    (tabChange)="onTabChange($event)">
-  </app-batch-status-tab>
+    <div class="batch-metric-grid">
+      <article class="batch-metric-card">
+        <span class="batch-metric-card__label">本次查詢筆數</span>
+        <strong class="batch-metric-card__value">{{ totalCount }}</strong>
+      </article>
+      <article class="batch-metric-card">
+        <span class="batch-metric-card__label">失敗批次</span>
+        <strong class="batch-metric-card__value">{{ failedCount }}</strong>
+      </article>
+      <article class="batch-metric-card" *ngIf="role === 'HOSPITAL_MANAGER'">
+        <span class="batch-metric-card__label">可重跑批次</span>
+        <strong class="batch-metric-card__value">{{ retryableCount }}</strong>
+      </article>
+      <article class="batch-metric-card">
+        <span class="batch-metric-card__label">目前頁次</span>
+        <strong class="batch-metric-card__value">{{ totalPages > 0 ? uiState.page + 1 : 1 }} / {{ totalPages || 1 }}</strong>
+      </article>
+    </div>
+  </header>
 
-  <app-batch-filter-bar
-    [metadataOnly]="isMetadataOnly"
-    (filterChange)="onFilterChange($event)">
-  </app-batch-filter-bar>
+  <section class="batch-toolbar-panel">
+    <div class="batch-toolbar-panel__header">
+      <div>
+        <p class="batch-list-eyebrow">快速視角</p>
+        <h2>批次狀態切換</h2>
+      </div>
+      <p class="batch-toolbar-panel__copy">以成功、失敗與可重跑等工作語意快速切換批次視角。</p>
+    </div>
 
-  <app-batch-table
-    [batches]="batches"
-    [role]="role"
-    (viewCases)="onViewCases($event)"
-    (retryBatch)="openRetryConfirm($event)">
-  </app-batch-table>
+    <app-batch-status-tab
+      class="batch-list-tabs"
+      [tabs]="availableTabs"
+      [activeTab]="uiState.tab"
+      (tabChange)="onTabChange($event)">
+    </app-batch-status-tab>
 
-  <p class="helper-note">批次詳情功能規劃中；展示流程請使用「查看案件」延續操作。</p>
+    <div class="active-filter-chip-row" *ngIf="activeFilterChips.length > 0">
+      <span class="active-filter-chip" *ngFor="let chip of activeFilterChips">{{ chip }}</span>
+    </div>
+  </section>
+
+  <section class="batch-filter-panel">
+    <div class="batch-toolbar-panel__header">
+      <div>
+        <p class="batch-list-eyebrow">查詢條件</p>
+        <h2>篩選批次</h2>
+      </div>
+      <p class="batch-toolbar-panel__copy">保留專案、批次與角色範圍等最小可用條件，避免只剩 placeholder 欄位感。</p>
+    </div>
+
+    <app-batch-filter-bar
+      [metadataOnly]="isMetadataOnly"
+      (filterChange)="onFilterChange($event)">
+    </app-batch-filter-bar>
+  </section>
+
+  <section class="batch-table-panel">
+    <div class="batch-toolbar-panel__header">
+      <div>
+        <p class="batch-list-eyebrow">批次清單</p>
+        <h2>執行結果列表</h2>
+      </div>
+      <p class="batch-toolbar-panel__copy">優先閱讀狀態、抽選摘要與後續操作；批次詳情仍維持 deferred，不冒充已完成。</p>
+    </div>
+
+    <app-batch-table
+      [batches]="batches"
+      [role]="role"
+      (viewCases)="onViewCases($event)"
+      (retryBatch)="openRetryConfirm($event)">
+    </app-batch-table>
+
+    <p class="helper-note deferred-note">批次詳情仍屬 deferred；展示流程請以「查看案件」延續至案件列表。</p>
+  </section>
 
   <app-retry-confirm-modal
     [visible]="showRetryModal"

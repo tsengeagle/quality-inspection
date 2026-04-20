@@ -222,23 +222,23 @@ test.describe('frontend smoke baseline', () => {
     await mockSamplingApi(page);
     await page.goto('/sampling/batches');
 
-    await expect(page.getByRole('button', { name: '查看詳情（未開放）' }).first()).toBeDisabled();
-    await expect(page.locator('.deferred-note')).toContainText('批次詳情已正式 deferred，原因為 UI spec 尚未定。');
+    await expect(page.getByRole('button', { name: '查看詳情（Deferred）' }).first()).toBeDisabled();
+    await expect(page.locator('.deferred-note')).toContainText('批次詳情仍屬 deferred；展示流程請以「查看案件」延續至案件列表。');
   });
 
   test('loads the sampling execute route without being shadowed by /sampling/batches', async ({ page }) => {
     await mockSamplingApi(page);
     await page.goto('/sampling/PROJECT-001');
 
-    await expect(page.locator('.sampling-page-title')).toHaveText('抽選執行頁');
-    await expect(page.getByRole('button', { name: '預估抽選人數' })).toBeVisible();
+    await expect(page.locator('.sampling-page-title')).toHaveText('抽選前確認與正式執行');
+    await expect(page.getByRole('button', { name: '預估母體' })).toBeVisible();
   });
 
   test('does not let /sampling/batches get swallowed by the :projectId route', async ({ page }) => {
     await page.goto('/sampling/batches');
 
     await expect(page.locator('.sampling-page-title')).toHaveCount(0);
-    await expect(page.locator('.batch-list-title')).toHaveText('抽選批次列表');
+    await expect(page.locator('.batch-list-title')).toHaveText('抽選批次追蹤');
   });
 
   test('loads the Wave 3 case detail control center route', async ({ page }) => {

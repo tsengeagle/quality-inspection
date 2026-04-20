@@ -72,9 +72,13 @@ export interface SamplingBatchSummaryItem {
   batchId: string;
   batchName: string;
   status: string;
+  executionMode?: string;
   createdAt: string;
+  finishedAt?: string | null;
   projectId: string;
   projectName: string;
+  populationCount?: number;
+  eligibleCount?: number;
   retryOfBatchId?: string | null;
   selectedCount?: number | null;
   canRetry: boolean;
@@ -138,6 +142,9 @@ export class SamplingService {
     }
     if (criteria.projectId) {
       params = params.set('projectId', criteria.projectId);
+    }
+    if (criteria.batchId) {
+      params = params.set('batchId', criteria.batchId);
     }
     if (criteria.page != null) {
       params = params.set('page', String(criteria.page));
@@ -205,9 +212,13 @@ export class SamplingService {
       batchId: dto.batchId,
       batchName: dto.batchId,           // BE 無 batchName，暫以 batchId 代替
       status: dto.status,
+      executionMode: dto.executionMode,
       createdAt: dto.startedAt ?? '',   // BE startedAt → FE createdAt
+      finishedAt: dto.finishedAt,
       projectId: dto.projectId,
-      projectName: '',                   // SamplingBatchSummary 無 projectName
+      projectName: dto.projectId,        // SamplingBatchSummary 無 projectName，以 projectId 呈現避免空白欄位
+      populationCount: dto.populationCount,
+      eligibleCount: dto.eligibleCount,
       retryOfBatchId: dto.retryOfBatchId,
       selectedCount: dto.selectedCount,
       canRetry: dto.status === 'FAILED'

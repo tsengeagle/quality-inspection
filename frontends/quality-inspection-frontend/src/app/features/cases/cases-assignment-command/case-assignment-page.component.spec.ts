@@ -149,10 +149,11 @@ describe('CaseAssignmentPageComponent', () => {
     expect(casesService.getAssignmentCandidates).toHaveBeenCalledWith('CASE-011', 'REVIEWER', '');
     expect(casesService.getAssignmentCandidates).toHaveBeenCalledWith('CASE-011', 'REREVIEWER', '');
     expect(fixture.nativeElement.querySelector('.reviewer-assignment-section')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('.rereviewer-assignment-section')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.rereviewer-assignment-section')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('reviewer-1 | Dr. Reviewer One');
-    expect(fixture.nativeElement.textContent).toContain('CANDIDATE_INACTIVE');
-    expect(component.primaryActionLabel).toBe('初審指派');
+    expect(fixture.nativeElement.textContent).toContain('此候選人目前未啟用，不能指派。');
+    expect(fixture.nativeElement.textContent).toContain('案件尚未進入複審指派階段，先完成初審流程後再處理。');
+    expect(component.primaryActionLabel).toBe('提交初審指派');
     expect(component.primaryActionDisabled).toBeFalse();
   });
 
@@ -175,8 +176,8 @@ describe('CaseAssignmentPageComponent', () => {
 
     expect(component.mode).toBe('MIXED_ASSIGNMENT');
     expect(fixture.nativeElement.querySelector('.rereviewer-assignment-section')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('REREVIEWER_SAME_AS_REVIEWER');
-    expect(component.primaryActionLabel).toBe('複審指派');
+    expect(fixture.nativeElement.textContent).toContain('複審醫師不可與目前初審醫師相同。');
+    expect(component.primaryActionLabel).toBe('提交複審指派');
   });
 
   it('shows blocked banner and hides submit zone when backend marks the case blocked', () => {
