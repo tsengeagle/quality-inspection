@@ -99,6 +99,7 @@ quality-inspection/          ← repo root
 │  ├─ 06-frontend/
 │  ├─ 07-design/
 │  ├─ 99-archive/
+│  ├─ demo/
 │  ├─ design/
 │  └─ README.md
 ├─ services/
@@ -148,6 +149,12 @@ Design execution 區。
 
 歷史稿與被取代但需保留的設計筆記。
 此區不是現行 authority，除非現行文件明確引用。
+
+#### `docs/demo`
+
+Demo automation 與展示劇本區。
+放 demo script、demo data contract、demo acceptance checklist、demo automation SOP。
+此區不是 domain / API / testing authority；它依賴上游 spec 與 seed data。
 
 #### `docs/design`
 
@@ -301,6 +308,10 @@ UI 資訊架構。
 
 revision 歷程頁規格。
 
+#### `ui-layout-archetypes.md`
+
+UI layout archetypes 與頁面佈局模式。
+
 ---
 
 ### 4.7 `docs/06-frontend`
@@ -341,6 +352,34 @@ UI IA 映射到 Angular route / feature module / guard 邊界。
 
 前端實際使用的 view model 與 projection 規格。
 
+#### `frontend-backend-alignment-baseline.md`
+
+前後端對齊基線與 gap 分類。
+
+#### `ready-pages-angular-execution-plan.md`
+
+Ready pages Angular 執行計畫。
+
+#### `ready-pages-frontend-task-breakdown.md`
+
+Ready pages 前端任務拆解。
+
+#### `ready-pages-implementation-handoff.md`
+
+Ready pages 實作交接文件。
+
+#### `p2-implementation-handoff.md`
+
+Phase 2 實作交接文件。
+
+#### `sampling-route-module-map-addendum.md`
+
+Sampling route/module map 補遺。
+
+#### `wave-backend-dependency-inventory.md`
+
+Wave backend 相依性盤點（SUPERSEDED）。
+
 ---
 
 ### 4.8 `docs/07-design`
@@ -357,9 +396,45 @@ UI IA 映射到 Angular route / feature module / guard 邊界。
 
 可選用的 Figma translation spec；不是 Figma artifact 本身。
 
+#### `ui-design-decisions.md`
+
+UI 設計決策記錄。
+
+#### `ui-visual-baseline.md`
+
+UI 視覺基線。
+
+#### `ui-wireframe-brief-p2-extension.md`
+
+Phase 2 wireframe brief 擴充。
+
 ---
 
-### 4.9 `docs/99-archive`
+### 4.10 `docs/demo`
+
+#### `README.md`
+
+Demo 文件群入口與用途說明。
+
+#### `demo-script.md`
+
+標準展示劇本：頁面順序、操作步驟、預期觀察點。
+
+#### `demo-data-contract.md`
+
+Demo 穩定資料契約：固定識別值、seed source、flexible vs fixed 欄位。
+
+#### `demo-acceptance-checklist.md`
+
+Demo 驗收 checklist。
+
+#### `demo-automation-sop.md`
+
+Demo launcher / Playwright / preflight / e2e 最小 SOP。
+
+---
+
+### 4.11 `docs/99-archive`
 
 #### `aggregate-design-notes-v1.md`
 
@@ -665,6 +740,19 @@ confirmed:
       e2e: "npm run e2e"
       test_e2e: "npm run test:e2e"
       verify_frontend: "npm run verify:frontend"
+    demo_commands:
+      demo_launch: "npm run demo:launch"
+      demo_launch_preflight: "npm run demo:launch:preflight"
+      demo_stop: "npm run demo:stop"
+      demo_status: "npm run demo:status"
+      demo_restart: "npm run demo:restart"
+      demo_preflight: "npm run demo:preflight"
+      demo_run: "npm run demo:run"
+      demo_e2e: "npm run demo:e2e"
+    demo_note: >
+      demo:launch / demo:launch:preflight are startup entries.
+      demo:preflight / demo:run / demo:e2e only run Playwright against an already-started live standalone chain.
+      Scripts live in scripts/demo/.
   ui_governance:
     organization_ui_style: must align with organization existing UI style
     shared_ui_library: portal51-lib@0.0.16 (repo-local dependency evidence)
@@ -884,5 +972,8 @@ assumptions:
 * `.ai/project-context.yaml` — solution-level authoritative project context 已存在
 * `AGENTS.md` — repo operating guide 已存在
 * `CLAUDE.md` — Claude Code repo-level instructions 已存在
+* demo automation 已建立：`docs/demo/` (5 files) + `scripts/demo/` (launcher + Playwright invoker) + npm demo scripts
+* frontend-backend alignment baseline 已建立：`docs/06-frontend/frontend-backend-alignment-baseline.md`
+* proxy config 已遷移：`proxy.conf.json` → `proxy.conf.js`（env-driven api-key generation）
 
 其餘待後續依實際 repo evidence 再確認。

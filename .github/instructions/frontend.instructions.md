@@ -39,7 +39,7 @@ Before any frontend change, read in order:
 ## API Calls
 
 - Always use `/api/quality-inspection/**` as the API base path
-- In development, `proxy.conf.json` routes requests (gateway-layer substitute, must simulate `api-key` header)
+- In development, `proxy.conf.js` routes requests (gateway-layer substitute, with env-driven `api-key` generation)
 - Shell provides login and user context in integrated mode; standalone mode must simulate user context
 - **Never hard-code direct backend URLs** as production contracts
 

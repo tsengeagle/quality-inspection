@@ -75,6 +75,7 @@ docs_authority:
       path: docs/05-ui
       files:
         - ui-information-architecture.md
+        - ui-layout-archetypes.md
         - ui-page-inventory.md
         - ui-page-spec-ui006抽選執行頁.md
         - ui-page-spec-ui007抽選批次列表頁.md
@@ -93,6 +94,50 @@ docs_authority:
       role: historical-reference-only
       authority: false
 
+    frontend_design:
+      path: docs/06-frontend
+      files:
+        - frontend-backend-alignment-baseline.md
+        - frontend-design-method.md
+        - frontend-design-roadmap.md
+        - frontend-review-gate-pending-items.md
+        - frontend-test-scenarios.md
+        - p2-implementation-handoff.md
+        - ready-pages-angular-execution-plan.md
+        - ready-pages-frontend-task-breakdown.md
+        - ready-pages-implementation-handoff.md
+        - sampling-route-module-map-addendum.md
+        - ui-api-binding-matrix.md
+        - ui-component-map.md
+        - ui-route-module-map.md
+        - ui-state-actions-matrix.md
+        - ui-view-model-spec.md
+        - wave-backend-dependency-inventory.md
+      role: frontend-design-method-and-implementation-bridge
+
+    design_execution:
+      path: docs/07-design
+      files:
+        - ui-design-decisions.md
+        - ui-visual-baseline.md
+        - ui-wireframe-brief.md
+        - ui-wireframe-brief-p2-extension.md
+      role: wireframe-prototype-and-design-execution
+
+    demo:
+      path: docs/demo
+      files:
+        - README.md
+        - demo-script.md
+        - demo-data-contract.md
+        - demo-acceptance-checklist.md
+        - demo-automation-sop.md
+      role: demo-automation-and-demo-script
+      authority: false
+      note: >
+        Demo docs depend on upstream spec and seed data.
+        Not domain / API / testing authority.
+
 document_precedence:
   - docs/01-requirements/decision-log.md
   - docs/01-requirements/0_品質審查系統規格草案.md
@@ -101,6 +146,8 @@ document_precedence:
   - docs/03-contracts/*
   - docs/04-testing/*
   - docs/05-ui/*
+  - docs/06-frontend/*
+  - docs/07-design/*
   - docs/99-archive/*
 
 business_domain:
@@ -191,7 +238,7 @@ architecture:
       package_json: package.json
       angular_json: angular.json
       tsconfig: tsconfig.json
-      proxy_config: proxy.conf.json
+      proxy_config: proxy.conf.js
       webpack_config: webpack.config.js
       karma_config: karma.conf.js
       playwright_config: playwright.config.ts
@@ -205,8 +252,20 @@ architecture:
       start: "npm start"
       start_standalone: "npm run start:standalone"
       build: "npm run build"
+      typecheck: "npm run typecheck"
       test: "npm test"
+      test_unit_ci: "npm run test:unit:ci"
       e2e: "npm run e2e"
+      verify_frontend: "npm run verify:frontend"
+    demo_commands:
+      demo_launch: "npm run demo:launch"
+      demo_launch_preflight: "npm run demo:launch:preflight"
+      demo_stop: "npm run demo:stop"
+      demo_status: "npm run demo:status"
+      demo_restart: "npm run demo:restart"
+      demo_preflight: "npm run demo:preflight"
+      demo_run: "npm run demo:run"
+      demo_e2e: "npm run demo:e2e"
   microfrontend:
     status: confirmed
     basis: user confirmed Angular microfrontend architecture

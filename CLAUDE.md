@@ -52,7 +52,12 @@ Frontend:
 - Start: `cd frontends/quality-inspection-frontend && npm start`
 - Standalone: `cd frontends/quality-inspection-frontend && npm run start:standalone`
 - Build: `cd frontends/quality-inspection-frontend && npm run build`
+- Typecheck: `cd frontends/quality-inspection-frontend && npm run typecheck`
 - Unit test: `cd frontends/quality-inspection-frontend && npm test`
+- Unit test (CI): `cd frontends/quality-inspection-frontend && npm run test:unit:ci`
 - E2E test: `cd frontends/quality-inspection-frontend && npm run e2e`
+- Verify all: `cd frontends/quality-inspection-frontend && npm run verify:frontend`
+- Demo launch: `cd frontends/quality-inspection-frontend && npm run demo:launch`
+- Demo launch + preflight: `cd frontends/quality-inspection-frontend && npm run demo:launch:preflight`
 
 Lint / formatter / static analysis 尚未設定。

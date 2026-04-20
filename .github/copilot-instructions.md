@@ -104,7 +104,12 @@ npm start                   # dev (integrated)
 npm run start:standalone    # dev (standalone mode)
 npm run build
 npm test                    # unit tests
+npm run typecheck           # TypeScript type check
+npm run test:unit:ci        # unit tests (CI headless)
 npm run e2e                 # e2e tests
+npm run verify:frontend     # typecheck + unit + e2e
+npm run demo:launch         # demo startup (backend + frontend + proxy)
+npm run demo:launch:preflight  # demo startup + Playwright preflight
 ```
 
 ---
