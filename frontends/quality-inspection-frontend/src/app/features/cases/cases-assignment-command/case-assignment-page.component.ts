@@ -20,13 +20,17 @@ export type CaseAssignmentMode =
 export interface CaseAssignmentContext {
   caseId: string;
   caseTitle: string;
+  projectName?: string;
   status: string;
   stageLabel: string;
+  sourceCaseKey?: string;
   allowedActions: string[];
   blockedReason: string | null;
   blocked: boolean;
   reviewerName?: string;
   rereviewerName?: string;
+  reviewerAssignedAt?: string;
+  rereviewerAssignedAt?: string;
   reviewerDueAt?: string;
   rereviewerDueAt?: string;
   effectiveDueAt?: string;
@@ -166,7 +170,9 @@ export class CaseAssignmentPageComponent implements OnInit {
 
   get summaryItems(): Array<{ label: string; value: string }> {
     return [
+      { label: '專案名稱', value: this.assignmentContext?.projectName ?? '尚未提供' },
       { label: '批次編號', value: this.assignmentContext?.batchId ?? '尚未提供' },
+      { label: '來源案件', value: this.assignmentContext?.sourceCaseKey ?? '尚未提供' },
       { label: '院區 / 病歷類型', value: `${this.assignmentContext?.hospitalId ?? '未提供'} / ${this.assignmentContext?.medicalRecordType ?? '未提供'}` },
       { label: '目前狀態', value: this.statusDisplayLabel },
       { label: '目前截止日', value: this.context.effectiveDueAt || '尚未設定' }
@@ -390,14 +396,18 @@ export class CaseAssignmentPageComponent implements OnInit {
   private applyAssignmentContext(context: AssignmentContextViewModel): void {
     this.applyContext({
       caseId: context.caseId,
-      caseTitle: '案件分派頁',
+      caseTitle: context.projectName || '案件分派頁',
+      projectName: context.projectName,
       status: context.status,
       stageLabel: this.resolveStageLabel(context.status),
+      sourceCaseKey: context.sourceCaseKey,
       allowedActions: context.allowedActions,
       blockedReason: context.blockedReason ?? null,
       blocked: context.blocked,
       reviewerName: context.currentReviewer?.displayName,
       rereviewerName: context.currentRereviewer?.displayName,
+      reviewerAssignedAt: context.currentReviewer?.assignedAt,
+      rereviewerAssignedAt: context.currentRereviewer?.assignedAt,
       reviewerDueAt: context.reviewerDueAt,
       rereviewerDueAt: context.rereviewerDueAt,
       effectiveDueAt: context.effectiveDueAt

@@ -66,6 +66,9 @@ class SamplingControllerApiTest {
                 .andExpect(jsonPath("$.data.projectId").value(projectId))
                 .andExpect(jsonPath("$.data.projectName").value("Execute Context Test"))
                 .andExpect(jsonPath("$.data.hospitalId").value("H001"))
+                .andExpect(jsonPath("$.data.projectStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.versionNo").value(1))
+                .andExpect(jsonPath("$.data.scoreSheetId").value("ss-test"))
                 .andExpect(jsonPath("$.data.previewReady").value(false))
                 .andExpect(jsonPath("$.data.executing").value(false))
                 .andExpect(jsonPath("$.data.executeFailed").value(false))
@@ -193,6 +196,8 @@ class SamplingControllerApiTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content[0].batchId").isNotEmpty())
+                .andExpect(jsonPath("$.data.content[0].projectName").value("List Test"))
+                .andExpect(jsonPath("$.data.content[0].projectVersionNumber").value(1))
                 .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 

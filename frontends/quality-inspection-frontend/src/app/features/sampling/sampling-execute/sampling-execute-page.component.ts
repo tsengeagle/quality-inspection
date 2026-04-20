@@ -94,6 +94,10 @@ export class SamplingExecutePageComponent implements OnInit {
       { label: '專案編號', value: this.projectId },
       { label: '專案名稱', value: this.context.projectName || '尚未提供' , emphasis: true},
       { label: '院區', value: this.context.hospitalId || '尚未提供' },
+      { label: '專案狀態', value: this.context.projectStatus || '尚未提供' },
+      { label: '版本', value: this.context.versionNo != null ? `v${this.context.versionNo}` : '尚未提供' },
+      { label: '評分表', value: this.context.scoreSheetId || '尚未提供' },
+      { label: '品質門檻', value: this.context.qualityThreshold || '尚未提供' },
       { label: '目前階段', value: this.modeLabel }
     ];
   }

@@ -41,8 +41,10 @@ public class GetCaseAssignmentContextUseCase {
         return new AssignmentBootstrapView(
                 snapshot.getCaseId(),
                 snapshot.getProjectId(),
+            snapshot.getProjectName(),
                 snapshot.getBatchId(),
                 snapshot.getHospitalId(),
+            snapshot.getSourceCaseKey(),
                 snapshot.getMedicalRecordType(),
                 snapshot.getStatus(),
                 pageMode,

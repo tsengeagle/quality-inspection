@@ -20,11 +20,15 @@ interface PageResponse<T> {
 interface SamplingBatchSummaryDto {
   batchId: string;
   projectId: string;
+  projectName: string;
   executionMode: string;
   status: string;
   populationCount: number;
   eligibleCount: number;
+  excludedCount: number;
   selectedCount: number | null;
+  projectVersionId: string | null;
+  projectVersionNumber: number;
   retryOfBatchId: string | null;
   startedAt: string | null;
   finishedAt: string | null;
@@ -34,6 +38,10 @@ interface SamplingExecuteContextDto {
   projectId: string;
   projectName: string;
   hospitalId: string;
+  projectStatus: string;
+  versionNo: number;
+  scoreSheetId?: string | null;
+  qualityThreshold?: string | null;
   ruleSummary: string;
   previewReady: boolean;
   executing: boolean;
@@ -50,6 +58,8 @@ interface SamplingExecuteContextDto {
     title: string;
     description: string;
     batchId: string | null;
+    startedAt?: string | null;
+    finishedAt?: string | null;
   } | null;
 }
 
@@ -63,6 +73,8 @@ export interface SamplingPostExecuteSummary {
   title: string;
   description: string;
   batchId: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
 }
 
 // ── Public view-model interfaces ──────────────────────────────────────────
@@ -77,8 +89,11 @@ export interface SamplingBatchSummaryItem {
   finishedAt?: string | null;
   projectId: string;
   projectName: string;
+  projectVersionId?: string | null;
+  projectVersionNumber?: number;
   populationCount?: number;
   eligibleCount?: number;
+  excludedCount?: number;
   retryOfBatchId?: string | null;
   selectedCount?: number | null;
   canRetry: boolean;
@@ -98,6 +113,10 @@ export interface SamplingExecuteContext {
   projectId: string;
   projectName: string;
   hospitalId: string;
+  projectStatus?: string;
+  versionNo?: number;
+  scoreSheetId?: string | null;
+  qualityThreshold?: string | null;
   ruleSummary: string;
   previewReady: boolean;
   executing: boolean;
@@ -216,9 +235,12 @@ export class SamplingService {
       createdAt: dto.startedAt ?? '',   // BE startedAt → FE createdAt
       finishedAt: dto.finishedAt,
       projectId: dto.projectId,
-      projectName: dto.projectId,        // SamplingBatchSummary 無 projectName，以 projectId 呈現避免空白欄位
+      projectName: dto.projectName || dto.projectId,
+      projectVersionId: dto.projectVersionId,
+      projectVersionNumber: dto.projectVersionNumber,
       populationCount: dto.populationCount,
       eligibleCount: dto.eligibleCount,
+      excludedCount: dto.excludedCount,
       retryOfBatchId: dto.retryOfBatchId,
       selectedCount: dto.selectedCount,
       canRetry: dto.status === 'FAILED'

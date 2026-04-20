@@ -266,8 +266,8 @@ class SamplingUseCaseTest {
     void listBatches_shouldDelegateToQueryPort() {
         InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
         queryPort.summaries.add(new SamplingBatchSummary(
-                "b1", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
-                10, 8, 5, null, Instant.now(), Instant.now()));
+            "b1", "p1", "Project 1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+            10, 8, 2, 5, "PV-1", 1, null, Instant.now(), Instant.now()));
         ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(queryPort);
 
         Page<SamplingBatchSummary> result =
@@ -334,6 +334,9 @@ class SamplingUseCaseTest {
         assertEquals("p1", context.getProjectId());
         assertEquals("Test Project", context.getProjectName());
         assertEquals("H001", context.getHospitalId());
+        assertEquals("ACTIVE", context.getProjectStatus());
+        assertEquals(1, context.getVersionNo());
+        assertEquals("ss-test", context.getScoreSheetId());
         assertFalse(context.isPreviewReady());
         assertFalse(context.isExecuting());
         assertFalse(context.isExecuteFailed());
@@ -363,6 +366,7 @@ class SamplingUseCaseTest {
         assertNotNull(context.getPostExecuteSummary());
         assertEquals("failed", context.getPostExecuteSummary().getTone());
         assertEquals("failed-batch", context.getPostExecuteSummary().getBatchId());
+        assertNotNull(context.getPostExecuteSummary().getStartedAt());
     }
 
     @Test
@@ -385,6 +389,7 @@ class SamplingUseCaseTest {
         assertEquals("completed-batch", context.getExecutedBatchId());
         assertNotNull(context.getPostExecuteSummary());
         assertEquals("success", context.getPostExecuteSummary().getTone());
+        assertNotNull(context.getPostExecuteSummary().getFinishedAt());
     }
 
     @Test
@@ -395,7 +400,7 @@ class SamplingUseCaseTest {
 
         SamplingExecuteContextView context = executeContextUseCase.execute(hospitalManagerActor, "p-draft");
 
-        assertEquals("PROJECT_NOT_ACTIVE", context.getBlockedReason());
+        assertEquals("PROJECT_VERSION_NOT_PUBLISHED", context.getBlockedReason());
         assertNull(context.getExecutedBatchId());
     }
 

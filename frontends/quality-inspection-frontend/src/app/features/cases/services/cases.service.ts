@@ -70,8 +70,10 @@ interface AssignmentAssigneeSummaryDto {
 interface AssignmentBootstrapDto {
   caseId: string;
   projectId: string;
+  projectName: string;
   batchId: string;
   hospitalId: string;
+  sourceCaseKey: string;
   medicalRecordType: string;
   status: string;
   pageMode: 'ASSIGN_INITIAL' | 'REASSIGN_INITIAL' | 'MIXED_ASSIGNMENT' | 'READONLY_BLOCKED';
@@ -306,8 +308,10 @@ export interface AssignmentCandidateViewModel {
 export interface AssignmentContextViewModel {
   caseId: string;
   projectId: string;
+  projectName: string;
   batchId: string;
   hospitalId: string;
+  sourceCaseKey: string;
   medicalRecordType: string;
   status: string;
   pageMode: 'ASSIGN_INITIAL' | 'REASSIGN_INITIAL' | 'MIXED_ASSIGNMENT' | 'READONLY_BLOCKED';
@@ -827,8 +831,10 @@ export class CasesService {
     return {
       caseId: item.caseId,
       projectId: item.projectId,
+      projectName: item.projectName,
       batchId: item.batchId,
       hospitalId: item.hospitalId,
+      sourceCaseKey: item.sourceCaseKey,
       medicalRecordType: item.medicalRecordType,
       status: item.status,
       pageMode: item.pageMode,

@@ -28,6 +28,7 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
                 <strong>{{ b.batchName }}</strong>
                 <span>專案：{{ b.projectName || b.projectId }}</span>
                 <span>專案代碼：{{ b.projectId }}</span>
+                <span *ngIf="b.projectVersionNumber != null">專案版本：v{{ b.projectVersionNumber }}</span>
               </div>
             </td>
             <td>
@@ -40,6 +41,7 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
               <div class="cell-stack" *ngIf="!isMetadataOnly; else metadataOnlySummary">
                 <span>母體件數：{{ b.populationCount ?? '-' }}</span>
                 <span>符合件數：{{ b.eligibleCount ?? '-' }}</span>
+                <span>排除件數：{{ b.excludedCount ?? '-' }}</span>
                 <span>抽中件數：{{ b.selectedCount ?? '-' }}</span>
               </div>
               <ng-template #metadataOnlySummary>

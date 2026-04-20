@@ -26,7 +26,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
     @Test
     void reviewerCandidates_areSelectableWhenInitialAssignmentAllowed() {
         queryPort.put(new AssignmentCaseSnapshotView(
-                "c1", "p1", "b1", "H001", "OUTPATIENT",
+                "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
                 "SELECTED_PENDING_ASSIGNMENT", null, null,
                 null, null, null, null));
 
@@ -40,7 +40,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
     @Test
     void rereviewerSameAsReviewer_isReturnedButBlocked() {
         queryPort.put(new AssignmentCaseSnapshotView(
-                "c1", "p1", "b1", "H001", "OUTPATIENT",
+                "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
                 "PENDING_REREVIEW", "reviewer-1", null,
                 null, null, null, null));
 
@@ -59,7 +59,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
     @Test
     void initialReviewInProgress_blocksReviewerLookupSelection() {
         queryPort.put(new AssignmentCaseSnapshotView(
-                "c1", "p1", "b1", "H001", "OUTPATIENT",
+                "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
                 "INITIAL_REVIEW_IN_PROGRESS", "reviewer-1", null,
                 null, null, null, null));
 

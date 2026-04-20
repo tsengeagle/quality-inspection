@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.*;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.project.ReviewProjectEntity;
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.submission.ReviewSubmissionEntity;
 import org.springframework.stereotype.Component;
 
@@ -66,11 +67,14 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort, ReviewCaseAs
         if (entity == null) {
             return Optional.empty();
         }
+        ReviewProjectEntity project = em.find(ReviewProjectEntity.class, entity.getProjectId());
         return Optional.of(new AssignmentCaseSnapshotView(
                 entity.getCaseId(),
                 entity.getProjectId(),
+                project != null ? project.getName() : entity.getProjectId(),
                 entity.getBatchId(),
                 entity.getHospitalId(),
+                entity.getSourceCaseKey(),
                 entity.getMedicalRecordType(),
                 entity.getStatus().name(),
                 entity.getReviewerId(),

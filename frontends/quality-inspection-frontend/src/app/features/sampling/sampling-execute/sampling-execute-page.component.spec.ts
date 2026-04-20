@@ -17,6 +17,10 @@ describe('SamplingExecutePageComponent', () => {
       projectId: 'PROJECT-001',
       projectName: '2026 年第二季品質審查',
       hospitalId: 'HOSP-01',
+      projectStatus: 'ACTIVE',
+      versionNo: 1,
+      scoreSheetId: 'SS-001',
+      qualityThreshold: '85.00',
       ruleSummary: '抽樣方式：STRATIFIED',
       previewReady: false,
       executing: false,
@@ -64,8 +68,8 @@ describe('SamplingExecutePageComponent', () => {
       { context: buildContext(), expected: 'READY_FOR_PREVIEW' },
       { context: buildContext({ previewReady: true, previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 } }), expected: 'PREVIEW_COMPLETED' },
       { context: buildContext({ previewReady: true, executing: true, previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 } }), expected: 'EXECUTING' },
-      { context: buildContext({ executedBatchId: 'BATCH-COMPLETED-001', postExecuteSummary: { tone: 'success', title: '抽選完成', description: '已建立正式批次。', batchId: 'BATCH-COMPLETED-001' } }), expected: 'EXECUTE_SUCCESS' },
-      { context: buildContext({ executeFailed: true, previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 }, postExecuteSummary: { tone: 'failed', title: '抽選失敗', description: '請重新預估後再試。', batchId: null } }), expected: 'EXECUTE_FAILED' },
+      { context: buildContext({ executedBatchId: 'BATCH-COMPLETED-001', postExecuteSummary: { tone: 'success', title: '抽選完成', description: '已建立正式批次。', batchId: 'BATCH-COMPLETED-001', startedAt: '2026-04-18T08:00:00Z', finishedAt: '2026-04-18T08:03:00Z' } }), expected: 'EXECUTE_SUCCESS' },
+      { context: buildContext({ executeFailed: true, previewStats: { populationCount: 120, eligibleCount: 80, excludedCount: 40 }, postExecuteSummary: { tone: 'failed', title: '抽選失敗', description: '請重新預估後再試。', batchId: null, startedAt: '2026-04-18T08:00:00Z', finishedAt: '2026-04-18T08:03:00Z' } }), expected: 'EXECUTE_FAILED' },
       { context: buildContext({ blockedReason: 'PROJECT_VERSION_NOT_PUBLISHED' }), expected: 'READONLY_BLOCKED' }
     ];
 
@@ -126,7 +130,9 @@ describe('SamplingExecutePageComponent', () => {
         tone: 'success',
         title: '抽選完成',
         description: '已建立正式批次。',
-        batchId: 'BATCH-COMPLETED-001'
+        batchId: 'BATCH-COMPLETED-001',
+        startedAt: '2026-04-18T08:00:00Z',
+        finishedAt: '2026-04-18T08:03:00Z'
       }
     });
     component.resolveMode(component.context);
@@ -158,6 +164,7 @@ describe('SamplingExecutePageComponent', () => {
 
     expect(samplingService.getExecuteContext).toHaveBeenCalledWith('PROJECT-001');
     expect(component.context?.projectName).toBe('2026 年第二季品質審查');
+    expect(component.projectSummaryItems.map(item => item.label)).toContain('版本');
   });
 
   it('keeps backend preview readiness when execute-context already marks preview completed', () => {
@@ -185,7 +192,9 @@ describe('SamplingExecutePageComponent', () => {
           tone: 'success',
           title: '抽選完成',
           description: '已建立正式批次。',
-          batchId: 'BATCH-COMPLETED-001'
+          batchId: 'BATCH-COMPLETED-001',
+          startedAt: '2026-04-18T08:00:00Z',
+          finishedAt: '2026-04-18T08:03:00Z'
         }
       }))
     );

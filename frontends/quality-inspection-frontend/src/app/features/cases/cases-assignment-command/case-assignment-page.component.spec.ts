@@ -78,8 +78,10 @@ describe('CaseAssignmentPageComponent', () => {
     return {
       caseId: 'CASE-011',
       projectId: 'PROJECT-001',
+      projectName: '2026 年第二季品質審查',
       batchId: 'BATCH-001',
       hospitalId: 'H001',
+      sourceCaseKey: 'SRC-CASE-001',
       medicalRecordType: 'OUTPATIENT',
       status: 'SELECTED_PENDING_ASSIGNMENT',
       pageMode: 'ASSIGN_INITIAL',
@@ -153,6 +155,8 @@ describe('CaseAssignmentPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('reviewer-1 | Dr. Reviewer One');
     expect(fixture.nativeElement.textContent).toContain('此候選人目前未啟用，不能指派。');
     expect(fixture.nativeElement.textContent).toContain('案件尚未進入複審指派階段，先完成初審流程後再處理。');
+    expect(fixture.nativeElement.textContent).toContain('2026 年第二季品質審查');
+    expect(fixture.nativeElement.textContent).toContain('SRC-CASE-001');
     expect(component.primaryActionLabel).toBe('提交初審指派');
     expect(component.primaryActionDisabled).toBeFalse();
   });
@@ -176,6 +180,7 @@ describe('CaseAssignmentPageComponent', () => {
 
     expect(component.mode).toBe('MIXED_ASSIGNMENT');
     expect(fixture.nativeElement.querySelector('.rereviewer-assignment-section')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('初審指派時間：2026-04-18T09:00:00');
     expect(fixture.nativeElement.textContent).toContain('複審醫師不可與目前初審醫師相同。');
     expect(component.primaryActionLabel).toBe('提交複審指派');
   });

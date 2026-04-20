@@ -12,6 +12,8 @@ import { Component, Input } from '@angular/core';
       <div *ngIf="result" class="result-content">
         <p class="result-reason" *ngIf="result.batchId">正式批次：{{ result.batchId }}</p>
         <p class="result-details" *ngIf="result.description">{{ result.description }}</p>
+        <p class="result-details" *ngIf="result.startedAt">開始時間：{{ result.startedAt }}</p>
+        <p class="result-details" *ngIf="result.finishedAt">完成時間：{{ result.finishedAt }}</p>
       </div>
     </section>
   `,
@@ -51,5 +53,14 @@ import { Component, Input } from '@angular/core';
   `]
 })
 export class SamplingPostExecuteRegionComponent {
-  @Input() result: { tone: 'success' | 'failed'; title: string; description: string; batchId: string | null } | undefined;
+  @Input() result:
+    | {
+        tone: 'success' | 'failed';
+        title: string;
+        description: string;
+        batchId: string | null;
+        startedAt?: string | null;
+        finishedAt?: string | null;
+      }
+    | undefined;
 }

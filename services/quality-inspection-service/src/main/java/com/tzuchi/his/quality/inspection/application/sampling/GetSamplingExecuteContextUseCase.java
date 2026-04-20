@@ -47,6 +47,12 @@ public class GetSamplingExecuteContextUseCase {
                 project.getProjectId(),
                 project.getName(),
                 project.getHospitalId(),
+            project.getStatus().name(),
+            project.getCurrentVersion().getVersionNumber(),
+            project.getBoundScoreSheetId(),
+            project.getCurrentVersion().getQualityThreshold() != null
+                ? project.getCurrentVersion().getQualityThreshold().toPlainString()
+                : null,
                 buildRuleSummary(project),
                 false,
                 executing,
@@ -84,7 +90,9 @@ public class GetSamplingExecuteContextUseCase {
                     "success",
                     "抽選完成",
                     "已建立正式抽選批次，selectedCount=" + latestBatch.getSelectedCount(),
-                    latestBatch.getBatchId()
+                    latestBatch.getBatchId(),
+                    latestBatch.getStartedAt(),
+                    latestBatch.getFinishedAt()
             );
         }
 
@@ -101,7 +109,9 @@ public class GetSamplingExecuteContextUseCase {
                 "failed",
                 "抽選失敗",
                 description,
-                latestBatch.getBatchId()
+            latestBatch.getBatchId(),
+            latestBatch.getStartedAt(),
+            latestBatch.getFinishedAt()
         );
     }
 

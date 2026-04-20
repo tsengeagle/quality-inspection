@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.sampling;
 
 import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.sampling.*;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.project.ReviewProjectEntity;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.EntityManager;
@@ -94,14 +95,19 @@ public class SamplingBatchQueryAdapter implements SamplingBatchQueryPort {
     }
 
     private SamplingBatchSummary toSummary(SamplingBatchEntity e) {
+        ReviewProjectEntity project = em.find(ReviewProjectEntity.class, e.getProjectId());
         return new SamplingBatchSummary(
                 e.getBatchId(),
                 e.getProjectId(),
+            project != null ? project.getName() : e.getProjectId(),
                 e.getExecutionMode(),
                 e.getStatus(),
                 e.getPopulationCount(),
                 e.getEligibleCount(),
+            e.getExcludedCount(),
                 e.getSelectedCount(),
+            e.getProjectVersionId(),
+            e.getProjectVersionNumber(),
                 e.getRetryOfBatchId(),
                 e.getStartedAt(),
                 e.getFinishedAt()

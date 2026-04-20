@@ -28,7 +28,7 @@ class GetCaseAssignmentContextUseCaseTest {
     @Test
     void selectedPendingAssignment_returnsAssignInitialMode() {
         queryPort.put(new AssignmentCaseSnapshotView(
-                "c1", "p1", "b1", "H001", "OUTPATIENT",
+                "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
                 "SELECTED_PENDING_ASSIGNMENT", null, null,
                 null, null, null, null));
 
@@ -43,7 +43,7 @@ class GetCaseAssignmentContextUseCaseTest {
     @Test
     void pendingRereview_returnsMixedAssignmentMode() {
         queryPort.put(new AssignmentCaseSnapshotView(
-                "c1", "p1", "b1", "H001", "OUTPATIENT",
+                "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
                 "PENDING_REREVIEW", "reviewer-1",
                 LocalDateTime.of(2026, 4, 1, 10, 0),
                 LocalDateTime.of(2026, 4, 10, 23, 59),
@@ -62,7 +62,7 @@ class GetCaseAssignmentContextUseCaseTest {
     @Test
     void closedCase_returnsBlockedContext() {
         queryPort.put(new AssignmentCaseSnapshotView(
-                "c1", "p1", "b1", "H001", "OUTPATIENT",
+                "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
                 "CLOSED", "reviewer-1", null, null,
                 "rereviewer-1", null, null));
 

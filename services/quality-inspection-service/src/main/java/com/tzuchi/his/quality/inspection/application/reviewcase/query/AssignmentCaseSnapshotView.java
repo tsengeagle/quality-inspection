@@ -7,8 +7,10 @@ public class AssignmentCaseSnapshotView {
 
     private final String caseId;
     private final String projectId;
+    private final String projectName;
     private final String batchId;
     private final String hospitalId;
+    private final String sourceCaseKey;
     private final String medicalRecordType;
     private final String status;
     private final String reviewerId;
@@ -18,8 +20,8 @@ public class AssignmentCaseSnapshotView {
     private final LocalDateTime rereviewerAssignedAt;
     private final LocalDateTime rereviewerDueAt;
 
-    public AssignmentCaseSnapshotView(String caseId, String projectId, String batchId,
-                                      String hospitalId, String medicalRecordType,
+    public AssignmentCaseSnapshotView(String caseId, String projectId, String projectName, String batchId,
+                                      String hospitalId, String sourceCaseKey, String medicalRecordType,
                                       String status, String reviewerId,
                                       LocalDateTime reviewerAssignedAt,
                                       LocalDateTime reviewerDueAt,
@@ -28,8 +30,10 @@ public class AssignmentCaseSnapshotView {
                                       LocalDateTime rereviewerDueAt) {
         this.caseId = caseId;
         this.projectId = projectId;
+        this.projectName = projectName;
         this.batchId = batchId;
         this.hospitalId = hospitalId;
+        this.sourceCaseKey = sourceCaseKey;
         this.medicalRecordType = medicalRecordType;
         this.status = status;
         this.reviewerId = reviewerId;
@@ -42,8 +46,10 @@ public class AssignmentCaseSnapshotView {
 
     public String getCaseId() { return caseId; }
     public String getProjectId() { return projectId; }
+    public String getProjectName() { return projectName; }
     public String getBatchId() { return batchId; }
     public String getHospitalId() { return hospitalId; }
+    public String getSourceCaseKey() { return sourceCaseKey; }
     public String getMedicalRecordType() { return medicalRecordType; }
     public String getStatus() { return status; }
     public String getReviewerId() { return reviewerId; }

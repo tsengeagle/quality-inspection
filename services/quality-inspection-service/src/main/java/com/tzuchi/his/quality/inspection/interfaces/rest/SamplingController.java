@@ -136,7 +136,13 @@ public class SamplingController {
                     view.getPostExecuteSummary().getTone(),
                     view.getPostExecuteSummary().getTitle(),
                     view.getPostExecuteSummary().getDescription(),
-                    view.getPostExecuteSummary().getBatchId()
+                view.getPostExecuteSummary().getBatchId(),
+                view.getPostExecuteSummary().getStartedAt() != null
+                    ? view.getPostExecuteSummary().getStartedAt().toString()
+                    : null,
+                view.getPostExecuteSummary().getFinishedAt() != null
+                    ? view.getPostExecuteSummary().getFinishedAt().toString()
+                    : null
             );
         }
 
@@ -144,6 +150,10 @@ public class SamplingController {
                 view.getProjectId(),
                 view.getProjectName(),
                 view.getHospitalId(),
+            view.getProjectStatus(),
+            view.getVersionNo(),
+            view.getScoreSheetId(),
+            view.getQualityThreshold(),
                 view.getRuleSummary(),
                 view.isPreviewReady(),
                 view.isExecuting(),

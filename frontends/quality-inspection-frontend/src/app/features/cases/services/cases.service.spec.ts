@@ -613,8 +613,10 @@ describe('CasesService', () => {
       data: {
         caseId: 'CASE-011',
         projectId: 'PROJECT-001',
+        projectName: '2026 年第二季品質審查',
         batchId: 'BATCH-001',
         hospitalId: 'H001',
+        sourceCaseKey: 'SRC-CASE-001',
         medicalRecordType: 'OUTPATIENT',
         status: 'PENDING_REREVIEW',
         pageMode: 'MIXED_ASSIGNMENT',
@@ -666,8 +668,10 @@ describe('CasesService', () => {
       {
         caseId: 'CASE-011',
         projectId: 'PROJECT-001',
+        projectName: '2026 年第二季品質審查',
         batchId: 'BATCH-001',
         hospitalId: 'H001',
+        sourceCaseKey: 'SRC-CASE-001',
         medicalRecordType: 'OUTPATIENT',
         status: 'PENDING_REREVIEW',
         pageMode: 'MIXED_ASSIGNMENT',

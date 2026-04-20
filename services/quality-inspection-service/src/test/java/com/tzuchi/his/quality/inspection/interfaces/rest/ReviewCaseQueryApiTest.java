@@ -71,6 +71,7 @@ class ReviewCaseQueryApiTest {
         seedCase("c2", CaseStatus.PENDING_INITIAL_REVIEW);
 
         mockMvc.perform(get("/review-cases")
+                .param("batchId", "b1")
                         .header("api-key", hmToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -203,6 +204,8 @@ class ReviewCaseQueryApiTest {
         mockMvc.perform(get("/review-cases/c-assign/assignment-context")
                         .header("api-key", hmToken))
                 .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.projectName").value("p1"))
+            .andExpect(jsonPath("$.data.sourceCaseKey").value("SK-001"))
                 .andExpect(jsonPath("$.data.pageMode").value("MIXED_ASSIGNMENT"))
                 .andExpect(jsonPath("$.data.allowedActions[0]").value("ASSIGN_REREVIEWER"))
                 .andExpect(jsonPath("$.data.currentReviewer.userId").value("reviewer-1"))

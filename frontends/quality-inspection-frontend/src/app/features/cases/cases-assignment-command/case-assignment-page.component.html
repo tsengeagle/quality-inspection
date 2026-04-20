@@ -37,6 +37,7 @@
 
 	<div class="assignment-current-summary">
 		<p class="assignment-current-owner">目前初審醫師：{{ context.reviewerName || '尚未指派' }}</p>
+		<p class="assignment-current-owner">初審指派時間：{{ context.reviewerAssignedAt || '尚未指派' }}</p>
 		<p class="assignment-current-owner">初審截止日：{{ context.reviewerDueAt || '尚未設定' }}</p>
 	</div>
 
@@ -96,6 +97,7 @@
 
 	<div class="assignment-current-summary">
 		<p class="assignment-current-owner">目前複審醫師：{{ context.rereviewerName || '尚未指派' }}</p>
+		<p class="assignment-current-owner">複審指派時間：{{ context.rereviewerAssignedAt || '尚未指派' }}</p>
 		<p class="assignment-current-owner">複審截止日：{{ context.rereviewerDueAt || '尚未設定' }}</p>
 	</div>
 
