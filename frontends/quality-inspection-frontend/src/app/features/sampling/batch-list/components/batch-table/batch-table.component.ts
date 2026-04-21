@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
+import { AccessControlService } from '@shared/access/access-control.service';
 
 /** SP-02 — BatchTable: 批次列表表格 */
 @Component({
@@ -61,7 +62,6 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
             <td>
               <app-batch-row-actions
                 [batch]="b"
-                [role]="role"
                 (viewCases)="viewCases.emit($event)"
                 (retryBatch)="retryBatch.emit($event)">
               </app-batch-row-actions>
@@ -142,8 +142,10 @@ export class BatchTableComponent {
   @Output() viewCases = new EventEmitter<string>();
   @Output() retryBatch = new EventEmitter<string>();
 
+  constructor(private readonly accessControlService: AccessControlService) {}
+
   get isMetadataOnly(): boolean {
-    return this.role === 'SYSTEM_ADMIN';
+    return !this.accessControlService.hasAnyPermission('VIEW_SAMPLING_BATCH_METRICS');
   }
 
   getStatusTone(status: string): string {

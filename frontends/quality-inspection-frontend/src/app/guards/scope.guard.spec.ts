@@ -3,6 +3,7 @@ import { ActivatedRouteSnapshot } from '@angular/router';
 
 import { ActorContext } from '@core/actor-context/actor-context.model';
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { AccessControlService } from '@shared/access/access-control.service';
 import { ScopeGuard } from './scope.guard';
 
 class ActorContextServiceStub {
@@ -27,6 +28,10 @@ class ActorContextServiceStub {
   hasHospitalScope(context: ActorContext): boolean {
     return context.hospitalId !== null;
   }
+
+  getSnapshot(): ActorContext {
+    return this.subject.getValue();
+  }
 }
 
 describe('ScopeGuard', () => {
@@ -39,7 +44,10 @@ describe('ScopeGuard', () => {
       currentRole: 'HOSPITAL_MANAGER',
       hospitalId: 'H-001'
     });
-    const guard = new ScopeGuard(actorContextService as unknown as ActorContextService);
+    const guard = new ScopeGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { requiresHospitalScope: true };
 
@@ -55,7 +63,22 @@ describe('ScopeGuard', () => {
       currentRole: 'HOSPITAL_MANAGER',
       hospitalId: null
     });
-    const guard = new ScopeGuard(actorContextService as unknown as ActorContextService);
+    const guard = new ScopeGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
+    const route = new ActivatedRouteSnapshot();
+    route.data = { requiresHospitalScope: true };
+
+    await expectAsync(firstValueFrom(guard.canActivate(route, {} as never))).toBeResolvedTo(false);
+  });
+
+  it('denies a protected route when actor context has not resolved yet', async () => {
+    const actorContextService = new ActorContextServiceStub();
+    const guard = new ScopeGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { requiresHospitalScope: true };
 

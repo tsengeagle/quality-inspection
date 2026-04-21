@@ -4,6 +4,7 @@ import { SamplingService, SamplingBatchSummaryItem } from '../services/sampling.
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
+import { AccessControlService } from '@shared/access/access-control.service';
 
 export type SamplingBatchListRole = CanonicalActorRole;
 
@@ -78,52 +79,49 @@ export class SamplingBatchListPageComponent implements OnInit {
   }
 
   get isMetadataOnly(): boolean {
-    return this.actorContextService.isMetadataOnlyRole(this.role);
+    return this.accessControlService.getProjectionType() === 'METADATA_ONLY';
   }
 
   get availableTabs(): Array<{ value: BatchListTab; label: string }> {
-    switch (this.role) {
-      case 'HOSPITAL_MANAGER':
-        return [
-          { value: 'ALL_BATCHES', label: '全部批次' },
-          { value: 'COMPLETED', label: '成功' },
-          { value: 'FAILED', label: '失敗' },
-          { value: 'RETRYABLE', label: '可重跑' }
-        ];
-      case 'AUDITOR':
-        return [
-          { value: 'ALL_BATCHES', label: '全部批次' },
-          { value: 'COMPLETED', label: '成功' },
-          { value: 'FAILED', label: '失敗' }
-        ];
-      case 'SYSTEM_ADMIN':
-        return [
-          { value: 'ALL_BATCHES', label: '全部批次' },
-          { value: 'FAILED', label: '失敗' }
-        ];
-      default:
-        return [];
+    const tabs: Array<{ value: BatchListTab; label: string }> = [
+      { value: 'ALL_BATCHES', label: '全部批次' }
+    ];
+
+    if (!this.isMetadataOnly) {
+      tabs.push({ value: 'COMPLETED', label: '成功' });
     }
+
+    tabs.push({ value: 'FAILED', label: '失敗' });
+
+    if (this.accessControlService.hasAnyPermission('RETRY_SAMPLING_BATCH')) {
+      tabs.push({ value: 'RETRYABLE', label: '可重跑' });
+    }
+
+    return tabs;
   }
 
   get pageSummary(): string {
-    switch (this.role) {
-      case 'HOSPITAL_MANAGER':
-        return '本院抽選批次追蹤';
-      case 'AUDITOR':
-        return '授權範圍批次查詢';
-      case 'SYSTEM_ADMIN':
-        return '抽選批次 metadata 監控';
-      default:
-        return '抽選批次列表';
+    if (this.accessControlService.hasAnyPermission('RETRY_SAMPLING_BATCH')) {
+      return '本院抽選批次追蹤';
     }
+
+    if (this.isMetadataOnly) {
+      return '抽選批次 metadata 監控';
+    }
+
+    if (this.accessControlService.hasAnyPermission('VIEW_SAMPLING_BATCH_CASES')) {
+      return '授權範圍批次查詢';
+    }
+
+    return '抽選批次列表';
   }
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private samplingService: SamplingService,
-    private actorContextService: ActorContextService
+    private actorContextService: ActorContextService,
+    private accessControlService: AccessControlService
   ) {}
 
   ngOnInit(): void {

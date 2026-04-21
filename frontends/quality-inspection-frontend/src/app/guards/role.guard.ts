@@ -5,10 +5,15 @@ import { map, take } from 'rxjs/operators';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
+import { AccessControlService } from '@shared/access/access-control.service';
+import { AccessPage } from '@shared/access/access-control.model';
 
 @Injectable({ providedIn: 'root' })
 export class RoleGuard implements CanActivate, CanActivateChild {
-  constructor(private readonly actorContextService: ActorContextService) {}
+  constructor(
+    private readonly actorContextService: ActorContextService,
+    private readonly accessControlService: AccessControlService
+  ) {}
 
   canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<boolean> {
     return this.evaluateRoute(route);
@@ -22,17 +27,22 @@ export class RoleGuard implements CanActivate, CanActivateChild {
     return this.actorContextService.context$.pipe(
       take(1),
       map(context => {
+        const accessPage = route.data['accessPage'] as AccessPage | undefined;
         const requiredRoles = route.data['roles'] as CanonicalActorRole[] | undefined;
 
-        if (!requiredRoles?.length) {
+        if (!accessPage && !requiredRoles?.length) {
           return true;
         }
 
-        if (!this.actorContextService.hasRoleContext(context)) {
-          return true; // Foundation slice: route-level policy is deferred until shell context is available.
+        if (!this.accessControlService.isResolvedContext(context)) {
+          return false;
         }
 
-        return requiredRoles.some(role => context.currentRole === role || context.roles.includes(role));
+        if (accessPage) {
+          return this.accessControlService.canAccessPage(accessPage, context);
+        }
+
+        return this.accessControlService.hasAnyRole(requiredRoles ?? [], context);
       })
     );
   }

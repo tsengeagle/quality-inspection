@@ -4,10 +4,15 @@ import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { AccessControlService } from '@shared/access/access-control.service';
+import { AccessPage } from '@shared/access/access-control.model';
 
 @Injectable({ providedIn: 'root' })
 export class ScopeGuard implements CanActivate, CanActivateChild {
-  constructor(private readonly actorContextService: ActorContextService) {}
+  constructor(
+    private readonly actorContextService: ActorContextService,
+    private readonly accessControlService: AccessControlService
+  ) {}
 
   canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<boolean> {
     return this.evaluateRoute(route);
@@ -21,19 +26,19 @@ export class ScopeGuard implements CanActivate, CanActivateChild {
     return this.actorContextService.context$.pipe(
       take(1),
       map(context => {
+        const accessPage = route.data['accessPage'] as AccessPage | undefined;
         const requiresHospitalScope = route.data['requiresHospitalScope'] === true;
 
-        if (!requiresHospitalScope) {
+        if (!requiresHospitalScope && !accessPage) {
           return true;
         }
 
-        const hasResolvedActorSnapshot = this.actorContextService.hasRoleContext(context)
-          || context.userId !== null
-          || context.userName !== null
-          || context.hospitalId !== null;
+        if (!this.accessControlService.isResolvedContext(context)) {
+          return false;
+        }
 
-        if (!hasResolvedActorSnapshot) {
-          return true; // Foundation slice: scope policy wiring exists, concrete enforcement is deferred.
+        if (accessPage) {
+          return this.accessControlService.canAccess({ page: accessPage }, context);
         }
 
         return this.actorContextService.hasHospitalScope(context);

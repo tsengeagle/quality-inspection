@@ -3,6 +3,7 @@ import { ActivatedRouteSnapshot } from '@angular/router';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { ActorContext } from '@core/actor-context/actor-context.model';
+import { AccessControlService } from '@shared/access/access-control.service';
 import { RoleGuard } from './role.guard';
 
 class ActorContextServiceStub {
@@ -23,6 +24,10 @@ class ActorContextServiceStub {
   hasRoleContext(context: ActorContext): boolean {
     return context.currentRole !== null || context.roles.length > 0;
   }
+
+  getSnapshot(): ActorContext {
+    return this.subject.getValue();
+  }
 }
 
 describe('RoleGuard', () => {
@@ -35,7 +40,10 @@ describe('RoleGuard', () => {
       currentRole: 'HOSPITAL_MANAGER',
       hospitalId: 'H-001'
     });
-    const guard = new RoleGuard(actorContextService as unknown as ActorContextService);
+    const guard = new RoleGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { roles: ['HOSPITAL_MANAGER'] };
 
@@ -51,20 +59,26 @@ describe('RoleGuard', () => {
       currentRole: 'REVIEWER',
       hospitalId: 'H-001'
     });
-    const guard = new RoleGuard(actorContextService as unknown as ActorContextService);
+    const guard = new RoleGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { roles: ['HOSPITAL_MANAGER'] };
 
     await expectAsync(firstValueFrom(guard.canActivate(route, {} as never))).toBeResolvedTo(false);
   });
 
-  it('keeps the foundation fallback open when role context is not available yet', async () => {
+  it('denies guarded routes when role context is not available yet', async () => {
     const actorContextService = new ActorContextServiceStub();
-    const guard = new RoleGuard(actorContextService as unknown as ActorContextService);
+    const guard = new RoleGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { roles: ['SYSTEM_ADMIN'] };
 
-    await expectAsync(firstValueFrom(guard.canActivate(route, {} as never))).toBeResolvedTo(true);
+    await expectAsync(firstValueFrom(guard.canActivate(route, {} as never))).toBeResolvedTo(false);
   });
 
   it('applies the same policy to child routes', async () => {
@@ -76,7 +90,10 @@ describe('RoleGuard', () => {
       currentRole: 'HOSPITAL_MANAGER',
       hospitalId: 'H-001'
     });
-    const guard = new RoleGuard(actorContextService as unknown as ActorContextService);
+    const guard = new RoleGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { roles: ['HOSPITAL_MANAGER'] };
 

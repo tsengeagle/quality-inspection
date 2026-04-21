@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
+import { AccessCheck } from '@shared/access/access-control.model';
 
 /** SP-02 — BatchRowActions: 批次列表每列操作 */
 @Component({
@@ -15,20 +16,22 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
       </button>
 
       <button
-        *ngIf="showViewCases"
+        *appHasPermission="'VIEW_SAMPLING_BATCH_CASES'"
         type="button"
         class="action-btn"
         (click)="viewCases.emit(batch.batchId)">
         查看案件
       </button>
 
-      <button
-        *ngIf="showRetry"
-        type="button"
-        class="action-btn retry"
-        (click)="retryBatch.emit(batch.batchId)">
-        重跑
-      </button>
+      <ng-container *appCanAccess="retryAccessCheck">
+        <button
+          *ngIf="canRetryBatch"
+          type="button"
+          class="action-btn retry"
+          (click)="retryBatch.emit(batch.batchId)">
+          重跑
+        </button>
+      </ng-container>
     </div>
   `,
   styles: [`
@@ -50,15 +53,16 @@ import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
 })
 export class BatchRowActionsComponent {
   @Input() batch!: SamplingBatchSummaryItem;
-  @Input() role = 'HOSPITAL_MANAGER';
   @Output() viewCases = new EventEmitter<string>();
   @Output() retryBatch = new EventEmitter<string>();
 
-  get showRetry(): boolean {
-    return this.role === 'HOSPITAL_MANAGER' && this.batch.status === 'FAILED' && this.batch.canRetry;
+  get canRetryBatch(): boolean {
+    return this.batch.status === 'FAILED' && this.batch.canRetry;
   }
 
-  get showViewCases(): boolean {
-    return this.role === 'HOSPITAL_MANAGER' || this.role === 'AUDITOR';
+  get retryAccessCheck(): AccessCheck {
+    return {
+      anyPermissions: ['RETRY_SAMPLING_BATCH']
+    };
   }
 }

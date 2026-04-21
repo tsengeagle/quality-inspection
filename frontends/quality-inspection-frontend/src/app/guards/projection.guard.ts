@@ -4,10 +4,14 @@ import { Observable } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { AccessControlService } from '@shared/access/access-control.service';
 
 @Injectable({ providedIn: 'root' })
 export class ProjectionGuard implements CanActivate, CanActivateChild {
-  constructor(private readonly actorContextService: ActorContextService) {}
+  constructor(
+    private readonly actorContextService: ActorContextService,
+    private readonly accessControlService: AccessControlService
+  ) {}
 
   canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): Observable<boolean> {
     return this.evaluateRoute(route);
@@ -27,11 +31,11 @@ export class ProjectionGuard implements CanActivate, CanActivateChild {
           return true;
         }
 
-        if (!this.actorContextService.hasRoleContext(context)) {
-          return true; // Foundation slice: projection truth still comes from page APIs, not actor context.
+        if (!this.accessControlService.isResolvedContext(context)) {
+          return false;
         }
 
-        return context.currentRole === 'SYSTEM_ADMIN' || context.roles.includes('SYSTEM_ADMIN');
+        return this.accessControlService.canAccess({ projectionType: 'METADATA_ONLY' }, context);
       })
     );
   }

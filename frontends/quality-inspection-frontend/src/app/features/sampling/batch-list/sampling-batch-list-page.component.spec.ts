@@ -4,6 +4,7 @@ import { ActivatedRoute, Params, Router } from '@angular/router';
 import { BehaviorSubject, of } from 'rxjs';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { SharedModule } from '@shared/shared.module';
 import { SamplingService } from '../services/sampling.service';
 import { SamplingBatchListPageComponent } from './sampling-batch-list-page.component';
 
@@ -45,6 +46,10 @@ class ActorContextServiceStub {
   isMetadataOnlyRole(role: string | null | undefined): boolean {
     return role === 'SYSTEM_ADMIN';
   }
+
+  getSnapshot() {
+    return this.subject.getValue();
+  }
 }
 
 describe('SamplingBatchListPageComponent', () => {
@@ -70,6 +75,7 @@ describe('SamplingBatchListPageComponent', () => {
 
     await TestBed.configureTestingModule({
       declarations: [SamplingBatchListPageComponent],
+      imports: [SharedModule],
       providers: [
         { provide: ActivatedRoute, useValue: activatedRoute },
         { provide: Router, useValue: router },
@@ -118,6 +124,21 @@ describe('SamplingBatchListPageComponent', () => {
       page: 0,
       size: 20
     });
+  });
+
+  it('shows retryable metrics only when retry permission exists', () => {
+    actorContextService.setRole('AUDITOR');
+    activatedRoute.setQueryParams({});
+
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).not.toContain('可重跑批次');
+
+    actorContextService.setRole('HOSPITAL_MANAGER');
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent ?? '').toContain('可重跑批次');
   });
 
   it('uses the cross-cluster route contract for 查看案件', () => {

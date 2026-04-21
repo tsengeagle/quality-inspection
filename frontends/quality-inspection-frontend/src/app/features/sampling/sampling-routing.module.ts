@@ -11,6 +11,7 @@ export const samplingRoutes: Routes = [
     path: 'batches',
     component: SamplingBatchListPageComponent,
     data: {
+      accessPage: 'UI_007_BATCH_LIST',
       roles: ['HOSPITAL_MANAGER', 'AUDITOR', 'SYSTEM_ADMIN']
     }
   },  // UI-007
@@ -18,6 +19,7 @@ export const samplingRoutes: Routes = [
     path: ':projectId',
     component: SamplingExecutePageComponent,
     data: {
+      accessPage: 'UI_006_SAMPLING_EXECUTE',
       roles: ['HOSPITAL_MANAGER'],
       requiresHospitalScope: true
     }

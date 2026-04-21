@@ -1,7 +1,7 @@
 # Frontend-Backend Alignment Baseline
 
 > **文件定位**：本文件是 UI-006 ~ UI-014 的前後端對齊基線。  
-> **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事校正為 limited-scope implemented、deferred、pending 與最小 source replacement。  
+> **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事校正為 limited-scope implemented、deferred、accepted 與最小 source replacement；另補記 Frontend Access Formalization Wave 的最小 RBAC foundation 落地。  
 > **Evidence 範圍**：僅採 source code、existing tests、現有 route/e2e mock；不把尚未落地的 shell integration 或外部系統契約包裝成已實作。
 
 ---
@@ -24,7 +24,7 @@
 |---|---|---|
 | B-001 | 採方案 A：新增 `GET /review-projects/{projectId}/sampling/execute-context` | **limited-scope implemented**。API 與 bootstrap 接線已存在，但尚未宣稱為唯一 truth source |
 | F-002 | 採方案 C：暫不做 batch detail | **deferred**。UI-007 detail action 改為明確 disabled + deferred 訊息 |
-| I-001 | Route Guard 正式化：guard + directive 雙層策略 | **accepted**（D-029）— guard 待 actor context 注入後正式化；PASSTHROUGH 暫維持 |
+| I-001 | Route Guard 正式化：guard + directive 雙層策略 | **accepted**（D-029）— 本輪已在最小 page policy 範圍內完成 formalization |
 | I-002 | hardcoded role 移除：RBAC 為正式來源 | **accepted**（D-030）— legacy grandfathering；新碼禁止 hardcoded role |
 | I-003 | assignment candidate source replacement slice | **limited-scope implemented** |
 
@@ -38,9 +38,9 @@
 |---|---|---|
 | `SamplingService` | `frontends/quality-inspection-frontend/src/app/features/sampling/services/sampling.service.ts` | ✅ REAL — `getBatches()`、`previewSampling()`、`executeSampling()`、`retrySamplingBatch()`、`getExecuteContext()` 均為真實 HTTP |
 | `CasesService` | `frontends/quality-inspection-frontend/src/app/features/cases/services/cases.service.ts` | ✅ REAL |
-| `RoleGuard` | `frontends/quality-inspection-frontend/src/app/guards/role.guard.ts` | ⚠️ PASSTHROUGH |
-| `ScopeGuard` | `frontends/quality-inspection-frontend/src/app/guards/scope.guard.ts` | ⚠️ PASSTHROUGH |
-| `ProjectionGuard` | `frontends/quality-inspection-frontend/src/app/guards/projection.guard.ts` | ⚠️ PASSTHROUGH |
+| `RoleGuard` | `frontends/quality-inspection-frontend/src/app/guards/role.guard.ts` | ✅ REAL — page policy 存在時依 RBAC + actor context 執行 deny |
+| `ScopeGuard` | `frontends/quality-inspection-frontend/src/app/guards/scope.guard.ts` | ✅ REAL — page policy / hospital scope 不再以未注入 context 放行 |
+| `ProjectionGuard` | `frontends/quality-inspection-frontend/src/app/guards/projection.guard.ts` | ✅ REAL — metadata-only gate 改走 shared access model |
 
 ### 3.2 Backend Controllers / Sources
 
@@ -106,7 +106,7 @@
 
 | 頁面 | 現況 | 備註 |
 |---|---|---|
-| UI-007 抽選批次列表頁 | ✅ REAL（列表 / retry） | 仍有 I-002：batch-list role hardcoded |
+| UI-007 抽選批次列表頁 | ✅ REAL（列表 / retry） | Frontend Access Formalization Wave pilot：page-level guard 正式化、directive skeleton 已落地；其餘 legacy hardcoded role 仍 grandfathered |
 | UI-009 案件列表頁 | ✅ REAL（含 `projectionType`） | 仍有 I-002：worklist role hardcoded |
 | UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供 |
 | UI-011 案件分派頁 | ✅ REAL（limited source replacement） | 命令與 query contract 維持不變；candidate lookup 已改走 persisted staff directory source |
@@ -143,8 +143,8 @@
 
 | ID | 範圍 | 狀態 | 決策 |
 |---|---|---|---|
-| I-001 | Route Guard 正式化 | ✅ ACCEPTED | D-029：guard（page-level）+ directive（component-level）；guard 待 actor context 注入後正式化 |
-| I-002 | hardcoded role 移除 | ✅ ACCEPTED | D-030：RBAC 為正式來源；legacy grandfathering；新碼禁止 hardcoded role |
+| I-001 | Route Guard 正式化 | ✅ LIMITED-SCOPE IMPLEMENTED | D-029：guard（page-level）+ directive（component-level）；UI-006/UI-007/UI-011 已改走 shared access model |
+| I-002 | hardcoded role 移除 | ✅ LIMITED-SCOPE IMPLEMENTED | D-030：RBAC 為正式來源；UI-007 pilot 已改接 shared access policy，其餘 legacy 仍 grandfathered |
 | I-003 | Assignment candidate source replacement slice | ✅ LIMITED-SCOPE IMPLEMENTED | 來源改為 persisted staff directory；application layer eligibility 不變 |
 
 ---
@@ -183,7 +183,7 @@
 - **page-level gate**：Route guard（`RoleGuard` / `ScopeGuard` / `ProjectionGuard`）在 Angular route resolution 階段執行
 - **component-level gate**：Directive 控制頁面內 UI 元素可見性
 - 兩者共用同一 actor context 來源（shell 注入或 actor context store）
-- Guard 目前仍為 PASSTHROUGH，待 actor context provider 完成注入後補正式化
+- Guard 已在 actor context provider 存在的前提下完成最小正式化；目前只套用到已標註 page policy 的頁面
 
 #### 實作前提（尚待完成）
 
@@ -219,7 +219,7 @@
 
 - RBAC（actor context `roles`）為正式 access policy 來源
 - 新碼不得新增 hardcoded role 字串比對
-- Legacy（`case-list-page`、`batch-list-page`）grandfathered，被修改時須同步改接 RBAC-backed 機制
+- Legacy（`case-list-page`、`batch-list-page`）grandfathered；本輪 `batch-list-page` 已完成 pilot 遷移，其餘 touched 前仍須同步改接 RBAC-backed 機制
 - `MANAGER` / `ADMIN` legacy alias 在下次碰到該 component 時應清除
 
 #### 建議 primary-role 規則（供 RBAC resolver 實作參考）

@@ -18,7 +18,7 @@
         <span class="batch-metric-card__label">失敗批次</span>
         <strong class="batch-metric-card__value">{{ failedCount }}</strong>
       </article>
-      <article class="batch-metric-card" *ngIf="role === 'HOSPITAL_MANAGER'">
+      <article class="batch-metric-card" *appHasPermission="'RETRY_SAMPLING_BATCH'">
         <span class="batch-metric-card__label">可重跑批次</span>
         <strong class="batch-metric-card__value">{{ retryableCount }}</strong>
       </article>

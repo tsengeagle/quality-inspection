@@ -3,6 +3,7 @@ import { ActivatedRouteSnapshot } from '@angular/router';
 
 import { ActorContext } from '@core/actor-context/actor-context.model';
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { AccessControlService } from '@shared/access/access-control.service';
 import { ProjectionGuard } from './projection.guard';
 
 class ActorContextServiceStub {
@@ -23,6 +24,10 @@ class ActorContextServiceStub {
   hasRoleContext(context: ActorContext): boolean {
     return context.currentRole !== null || context.roles.length > 0;
   }
+
+  getSnapshot(): ActorContext {
+    return this.subject.getValue();
+  }
 }
 
 describe('ProjectionGuard', () => {
@@ -35,7 +40,10 @@ describe('ProjectionGuard', () => {
       currentRole: 'SYSTEM_ADMIN',
       hospitalId: null
     });
-    const guard = new ProjectionGuard(actorContextService as unknown as ActorContextService);
+    const guard = new ProjectionGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { metadataOnlyRoleRequired: true };
 
@@ -51,7 +59,22 @@ describe('ProjectionGuard', () => {
       currentRole: 'HOSPITAL_MANAGER',
       hospitalId: 'H-001'
     });
-    const guard = new ProjectionGuard(actorContextService as unknown as ActorContextService);
+    const guard = new ProjectionGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
+    const route = new ActivatedRouteSnapshot();
+    route.data = { metadataOnlyRoleRequired: true };
+
+    await expectAsync(firstValueFrom(guard.canActivate(route, {} as never))).toBeResolvedTo(false);
+  });
+
+  it('denies metadata-only protected routes when actor context has not resolved yet', async () => {
+    const actorContextService = new ActorContextServiceStub();
+    const guard = new ProjectionGuard(
+      actorContextService as unknown as ActorContextService,
+      new AccessControlService(actorContextService as unknown as ActorContextService)
+    );
     const route = new ActivatedRouteSnapshot();
     route.data = { metadataOnlyRoleRequired: true };
 

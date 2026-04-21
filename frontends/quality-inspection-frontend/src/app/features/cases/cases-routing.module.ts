@@ -15,6 +15,7 @@ export const casesRoutes: Routes = [
     path: ':caseId/assign',
     component: CaseAssignmentPageComponent,
     data: {
+      accessPage: 'UI_011_CASE_ASSIGNMENT',
       roles: ['HOSPITAL_MANAGER'],
       requiresHospitalScope: true
     }
