@@ -353,3 +353,27 @@ medium_examples:
 
 EX-041～EX-052 分別一對一映射 TS-DA-001～TS-DA-012。Domain 層驗固定／revision／結案資格與加權不變性；Application 層驗原提交者與 scope、協調一致性；API／Frontend／Acceptance 驗永久盲審及反推防護、提交與結案分離；Persistence／event integration 驗有效版本與成功事實一致。
 既有 EX-004／006／027 等 revision 成功 fixture 必須為對應結果未固定；涉及複審時初審必已固定。所有共用 full detail fixture 對複審醫師仍須套 D-033。新操作技術入口 unknown，不以測試骨架發明 method／endpoint。
+
+## DD-03 Gate 1 驗證映射
+
+| Example | Scenario | 後續驗證重點 |
+|---|---|---|
+| EX-053 | TS-DD03-001 | Domain / application actor、scope、有效提交及不可變 guard；API 拒絕回應 |
+| EX-054 | TS-DD03-002 | Application / persistence 競爭、有效版本及流向一致性；API conflict 契約 |
+| EX-055 | TS-DD03-003 | Persistence / application 追溯及 rollback；API response 保護；重試策略 UNKNOWN |
+| EX-056 | TS-DD03-004 | Domain / application / API 提交、複審、結案的成功及拒絕回歸 |
+
+沿用 EX-041～043 / TS-DA-001～003 的固定前後、複審與 manager 結案 guard。技術 binding UNKNOWN，不捏造測試 method／endpoint；本次只更新設計，未執行測試。
+
+
+## D-034 Close Command 驗證映射
+
+| Example | Scenario | 驗證層級 | 主規則 |
+|---|---|---|---|
+| EX-057 | TS-DC-001 | Domain / Application / API / Persistence | 過期或非法複審 submission 不得結案 |
+| EX-058 | TS-DC-002 | Domain / Application / API / Persistence | terminal 不得產生新的結案轉移 |
+| EX-059 | TS-DC-003 | Application / Persistence integration / API | Close Command 與複審 revision 競爭 |
+| EX-060 | TS-DC-004 | Application / Persistence / Event integration | 複審結案失敗不得部分成功 |
+| EX-061 | TS-DC-005 | Application / API / Frontend / Acceptance | 複審 Close Command 不解除永久盲審 |
+
+沿用 EX-043 / TS-DA-003（無需複審 manager 結案）、EX-044～047 / TS-DA-004～007（提交分離、未提交拒絕、有效結果提交者另行 Close Command、結案前 revision）、EX-056 / TS-DD03-004（兩條路徑回歸）。不得用 in-memory unit test 宣稱交易競爭／rollback 保證；API binding、schema、error code、鎖定／交易與事件技術 UNKNOWN。本次只補設計映射，未新增或執行程式測試。

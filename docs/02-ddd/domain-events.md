@@ -495,7 +495,7 @@
 ### 發布條件
 
 * 無需複審時，初審已固定，由院方管理者正式結案；或
-* 複審合法提交且無既有阻擋條件，由原複審提交者另行正式結案，同時固定尚未固定的複審結果（D-032）
+* 複審合法提交且無既有阻擋條件，由目前有效合法複審結果的提交醫師另行執行 Close Command，同時固定尚未固定的複審結果（D-032／034）
 * `completeRereview(...)` 本身不再觸發結案事件
 * 狀態轉為 `CLOSED`
 
@@ -807,3 +807,12 @@ ReviewSubmissionSubmitted
 初審提交、初審固定、複審提交、正式結案為不同業務事實。固定需可追溯，但本輪不新增事件名稱／payload；固定事實的事件技術表示為 unknown。
 ReviewCaseClosed 僅在成功轉 CLOSED 且複審路徑已同時固定結果後成立；任何非法提交、固定後 revision、未具資格或 actor 不符的結案均不得產生成功事件。CLOSED 之後不得出現合法 ReviewSubmissionRevised。
 事件使用 domain 正確分數，不改 D-012／020；事件衍生的使用者可見 audit／projection 仍須依 D-033 防止洩漏初審與可反推分數。固定與結案的交易、事件發布技術及相容性細節 unknown，不在本輪設計。
+
+### DD-03 固定追溯
+
+固定必須可追溯操作者、時間及當時有效 submission；事件技術名稱／payload／發布機制仍為 UNKNOWN。不得將固定追溯要求誤寫為已存在的新事件。拒絕及 rollback 不產生成功固定或後續流向的成功事件；可見 projection 仍遵守 D-033。
+
+
+## D-034 複審獨立 Close Command 對齊
+
+複審提交只形成提交／完成的業務事實，不發布 ReviewCaseClosed；由有效結果合法提交醫師的獨立 Close Command 成功後才形成結案事實。未提交、過期目標、非法 actor／scope、terminal、競爭落敗或 rollback 均不得留下新的成功結案／固定事件。技術事件名稱／payload 擴充、交易發布機制及重試去重方式 UNKNOWN；不新增已定案技術事件。audit／歷程出口仍須套用 D-033。

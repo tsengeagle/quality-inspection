@@ -1860,10 +1860,10 @@ Domain / application specification；涉及資料出口者另含 API integration
 嘗試自動進複審、manager 手工派複審及開始複審。
 
 ### Expected
-均拒絕／不推進，不發布升級或開始事件；確認固定事實後自動依 > 分支進 PENDING_REREVIEW。固定授權角色不在本例假定。
+均拒絕／不推進，不發布升級或開始事件；確認固定事實後自動依 > 分支進 PENDING_REREVIEW。固定由目前有效初審結果的合法提交醫師執行（DD-03）。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-002 初審固定前後 revision 邊界
 
@@ -1886,7 +1886,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 固定前建立新版本、舊版 SUPERSEDED、Case 主狀態不變；固定後拒絕且無新版本／成功事件。非原提交者固定前亦拒絕。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-003 無需複審案件的固定及結案 guard
 
@@ -1909,7 +1909,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 未固定拒絕；固定不自動結案；manager 正式結案才 CLOSED。非 manager 不可代替；固定後可保留既有 manager 手工派複審選項。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-004 複審提交不自動結案
 
@@ -1917,7 +1917,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 驗證 複審提交不自動結案。
 
 ### Authority
-D-032；specification-by-example.md EX-044。
+D-032／034；specification-by-example.md EX-044。
 
 ### Level
 Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
@@ -1932,7 +1932,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 SUBMITTED，未固定、未 CLOSED；具資格但未結案；只有提交／完成事實，無 ReviewCaseClosed。提交後狀態技術表示 unknown。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-005 不具結案資格不得正式結案
 
@@ -1940,7 +1940,7 @@ SUBMITTED，未固定、未 CLOSED；具資格但未結案；只有提交／完�
 驗證 不具結案資格不得正式結案。
 
 ### Authority
-D-032；specification-by-example.md EX-045。
+D-032／034；specification-by-example.md EX-045。
 
 ### Level
 Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
@@ -1955,7 +1955,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 拒絕，案件及固定事實不被改為成功結案，無 ReviewCaseClosed。不新增分數門檻或額外審批。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-006 僅原複審提交者可正式結案
 
@@ -1963,7 +1963,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 驗證 僅原複審提交者可正式結案。
 
 ### Authority
-D-032、D-023、D-024；specification-by-example.md EX-046。
+D-032／034、D-023、D-024；specification-by-example.md EX-046。
 
 ### Level
 Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
@@ -1972,13 +1972,13 @@ Domain / application specification；涉及資料出口者另含 API integration
 合法有效複審提交且無其他既有阻擋條件。
 
 ### Steps
-非原提交者、manager、其他 rereviewer、跨院 actor 嘗試正式結案；再由合法原提交者操作。
+以獨立 fixture 讓非有效結果提交者、僅 manager、僅 assigned rereviewer、其他 rereviewer、僅歷史版本提交者及跨院 actor 嘗試 Close Command；再由目前有效結果的合法原提交者另行操作（D-034）。
 
 ### Expected
-不合法 actor／scope 均拒絕；合法原提交者可自行決定時間，正式結案轉 CLOSED 且同時固定複審結果。
+不合法 actor／scope 均拒絕且無固定／結案寫入或成功事件；合法原提交者可自行決定時間，另行 Close Command 才轉 CLOSED 且同時固定複審結果。manager 不作複審簽核；submit 本身不結案（D-034）。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-007 複審提交後結案前可修訂
 
@@ -2001,7 +2001,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 合法 revision append-only、更新有效版本及加權分數，Case 主狀態不變；非原提交者拒絕。結案使用目前有效結果且同時固定。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-008 CLOSED 禁止所有 revision 與 reopen
 
@@ -2024,7 +2024,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 全部拒絕；狀態及歷史不變，無 ReviewSubmissionRevised 或其他成功事件；UI 無例外修正入口。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-009 全生命週期永久盲審與反推防護
 
@@ -2047,7 +2047,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 任何出口均不可取得初審答案／分數／評語，亦無 finalScore／preview／diff 等可反推值；應用層 response 遮罩，非僅 DOM 隱藏。已知複審分數與權重仍不能解出初審分數。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-010 加權公式與版本不變性
 
@@ -2070,7 +2070,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 系統內分數依序86、85；0.4／0.6初次87.2；結案不改公式或初審結果。非法權重和／非正權重拒絕，發布後不可改；複審醫師不可讀加權值，manager 本院依原政策可讀。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-011 事件、固定與狀態一致性
 
@@ -2093,7 +2093,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 提交初審不發升級／結案事件；固定後需複審才依規則升級。複審提交不發結案事件；revision 新舊版本一致；結案時已 CLOSED 且結果固定才 ReviewCaseClosed。拒絕／rollback 不留下成功事實或成功事件；固定事件技術名稱 unknown。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
 
 ## TS-DA-012 其他角色資料政策不變
 
@@ -2116,4 +2116,252 @@ Domain / application specification；涉及資料出口者另含 API integration
 其他角色依既有政策：manager 本院完整、reviewer 合法範圍、auditor 授權院區、sysadmin metadata-only；非法 scope 拒絕。同案 rereviewer 所有階段仍遮罩。
 
 ### Non-goals
-不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
+
+## TS-DD03-001 固定成功與有效提交者授權
+
+### Authority
+DD-03 決策 1、2、5；D-031。 specification-by-example.md EX-053。
+
+### Level
+Domain guard / application integration / API contract / persistence consistency；文件情境，未執行實作測試。
+
+### Preconditions
+同院 REVIEWER A 合法提交有效初審 S2，S1 已 SUPERSEDED；案件未固定、未結案、未取消。
+
+### Steps
+A 固定 S2；各自使用獨立 fixture，讓僅有 manager 身份的 M、僅被指派但未提交的 B、僅有歷史提交責任的 C、跨院 actor 嘗試固定；另對無提交、DRAFT、SUPERSEDED 結果嘗試固定。
+
+### Expected
+A 成功固定 S2，保存 A、固定時間及 S2 關聯，答案／分數／評語不變。其餘請求拒絕，不改有效結果、不留下成功固定／流向／事件。固定後 A 直接改結果或 revision 亦拒絕。若合法資料不允許不同版本有不同提交者，不製造成功 revision 繞過 guard；以授權驗證 fixture 驗證歷史身份不足。
+
+### Pending
+固定 binding、schema、精確錯誤 mapping 與交易／併發技術 UNKNOWN；重試結果待決策，不以測試自行定案。
+
+
+## TS-DD03-002 固定與 revision／流向的併發
+
+### Authority
+DD-03 決策 2、3、5；D-004／005／031。 specification-by-example.md EX-054。
+
+### Level
+Domain guard / application integration / API contract / persistence consistency；文件情境，未執行實作測試。
+
+### Preconditions
+A 為有效 S1 合法提交醫師；未固定、未結案、未取消。分別準備 > threshold 與 ≤ threshold／null 案件。
+
+### Steps
+交錯執行固定 S1 與合法 revision；分別控制 revision 先完成、固定先完成；並交錯進複審／manager 結案請求。
+
+### Expected
+revision 先完成時 S2 有效、S1 SUPERSEDED，舊版固定不可成功；後續必須重新驗證有效結果及 actor 才可固定 S2。固定先完成則 revision 拒絕且無新版本。固定前進複審／結案拒絕；固定後 > 分支按既有規則進複審；≤／null 不自動結案，manager 符合不需複審條件才可結案。不可固定舊版卻使用新版分數，不可同一結果固定與 revision 同時成功。
+
+### Pending
+固定 binding、schema、精確錯誤 mapping 與交易／併發技術 UNKNOWN；重試結果待決策，不以測試自行定案。
+
+
+## TS-DD03-003 固定追溯、失敗與重試邊界
+
+### Authority
+DD-03 決策 5；D-031／033。 specification-by-example.md EX-055。
+
+### Level
+Domain guard / application integration / API contract / persistence consistency；文件情境，未執行實作測試。
+
+### Preconditions
+A 對合法有效 S2 固定；可於後續保存或流向處理注入失敗。
+
+### Steps
+分別驗證成功、保存追溯／流向失敗回復、成功後重新查詢，以及回應遺失後重試。
+
+### Expected
+成功後可還原固定時的 A、時間、S2 與 case，歷史不可被之後 assignment 或 latest 指標替代；失敗不留下部分成功固定／流向／成功事件。重試不得改寫固定內容或重複推進流向；精確重試回應及冪等策略 UNKNOWN，相關斷言待定案，不宣稱此情境可完整自動執行。查詢及 ack 遵守 D-033。
+
+### Pending
+固定 binding、schema、精確錯誤 mapping 與交易／併發技術 UNKNOWN；重試結果待決策，不以測試自行定案。
+
+
+## TS-DD03-004 提交、複審與結案正反向回歸
+
+### Authority
+D-031／032／033；DD-03 決策 2～4。 specification-by-example.md EX-056。
+
+### Level
+Domain guard / application integration / API contract / persistence consistency；文件情境，未執行實作測試。
+
+### Preconditions
+各自獨立的合法 INITIAL／REREVIEW draft；正確 actor／院所／scope，複審 fixture 的初審已固定。
+
+### Steps
+合法醫師提交；非所屬提交者、跨院、非法狀態、CLOSED／CANCELLED 各嘗試提交。再驗證無需複審的 manager 結案及複審原提交者結案；以未固定初審、無合法複審提交、錯誤 actor 與 terminal case 各嘗試對應操作。
+
+### Expected
+合法初審提交成為有效 SUBMITTED，不固定／不進複審／不結案；合法複審提交不固定／不結案。非法提交拒絕且無新有效結果／成功事件。無需複審時僅 manager 可於初審固定後結案；有複審時僅合法有效複審結果原提交者具資格才可正式結案並同時固定。其餘對應結案請求拒絕，不 CLOSED。複審固定前合法 revision 成功、固定或 CLOSED 後拒絕，沿用 EX-045～047，不改計分與盲審。
+
+### Pending
+固定 binding、schema、精確錯誤 mapping 與交易／併發技術 UNKNOWN；重試結果待決策，不以測試自行定案。
+
+
+## TS-DC-001 過期或非法複審 submission 不得結案
+
+### Objective
+驗證過期或非法複審 submission 不得結案。
+
+### Authority
+D-034；specification-by-example.md EX-057；保留 D-031／032／033 與 DD-03。
+
+### Level
+Domain / Application / API / Persistence；本次僅設計，未執行程式測試。
+
+### Preconditions
+初審已固定；合法複審醫師 A 原提交 S1，合法 revision 後 S1 為 SUPERSEDED、S2 為目前有效 SUBMITTED。另準備不存在、DRAFT、跨案及 INITIAL stage 目標。
+
+### Steps
+A 分別以 S1 與各非法目標另行執行 Close Command。
+
+### Primary Assertion
+執行時驗證有效版本及 case／stage；各非法目標均拒絕，不把 S1 請求自動換成 S2。
+
+### Secondary Assertions
+案件不 CLOSED，S2 及既有固定初審不變；不新增複審固定或成功結案事件。
+
+### Expected
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+
+### Non-goals
+不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
+
+
+## TS-DC-002 terminal 不得產生新的結案轉移
+
+### Objective
+驗證terminal 不得產生新的結案轉移。
+
+### Authority
+D-034；specification-by-example.md EX-058；保留 D-031／032／033 與 DD-03。
+
+### Level
+Domain / Application / API / Persistence；本次僅設計，未執行程式測試。
+
+### Preconditions
+各自獨立的 CLOSED 與 CANCELLED 案件，以及可識別的既有複審結果。
+
+### Steps
+合法原複審提交者、manager 及其他醫師分別嘗試新的 Close Command、revision、新提交；對 CLOSED 另嘗試 reopen。
+
+### Primary Assertion
+CLOSED／CANCELLED 不得產生新的結案轉移、revision 或新提交；CLOSED 不得 reopen。
+
+### Secondary Assertions
+既有分數、有效引用、固定事實、terminal 與時間不被覆寫，不產生新的成功事件。已成功 close 遺失回應的重放策略 UNKNOWN，此例不指定重試 HTTP 回應。
+
+### Expected
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+
+### Non-goals
+不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
+
+
+## TS-DC-003 Close Command 與複審 revision 競爭
+
+### Objective
+驗證Close Command 與複審 revision 競爭。
+
+### Authority
+D-034；specification-by-example.md EX-059；保留 D-031／032／033 與 DD-03。
+
+### Level
+Application / Persistence integration / API；本次僅設計，未執行程式測試。
+
+### Preconditions
+初審已固定；S1 是 A 的目前有效合法 SUBMITTED 複審，未固定、未 terminal，無其他既有阻擋條件。
+
+### Steps
+分別控制兩種順序：revision S1→S2 先完成後執行指向 S1 的 close；close S1 先完成後執行 revision。
+
+保留上述兩個循序情境，另以各自獨立的相同初始 fixture 驗證以下真正重疊的情境。Close 與 Revision 均由合法 A 發起，明確以同一 S1 為目標，且雙方均已讀取 S1 為目前有效、未固定、非 terminal 的結果並開始處理；在任一方完成前，另一方也已開始，不能以第一方完成後才啟動第二方替代。
+
+1. 重疊情境 R：先發出 Close 請求、再發出 Revision 請求，使兩者處理重疊且均達上述共同起點；之後控制 Revision S1→S2 先成功提交並完成，Close 才嘗試完成其成功提交。
+2. 重疊情境 C：先發出 Revision 請求、再發出 Close 請求，使兩者處理重疊且均達上述共同起點；之後控制 Close S1 先成功提交並完成，Revision 才嘗試完成其成功提交。
+
+此處「成功提交並完成」指該操作的業務變更已一致持久化，不是醫師 submit 複審結果，也不是請求送達或回應返回順序。須分別觀察請求發出順序與成功持久化順序；勝負依後者及執行時有效性判斷，不以先發請求或共同起點的舊讀取授權落敗方成功。不指定鎖定、隔離、交易實作或協調技術。
+
+
+### Primary Assertion
+revision 先完成則舊版 close 拒絕、S2 保持有效且案件未 CLOSED；close 先完成則 S1 固定並 CLOSED、revision 拒絕，不產生 S2。
+
+### Secondary Assertions
+不得固定過期結果或同時讓同一結果的 close 與 revision 成功；有效引用、計分、固定及成功事件與勝出結果一致。
+
+重疊情境 R：Revision 勝出，S1 為 SUPERSEDED 且指向 S2，S2 是唯一有效 SUBMITTED 複審；Close 雖已讀過有效 S1，完成時仍須拒絕過期目標，不得改結 S2。案件有效引用為 S2，系統內分數依原固定初審、S2 分數及既有發布版本權重重算；S1／S2 均未因本次競爭被固定，案件維持原非 terminal 主狀態、未 CLOSED，無新結案時間。僅 Revision 成功事件可留下，不得留下 Close 成功、ReviewCaseClosed 或成功固定事件（若有對應事件）。
+
+重疊情境 C：Close 勝出，S1 保持唯一有效 SUBMITTED 複審並固定，案件有效及結案引用均為 S1；系統內分數依原固定初審、S1 分數及既有發布版本權重計算，案件 CLOSED 且結案時間與固定事實一致保存。Revision 即使已讀過未固定 S1 或算出 S2 分數，也必須拒絕；不得持久留下 S2、把 S1 標為 SUPERSEDED、更換有效引用或寫入 S2 分數。僅 Close 成功事件（含 ReviewCaseClosed，以及若有對應的成功固定事件）可留下，不得留下 Revision 成功事件。
+
+兩種情境均須在雙方結束後重新查詢持久化結果與成功事件，確認沒有落敗方的部分寫入、事件或延遲覆寫；既有固定初審及其分數不變。不得同時成功，不以 response shaping 改寫 domain 分數；對複審醫師的回應與查詢仍遵守 D-033。
+
+
+### Expected
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+
+### Non-goals
+不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
+
+
+## TS-DC-004 複審結案失敗不得部分成功
+
+### Objective
+驗證複審結案失敗不得部分成功。
+
+### Authority
+D-034；specification-by-example.md EX-060；保留 D-031／032／033 與 DD-03。
+
+### Level
+Application / Persistence / Event integration；本次僅設計，未執行程式測試。
+
+### Preconditions
+初審已固定；A 有目前有效合法 SUBMITTED 複審 S1，未固定、非 terminal 且具結案資格；另以獨立 fixture 驗證正常成功。
+
+### Steps
+A 另行 Close Command；分別在固定保存、案件／計分保存及成功事件處理注入失敗，再執行獨立正常成功對照。
+
+### Primary Assertion
+失敗不得留下部分固定、CLOSED 或成功事件；成功對照須同時固定 S1 並 CLOSED。
+
+### Secondary Assertions
+原固定初審輸入、發布版本權重及公式不變；可於重新查詢確認一致結果。失敗注入點與交易／事件技術 UNKNOWN，待技術契約確定後轉成可執行測試，不假稱已具備故障注入能力。
+
+### Expected
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+
+### Non-goals
+不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
+
+
+## TS-DC-005 複審 Close Command 不解除永久盲審
+
+### Objective
+驗證複審 Close Command 不解除永久盲審。
+
+### Authority
+D-034；specification-by-example.md EX-061；保留 D-031／032／033 與 DD-03。
+
+### Level
+Application / API / Frontend / Acceptance；本次僅設計，未執行程式測試。
+
+### Preconditions
+同案複審醫師 A 已合法提交有效結果，具結案資格；含初審答案、分數、評語及可反推初審分數的加權結果。
+
+### Steps
+A 結案前查詢，另行 Close Command 成功後查看 ack、詳情、列表、歷程／compare、可達報表／匯出與快取；另驗拒絕 close 的回應。
+
+### Primary Assertion
+各階段及成功／拒絕出口均不向 A 提供初審答案、分數、評語或可反推值；CLOSED 不解除盲審。
+
+### Secondary Assertions
+finalScore、preview、diff 等衍生資訊遵守 D-033；domain 原始分數及加權計算不因遮罩改寫。不以角色／入口切換繞過同案限制；多角色合成技術仍 UNKNOWN。
+
+### Expected
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+
+### Non-goals
+不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。

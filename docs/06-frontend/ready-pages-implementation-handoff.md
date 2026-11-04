@@ -1,6 +1,6 @@
 # Ready Pages — Angular Implementation Handoff
 
-> D-031～D-033 現行規格更新：下文 O1-C／D-021／D-027 與 CLOSED 例外修正的推薦、guard、mode、按鈕、驗收及「可實作」表格均已被 D-032 取代，僅保留歷史交接證據，禁止照其建立 CLOSED 修正入口。提交後不結案、未固定可修訂、具資格由原複審提交者正式結案並固定，CLOSED 禁止 revision／reopen。初審固定前不得進複審；複審永久盲審含衍生分數。新規格以 state-machine、permission-matrix、API 與 UI-010～014 更新為準；新操作 binding／狀態表示／初審固定角色 unknown，不構成已可實作入口。應用程式未於本輪更新。
+> D-031～D-033 現行規格更新：下文 O1-C／D-021／D-027 與 CLOSED 例外修正的推薦、guard、mode、按鈕、驗收及「可實作」表格均已被 D-032 取代，僅保留歷史交接證據，禁止照其建立 CLOSED 修正入口。提交後不結案、未固定可修訂、具資格由原複審提交者正式結案並固定，CLOSED 禁止 revision／reopen。初審固定前不得進複審；複審永久盲審含衍生分數。新規格以 state-machine、permission-matrix、API 與 UI-010～014 更新為準；初審固定角色依 DD-03；新操作 binding／狀態表示 UNKNOWN，不構成已可實作入口。應用程式未於本輪更新。
 
 
 > **文件定位**：本文件是對 `p2-implementation-handoff.md` 的全面補充與統合。  

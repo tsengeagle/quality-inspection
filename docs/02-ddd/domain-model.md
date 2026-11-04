@@ -630,11 +630,21 @@ BatchStatus:
 
 ## 12. 提交、固定與正式結案的一致性（D-031／032）
 
-* `completeInitialReview(...)` 的語意是初審提交完成，不自動固定、進複審或結案；固定後才依 D-019 保留的閾值分支推進。固定操作的授權角色、method 與狀態表示 unknown。
+* `completeInitialReview(...)` 的語意是初審提交完成，不自動固定、進複審或結案；固定後才依 D-019 保留的閾值分支推進。固定僅限目前有效初審結果的合法提交醫師（DD-03）；method 與狀態表示 UNKNOWN。
 * `assignRereviewer(...)`／`startRereview()` 與複審提交均須以已固定初審結果為基礎。
 * `completeRereview(...)` 僅表示複審提交完成及計分，不再導致 CLOSED。
-* 合法複審提交且無其他既有阻擋條件即具資格；正式結案由原複審提交者決定，同時固定尚未固定的複審結果。獨立結案 method 與狀態表示 unknown。
+* 合法複審提交且無其他既有阻擋條件即具資格；正式結案由目前有效合法複審結果的提交醫師另行執行 Close Command（D-034），同時固定尚未固定的複審結果。獨立結案 method 與狀態表示 unknown。
 * `closeWithoutRereview(...)` 僅適用已固定初審且不需複審，由院方管理者觸發。
 * ReviewCase 保護流程與有效結果關聯；ReviewSubmission 維持獨立 aggregate，保護提交、append-only 與固定後不可修訂。application service 協調同一業務操作的結果一致性，不直接定義規則。
 * 閾值判斷使用固定初審結果，複審 revision 不改變該輸入；finalScore 使用 D-012／020 原公式、原版本權重，默認各 0.5。
 * 固定不是新 CaseStatus／SubmissionStatus；本輪不新增 enum、aggregate、API 或 DB 設計。盲審是 PM／API 的資料可見性規則（D-033），不改 domain 計分值。
+
+## DD-03 有效初審結果固定 invariant
+
+固定對象必須為目前有效、合法已提交的 INITIAL submission；DRAFT／SUPERSEDED／不存在的結果不可固定。只有該有效結果的合法提交醫師可固定，沿用權限及院所 scope。固定後答案、分數、評語及有效結果關聯不可藉直接修改或 revision 變更；舊版鏈仍保留。
+固定事實須關聯 case、有效 submission、操作者與時間。ReviewCase 保護流向與引用，ReviewSubmission 保護不可變性；application 協調兩者，不能以讀取時的舊版本授權固定新的版本。技術表示 UNKNOWN。
+
+
+## D-034 複審獨立 Close Command 對齊
+
+Close Command 依目前有效合法 REREVIEW submission 驗證結案資格；不是依歷史版本或目前 assignment 推定授權。ReviewCase 保護流程、有效引用與 terminal；ReviewSubmission 保護固定後不可變。兩者由 application 協調：不得 CLOSED 而複審結果仍可 revision，不得因 close 改用過期版本或更換固定初審計分輸入。初審未固定、無合法有效提交或 terminal 均不得產生新的成功結案。

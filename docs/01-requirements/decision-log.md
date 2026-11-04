@@ -1280,7 +1280,7 @@ D-002 原責任人 revision、D-004 append-only、D-005 revision 不等於 reope
 
 固定界定初審可修訂窗口，避免複審建立於仍可變動的結果。固定與評分表／ProjectVersion 的 immutable snapshot 是不同事實。
 ReviewCase 保護進複審與結案條件；ReviewSubmission 保護提交與 revision。沿用既有 aggregate 邊界，不新增 aggregate。
-初審固定操作的授權角色、method 名稱、事件技術名稱、API、狀態／儲存表示為 unknown；未確認前不可自行補造。
+初審固定授權原列 unknown，已由 DD-03 accepted 補齊；method 名稱、事件技術名稱、API、狀態／儲存表示仍為 UNKNOWN。
 
 ### Affected Artifacts
 
@@ -1357,3 +1357,79 @@ D-008／009／010、D-012／020、D-017 與 D-028～030 不變；權重計算與
 ### Affected Artifacts
 
 Requirements / glossary、permission-matrix、application-service、API、persistence read model 說明、examples / test scenarios、UI-009～014 與 frontend projection／API binding／測試文件。
+
+## DD-03 — 初審固定操作者與有效結果追溯（Gate 1）
+
+### Status
+
+`accepted` — 2026-11-04，使用者明確確認。
+
+### Decision
+
+1. 只有目前有效初審結果的合法提交醫師可固定該結果；僅有管理者、指派醫師身份或提交過歷史版本不足以授權。沿用既有角色、院所 scope 與 ownership guard。
+2. 固定前依既有合法規則 append-only revision；固定後不得修改或 revision。
+3. 自動／手工進複審前必須固定初審；需複審與否沿用 D-031 的 >、≤、null 分支。
+4. 不需複審時，初審固定後仍須由 HOSPITAL_MANAGER 正式結案；提交及固定均不自動結案。
+5. 固定必須可追溯操作者、時間與當時有效 submission；固定與 revision 競爭不得固定過期版本、遺失追溯或讓固定結果被改寫。
+
+### Supersession / Preserved Rules
+
+補齊 D-031 原未定的固定授權及追溯要求；D-031 的其他流程、D-032 複審結案、D-033 永久盲審及其他 accepted 決策不變。保留既有 superseded 原文與歷程。DD-03 不是 D-003（複審 revision）。
+
+### Contract Boundary / UNKNOWN
+
+沿用 ReviewCase／ReviewSubmission、Spring Boot／Gradle 與既有 API baseline；不新增 enum、aggregate、endpoint 或 DB schema。固定 binding、request／response schema、錯誤細碼、重複固定／網路重試語意、狀態／儲存表示、鎖定／版本與交易／事件發布技術、既有資料遷移／相容性方案均為 UNKNOWN。這些項目需後續定案，不代表實作已具備。
+
+### Decision / Evidence Mapping
+
+| 決策 | 規格落點 | Example / Scenario |
+|---|---|---|
+| 合法有效提交者固定與拒絕冒用 | permission-matrix §10；domain-model DD-03；API DD-03 | EX-053 / TS-DD03-001 |
+| 固定前 revision、固定後不可變 | state-machine §4、DD-03；persistence DD-03 | EX-042、054 / TS-DA-002、TS-DD03-002 |
+| 複審前置條件 | state-machine §3；application-service §17 | EX-041、054 / TS-DA-001、TS-DD03-002 |
+| 無需複審的管理者結案 | requirements §13；permission-matrix §10 | EX-043 / TS-DA-003 |
+| 操作者／時間／有效版本追溯與併發 | application、API、persistence DD-03 | EX-054、055 / TS-DD03-002、003 |
+| 提交成功／拒絕與既有流程回歸 | API §11、12；D-031／032 | EX-056 / TS-DD03-004；EX-044～047 / TS-DA-004～007 |
+
+
+## D-034 — 兩條結案路徑與複審獨立 Close Command
+
+### Status
+
+`accepted` — 2026-11-04，使用者明確確認；本決策不是 DD-03 的重新編號。
+
+### Category
+
+`domain-lifecycle-and-permission`
+
+### Decision
+
+1. 不需複審的案件：初審固定後，由符合既有院所 scope 的 HOSPITAL_MANAGER 另行正式結案；初審提交與固定均不自動 CLOSED。
+2. 需要複審的案件：先固定初審，再由合法複審醫師執行複審並正式提交有效複審結果。合法提交且不存在其他既有阻擋條件即具結案資格，不新增分數門檻、管理者簽核或額外審批。
+3. 具結案資格後，由合法複審醫師另行執行 Close Command，提交不自動造成 CLOSED。「合法」沿用 D-032：須為目前有效合法複審結果的提交責任醫師，並符合既有 REREVIEWER、hospital scope 與 ownership guard；僅有指派、manager 身份、複審角色或歷史版本提交紀錄不足以授權。不新增代理結案權限。
+4. Close Command 執行時須重新驗證有效 submission；DRAFT、SUPERSEDED、過期目標、跨案／錯 stage、錯誤 actor／scope、CLOSED／CANCELLED 不得產生新的成功結案。不得把舊版請求默默套用新版。
+5. 複審正式結案同時固定尚未固定的有效複審結果；固定、有效版本引用、分數與 CLOSED 須一致。close 與 revision 競爭時，revision 先完成則舊版 close 拒絕；close 先完成則 revision 拒絕。失敗不得留下部分結案／固定或成功事件。CLOSED 後禁止所有 revision、新提交與 reopen。
+6. 複審醫師永久不可取得同案初審答案、分數、評語，包含結案後；D-033 的 finalScore 等衍生資訊防洩漏與全部資料出口保護不變。
+
+### Relationship / Preserved Rules
+
+* D-031：保留初審提交／固定分離、固定後才進複審、原 >／≤／null 閾值分支，以及無需複審時 manager 結案責任。
+* D-032：確認並明文化獨立 Close Command；保留有效結果原提交者、結案資格、結案同時固定、未固定且非 terminal 時合法 append-only revision、原加權公式與發布版本權重。本次不擴張結案權限，也不恢復 CLOSED revision 例外。
+* D-033：完整保留永久盲審與衍生資訊防洩漏，Close Command 不構成解除遮罩的理由。
+* DD-03：保留初審固定操作者、有效結果追溯及固定／revision 競爭要求；不授予 manager 代固定權限。
+* 本決策為上述 accepted 決策的確認與契約補充，不撤銷其規則；既有 superseded 原文與紀錄保留。
+
+### Contract Boundary / UNKNOWN
+
+Close Command 是獨立業務意圖，不代表本輪已決定 HTTP method／endpoint path、request／response schema、版本 token、error code、提交後狀態表示、固定儲存表示、交易／鎖定／事件發布技術、重複 close／網路重試回應、legacy 資料相容性或遷移方案；以上均為 UNKNOWN。terminal 不允許新的結案轉移，已成功 close 的重放回應語意仍 UNKNOWN。本次不新增獨立複審固定操作、管理者簽核、framework、aggregate 或 enum；不宣稱實作已對齊。
+
+### Decision / Evidence Mapping
+
+| 決策 | 規格落點 | Example / Scenario |
+|---|---|---|
+| 不需複審由 manager 結案 | requirements §13；permission-matrix §10 | EX-043 / TS-DA-003；EX-056 / TS-DD03-004 |
+| 複審提交與 Close Command 分離 | application-service §17；API D-034 | EX-044、046 / TS-DA-004、006 |
+| 未提交與錯誤 actor 拒絕 | permission-matrix §10；API D-034 | EX-045、046 / TS-DA-005、006 |
+| 過期目標與 terminal 拒絕 | state-machine、API D-034 | EX-057、058 / TS-DC-001、002 |
+| close／revision 與失敗一致性 | domain-model、persistence D-034 | EX-059、060 / TS-DC-003、004 |
+| 結案後永久盲審 | permission-matrix §10；API D-034 | EX-061 / TS-DC-005；既有 EX-049～052 / TS-DA-009～012 |

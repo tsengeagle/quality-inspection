@@ -756,6 +756,6 @@ page_modes:
 
 以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
 
-依 D-031，提交不固定、不立即進複審或結案；只有合法原提交者可對未固定結果 revision，固定後禁止。PENDING_REREVIEW／REREVIEW_IN_PROGRESS 的初審已固定，不存在初審 revision 入口。初審固定的授權角色與操作 binding unknown，本輪不發明角色／按鈕。已固定且不需複審時由 manager 正式結案。其他頁面輸出此結果時適用 D-033。
+依 D-031，提交不固定、不立即進複審或結案；只有合法原提交者可對未固定結果 revision，固定後禁止。PENDING_REREVIEW／REREVIEW_IN_PROGRESS 的初審已固定，不存在初審 revision 入口。依 DD-03，僅目前有效初審結果的合法提交醫師可固定；操作 binding UNKNOWN，本輪不新增按鈕。已固定且不需複審時由 manager 正式結案。其他頁面輸出此結果時適用 D-033。
 
 驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。

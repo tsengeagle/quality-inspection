@@ -69,7 +69,7 @@ ReviewCaseStatus:
 | PENDING_REREVIEW | startRereview | REREVIEW_IN_PROGRESS | 僅 assigned rereviewer |
 | PENDING_REREVIEW | cancel | CANCELLED | 未結案 |
 | REREVIEW_IN_PROGRESS | submitRereview | 未結案（狀態表示 unknown） | D-032：合法提交且無其他既有阻擋條件即具資格；不自動固定／結案 |
-| 複審已提交、尚未結案（非新增 enum） | 原複審提交者正式結案 | CLOSED | D-032：驗證資格，同時固定尚未固定的複審結果 |
+| 複審已提交、尚未結案（非新增 enum） | 合法有效複審結果提交醫師另行 Close Command | CLOSED | D-032／034：執行時重驗資格與有效版本，同時固定尚未固定的複審結果 |
 
 ### 3.3 Terminal / Blocked Notes
 
@@ -243,13 +243,24 @@ stateDiagram-v2
 
 ## 7) Pending Confirmation
 
-1. [Resolved D-031] 不需複審時僅 manager 在初審固定後手工結案；初審固定操作授權角色仍 unknown。
+1. [Resolved D-031] 不需複審時僅 manager 在初審固定後手工結案；DD-03 已確認固定僅限目前有效初審結果的合法提交醫師。
 2. `RETURNED` 後是否必須 reassign reviewer 才能 reopen（目前僅記為 guard note）。
 3. sampling retry 的完整 state / error taxonomy 尚未在 DDD 層完整定稿（本版僅最小必要）。
 4. [Superseded D-032] CLOSED 複審 revision 例外撤銷。複審已提交未結案的狀態表示 unknown；不得新增 enum 或假裝仍是草稿。
 
 ## 8) 固定與流程 guard（D-031～D-033）
 
-固定為業務事實，不預設 CaseStatus／SubmissionStatus。初審提交後保持初審完成，未固定不得自動／手工進複審或由 manager 結案；固定後禁止初審 revision。閾值 >、≤、null 分支不變。初審固定角色 unknown，流程不得因此視為已獲授權。
+固定為業務事實，不預設 CaseStatus／SubmissionStatus。初審提交後保持初審完成，未固定不得自動／手工進複審或由 manager 結案；固定後禁止初審 revision。閾值 >、≤、null 分支不變。DD-03：固定僅限目前有效初審結果的合法提交醫師，須驗證有效版本及既有 scope／ownership guard。
 複審提交建立合法結果與結案資格，不 CLOSED；原複審提交者可在未固定、未結案、未取消時 revision。正式結案須具資格且 actor 合法，同時固定複審結果。CLOSED 禁止所有 revision／reopen。未知的提交後狀態表示不影響上述 guard。
 圖僅保留已定 enum 轉移；複審提交後的獨立結案路徑以 §3.2 語意表為準，待表示定案後同步圖。盲審不依 CaseStatus 或 SUBMITTED 狀態解除（D-033）。
+
+## DD-03 固定操作 guard
+
+初審已提交且未固定、案件未 CLOSED／CANCELLED，經既有角色／scope／ownership 驗證的目前有效 submission 提交醫師才可固定。無有效提交、DRAFT、SUPERSEDED、actor 不符或 terminal case 均拒絕。固定不是新狀態 enum；成功後禁止直接修改及 revision，並依 §3.2 處理後續流向。
+固定與 revision 競爭須在一致的有效版本上判斷：revision 先完成時不可再固定舊版；固定先完成時 revision 拒絕。不得出現同一結果既固定又成功修訂。重複固定的回應語意 UNKNOWN，不預設冪等成功或特定拒絕碼。
+
+
+## D-034 複審獨立 Close Command 對齊
+
+初審固定後，不需複審由 HOSPITAL_MANAGER 另行結案；需要複審則先合法執行及提交，再由目前有效結果的合法提交醫師另行 Close Command，才進 CLOSED。提交後未結案的狀態表示 UNKNOWN，不新增 enum。
+Close 執行時拒絕 DRAFT、SUPERSEDED、過期／跨案／錯 stage 目標、錯誤 actor／scope，以及 CLOSED／CANCELLED 的新結案轉移。revision 先完成則指向舊版的 close 拒絕；close 先完成則 revision 拒絕，不回退主狀態。既有 CLOSED／CANCELLED 禁止 revision 與 CLOSED 禁止 reopen 不變；已成功 close 重試的回應策略 UNKNOWN，不代表可再次轉移。
