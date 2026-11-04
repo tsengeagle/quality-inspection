@@ -1,5 +1,8 @@
 # Test Scenarios v1
 
+> D-031～D-033 對齊：所有 revision 成功 fixture 均須對應結果未固定；複審 fixture 的初審必已固定。所有共用 FULL view、完整歷程與分數示例均依角色套用 D-033：同案複審醫師不得取得初審內容或可反推的衍生資訊；其他角色政策不變。新驗證映射 EX-041～052 ↔ TS-DA-001～012。
+
+
 ## 1. 文件目的
 
 本文件定義品質審查系統的核心測試情境，作為以下工作的驗證基礎：
@@ -394,76 +397,38 @@
 
 ---
 
-## TS-IR-006 提交初審且低於品質線，直接結案
+## TS-IR-006 初審固定且不需複審時由 manager 結案
 
-### Objective
-驗證初審直接結案路徑。
-
+### Authority
+D-031；EX-001、EX-043。
 ### Preconditions
-- actor = assigned reviewer
-- case status = `INITIAL_REVIEW_IN_PROGRESS`
-- totalScore <= qualityThreshold
-
+合法初審提交者；分數 < threshold；同院 manager。
 ### Steps
-1. 提交初審
-
+提交後先嘗試未固定結案，再確認初審固定且不需複審，由 manager 正式結案。
 ### Expected
-- submission status = `SUBMITTED`
-- case status 先完成初審，再進入 `CLOSED`
-- 不建立待複審狀態
-- `ReviewCaseClosed` event 成立
+提交只形成 SUBMITTED／初審完成；未固定結案拒絕，固定本身不結案；manager 正式結案才 CLOSED／ReviewCaseClosed。詳 TS-DA-003。
 
----
+## TS-IR-007 初審固定後高於品質線進入複審
 
-## TS-IR-007 提交初審且高於品質線，進入複審
-
-### Objective
-驗證進複審路徑。
-
+### Authority
+D-031；EX-002、EX-041。
 ### Preconditions
-- actor = assigned reviewer
-- totalScore > qualityThreshold
-
+合法初審提交者，score > threshold。
 ### Steps
-1. 提交初審
-
+提交後確認未固定不得進複審；再以已合法固定的事實驗證後續流向。
 ### Expected
-- submission status = `SUBMITTED`
-- case status -> `INITIAL_REVIEW_COMPLETED`
-- 隨後 -> `PENDING_REREVIEW`
-- `ReviewCaseEscalatedToRereview` event 成立
+提交只初審完成；固定後自動 PENDING_REREVIEW／ReviewCaseEscalatedToRereview；未固定的自動／手工進複審拒絕。詳 TS-DA-001。
 
----
+## TS-BD-001 等於品質線須固定後由 manager 結案
 
-## TS-BD-001 等於品質線時案件直接結案
-
-### Objective
-驗證品質線邊界值：當 `totalScore == qualityThreshold` 時，案件應直接結案，而不是進入複審。
-
+### Authority
+D-031；EX-026、EX-043。
 ### Preconditions
-- actor = assigned `REVIEWER`
-- case status = `INITIAL_REVIEW_IN_PROGRESS`
-- case 綁定合法 project version / score sheet snapshot
-- `qualityThreshold = 80`
-
+score=threshold=80。
 ### Steps
-1. reviewer 提交初審結果
-2. 提交分數 = `80`
-
+提交、確認固定、不需複審時由 manager 結案。
 ### Expected
-- submission status = `SUBMITTED`
-- case 不進入 `PENDING_REREVIEW`
-- case status = `CLOSED`
-- response 中：
-  - `caseStatus = CLOSED`
-  - `rereviewRequired = false`
-- 產生：
-  - `ReviewSubmissionSubmitted`
-  - `InitialReviewCompleted`
-  - `ReviewCaseClosed`
-- **不應** 產生 `ReviewCaseEscalatedToRereview`
-
----
+提交不 CLOSED、無升級／結案事件；固定後不強制複審；manager 正式結案才 CLOSED。另測 null 分支；詳 TS-DA-003。
 
 ## TS-IR-008 初審中可退回
 
@@ -523,25 +488,16 @@
 
 ---
 
-## TS-RR-003 複審提交後結案
+## TS-RR-003 複審提交計分但不結案
 
-### Objective
-驗證複審提交與 final score 決定權。
-
+### Authority
+D-032、D-012／020／033；EX-003、EX-044、EX-050。
 ### Preconditions
-- actor = assigned rereviewer
-- case status = `REREVIEW_IN_PROGRESS`
-
+初審已固定，actor 為合法 assigned rereviewer。
 ### Steps
-1. 提交複審
-
+正式提交複審。
 ### Expected
-- submission status = `SUBMITTED`
-- final score 由複審 submission 決定
-- case status -> `CLOSED`
-- `RereviewCompleted` 與 `ReviewCaseClosed` event 成立
-
----
+SUBMITTED、未固定、未 CLOSED，具資格不等於結案；RereviewCompleted 成立但無 ReviewCaseClosed。系統按原公式加權，複審醫師回應不洩漏 finalScore。詳 TS-DA-004／010。
 
 ## TS-RR-004 非複審醫師不可提交複審
 
@@ -572,6 +528,7 @@
 - actor = original reviewer
 - submission stage = `INITIAL`
 - submission status = `SUBMITTED`
+- 被修訂結果未固定
 - case status != `CLOSED`
 - case status != `CANCELLED`
 
@@ -604,7 +561,7 @@
 
 ---
 
-## TS-RV-003 複審醫師可修正已提交複審
+## TS-RV-003 原複審提交者可修正已提交且未固定複審
 
 ### Objective
 驗證複審 revision 正常路徑。
@@ -612,6 +569,7 @@
 ### Preconditions
 - actor = assigned rereviewer
 - submission stage = `REREVIEW`
+- 被修訂結果未固定
 - case status != `CLOSED`
 - case status != `CANCELLED`
 
@@ -704,7 +662,7 @@
 驗證 revision 不改變 case lifecycle。
 
 ### Preconditions
-- case status = `PENDING_REREVIEW` 或其他未結案狀態
+- 未固定的合法 submitted 結果、未 CLOSED／CANCELLED；初審一旦已進複審必已固定，不得再修初審（D-031）
 - 發起合法 revision
 
 ### Steps
@@ -723,6 +681,7 @@
 驗證多次 revision 時，submission revision 鏈保持 append-only，且 latest 版本認定正確。
 
 ### Preconditions
+- 被修訂結果未固定
 - case status != `CLOSED`
 - case status != `CANCELLED`
 - 已存在：
@@ -1242,7 +1201,7 @@ level:
 
 ### Preconditions
 - 選定一條核心流程：
-  - 初審直接結案
+  - 初審固定且無需複審時由 manager 正式結案
   - 初審進複審
   - 複審完成
   - revision 成功
@@ -1822,7 +1781,7 @@ level:
 - 1 個 inactive project
 - 1 個 published score sheet version
 - 1 組 reviewer / rereviewer / manager / auditor / sysadmin
-- 至少 1 個直接結案 case
+- 至少 1 個初審固定且無需複審、manager 正式結案的 case
 - 至少 1 個進複審 case
 - 至少 1 個 failed batch + retry case
 - 至少 1 組 revision case
@@ -1882,3 +1841,279 @@ minimum_regression_suite:
 5. `api-spec.md`
 6. `persistence-model.md`
 7. `test-scenarios.md`
+
+## TS-DA-001 初審未固定不得進入複審
+
+### Objective
+驗證 初審未固定不得進入複審。
+
+### Authority
+D-031；specification-by-example.md EX-041。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+初審合法提交且分數 > threshold，尚未固定。
+
+### Steps
+嘗試自動進複審、manager 手工派複審及開始複審。
+
+### Expected
+均拒絕／不推進，不發布升級或開始事件；確認固定事實後自動依 > 分支進 PENDING_REREVIEW。固定授權角色不在本例假定。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-002 初審固定前後 revision 邊界
+
+### Objective
+驗證 初審固定前後 revision 邊界。
+
+### Authority
+D-031、D-004、D-005；specification-by-example.md EX-042。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+初審 SUBMITTED、未結案；原提交者。
+
+### Steps
+固定前 revision；確認初審固定後再次 revision。
+
+### Expected
+固定前建立新版本、舊版 SUPERSEDED、Case 主狀態不變；固定後拒絕且無新版本／成功事件。非原提交者固定前亦拒絕。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-003 無需複審案件的固定及結案 guard
+
+### Objective
+驗證 無需複審案件的固定及結案 guard。
+
+### Authority
+D-031；specification-by-example.md EX-043。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+初審分數分別 <、= threshold 或 threshold null；manager 同院。
+
+### Steps
+提交後未固定先嘗試結案，再確認固定且不需複審，由 manager 結案。
+
+### Expected
+未固定拒絕；固定不自動結案；manager 正式結案才 CLOSED。非 manager 不可代替；固定後可保留既有 manager 手工派複審選項。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-004 複審提交不自動結案
+
+### Objective
+驗證 複審提交不自動結案。
+
+### Authority
+D-032；specification-by-example.md EX-044。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+初審已固定；合法 assigned rereviewer 與 draft。
+
+### Steps
+正式提交複審。
+
+### Expected
+SUBMITTED，未固定、未 CLOSED；具資格但未結案；只有提交／完成事實，無 ReviewCaseClosed。提交後狀態技術表示 unknown。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-005 不具結案資格不得正式結案
+
+### Objective
+驗證 不具結案資格不得正式結案。
+
+### Authority
+D-032；specification-by-example.md EX-045。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+尚無合法複審提交，或仍有既有阻擋條件（例如 CANCELLED）。
+
+### Steps
+原複審醫師嘗試正式結案。
+
+### Expected
+拒絕，案件及固定事實不被改為成功結案，無 ReviewCaseClosed。不新增分數門檻或額外審批。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-006 僅原複審提交者可正式結案
+
+### Objective
+驗證 僅原複審提交者可正式結案。
+
+### Authority
+D-032、D-023、D-024；specification-by-example.md EX-046。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+合法有效複審提交且無其他既有阻擋條件。
+
+### Steps
+非原提交者、manager、其他 rereviewer、跨院 actor 嘗試正式結案；再由合法原提交者操作。
+
+### Expected
+不合法 actor／scope 均拒絕；合法原提交者可自行決定時間，正式結案轉 CLOSED 且同時固定複審結果。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-007 複審提交後結案前可修訂
+
+### Objective
+驗證 複審提交後結案前可修訂。
+
+### Authority
+D-032、D-004、D-005；specification-by-example.md EX-047。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+初審固定，複審已合法提交但未固定、未 CLOSED／CANCELLED。
+
+### Steps
+原提交者 revision，再正式結案；另測非原提交者 revision。
+
+### Expected
+合法 revision append-only、更新有效版本及加權分數，Case 主狀態不變；非原提交者拒絕。結案使用目前有效結果且同時固定。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-008 CLOSED 禁止所有 revision 與 reopen
+
+### Objective
+驗證 CLOSED 禁止所有 revision 與 reopen。
+
+### Authority
+D-032、D-006；specification-by-example.md EX-048。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+案件 CLOSED；另有 CANCELLED 對照；原初審／複審提交者。
+
+### Steps
+嘗試兩階段 revision、新提交及 CLOSED reopen。
+
+### Expected
+全部拒絕；狀態及歷史不變，無 ReviewSubmissionRevised 或其他成功事件；UI 無例外修正入口。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-009 全生命週期永久盲審與反推防護
+
+### Objective
+驗證 全生命週期永久盲審與反推防護。
+
+### Authority
+D-033；specification-by-example.md EX-049。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+同案複審醫師，分別處於未提交、已提交、revision、已固定及 CLOSED。
+
+### Steps
+檢查 list/detail/history/compare、audit/report/export、submit/revision/close ack、cache 與入口切換。
+
+### Expected
+任何出口均不可取得初審答案／分數／評語，亦無 finalScore／preview／diff 等可反推值；應用層 response 遮罩，非僅 DOM 隱藏。已知複審分數與權重仍不能解出初審分數。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-010 加權公式與版本不變性
+
+### Objective
+驗證 加權公式與版本不變性。
+
+### Authority
+D-012、D-020、D-032、D-033；specification-by-example.md EX-050。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+固定初審80、複審92，權重各0.5；另測合法0.4／0.6。
+
+### Steps
+提交、將複審 revision 為90、正式結案；嘗試修改已發布權重。
+
+### Expected
+系統內分數依序86、85；0.4／0.6初次87.2；結案不改公式或初審結果。非法權重和／非正權重拒絕，發布後不可改；複審醫師不可讀加權值，manager 本院依原政策可讀。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-011 事件、固定與狀態一致性
+
+### Objective
+驗證 事件、固定與狀態一致性。
+
+### Authority
+D-031、D-032；specification-by-example.md EX-051。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+合法初審／複審流程及各拒絕流程。
+
+### Steps
+逐步提交初審、確認固定、提交複審、revision、正式結案，對照持久化事實與事件。
+
+### Expected
+提交初審不發升級／結案事件；固定後需複審才依規則升級。複審提交不發結案事件；revision 新舊版本一致；結案時已 CLOSED 且結果固定才 ReviewCaseClosed。拒絕／rollback 不留下成功事實或成功事件；固定事件技術名稱 unknown。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。
+
+## TS-DA-012 其他角色資料政策不變
+
+### Objective
+驗證 其他角色資料政策不變。
+
+### Authority
+D-008、D-009、D-010、D-033；specification-by-example.md EX-052。
+
+### Level
+Domain / application specification；涉及資料出口者另含 API integration / frontend / acceptance。未執行實作測試。
+
+### Preconditions
+本院 manager、原 reviewer、授權 auditor、system admin 與同案 rereviewer。
+
+### Steps
+同一初審資料與衍生結果透過合法 query/export 路徑存取，另測跨院／未授權範圍。
+
+### Expected
+其他角色依既有政策：manager 本院完整、reviewer 合法範圍、auditor 授權院區、sysadmin metadata-only；非法 scope 拒絕。同案 rereviewer 所有階段仍遮罩。
+
+### Non-goals
+不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權與未知 binding 不由本測試定案。

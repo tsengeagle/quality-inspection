@@ -25,7 +25,7 @@
 3. 規則版本或評分表版本一旦被批次或案件採用，不得被後續修改污染既有結果。
 4. 已提交審查結果不得直接覆寫；如允許修正，必須建立新 revision。
 5. `CLOSED` 為終止狀態；結案後不允許 revision。
-6. 複審最終分數由複審醫師決定。
+6. 最終分數按 D-012／D-020 由固定初審分數與複審分數加權計算；複審提交不結案（D-032）。
 7. 同一案件的重複抽選限制範圍為 **同批次**，不延伸到跨批次或跨週期。
 8. 權限與資料可見性不是 domain invariant；這些由 permission matrix 與 access policy 處理。
 
@@ -59,7 +59,7 @@
 
 ### 3.7 Revision
 修正版本。  
-指已提交結果在 **未結案前** 由合法責任人重新提交的新版本，必須保留先前版本紀錄，不得覆寫原紀錄。
+指已提交且未固定結果在 **未結案、未取消前** 由合法原提交者重新提交的新版本，必須保留先前版本紀錄，不得覆寫原紀錄。
 
 ---
 
@@ -328,21 +328,21 @@ ReviewCase:
 * 管理是否進入複審
 * 關聯目前有效的 submission
 * 關聯最終分數與結論
-* 決定是否結案
+* 保護初審固定後才進複審／無需複審時由 manager 結案；複審由原提交者在具資格時正式結案，並同時固定結果（D-031／032）
 
 ### Domain Invariants
 
 * 未分派不得開始初審
-* 初審未提交不得判定是否進複審
-* 初審分數超過品質線必須進複審
-* 複審最終分數由複審醫師決定
+* 初審未固定不得進入複審；提交不等於固定（D-031）
+* 初審固定後，分數超過品質線必須自動進複審；≤ threshold／null 保留 manager 選擇
+* finalScore 按 D-012／020 加權計算，revision 後重算；不得以複審分數直接取代
 * `CLOSED` 為 terminal state
 * `CANCELLED` 為 terminal state
 * 已結案案件不得建立新 revision
 * 已結案案件不得重新開啟初審或複審流程
 * 已取消案件不得再審
-* 初審 revision 僅可由原審查醫師發起
-* 複審 revision 僅可由複審醫師發起
+* 初審 revision 僅可由原提交者對未固定結果發起
+* 複審 revision 僅可由合法原提交者對未固定結果發起
 * 任一案件必須可追溯至來源 project、batch、rule snapshot、score sheet version
 
 ### 主要 Methods
@@ -411,6 +411,7 @@ ReviewSubmission:
 * 建立 revision
 * 關聯附件
 * 保存依快照計算出的總分
+* 保護固定後禁止 revision；固定的技術表示 unknown，不新增 aggregate 或資料欄位
 
 ### Domain Invariants
 
@@ -419,9 +420,9 @@ ReviewSubmission:
 * `submittedAt` 在提交後必填
 * `totalScore` 必須依當時 score sheet snapshot 計算
 * 同一案件、同一階段、同一 `revisionNo` 不得重複
-* 若關聯案件狀態為 `CLOSED`，則不得建立新 revision
-* `INITIAL` 階段 revision 僅可由原審查醫師發起
-* `REREVIEW` 階段 revision 僅可由複審醫師發起
+* 結果固定後，或關聯案件為 `CLOSED`／`CANCELLED`，不得建立新 revision
+* `INITIAL` 階段 revision 僅可由原提交者在固定前發起
+* `REREVIEW` 階段 revision 僅可由合法原提交者在固定前發起
 * revision 建立後，前一有效版本應標記為 `SUPERSEDED`
 
 ### 主要 Methods
@@ -553,7 +554,7 @@ BatchStatus:
 2. revision 必須建立新版本記錄
 3. 舊版本需保留，可供稽核與歷程查詢
 4. 只有合法責任人可發起 revision
-5. 只有未結案案件可 revision
+5. 只有未固定的已提交結果、且案件未結案／未取消時可合法 revision
 6. revision 不直接代表重新開案；若未來需要 correction workflow，應另行設計
 
 ### 8.2 Revision 範圍
@@ -626,3 +627,14 @@ BatchStatus:
 4. state machine
 5. application service
 6. API / UI / persistence 實作
+
+## 12. 提交、固定與正式結案的一致性（D-031／032）
+
+* `completeInitialReview(...)` 的語意是初審提交完成，不自動固定、進複審或結案；固定後才依 D-019 保留的閾值分支推進。固定操作的授權角色、method 與狀態表示 unknown。
+* `assignRereviewer(...)`／`startRereview()` 與複審提交均須以已固定初審結果為基礎。
+* `completeRereview(...)` 僅表示複審提交完成及計分，不再導致 CLOSED。
+* 合法複審提交且無其他既有阻擋條件即具資格；正式結案由原複審提交者決定，同時固定尚未固定的複審結果。獨立結案 method 與狀態表示 unknown。
+* `closeWithoutRereview(...)` 僅適用已固定初審且不需複審，由院方管理者觸發。
+* ReviewCase 保護流程與有效結果關聯；ReviewSubmission 維持獨立 aggregate，保護提交、append-only 與固定後不可修訂。application service 協調同一業務操作的結果一致性，不直接定義規則。
+* 閾值判斷使用固定初審結果，複審 revision 不改變該輸入；finalScore 使用 D-012／020 原公式、原版本權重，默認各 0.5。
+* 固定不是新 CaseStatus／SubmissionStatus；本輪不新增 enum、aggregate、API 或 DB 設計。盲審是 PM／API 的資料可見性規則（D-033），不改 domain 計分值。

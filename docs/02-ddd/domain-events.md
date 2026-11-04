@@ -29,7 +29,7 @@
 1. domain event 描述的是「業務事實已成立」。
 2. domain event 應由 aggregate 狀態改變或業務決策成立後發布。
 3. 非法狀態轉移不得發布 domain event。
-4. revision event 只會發生在未結案且未取消案件。
+4. revision event 只會發生於未固定的合法提交結果，且案件未結案、未取消（D-031／032）。
 5. `ReviewCaseClosed` 發生後，不應再有新的 `ReviewSubmissionRevised` event。
 6. domain event 不等於 integration event；是否對外通知，由 application layer 或 outbox 決定。
 7. event catalog 應與 domain model、state machine、一致。
@@ -381,7 +381,7 @@
 
 * `completeInitialReview(...)` 成功
 * 初審 submission 為 `SUBMITTED`
-* 狀態轉為 `INITIAL_REVIEW_COMPLETED`
+* 狀態轉為 `INITIAL_REVIEW_COMPLETED`；提交不等於固定，事件不代表可立即進複審或結案
 
 ### 最低必要欄位
 
@@ -413,7 +413,7 @@
 ### 發布條件
 
 * `InitialReviewCompleted` 後
-* `totalScore > qualityThreshold`
+* 初審結果已固定且 `totalScore > qualityThreshold`
 * 狀態轉為 `PENDING_REREVIEW`
 
 ### 最低必要欄位
@@ -473,7 +473,7 @@
 
 ### 業務意義
 
-複審提交完成，複審醫師已決定最終分數。
+複審提交完成，系統按 D-012／020 計算加權分數；此事實不代表固定或正式結案（D-032）。
 
 ### 發布條件
 
@@ -494,7 +494,9 @@
 
 ### 發布條件
 
-* 經 `closeWithoutRereview(...)` 或 `completeRereview(...)`
+* 無需複審時，初審已固定，由院方管理者正式結案；或
+* 複審合法提交且無既有阻擋條件，由原複審提交者另行正式結案，同時固定尚未固定的複審結果（D-032）
+* `completeRereview(...)` 本身不再觸發結案事件
 * 狀態轉為 `CLOSED`
 
 ### 補充
@@ -638,6 +640,7 @@
 ### 發布條件
 
 * 原 submission 必須已為 `SUBMITTED`
+* 目前有效結果不得已固定（D-031／032）
 * 關聯案件不得為 `CLOSED`
 * 關聯案件不得為 `CANCELLED`
 * 新 revision submission 建立成功
@@ -672,44 +675,29 @@
 
 ---
 
-## 9.1 初審直接結案流程
+## 9.1 初審固定且無需複審時的 manager 結案流程
 
 ```text
-ReviewCaseCreated
--> ReviewCaseAssigned
--> InitialReviewStarted
--> ReviewSubmissionSubmitted
--> InitialReviewCompleted
--> ReviewCaseClosed
+ReviewCaseCreated -> ReviewCaseAssigned -> InitialReviewStarted
+-> ReviewSubmissionSubmitted -> InitialReviewCompleted
+-> 初審固定業務事實（事件技術名稱 unknown）
+-> 依固定結果判定無需複審 -> manager 正式結案 -> ReviewCaseClosed
 ```
-
-適用條件：
-
-* `totalScore <= qualityThreshold`
-
----
+初審分數 ≤ threshold 或 threshold 為 null 不強制複審；manager 仍可在固定後手工派複審（D-019／031）。初審提交與固定均不自動結案。
 
 ## 9.2 初審進入複審流程
 
 ```text
-ReviewCaseCreated
--> ReviewCaseAssigned
--> InitialReviewStarted
--> ReviewSubmissionSubmitted
--> InitialReviewCompleted
--> ReviewCaseEscalatedToRereview
--> RereviewerAssigned
--> RereviewStarted
--> ReviewSubmissionSubmitted
--> RereviewCompleted
--> ReviewCaseClosed
+ReviewSubmissionSubmitted(INITIAL) -> InitialReviewCompleted
+-> 初審固定業務事實（事件技術名稱 unknown）
+-> ReviewCaseEscalatedToRereview（固定初審分數 > threshold，自動）
+-> RereviewerAssigned -> RereviewStarted
+-> ReviewSubmissionSubmitted(REREVIEW) -> RereviewCompleted
+-> 可選：ReviewSubmissionRevised（複審未固定／未結案）
+-> 原複審提交者正式結案，同時固定複審結果 -> ReviewCaseClosed
 ```
-
-適用條件：
-
-* `totalScore > qualityThreshold`
-
----
+手工派複審同樣需要固定初審；現有 `ReviewCaseEscalatedToRereview` 的閾值事件不得偽裝為手工派發。固定後才可自動推進，不得在初審提交時提前發布升級事件。
+複審提交後不立即發出 ReviewCaseClosed；資格不是事件已結案。
 
 ## 9.3 未結案 revision 流程
 
@@ -813,3 +801,9 @@ ReviewSubmissionSubmitted
 5. application service
 6. domain events
 7. API / persistence / integration 實作
+
+## 14. 固定事實與事件一致性（D-031／032／033）
+
+初審提交、初審固定、複審提交、正式結案為不同業務事實。固定需可追溯，但本輪不新增事件名稱／payload；固定事實的事件技術表示為 unknown。
+ReviewCaseClosed 僅在成功轉 CLOSED 且複審路徑已同時固定結果後成立；任何非法提交、固定後 revision、未具資格或 actor 不符的結案均不得產生成功事件。CLOSED 之後不得出現合法 ReviewSubmissionRevised。
+事件使用 domain 正確分數，不改 D-012／020；事件衍生的使用者可見 audit／projection 仍須依 D-033 防止洩漏初審與可反推分數。固定與結案的交易、事件發布技術及相容性細節 unknown，不在本輪設計。

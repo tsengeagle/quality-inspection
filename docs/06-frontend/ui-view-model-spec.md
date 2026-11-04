@@ -152,14 +152,14 @@ shared_sub_models:
 - 用於頁面：UI-013
 - 來源 API：`GET /review-cases/{caseId}` + rereview draft/submit/revise responses
 - 欄位：
-  - `caseSummary`, `pageMode`, `pageModeDisplayLabel`, `initialSummaryForReference`, `baseSubmissionRef`
-  - `draftFormState`, `finalScorePreview`, `revisionContext`, `versionSummary`
+  - `caseSummary`, `pageMode`, `pageModeDisplayLabel`, 安全的初審固定流程資訊（不含初審內容）, `baseSubmissionRef`
+  - `draftFormState`, 本人複審分數（不含可反推初審的加權 preview）, `revisionContext`, `versionSummary`
   - `actionCapabilities`, `blockedReasons`
-- UI 聚合結果：`pageMode`, `pageModeDisplayLabel`, `finalScorePreview`, `actionCapabilities`
+- UI 聚合結果：`pageMode`, `pageModeDisplayLabel`, 本人複審分數（不含可反推初審的加權 preview）, `actionCapabilities`
 - FULL only：rereview editable content
 - METADATA_ONLY：不適用主情境
 - policy 影響欄位：`pageMode`, `actionCapabilities`, `blockedReasons`
-- display label note：`CLOSED_REVISION_EXCEPTION` → `例外修正（已結案）`
+- D-032 撤銷 CLOSED_REVISION_EXCEPTION；CLOSED 使用唯讀／blocked，不提供 revision 入口
 
 ## 5.8 RevisionTimelineItemViewModel
 
@@ -227,3 +227,10 @@ shared_sub_models:
 1. revision compare 是否由單一 submission detail API 組合，或存在專用 compare API。
 2. candidate reviewer/rereviewer options 的正式 API 來源與最小欄位。
 
+## D-031～D-033 同步契約
+
+以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
+
+固定事實、合法 revision、結案資格及 actor guard 必須參與 mode／capability 推導，不以單一 caseStatus 或 SUBMITTED 代替（D-031／032）。新表示 unknown，不新增 view-model 欄位。D-033 先保護 response 再組裝 view model；同案複審醫師不可取得初審內容或加權 finalScore／preview，cache 同樣限制。其他角色政策不變。
+
+驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

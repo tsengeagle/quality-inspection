@@ -647,3 +647,11 @@ query_params:
 5. reviewer / rereviewer 是否只看到自己合法案件
 6. manager 是否可看到本院完整清單摘要
 7. auditor 是否受授權院區限制
+
+## D-031～D-033 生命週期與資料可見性對齊
+
+以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
+
+列表的 action hints 必須依 D-031／032 區分已提交、已固定及已正式結案；不得把複審提交顯示為 CLOSED。依 D-033 套用角色 projection，列表不能洩漏初審內容或可反推的加權值。
+
+驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。

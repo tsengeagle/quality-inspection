@@ -1,5 +1,8 @@
 # Specification by Example v1
 
+> D-031～D-033 對齊：所有 revision 成功 fixture 均須對應結果未固定；複審 fixture 的初審必已固定。所有共用 FULL view、完整歷程與分數示例均依角色套用 D-033：同案複審醫師不得取得初審內容或可反推的衍生資訊；其他角色政策不變。新驗證映射 EX-041～052 ↔ TS-DA-001～012。
+
+
 ## 1. 文件目的
 
 本文件用於以具體例子定義品質審查系統的核心業務規則，作為以下工作的共同對齊基礎：
@@ -71,182 +74,74 @@ example_template:
 
 ---
 
-## EX-001 初審分數低於或等於品質線，案件直接結案
+## EX-001 初審固定且不需複審時由 manager 結案
 
 ### Rule
 
-當初審分數未超過品質線時，案件不進入複審，直接結案。
-
-### Why it matters
-
-這條規則直接決定：
-
-* 哪些案件需要複審
-* 哪些案件在初審完成後可直接結案
-* state machine 中 `INITIAL_REVIEW_COMPLETED -> CLOSED` 的合法路徑
+初審提交不固定或結案；固定後依既有規則不需複審時由 manager 正式結案（D-031）。
 
 ### Given
 
-* 存在一個已抽選並完成初審指派的案件
-* 案件目前狀態為 `INITIAL_REVIEW_IN_PROGRESS`
-* actor 為被指派的初審醫師
-* 專案品質線為 `80`
-* 初審 submission 的總分為 `75`
+初審分數 75、品質線 80；合法原提交者；同院 manager。
 
 ### When
 
-* 初審醫師送出初審結果
+先提交，再確認初審固定事實成立，manager 正式結案。
 
 ### Then
 
-* submission 狀態變為 `SUBMITTED`
-* 案件完成初審
-* 案件不進入 `PENDING_REREVIEW`
-* 案件狀態變為 `CLOSED`
-* 產生：
-
-  * `ReviewSubmissionSubmitted`
-  * `InitialReviewCompleted`
-  * `ReviewCaseClosed`
-
-### Notes
-
-* 本例驗證的是「直接結案」路徑
-* 本例不處理 revision
-* 本例不處理 detail visibility
+提交後 INITIAL_REVIEW_COMPLETED、無 ReviewCaseClosed；固定前 manager 結案拒絕。固定後無需複審，manager 結案才 CLOSED 並產生 ReviewCaseClosed。
 
 ### Mapping
 
-```yaml
-mapping:
-  domain:
-    - ReviewCase.completeInitialReview
-    - CaseStatus CLOSED
-    - qualityThreshold rule
-  application:
-    - SubmitInitialReviewUseCase
-  api:
-    - POST /review-submissions/{submissionId}/initial-review/submit
-  tests:
-    - TS-IR-006
-```
+* Authority: D-031／D-032／D-033（依適用規則）；D-004／005／012／020 保留。
+* Tests: TS-IR-006、TS-DA-003
 
----
-
-## EX-002 初審分數高於品質線，案件必須進入複審
+## EX-002 初審固定後超過品質線自動進複審
 
 ### Rule
 
-當初審分數超過品質線時，案件必須進入複審。
-
-### Why it matters
-
-這條規則是整個複審流程的入口，如果模糊，會導致：
-
-* 本該複審的案件沒有被升級
-* 或所有案件都被錯誤地送去複審
+初審固定是進複審必要條件，> threshold 自動進複審；手工派發同樣不得繞過固定（D-031）。
 
 ### Given
 
-* 案件狀態為 `INITIAL_REVIEW_IN_PROGRESS`
-* actor 為被指派的初審醫師
-* 品質線為 `80`
-* 初審 submission 總分為 `88.5`
+初審分數 88.5、品質線 80；原提交者合法提交。
 
 ### When
 
-* 初審醫師送出初審結果
+提交後先嘗試進複審，再確認初審固定事實成立。
 
 ### Then
 
-* submission 狀態為 `SUBMITTED`
-* 案件先完成初審
-* 案件狀態轉為 `PENDING_REREVIEW`
-* `rereviewRequired = true`
-* 產生：
-
-  * `ReviewSubmissionSubmitted`
-  * `InitialReviewCompleted`
-  * `ReviewCaseEscalatedToRereview`
-
-### Notes
-
-* 本例只固定「進入複審」的條件
-* 不要求此時已經完成複審醫師指派
+未固定保持初審完成，不產生升級事件；固定後依規則進 PENDING_REREVIEW、rereviewRequired=true，產生 ReviewCaseEscalatedToRereview。固定操作角色／API unknown，不由此例假定。
 
 ### Mapping
 
-```yaml
-mapping:
-  domain:
-    - ReviewCase.completeInitialReview
-    - ReviewCaseEscalatedToRereview
-  application:
-    - SubmitInitialReviewUseCase
-  api:
-    - POST /review-submissions/{submissionId}/initial-review/submit
-  tests:
-    - TS-IR-007
-```
+* Authority: D-031／D-032／D-033（依適用規則）；D-004／005／012／020 保留。
+* Tests: TS-IR-007、TS-DA-001
 
----
-
-## EX-003 複審完成後，最終分數以複審結果為準
+## EX-003 複審提交計算加權分數但不結案
 
 ### Rule
 
-複審最終分數由複審醫師決定，案件於複審完成後結案。
-
-### Why it matters
-
-這條規則固定了：
-
-* 初審分數不是最終 truth
-* 一旦進入複審，final score 由複審 submission 決定
+D-012／020 公式不變；D-032 提交與結案分離；D-033 不向複審醫師暴露加權結果。
 
 ### Given
 
-* 案件已進入複審
-* 案件狀態為 `REREVIEW_IN_PROGRESS`
-* actor 為已指派複審醫師
-* 已存在初審提交
-* 複審 submission 為合法草稿或待提交結果
+固定初審 80、複審 92，發布權重各 0.5；初審已固定、複審提交者合法。
 
 ### When
 
-* 複審醫師送出複審結果，finalScore = `92`
+複審醫師正式提交。
 
 ### Then
 
-* 複審 submission 狀態為 `SUBMITTED`
-* 案件 finalScore = `92`
-* 案件狀態變為 `CLOSED`
-* 產生：
-
-  * `ReviewSubmissionSubmitted`
-  * `RereviewCompleted`
-  * `ReviewCaseClosed`
-
-### Notes
-
-* 本例固定的是最終決定權，不是複審評分公式細節
+SUBMITTED；系統內 finalScore=86，未 CLOSED、未固定、無 ReviewCaseClosed；原提交者具資格但尚未正式結案。回應複審醫師不含可反推初審的 finalScore。
 
 ### Mapping
 
-```yaml
-mapping:
-  domain:
-    - ReviewCase.completeRereview
-    - CLOSED terminal state
-  application:
-    - SubmitRereviewUseCase
-  api:
-    - POST /review-submissions/{submissionId}/rereview/submit
-  tests:
-    - TS-RR-003
-```
-
----
+* Authority: D-031／D-032／D-033（依適用規則）；D-004／005／012／020 保留。
+* Tests: TS-RR-003、TS-DA-004、TS-DA-010
 
 ## 5. Revision Examples
 
@@ -256,7 +151,7 @@ mapping:
 
 ### Rule
 
-已提交的初審結果，只能由原審查醫師在未結案前發起 revision。
+已提交的初審結果，只能由原提交者在初審未固定且未結案／未取消前發起 revision。
 
 ### Why it matters
 
@@ -270,6 +165,7 @@ mapping:
 
 * 存在一筆 `INITIAL` 階段 submission
 * submission 狀態為 `SUBMITTED`
+* 初審結果未固定
 * 該案件尚未 `CLOSED`
 * 該案件尚未 `CANCELLED`
 * actor = 原審查醫師
@@ -361,15 +257,16 @@ mapping:
 
 ### Rule
 
-已提交的複審結果，只能由複審醫師在未結案前發起 revision。
+已提交的複審結果，只能由合法原提交者在複審未固定且未結案／未取消前發起 revision。
 
 ### Given
 
 * 存在一筆 `REREVIEW` 階段 submission
 * submission 狀態為 `SUBMITTED`
+* 初審已固定，複審結果未固定
 * 案件未 `CLOSED`
 * 案件未 `CANCELLED`
-* actor = 複審醫師
+* actor = 合法原複審提交者
 
 ### When
 
@@ -1159,54 +1056,28 @@ mapping:
 
 ---
 
-## EX-026 等於品質線時案件直接結案
+## EX-026 初審分數等於品質線仍須固定及 manager 結案
 
 ### Rule
-只有 **大於** 品質線時才進入複審；當初審分數 **等於** 品質線時，案件應直接結案。
 
-### Why it matters
-品質線邊界值最容易被實作寫錯成 `>= threshold` 進複審。  
-若不單獨固定此例，主流程雖然有 `<= threshold` 與 `> threshold` 的描述，但邊界值仍可能在實作時漂移。
+等於品質線不自動進複審，也不因提交或固定自動結案（D-031）。
 
 ### Given
-- 存在一個已抽選並完成初審指派的案件
-- 案件狀態為 `INITIAL_REVIEW_IN_PROGRESS`
-- actor 為被指派的初審醫師
-- `qualityThreshold = 80`
-- 初審 submission 的 `totalScore = 80`
+
+初審分數=品質線=80。
 
 ### When
-- 初審醫師送出初審結果
+
+合法提交，確認初審固定，再由 manager 在不需複審時結案。
 
 ### Then
-- submission 狀態為 `SUBMITTED`
-- 案件不進入 `PENDING_REREVIEW`
-- 案件狀態為 `CLOSED`
-- 產生：
-  - `ReviewSubmissionSubmitted`
-  - `InitialReviewCompleted`
-  - `ReviewCaseClosed`
-- **不應** 產生 `ReviewCaseEscalatedToRereview`
 
-### Notes
-- 本例是 EX-001 / EX-002 的邊界值補強
-- 本例不處理 revision
+提交後初審完成、無升級／結案事件；固定後不強制複審；manager 結案才 CLOSED。
 
 ### Mapping
-```yaml
-mapping:
-  domain:
-    - ReviewCase.completeInitialReview
-    - qualityThreshold boundary rule
-  application:
-    - SubmitInitialReviewUseCase
-  api:
-    - POST /review-submissions/{submissionId}/initial-review/submit
-  tests:
-    - TS-BD-001
-````
 
----
+* Authority: D-031／D-032／D-033（依適用規則）；D-004／005／012／020 保留。
+* Tests: TS-BD-001、TS-DA-003
 
 ## EX-027 第二次 revision 後應形成完整 superseded 鏈
 
@@ -1229,6 +1100,7 @@ revision 採 append-only model。
 * 存在同一案件同一 stage 的三代提交鏈可能性
 * revision 1 已為歷史版本
 * revision 2 目前為 `SUBMITTED`
+* 被修訂結果未固定
 * case 狀態不是 `CLOSED`
 * case 狀態不是 `CANCELLED`
 * actor 為合法責任人
@@ -1490,105 +1362,52 @@ mapping:
 
 ---
 
-## EX-032 D-018：複審醫師在複審提交前無法看到初審答案
+## EX-032 D-033：複審提交前仍無法取得初審資訊
 
 ### Rule
 
-當 actor 為 `REREVIEWER` 且案件目前無 `SUBMITTED` 複審 submission 時，
-查詢初審 submission 詳情時，`answers`、`comment`、`totalScore` 欄位被遮罩為 `null`，
-response 包含 `maskedFields`。
-
-### Why it matters
-
-複審的核心是「獨立評估」。若提前暴露初審答案，會影響複審的客觀性與品質可信度。
+同案複審醫師永久不可取得初審答案、分數、評語及可反推的衍生資訊；application/view 遮罩不改 domain 值（D-033）。
 
 ### Given
 
-* 存在 ReviewCase RC-001，狀態為 `REREVIEW_IN_PROGRESS`
-* 已有已提交初審 submission SUB-INIT-001
-* 案件目前無 `SUBMITTED` 複審 submission
-* actor 為 RC-001 的指派複審醫師（`REREVIEWER`）
+初審已固定；actor 為同案複審醫師；分別涵蓋複審未提交、已提交、revision、已固定、CLOSED 的狀況。
 
 ### When
 
-* actor 查詢 `GET /review-cases/RC-001/submissions/SUB-INIT-001`
+查詢初審 detail、case/list、history/compare、audit/report/export，並檢查 submit/revision/close 回應與前端快取。
 
 ### Then
 
-* 回傳 `200`
-* `data.answers` 為 `null`
-* `data.comment` 為 `null`
-* `data.totalScore` 為 `null`
-* `data.maskedFields` 為 `["answers", "comment", "totalScore"]`
-
-### Notes
-
-* 遮罩在 application layer 執行，不改變 domain state
-* 遮罩條件：actor 為 REREVIEWER + 無 SUBMITTED 複審 submission
+初審 answers/comment/totalScore 遮罩，保留既有 maskedFields 慣例；不含可反推初審的 finalScore/preview/diff。提交與結案不解除；其他角色依既有政策。
 
 ### Mapping
 
-```yaml
-mapping:
-  domain:
-    - D-018
-  application:
-    - GetSubmissionDetailUseCase (masking branch)
-  api:
-    - GET /review-cases/{caseId}/submissions/{submissionId}
-  tests:
-    - TS-GAP-15-001
-```
+* Authority: D-031／D-032／D-033（依適用規則）；D-004／005／012／020 保留。
+* Tests: TS-DA-009、TS-DA-012
 
----
-
-## EX-033 D-018：複審提交後複審醫師可看到初審答案
+## EX-033 D-033：複審提交後、revision 與結案後仍無法取得初審資訊
 
 ### Rule
 
-當 `REREVIEWER` 在複審提交完成（存在 `SUBMITTED` 複審 submission）後再查詢初審 submission，
-不執行遮罩，`maskedFields` 欄位不出現於 response。
-
-### Why it matters
-
-複審完成後，遮罩不再必要。複審醫師應可查看初審內容作為參考與追溯。
+同案複審醫師永久不可取得初審答案、分數、評語及可反推的衍生資訊；application/view 遮罩不改 domain 值（D-033）。
 
 ### Given
 
-* ReviewCase RC-001，狀態為 `CLOSED`
-* 已有已提交初審 submission SUB-INIT-001
-* 已有 `SUBMITTED` 複審 submission SUB-RR-001
-* actor 為 RC-001 的複審醫師（`REREVIEWER`）
+初審已固定；actor 為同案複審醫師；分別涵蓋複審未提交、已提交、revision、已固定、CLOSED 的狀況。
 
 ### When
 
-* actor 查詢 `GET /review-cases/RC-001/submissions/SUB-INIT-001`
+查詢初審 detail、case/list、history/compare、audit/report/export，並檢查 submit/revision/close 回應與前端快取。
 
 ### Then
 
-* 回傳 `200`
-* `data.answers` 有完整答案內容
-* `data.comment` 有評語內容
-* `data.totalScore` 有分數
-* response **不包含** `maskedFields` 欄位
-
-### Notes
-
-* 遮罩解除條件：案件存在 `SUBMITTED` 複審 submission
+初審 answers/comment/totalScore 遮罩，保留既有 maskedFields 慣例；不含可反推初審的 finalScore/preview/diff。提交與結案不解除；其他角色依既有政策。
 
 ### Mapping
 
-```yaml
-mapping:
-  domain:
-    - D-018
-  application:
-    - GetSubmissionDetailUseCase (no masking branch)
-  api:
-    - GET /review-cases/{caseId}/submissions/{submissionId}
-  tests:
-    - TS-GAP-15-002
-```
+* Authority: D-031／D-032／D-033（依適用規則）；D-004／005／012／020 保留。
+* Tests: TS-DA-009、TS-DA-012
+
 * batch A 保持 `FAILED`
 * retry 不覆寫原 batch
 
@@ -1914,7 +1733,7 @@ domain event 只能在業務事實成立後發布；不能出現：
 
 * 選定一條核心流程：
 
-  * 初審直接結案
+  * 初審固定且無需複審時由 manager 正式結案
   * 初審進複審
   * 複審完成
   * revision 成功
@@ -2177,23 +1996,25 @@ mapping:
 
 ## 10.1 初審提交後的案件流向
 
-| Case Status Before         | Actor                 | totalScore vs threshold | Expected Case Status After |
-| -------------------------- | --------------------- | ----------------------- | -------------------------- |
-| INITIAL_REVIEW_IN_PROGRESS | assigned reviewer     | `<= threshold`          | CLOSED                     |
-| INITIAL_REVIEW_IN_PROGRESS | assigned reviewer     | `> threshold`           | PENDING_REREVIEW           |
-| INITIAL_REVIEW_IN_PROGRESS | non-assigned reviewer | 任意                      | rejected                   |
-| CLOSED                     | 任意                    | 任意                      | rejected                   |
+| 事實／操作 | 條件 | 結果 |
+|---|---|---|
+| 合法初審提交 | 任意 threshold，未固定 | INITIAL_REVIEW_COMPLETED；不結案／進複審 |
+| 初審固定後自動評估 | score > threshold | PENDING_REREVIEW |
+| 初審固定後評估 | score ≤ threshold 或 null | 不強制複審；manager 可手工派複審或在不需複審時結案 |
+| manager 手工派複審／不需複審時結案 | 初審未固定 | rejected |
+| 提交／revision | CLOSED／CANCELLED | rejected |
 
----
+固定操作授權角色與表示 unknown（D-031），不得由本表補造。
 
 ## 10.2 Revision 可否成立
 
 | Case Status                  | Submission Stage | Actor                 | Expected |
 | ---------------------------- | ---------------- | --------------------- | -------- |
-| not CLOSED and not CANCELLED | INITIAL          | original reviewer     | allowed  |
+| not CLOSED and not CANCELLED，初審未固定 | INITIAL | original submitter | allowed |
 | not CLOSED and not CANCELLED | INITIAL          | non-original reviewer | rejected |
-| not CLOSED and not CANCELLED | REREVIEW         | assigned rereviewer   | allowed  |
+| not CLOSED and not CANCELLED，複審未固定 | REREVIEW | original submitter | allowed |
 | not CLOSED and not CANCELLED | REREVIEW         | non-rereviewer        | rejected |
+| 結果已固定                   | 對應 stage | 任意 | rejected |
 | CLOSED                       | 任意               | 任意                    | rejected |
 | CANCELLED                    | 任意               | 任意                    | rejected |
 
@@ -2226,3 +2047,279 @@ mapping:
 3. application service integration tests
 4. API acceptance tests
 5. regression suite 選例
+
+## EX-041 初審未固定不得進入複審
+
+### Rule
+
+D-031。
+
+### Given
+
+初審合法提交且分數 > threshold，尚未固定。
+
+### When
+
+嘗試自動進複審、manager 手工派複審及開始複審。
+
+### Then
+
+均拒絕／不推進，不發布升級或開始事件；確認固定事實後自動依 > 分支進 PENDING_REREVIEW。固定授權角色不在本例假定。
+
+### Mapping
+
+* Test: TS-DA-001
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-042 初審固定前後 revision 邊界
+
+### Rule
+
+D-031、D-004、D-005。
+
+### Given
+
+初審 SUBMITTED、未結案；原提交者。
+
+### When
+
+固定前 revision；確認初審固定後再次 revision。
+
+### Then
+
+固定前建立新版本、舊版 SUPERSEDED、Case 主狀態不變；固定後拒絕且無新版本／成功事件。非原提交者固定前亦拒絕。
+
+### Mapping
+
+* Test: TS-DA-002
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-043 無需複審案件的固定及結案 guard
+
+### Rule
+
+D-031。
+
+### Given
+
+初審分數分別 <、= threshold 或 threshold null；manager 同院。
+
+### When
+
+提交後未固定先嘗試結案，再確認固定且不需複審，由 manager 結案。
+
+### Then
+
+未固定拒絕；固定不自動結案；manager 正式結案才 CLOSED。非 manager 不可代替；固定後可保留既有 manager 手工派複審選項。
+
+### Mapping
+
+* Test: TS-DA-003
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-044 複審提交不自動結案
+
+### Rule
+
+D-032。
+
+### Given
+
+初審已固定；合法 assigned rereviewer 與 draft。
+
+### When
+
+正式提交複審。
+
+### Then
+
+SUBMITTED，未固定、未 CLOSED；具資格但未結案；只有提交／完成事實，無 ReviewCaseClosed。提交後狀態技術表示 unknown。
+
+### Mapping
+
+* Test: TS-DA-004
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-045 不具結案資格不得正式結案
+
+### Rule
+
+D-032。
+
+### Given
+
+尚無合法複審提交，或仍有既有阻擋條件（例如 CANCELLED）。
+
+### When
+
+原複審醫師嘗試正式結案。
+
+### Then
+
+拒絕，案件及固定事實不被改為成功結案，無 ReviewCaseClosed。不新增分數門檻或額外審批。
+
+### Mapping
+
+* Test: TS-DA-005
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-046 僅原複審提交者可正式結案
+
+### Rule
+
+D-032、D-023、D-024。
+
+### Given
+
+合法有效複審提交且無其他既有阻擋條件。
+
+### When
+
+非原提交者、manager、其他 rereviewer、跨院 actor 嘗試正式結案；再由合法原提交者操作。
+
+### Then
+
+不合法 actor／scope 均拒絕；合法原提交者可自行決定時間，正式結案轉 CLOSED 且同時固定複審結果。
+
+### Mapping
+
+* Test: TS-DA-006
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-047 複審提交後結案前可修訂
+
+### Rule
+
+D-032、D-004、D-005。
+
+### Given
+
+初審固定，複審已合法提交但未固定、未 CLOSED／CANCELLED。
+
+### When
+
+原提交者 revision，再正式結案；另測非原提交者 revision。
+
+### Then
+
+合法 revision append-only、更新有效版本及加權分數，Case 主狀態不變；非原提交者拒絕。結案使用目前有效結果且同時固定。
+
+### Mapping
+
+* Test: TS-DA-007
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-048 CLOSED 禁止所有 revision 與 reopen
+
+### Rule
+
+D-032、D-006。
+
+### Given
+
+案件 CLOSED；另有 CANCELLED 對照；原初審／複審提交者。
+
+### When
+
+嘗試兩階段 revision、新提交及 CLOSED reopen。
+
+### Then
+
+全部拒絕；狀態及歷史不變，無 ReviewSubmissionRevised 或其他成功事件；UI 無例外修正入口。
+
+### Mapping
+
+* Test: TS-DA-008
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-049 全生命週期永久盲審與反推防護
+
+### Rule
+
+D-033。
+
+### Given
+
+同案複審醫師，分別處於未提交、已提交、revision、已固定及 CLOSED。
+
+### When
+
+檢查 list/detail/history/compare、audit/report/export、submit/revision/close ack、cache 與入口切換。
+
+### Then
+
+任何出口均不可取得初審答案／分數／評語，亦無 finalScore／preview／diff 等可反推值；應用層 response 遮罩，非僅 DOM 隱藏。已知複審分數與權重仍不能解出初審分數。
+
+### Mapping
+
+* Test: TS-DA-009
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-050 加權公式與版本不變性
+
+### Rule
+
+D-012、D-020、D-032、D-033。
+
+### Given
+
+固定初審80、複審92，權重各0.5；另測合法0.4／0.6。
+
+### When
+
+提交、將複審 revision 為90、正式結案；嘗試修改已發布權重。
+
+### Then
+
+系統內分數依序86、85；0.4／0.6初次87.2；結案不改公式或初審結果。非法權重和／非正權重拒絕，發布後不可改；複審醫師不可讀加權值，manager 本院依原政策可讀。
+
+### Mapping
+
+* Test: TS-DA-010
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-051 事件、固定與狀態一致性
+
+### Rule
+
+D-031、D-032。
+
+### Given
+
+合法初審／複審流程及各拒絕流程。
+
+### When
+
+逐步提交初審、確認固定、提交複審、revision、正式結案，對照持久化事實與事件。
+
+### Then
+
+提交初審不發升級／結案事件；固定後需複審才依規則升級。複審提交不發結案事件；revision 新舊版本一致；結案時已 CLOSED 且結果固定才 ReviewCaseClosed。拒絕／rollback 不留下成功事實或成功事件；固定事件技術名稱 unknown。
+
+### Mapping
+
+* Test: TS-DA-011
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-052 其他角色資料政策不變
+
+### Rule
+
+D-008、D-009、D-010、D-033。
+
+### Given
+
+本院 manager、原 reviewer、授權 auditor、system admin 與同案 rereviewer。
+
+### When
+
+同一初審資料與衍生結果透過合法 query/export 路徑存取，另測跨院／未授權範圍。
+
+### Then
+
+其他角色依既有政策：manager 本院完整、reviewer 合法範圍、auditor 授權院區、sysadmin metadata-only；非法 scope 拒絕。同案 rereviewer 所有階段仍遮罩。
+
+### Mapping
+
+* Test: TS-DA-012
+* Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。

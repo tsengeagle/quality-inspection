@@ -76,9 +76,9 @@
 複審作業頁是「最終審查決策頁」。  
 它和初審頁共享部分互動模型，但有三個關鍵差異：
 
-1. 必須先看到初審摘要，才能進入複審表單
-2. 複審提交後會直接決定 final score
-3. 正常提交完成後，案件會進入 `CLOSED`
+1. 必須確認初審已固定，且不可取得初審內容，才能進入複審表單（D-031／033）
+2. 複審提交後由系統按 D-012／020 加權計分；複審醫師不得取得可反推初審的 finalScore（D-033）
+3. 正常提交完成不固定、不 CLOSED；原提交者在具資格時另行正式結案（D-032）
 
 因此，這頁必須清楚區分：
 
@@ -183,7 +183,6 @@ page_modes:
   - NEW_REREVIEW
   - EDIT_DRAFT
   - REVISION
-  - REVISION_EXCEPTION_CLOSED
   - READONLY_BLOCKED
 ```
 
@@ -211,11 +210,7 @@ page_modes:
 
 #### `REVISION_EXCEPTION_CLOSED`
 
-* 僅限原複審醫師
-* UI mode label 顯示為 `例外修正（已結案）`
-* 屬 revision exception，不構成 reopen
-
-### 建議提示訊息
+D-032 已撤銷此歷史模式；CLOSED 僅 readonly/blocked，不提供修正入口。
 
 #### 複審草稿模式
 
@@ -235,37 +230,13 @@ page_modes:
 ## 5.3 初審摘要區
 
 ### 目的
+僅呈現複審建立於已固定初審結果之上的流程事實（D-031）。
 
-複審不是從零開始，因此本區是複審頁最關鍵的前置資訊區。
+### 可見性
+複審醫師不得取得初審答案、分數、評語；不提供初審 totalScore／comment 或前往其他頁面取得內容的替代入口（D-033）。其他不洩漏資訊的 metadata 依既有 scope；詳細安全清單 unknown。
 
-### 必須顯示
-
-* latest initial submissionId
-* 初審 reviewer
-* 初審 totalScore
-* 初審 submittedAt
-* initial revision count
-* 是否因品質線進入複審
-* 必要時顯示初審 comment 摘要 [依設計決策]
-
-### 建議顯示方式
-
-以唯讀摘要卡呈現，不與複審表單混在一起。
-
-### 建議操作
-
-* 返回案件詳情查看完整初審摘要
-* 查看 revision 歷程 [非在本區直接展開逐題差異]
-
-### 補充
-
-這區的目的是讓複審醫師知道：
-
-* 為什麼這案件會到我手上
-* 初審結果是什麼
-* 我現在是在做最終判定
-
----
+### 操作
+可返回案件詳情或歷程，但各頁仍受永久盲審，不能藉導航解除。
 
 ## 5.4 複審評分表作答區
 
@@ -302,30 +273,13 @@ page_modes:
 ## 5.5 評語、附件與最終分數區
 
 ### 目的
+輸入本人複審評語、附件與評分；由系統按 D-012／020 計算加權最終分數。
 
-承載複審補充說明與最終分數決策語意。
+### 顯示原則
+本人複審結果可見；初審答案／分數／評語及可反推初審的 finalScore／preview 不可顯示或從 response/cache 取得（D-033）。
 
-### 建議內容
-
-* comment textarea
-* attachment list
-* upload control
-* final score summary panel
-
-### final score 顯示原則
-
-* final score 不一定需要另外手填獨立欄位，若系統由答案計算，則應以摘要方式顯示
-* 但 UI 必須清楚標明：
-
-  * `此提交將作為最終分數依據`
-  * `提交完成後案件將結案`
-
-### 建議提示
-
-* `複審提交完成後，案件將進入已結案狀態`
-* `請確認本次複審結果與最終分數`
-
----
+### 提示
+提交不等於固定或結案；未固定時合法原提交者可 revision。具資格後由原複審提交者決定正式結案時間，結案同時固定結果（D-032）。
 
 ## 5.6 提交與草稿操作區
 
@@ -338,7 +292,7 @@ page_modes:
 | 按鈕     | 用途                |
 | ------ | ----------------- |
 | 保存草稿   | 保存目前複審輸入          |
-| 提交複審   | 正式提交複審並結案         |
+| 提交複審   | 正式提交複審，不自動結案         |
 | 提交複審修正 | revision 模式下的主要動作 |
 | 返回案件詳情 | 返回 detail page    |
 
@@ -367,7 +321,7 @@ page_modes:
 
 提交區需明確寫出：
 
-* 複審提交完成後，案件將結案
+* 複審提交完成不結案；具資格後由原提交者另行正式結案並固定結果
 * 複審修正會建立新 revision，不覆寫舊版
 
 ---
@@ -427,7 +381,7 @@ page_modes:
 
 * 第一次進入時先觸發 `start rereview`
 * 進入 `NEW_REREVIEW` 模式
-* 顯示初審摘要 + 空白複審表單
+* 顯示初審已固定的流程事實與空白複審表單，不含初審內容（D-033）
 
 ### 可用操作
 
@@ -454,17 +408,7 @@ page_modes:
 ## 7.3 `CLOSED`
 
 ### 頁面行為
-
-* `REVISION_EXCEPTION_CLOSED`（限原複審醫師）或 `READONLY_BLOCKED`（其他人）
-* 顯示：
-
-  * 此案件已結案
-  * 新複審提交不可執行
-  * 允許以 revision 例外流程修正既有複審結果（不構成 reopen）
-  * exception 提示採 warning / amber 語意；其他 readonly blocked 維持 blocked 語意
-* 不顯示一般草稿 / 提交按鈕；僅顯示複審修正入口（合法責任人）
-
----
+READONLY_BLOCKED；禁止新提交、revision 與 reopen，不顯示例外修正入口（D-032）。盲審持續，不顯示可反推初審的加權分數。
 
 ## 7.4 `CANCELLED`
 
@@ -504,9 +448,9 @@ page_modes:
 需同時滿足：
 
 * stage = `REREVIEW`
-* actor = assigned rereviewer
+* actor = 合法原複審提交者（revision）；新提交仍驗證 assignment／ownership
 * case status != `CANCELLED`
-* 若 case status = `CLOSED`，僅允許例外 revision flow（D-021）
+* 複審結果未固定，case status != CLOSED／CANCELLED；D-032 撤銷 D-021 例外
 * 存在可作為 base 的 submitted rereview submission
 
 ### 8.2 revision 模式的 UI 表現
@@ -543,7 +487,7 @@ page_modes:
 ### 9.2 Empty Form
 
 * 僅在第一次開始複審時出現
-* 顯示初審摘要 + 空白複審表單
+* 顯示初審已固定的流程事實與空白複審表單，不含初審內容（D-033）
 
 ### 9.3 Draft Loaded
 
@@ -586,7 +530,7 @@ page_modes:
 ### 10.3 revision 提交前額外驗證
 
 * base submission stage = `REREVIEW`
-* actor = assigned rereviewer
+* actor = 合法原複審提交者（revision）；新提交仍驗證 assignment／ownership
 * case 未結案 / 未取消
 
 ---
@@ -689,18 +633,7 @@ page_modes:
 
 ### 13.3 提交複審 response
 
-```json id="uqnrea"
-{
-  "success": true,
-  "data": {
-    "submissionId": "SUB-RR-001",
-    "status": "SUBMITTED",
-    "caseId": "RC-001",
-    "caseStatus": "CLOSED",
-    "finalScore": 92.0
-  }
-}
-```
+以 api-spec.md §12.3 為準：合法 SUBMITTED、不自動 CLOSED；不向複審醫師回傳可反推初審的 finalScore。提交後狀態表示與精確 response schema unknown，本輪不新增 enum。
 
 ### 13.4 revision response
 
@@ -725,14 +658,14 @@ page_modes:
 
 1. 只有指派 rereviewer 可進入
 2. 尚未進入複審流程時是否正確阻擋
-3. 初審摘要是否正確顯示
+3. 是否只呈現安全的初審固定流程事實，初審內容及可反推分數不可取得
 4. 草稿與 submitted 模式是否正確區分
 5. revision 模式是否正確顯示
 6. `CLOSED` / `CANCELLED` 是否正確阻擋
-7. 提交複審後 case 是否正確進入 `CLOSED`
+7. 提交複審後是否仍未 CLOSED；具資格且原提交者正式結案才 CLOSED 並固定結果
 8. 非複審醫師不可 revision
 9. revision 是否明確不覆寫舊版
-10. final score 區塊是否清楚表達「最終判定」
+10. 不顯示可反推初審分數的 finalScore；提交與正式結案提示分離（D-032／033）
 
 ---
 
@@ -752,3 +685,11 @@ page_modes:
 * `UI-016 稽核查詢頁`
 
 負責。
+
+## D-031～D-033 生命週期與資料可見性對齊
+
+以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
+
+D-031：必須基於已固定初審。D-032：提交不固定或 CLOSED；合法提交且無其他既有阻擋條件即具資格，原複審提交者決定正式結案時間，結案同時固定尚未固定結果。未固定、未結案／未取消時原提交者可 revision；CLOSED 無例外模式。結案 binding、提交後狀態表示 unknown，不新增 enum／API。D-033：所有階段初審內容及可反推的 finalScore／preview／diff 皆不可從畫面、response 或 cache 取得。
+
+驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。

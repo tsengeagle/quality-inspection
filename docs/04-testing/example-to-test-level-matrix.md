@@ -131,9 +131,9 @@
 
 | Example ID | Rule Summary | Primary Level | Secondary Levels | Why Primary | Scenario Ref | Regression Tier |
 |---|---|---|---|---|---|---|
-| EX-001 | 初審低於或等於品質線直接結案 | L1 Domain Unit Test | L2, L3, L5 | 核心是 `ReviewCase` 的狀態與品質線規則 | TS-IR-006 | critical |
-| EX-002 | 初審高於品質線進入複審 | L1 Domain Unit Test | L2, L3, L5 | 核心是 `completeInitialReview` 後的 state transition | TS-IR-007 | critical |
-| EX-003 | 複審完成後 final score 以複審為準 | L1 Domain Unit Test | L2, L3, L5 | 核心是 `completeRereview` 與 final score 決定權 | TS-RR-003 | critical |
+| EX-001 | 初審固定且無需複審時由 manager 結案 | L1 Domain Unit Test | L2, L3, L5 | 核心是 `ReviewCase` 的狀態與品質線規則 | TS-IR-006 | critical |
+| EX-002 | 初審固定後高於品質線進入複審 | L1 Domain Unit Test | L2, L3, L5 | 核心是 D-031 初審固定後的 state transition | TS-IR-007 | critical |
+| EX-003 | 複審提交加權計分、不自動結案 | L1 Domain Unit Test | L2, L3, L5 | 核心是 `completeRereview` 與 D-012／020 加權計分與 D-032 提交不結案 | TS-RR-003 | critical |
 | EX-004 | 原審查醫師可修正已提交初審 | L2 Application Service Test | L1, L3, L4 | 同時涉及 actor ownership、revision orchestration、append-only | TS-RV-001, TS-RV-007, TS-RV-008 | critical |
 | EX-005 | 非原審查醫師不可修正初審 | L2 Application Service Test | L3 | 核心在 actor ownership 與 command legality | TS-RV-002 | high |
 | EX-006 | 複審醫師可修正已提交複審 | L2 Application Service Test | L1, L3, L4 | 同時涉及責任人、revision 與 stage-specific flow | TS-RV-003 | critical |
@@ -213,7 +213,7 @@ persistence_primary_examples:
 
 ```yaml id="0nmh2p"
 acceptance_primary_flows:
-  - 初審直接結案
+  - 初審固定後 manager 結案
   - 初審進複審後結案
   - failed batch retry
   - manager / auditor / sysadmin 的視角差異
@@ -348,3 +348,8 @@ medium_examples:
 2. CI / nightly / release regression 分層
 3. 單元測試與 integration test 責任分工
 4. 規則新增時的測試缺口分析
+
+## D-031～D-033 新增驗證映射
+
+EX-041～EX-052 分別一對一映射 TS-DA-001～TS-DA-012。Domain 層驗固定／revision／結案資格與加權不變性；Application 層驗原提交者與 scope、協調一致性；API／Frontend／Acceptance 驗永久盲審及反推防護、提交與結案分離；Persistence／event integration 驗有效版本與成功事實一致。
+既有 EX-004／006／027 等 revision 成功 fixture 必須為對應結果未固定；涉及複審時初審必已固定。所有共用 full detail fixture 對複審醫師仍須套 D-033。新操作技術入口 unknown，不以測試骨架發明 method／endpoint。

@@ -29,7 +29,7 @@
 3. 已提交 submission 不可覆寫，revision 採 append-only。
 4. 批次 / 案件 / submission 均需可追溯其 version / snapshot。
 5. 同批次內不得重複抽中同一 `sourceCaseKey`。
-6. `CLOSED` / `CANCELLED` 後不允許 revision，此規則主要由 application/domain guard 保護；DB 僅做輔助約束。
+6. 結果固定後及 `CLOSED` / `CANCELLED` 後不允許 revision（D-031／032），此規則主要由 application/domain guard 保護；DB 僅做輔助約束。
 7. query / report / audit 可建立 read model，不必與 transaction table 完全同構。
 
 ---
@@ -902,3 +902,14 @@ v1 建議：
 5. application service
 6. API spec
 7. persistence model
+
+## 16. 固定與正式結案語意對齊（D-031～D-033）
+
+沿用 §5.12 ReviewCase、§5.14 ReviewSubmission 與既有 aggregate／table 邊界，不在本輪新增 table、column、enum 或 migration。
+
+* 初審 SUBMITTED 不等於固定；固定後禁止 revision，複審及無需複審的 manager 結案必須引用已固定初審結果。
+* 複審 SUBMITTED 不等於 CLOSED 或固定；未固定、未結案時合法原提交者可 append-only revision，保留 revisionNo／SUPERSEDED 鏈與有效版本關聯。
+* 正式結案與固定尚未固定的複審結果須保持業務一致性；CLOSED 後不得寫任何 revision 或 reopen。CANCELLED terminal 不變。
+* finalScore 依固定初審結果、最新合法複審結果與已發布版本權重按 D-012／020 計算；固定不是改權重或改 snapshot。
+* read model／audit／export 向同案複審醫師輸出時，永久排除初審答案／分數／評語及可反推初審分數的衍生值（D-033）；不修改 domain 原始資料，也不改其他角色政策。
+* 固定的儲存表示、複審已提交未結案狀態表示、併發／交易設計、既有資料遷移為 unknown；本輪不把新增規則宣稱為已存在 DB 保證。
