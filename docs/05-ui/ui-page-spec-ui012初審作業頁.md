@@ -103,7 +103,7 @@
 - case status 為以下之一：
   - `PENDING_INITIAL_REVIEW`
   - `INITIAL_REVIEW_IN_PROGRESS`
-  - 合法可 revision 的未結案狀態
+  - 合法可 revision 的未固定結果、未結案／未取消狀態
 
 ### 4.2 不合法進入情境
 
@@ -440,7 +440,7 @@ page_modes:
 ### 頁面行為
 
 * 原則上不再作為一般初審填答頁入口
-* 若系統允許未結案前以 reviewer 進行合法 revision，才可進 `REVISION` 模式
+* 若初審結果未固定且未結案／未取消，原提交者進行合法 revision，才可進 `REVISION` 模式
 * 否則只顯示不可操作提示
 
 ### 可用操作
@@ -455,7 +455,7 @@ page_modes:
 ### 頁面行為
 
 * 不應允許一般初審續編
-* 僅在你既有 decision 下，若未結案且屬原審查醫師合法 revision，才可進 revision 模式
+* 初審固定後必須 blocked；PENDING_REREVIEW 的初審已固定，不得再進初審 revision（D-031）
 * 否則顯示只讀提示並導回案件詳情
 
 ---
@@ -464,7 +464,7 @@ page_modes:
 
 ### 頁面行為
 
-* 同上，僅在合法 revision 情境下可進
+* 初審已固定，不得再 revision；僅唯讀／blocked（D-031）
 * 不可讓 reviewer 誤以為還能正常重做初審
 
 ---
@@ -505,6 +505,7 @@ page_modes:
 
 * stage = `INITIAL`
 * actor = original reviewer
+* 初審結果未固定（D-031）
 * case status != `CLOSED`
 * case status != `CANCELLED`
 * 存在可作為 base 的 submitted submission
@@ -728,7 +729,7 @@ page_modes:
 4. revision 是否明確提示不覆寫舊版
 5. `CLOSED` / `CANCELLED` 是否正確阻擋
 6. 提交後 case status 是否依規則轉移
-7. 超過品質線時是否正確導向複審邏輯
+7. 初審固定後才按品質線導向複審，未固定不得進入
 8. 非原 reviewer 不可 revision
 9. form 驗證是否與 score sheet snapshot 對齊
 
@@ -750,3 +751,11 @@ page_modes:
 * `UI-016 稽核查詢頁`
 
 負責。
+
+## D-031～D-033 生命週期與資料可見性對齊
+
+以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
+
+依 D-031，提交不固定、不立即進複審或結案；只有合法原提交者可對未固定結果 revision，固定後禁止。PENDING_REREVIEW／REREVIEW_IN_PROGRESS 的初審已固定，不存在初審 revision 入口。初審固定的授權角色與操作 binding unknown，本輪不發明角色／按鈕。已固定且不需複審時由 manager 正式結案。其他頁面輸出此結果時適用 D-033。
+
+驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。

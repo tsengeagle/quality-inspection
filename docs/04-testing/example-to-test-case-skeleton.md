@@ -49,7 +49,7 @@ should_<expected_behavior>_when_<condition>
 例如：
 
 ```text
-should_close_case_when_initial_score_is_not_above_threshold
+should_allow_manager_close_only_after_initial_fixed_without_rereview
 ```
 
 ---
@@ -72,9 +72,9 @@ should_close_case_when_initial_score_is_not_above_threshold
 
 | Example ID | Primary Test Type        | Suggested Test Class                       | Suggested Test Method                                                                              | Key Assertions                                                                  | Suggested Fixtures                                                      | Secondary Coverage             |
 | ---------- | ------------------------ | ------------------------------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------ |
-| EX-001     | Domain Unit Test         | `ReviewCaseTest`                           | `should_close_case_when_initial_score_is_not_above_threshold`                                      | case status = CLOSED；不進入 rereview；產生 close-related event                        | case in INITIAL_REVIEW_IN_PROGRESS；qualityThreshold=80；score=75         | Application / API / Acceptance |
-| EX-002     | Domain Unit Test         | `ReviewCaseTest`                           | `should_mark_case_pending_rereview_when_initial_score_exceeds_threshold`                           | case status = PENDING_REREVIEW；rereviewRequired=true；產生 escalate event          | case in INITIAL_REVIEW_IN_PROGRESS；threshold=80；score=88.5              | Application / API / Acceptance |
-| EX-003     | Domain Unit Test         | `ReviewCaseTest`                           | `should_finalize_score_from_rereview_submission_when_rereview_is_completed`                        | finalScore 取複審分數；status=CLOSED                                                  | case in REREVIEW_IN_PROGRESS；valid rereview submission                  | Application / API / Acceptance |
+| EX-001     | Domain Unit Test         | `ReviewCaseTest`                           | `should_allow_manager_close_only_after_initial_fixed_without_rereview`                                      | 初審提交不 CLOSED；固定且無需複審後 manager 結案才 CLOSED                        | initial submitted then fixed；manager；qualityThreshold=80；score=75         | Application / API / Acceptance |
+| EX-002     | Domain Unit Test         | `ReviewCaseTest`                           | `should_mark_case_pending_rereview_when_initial_score_exceeds_threshold`                           | case status = PENDING_REREVIEW；rereviewRequired=true；產生 escalate event          | initial submitted then fixed；threshold=80；score=88.5              | Application / API / Acceptance |
+| EX-003     | Domain Unit Test         | `ReviewCaseTest`                           | `should_compute_weighted_score_without_closing_on_rereview_submit`                        | finalScore 按 D-012／020 加權；提交後未 CLOSED                                                  | case in REREVIEW_IN_PROGRESS；valid rereview submission                  | Application / API / Acceptance |
 | EX-004     | Application Service Test | `ReviseInitialReviewUseCaseTest`           | `should_create_new_initial_revision_when_actor_is_original_reviewer_and_case_is_open`              | 建立新 submission；revisionNo+1；舊版 SUPERSEDED；case status 不變                        | existing INITIAL submitted submission；open case；original reviewer actor | Domain / API / Persistence     |
 | EX-005     | Application Service Test | `ReviseInitialReviewUseCaseTest`           | `should_reject_initial_revision_when_actor_is_not_original_reviewer`                               | 丟出 actor mismatch；不建立新 revision                                                 | existing INITIAL submitted submission；non-owner actor                   | API                            |
 | EX-006     | Application Service Test | `ReviseRereviewUseCaseTest`                | `should_create_new_rereview_revision_when_actor_is_assigned_rereviewer_and_case_is_open`           | 建立新 rereview revision；舊版 SUPERSEDED；case status 不變                              | existing REREVIEW submitted submission；assigned rereviewer actor        | Domain / API / Persistence     |
@@ -282,9 +282,9 @@ acceptance_test_classes:
 minimum_test_skeletons:
   - class: ReviewCaseTest
     methods:
-      - should_close_case_when_initial_score_is_not_above_threshold
+      - should_allow_manager_close_only_after_initial_fixed_without_rereview
       - should_mark_case_pending_rereview_when_initial_score_exceeds_threshold
-      - should_finalize_score_from_rereview_submission_when_rereview_is_completed
+      - should_compute_weighted_score_without_closing_on_rereview_submit
       - should_reject_start_initial_review_when_case_is_not_assigned
       - should_reject_start_rereview_when_case_is_not_pending_rereview
 
@@ -380,3 +380,8 @@ common_fixture_sets:
 * Domain：closed case revision guard
 * Application：closed case command rejection
 * API：closed case returns 409/422
+
+## D-031～D-033 新增驗證映射
+
+EX-041～EX-052 分別一對一映射 TS-DA-001～TS-DA-012。Domain 層驗固定／revision／結案資格與加權不變性；Application 層驗原提交者與 scope、協調一致性；API／Frontend／Acceptance 驗永久盲審及反推防護、提交與結案分離；Persistence／event integration 驗有效版本與成功事實一致。
+既有 EX-004／006／027 等 revision 成功 fixture 必須為對應結果未固定；涉及複審時初審必已固定。所有共用 full detail fixture 對複審醫師仍須套 D-033。新操作技術入口 unknown，不以測試骨架發明 method／endpoint。

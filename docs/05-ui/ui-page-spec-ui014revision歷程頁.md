@@ -389,7 +389,7 @@ detail_modes:
 ### 可做
 
 * 查看自己的複審 revision 歷程
-* 若案件未結案且合法，可由此導去複審作業頁 revision 模式
+* 若複審結果未固定、案件未結案／未取消且 actor 為合法原提交者，可導去 revision 模式
 
 ### 不可做
 
@@ -480,8 +480,8 @@ detail_modes:
 
 顯示：
 
-* `案件已結案，revision 歷程預設唯讀；若你是原複審醫師可使用複審修正例外入口`
-* 顯示條件式「前往複審修正（例外）」導頁入口（僅合法責任人；navigate-only，不是 submit）
+* `案件已結案，revision 歷程唯讀，禁止所有修正與 reopen`（D-032）
+* CLOSED 不顯示任何 revision 入口；未固定、未結案時才依原提交者 guard 導向作業頁（D-032）
 
 ### 8.2 當案件 `CANCELLED`
 
@@ -698,3 +698,11 @@ detail_modes:
 * `UI-005 版本檢視頁`
 
 負責。
+
+## D-031～D-033 生命週期與資料可見性對齊
+
+以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
+
+保持閱讀／比較／合法導頁定位，不在歷程頁直接提交。D-031／032：只有未固定、未 CLOSED／CANCELLED 的合法原提交者可導向對應作業頁 revision；CLOSED 不提供例外入口或 reopen。D-033：複審醫師在 timeline／detail／compare／導頁及 cache 中始終不能取得初審內容或可反推的衍生分數，不能藉切換 stage tab 解除。
+
+驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。

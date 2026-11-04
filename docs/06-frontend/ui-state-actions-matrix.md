@@ -87,7 +87,7 @@ action_policy_inputs:
 - hidden actions：根本不屬於當前角色的 action family（`ROLE_DENIED`）與本頁直接 submit/revise
 - disabled/blocked actions：當前角色合法但受 status / stage / ownership 限制時，action 維持 visible + blocked reason
 - blocked reasons：`CASE_ALREADY_CLOSED` / `CASE_ALREADY_CANCELLED` / `STAGE_MISMATCH` / `OWNED_BY_OTHER` / `USE_REVISION_HISTORY_ENTRY`
-- next-step hints：明確提示下一頁 command page；CLOSED rereviewer 顯示改走 UI-014 例外入口
+- next-step hints：明確提示下一頁 command page；CLOSED 只提供合法唯讀歷程，不提供 revision 例外入口（D-032）
 - data projection differences：sysadmin metadata-only projection indicator + shared base/page extension 白名單遮罩
 - route guard notes：scope guard 先於 detail content render
 - pending confirmation：複審中是否可看初審完整內容（D-018 相關）
@@ -119,12 +119,12 @@ action_policy_inputs:
 - visible sections：case summary、mode hint、score sheet、comment/attachments、command bar、version summary
 - available actions：start、save draft、submit、revise（符合 guard）
 - hidden actions：非本人/非 REVIEWER 全隱藏
-- disabled/blocked actions：CLOSED/CANCELLED、stage mismatch、not owner
+- disabled/blocked actions：結果已固定、CLOSED/CANCELLED、stage mismatch、not owner
 - blocked reasons：`REVISION_NOT_ALLOWED` / `REVISION_ACTOR_MISMATCH`
 - next-step hints：提交後進 detail/revision history
 - data projection differences：本頁不設 metadata-only 主情境
 - route guard notes：assignment ownership 必須在 route/data resolver 前驗證
-- pending confirmation：`INITIAL_REVIEW_COMPLETED` 到 `PENDING_REREVIEW` 階段初審 revision 邊界
+- pending confirmation：[Resolved D-031] 初審未固定可合法 revision；固定後禁止，未固定不得進 PENDING_REREVIEW
 
 ## 4.5 UI-013 複審作業頁
 
@@ -133,15 +133,15 @@ action_policy_inputs:
 - page modes：`NEW_REREVIEW` / `EDIT_DRAFT` / `REVISION` / `READONLY_BLOCKED`
 - mode resolution：owner+status guard 通過後由 draft/submitted 決定
 - role-sensitive behavior：僅 assigned rereviewer
-- visible sections：case summary、mode hint、initial summary、rereview form、final score、command bar、version summary
+- visible sections：case summary、mode hint、初審固定的安全流程資訊、rereview form、本人複審分數、command bar、version summary（不含可反推初審值）
 - available actions：start、save draft、submit rereview、revise rereview
 - hidden actions：非 rereviewer 或非 owner
-- disabled/blocked actions：CANCELLED 一律 blocked；CLOSED 僅 submit blocked、revise 視 D-021
+- disabled/blocked actions：結果已固定、CLOSED／CANCELLED 一律禁止 revision（D-032）
 - blocked reasons：stage mismatch / actor mismatch / terminal constraints
-- next-step hints：提交後結案；revision 後回 revision history
+- next-step hints：提交後不結案；具資格時由原提交者正式結案並固定，binding unknown；revision 後回歷程
 - data projection differences：本頁不設 metadata-only 主情境
-- route guard notes：`CLOSED` 進入策略需區分「revision allowed」與「new submit denied」
-- decision backwrite（O1-C）：CLOSED 時「新提交 blocked、合法 rereview revision 入口可由本頁啟動」
+- route guard notes：CLOSED 僅 readonly／blocked，所有 revision 與新提交禁止
+- decision backwrite（O1-C）：[Superseded D-032] CLOSED 不提供例外修正入口
 
 ## 4.6 UI-014 Revision 歷程頁
 
@@ -158,7 +158,7 @@ action_policy_inputs:
 - next-step hints：顯示「若需修正請前往對應作業頁」
 - data projection differences：metadata-only 僅顯示白名單欄位（stage/revisionNo/submittedAt/submittedBy/currentEffective），不顯示 full answer diff
 - route guard notes：forbidden 時不回傳 timeline 資料
-- decision backwrite（O1-C）：CLOSED + 合法責任人顯示「前往複審修正」導頁入口，仍不在歷程頁直接提交
+- decision backwrite（O1-C）：[Superseded D-032] CLOSED 僅唯讀；未固定、未結案的合法原提交者才可導至對應作業頁
 
 ## 4.7 UI-006 抽選執行頁（最小必要）
 
@@ -191,3 +191,11 @@ action_policy_inputs:
 ## 6) Pending Confirmation（Cross-file Gaps）
 
 1. `INITIAL_REVIEW_COMPLETED` 的 manager close / manager assign rereview command 是否已在所有 API 端點明確化。
+
+## D-031～D-033 同步契約
+
+以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
+
+初審 action 需區分未固定可 revision／固定後不可；未固定不得進複審或由 manager 結案（D-031）。複審 action 區分提交、未固定 revision、原提交者具資格時正式結案；CLOSED 全 blocked（D-032）。所有角色顯示與資料出口套 D-033。
+
+驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

@@ -63,12 +63,13 @@ ReviewCaseStatus:
 | INITIAL_REVIEW_IN_PROGRESS | returnInitialReview | RETURNED | 需有退回原因 |
 | INITIAL_REVIEW_IN_PROGRESS | cancel | CANCELLED | 未結案 |
 | RETURNED | reopenInitialReview | PENDING_INITIAL_REVIEW | 回到待初審 |
-| INITIAL_REVIEW_COMPLETED | evaluateThreshold(score > threshold) | PENDING_REREVIEW | D-019 自動進複審 |
-| INITIAL_REVIEW_COMPLETED | managerAssignRereviewer | PENDING_REREVIEW | D-019：手工派複審 |
-| INITIAL_REVIEW_COMPLETED | managerCloseCase | CLOSED | D-019：手工關閉 |
+| INITIAL_REVIEW_COMPLETED | 初審固定後 evaluateThreshold(score > threshold) | PENDING_REREVIEW | D-031：以固定結果自動進複審；提交時不執行此轉移 |
+| INITIAL_REVIEW_COMPLETED | managerAssignRereviewer | PENDING_REREVIEW | D-031：初審已固定，manager 手工派複審 |
+| INITIAL_REVIEW_COMPLETED | managerCloseCase | CLOSED | D-031：初審已固定且不需複審，manager 手工結案 |
 | PENDING_REREVIEW | startRereview | REREVIEW_IN_PROGRESS | 僅 assigned rereviewer |
 | PENDING_REREVIEW | cancel | CANCELLED | 未結案 |
-| REREVIEW_IN_PROGRESS | submitRereview | CLOSED | 複審提交完成後結案 |
+| REREVIEW_IN_PROGRESS | submitRereview | 未結案（狀態表示 unknown） | D-032：合法提交且無其他既有阻擋條件即具資格；不自動固定／結案 |
+| 複審已提交、尚未結案（非新增 enum） | 原複審提交者正式結案 | CLOSED | D-032：驗證資格，同時固定尚未固定的複審結果 |
 
 ### 3.3 Terminal / Blocked Notes
 
@@ -81,7 +82,7 @@ blocked_behavior:
     - no_state_transition
     - no_new_initial_submit
     - no_new_rereview_submit
-    - allow_rereview_revision_exception: true
+    - no_revision
   CANCELLED:
     - no_state_transition
     - no_initial_or_rereview_commands
@@ -113,13 +114,14 @@ stateDiagram-v2
 
   RETURNED --> PENDING_INITIAL_REVIEW: reopenInitialReview
 
-  INITIAL_REVIEW_COMPLETED --> PENDING_REREVIEW: evaluateThreshold / managerAssignRereviewer
-  INITIAL_REVIEW_COMPLETED --> CLOSED: managerCloseCase
+  INITIAL_REVIEW_COMPLETED --> PENDING_REREVIEW: 初審已固定且需複審 / manager派複審
+  INITIAL_REVIEW_COMPLETED --> CLOSED: 初審已固定且不需複審 / managerCloseCase
 
   PENDING_REREVIEW --> REREVIEW_IN_PROGRESS: startRereview
   PENDING_REREVIEW --> CANCELLED: cancel
 
-  REREVIEW_IN_PROGRESS --> CLOSED: submitRereview
+  %% submitRereview 不轉 CLOSED；提交後狀態表示 unknown，不在本輪新增 enum
+  %% 原複審提交者具資格時正式結案並固定結果，才進 CLOSED
 
   CLOSED --> [*]
   CANCELLED --> [*]
@@ -147,7 +149,7 @@ stage:
 |---|---|---|---|
 | (none) | createDraft(initial/rereview) | DRAFT | 對應 stage 必須合法 |
 | DRAFT | saveDraft | DRAFT | append field changes |
-| DRAFT | submit | SUBMITTED | 觸發 case 主流程推進 |
+| DRAFT | submit | SUBMITTED | 提交不等於固定；初審不立即進複審，複審不立即結案（D-031／032） |
 | SUBMITTED | revise | SUBMITTED(new revision) + old->SUPERSEDED | append-only（D-004） |
 
 ### 4.3 Revision Guard
@@ -156,11 +158,13 @@ stage:
 revision_guard:
   initial_revision:
     actor_must_be_original_reviewer: true
+    result_fixed_allowed: false
     case_closed_allowed: false
     case_cancelled_allowed: false
   rereview_revision:
     actor_must_be_original_rereviewer: true
-    case_closed_allowed: true   # D-021 exception
+    result_fixed_allowed: false
+    case_closed_allowed: false  # D-032 supersedes D-021
     case_cancelled_allowed: false
 ```
 
@@ -168,7 +172,7 @@ revision_guard:
 
 - `SUBMITTED` 版本不可直接覆寫。
 - revision 建立新 submission，不 reopen case，不回退 case status。
-- `CANCELLED` 不允許任何 stage revision。
+- 結果固定後、`CLOSED` 或 `CANCELLED` 不允許任何 stage revision。
 
 ### 4.5 Mermaid
 
@@ -239,7 +243,13 @@ stateDiagram-v2
 
 ## 7) Pending Confirmation
 
-1. `INITIAL_REVIEW_COMPLETED -> CLOSED` 是否必為手工 command（本版採 D-019）。
+1. [Resolved D-031] 不需複審時僅 manager 在初審固定後手工結案；初審固定操作授權角色仍 unknown。
 2. `RETURNED` 後是否必須 reassign reviewer 才能 reopen（目前僅記為 guard note）。
 3. sampling retry 的完整 state / error taxonomy 尚未在 DDD 層完整定稿（本版僅最小必要）。
-4. [Resolved by approved backwrite O1-C] CLOSED 後複審 revision 採「UI-014 條件導頁 -> UI-013 例外修正模式」，且不構成 reopen。
+4. [Superseded D-032] CLOSED 複審 revision 例外撤銷。複審已提交未結案的狀態表示 unknown；不得新增 enum 或假裝仍是草稿。
+
+## 8) 固定與流程 guard（D-031～D-033）
+
+固定為業務事實，不預設 CaseStatus／SubmissionStatus。初審提交後保持初審完成，未固定不得自動／手工進複審或由 manager 結案；固定後禁止初審 revision。閾值 >、≤、null 分支不變。初審固定角色 unknown，流程不得因此視為已獲授權。
+複審提交建立合法結果與結案資格，不 CLOSED；原複審提交者可在未固定、未結案、未取消時 revision。正式結案須具資格且 actor 合法，同時固定複審結果。CLOSED 禁止所有 revision／reopen。未知的提交後狀態表示不影響上述 guard。
+圖僅保留已定 enum 轉移；複審提交後的獨立結案路徑以 §3.2 語意表為準，待表示定案後同步圖。盲審不依 CaseStatus 或 SUBMITTED 狀態解除（D-033）。

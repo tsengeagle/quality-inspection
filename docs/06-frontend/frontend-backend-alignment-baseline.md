@@ -1,5 +1,7 @@
 # Frontend-Backend Alignment Baseline
 
+> D-031～D-033 已更新規格，本文件其餘 REAL／implemented 僅代表既有實作 evidence，不代表已符合新規則。固定、提交與結案分離、永久盲審（含衍生分數）尚須後續實作及驗證；本輪未修改程式。
+
 > **文件定位**：本文件是 UI-006 ~ UI-014 的前後端對齊基線。  
 > **本輪更新重點**：補記 execute-context 與 UI-007 deferred 現況，並將 B-001 / I-001 / I-002 / I-003 的狀態敘事校正為 limited-scope implemented、deferred、accepted 與最小 source replacement；另補記 Frontend Access Formalization Wave 的最小 RBAC foundation 落地。  
 > **Evidence 範圍**：僅採 source code、existing tests、現有 route/e2e mock；不把尚未落地的 shell integration 或外部系統契約包裝成已實作。
@@ -111,8 +113,8 @@
 | UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供 |
 | UI-011 案件分派頁 | ✅ REAL（limited source replacement） | 命令與 query contract 維持不變；candidate lookup 已改走 persisted staff directory source |
 | UI-012 初審作業頁 | ✅ REAL | bootstrap context 已嵌入 case detail |
-| UI-013 複審作業頁 | ✅ REAL | CLOSED revision exception 已對齊 |
-| UI-014 revision 歷程頁 | ✅ REAL | `hasExceptionEntry` 已由 backend 計算 |
+| UI-013 複審作業頁 | ✅ REAL | 歷史實作：CLOSED revision exception；已不符合 D-032，應用程式待調整 |
+| UI-014 revision 歷程頁 | ✅ REAL | 歷史實作：`hasExceptionEntry` 由 backend 計算；D-032 撤銷該入口，應用程式待調整 |
 
 ---
 

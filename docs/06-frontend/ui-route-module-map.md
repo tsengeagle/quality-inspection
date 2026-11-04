@@ -166,3 +166,10 @@ query_state_policy:
 
 1. shell 內 role default tab key 最終命名（本文件僅提供 bridge key）。
 
+## D-031～D-033 同步契約
+
+以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
+
+路由／guard 不得把複審已提交視為 CLOSED 或允許 CLOSED revision。初審已固定才可進複審；未固定合法結果的原提交者才可修訂（D-031／032）。資料 resolver 遵守 D-033 永久盲審，不能以 FULL 或合法 route entry 放行初審內容／可反推分數。正式結案 binding 與初審固定角色 unknown，不新增 route／API。
+
+驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

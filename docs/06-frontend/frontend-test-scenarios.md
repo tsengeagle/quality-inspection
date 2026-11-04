@@ -76,16 +76,16 @@
 - Level: unit, integration
 
 ### B-03 UI-012 revision 模式
-- Given actor=original reviewer, has INITIAL submitted, case not CLOSED/CANCELLED
+- Given actor=original reviewer, has INITIAL submitted, initial result not fixed, case not CLOSED/CANCELLED
 - When choose revise
 - Then mode=`REVISION` 且標示 append-only
 - Level: unit, integration, e2e
 
-### B-04 UI-013 CLOSED 狀態（O1-C）
-- Given actor=original rereviewer, case=`CLOSED`
-- When open UI-013
-- Then new submit actions blocked；僅顯示 revision-exception command 入口，且 mode label 顯示 `例外修正（已結案）`
-- Level: integration, e2e, QA checklist
+### B-04 UI-013 CLOSED 只讀
+
+* Authority: D-032／033。
+* Given 原複審提交者與 CLOSED；When open UI-013；Then submit／revision／reopen 全 blocked，無例外模式；永久盲審。
+* Level: integration, e2e, QA checklist。
 
 ### B-05 UI-011 分派模式切換
 - Given manager + case status 不同
@@ -115,11 +115,11 @@
 - Then save/submit 皆 visible；語意明確區分
 - Level: unit, QA checklist
 
-### C-04 UI-014 無 direct revise submit（O1-C）
-- Given CLOSED case + original rereviewer
-- When inspect actions on UI-014
-- Then 顯示「前往複審修正（例外）」navigate-only action；仍不直接顯示「提交 revision」
-- Level: integration, e2e
+### C-04 UI-014 CLOSED 無修正入口
+
+* Authority: D-032／033。
+* Given CLOSED + 原複審提交者；When inspect actions；Then 僅合法唯讀歷程，無 revision 例外導頁入口，無 direct submit。
+* Level: integration, e2e, QA checklist。
 
 ### C-05 UI-010 role-legal but status-blocked action
 - Given actor 屬於該 action family，但案件因 stage / terminal / ownership 條件不可執行
@@ -149,15 +149,11 @@
 - Then 僅顯示 O3-C 白名單欄位；FULL-only 類別保留 label + `—` placeholder，並顯示「詳細差異內容不適用於此視角」
 - Level: integration, QA checklist
 
-### D-04 UI-013 blocked vs exception banner semantics
-- Given UI-013 在 `READONLY_BLOCKED` 與 `CLOSED_REVISION_EXCEPTION` 兩種場景
-- When inspect banner semantics
-- Then blocked 與 exception 必須是不同 tone；exception 採 amber / warning family，且與 C22 例外入口語意一致
-- Level: QA checklist
+### D-04 UI-013 CLOSED blocked 與永久盲審
 
----
-
-## E. Revision Scenarios
+* Authority: D-032／033。
+* Given 提交後、revision 或 CLOSED；When inspect response、cache 與畫面；Then 初審內容及可反推的 finalScore 不可取得，CLOSED 為 blocked 而非可操作 exception。
+* Level: integration, e2e, QA checklist。
 
 ### E-01 initial revision actor mismatch
 - Given actor 非 original reviewer
@@ -165,11 +161,11 @@
 - Then blocked with `REVISION_ACTOR_MISMATCH`
 - Level: unit, integration, e2e
 
-### E-02 rereview revision on CLOSED (D-021)
-- Given actor=original rereviewer, case=`CLOSED`
-- When attempt REREVIEW revise
-- Then allowed，建立新 revision；case status 保持 `CLOSED`
-- Level: integration, e2e, QA checklist
+### E-02 CLOSED 複審 revision 拒絕（D-032）
+
+* Authority: D-032／033。
+* Given 原複審提交者、CLOSED；When attempt revision；Then 拒絕、無新 submission／成功事件；舊資料不變。
+* Level: integration, e2e, QA checklist。
 
 ### E-03 revision append-only
 - Given existing submitted revision N
@@ -239,3 +235,11 @@
 - When executing command
 - Then client validation/test should fail fast
 - Level: unit
+
+## D-031～D-033 同步契約
+
+以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
+
+以 EX-041～052／TS-DA-001～012 補足 frontend 驗證：初審未固定不能進複審／manager 結案，固定後禁修；複審 submit 不 CLOSED、未固定可合法修訂、原提交者具資格才可正式結案並固定；CLOSED 全 blocked。所有階段測 server response、UI、cache、history／compare 與跨入口的永久盲審，含 finalScore 反推防護。其他角色正向存取亦須保留。
+
+驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

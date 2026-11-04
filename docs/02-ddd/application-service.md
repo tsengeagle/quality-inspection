@@ -190,7 +190,7 @@
 - 載入 `ReviewSubmission`
 - 呼叫 `submit()`
 - 呼叫 `ReviewCase.completeInitialReview(...)`
-- 是否進入複審由 domain 根據品質線決定
+- 本次僅完成提交；不自動固定、進入複審或結案。初審固定後才由 domain 根據品質線決定流向（D-031）
 - application service 不得自行寫死判斷邏輯
 
 ---
@@ -205,7 +205,7 @@
 | `ReassignRereviewerUseCase` | caseId, rereviewerId, dueAt | 改派複審醫師 |
 | `StartRereviewUseCase` | caseId, rereviewerId | 驗證指派關係後進入複審中 |
 | `SaveRereviewDraftUseCase` | caseId, rereviewerId, answers, comment, attachments | 保存複審草稿 |
-| `SubmitRereviewUseCase` | caseId, submissionId | 正式提交複審並結案 |
+| `SubmitRereviewUseCase` | caseId, submissionId | 正式提交複審，不自動結案／固定（D-032） |
 
 ### 8.1 orchestration 重點
 
@@ -231,8 +231,9 @@
 - 載入 `ReviewSubmission`
 - 呼叫 `submit()`
 - 呼叫 `ReviewCase.completeRereview(...)`
-- 最終分數由複審醫師提交結果決定
-- 正常完成後進入 `CLOSED`
+- 最終分數按 D-012／020，以固定初審結果及本次複審結果加權計算
+- 初審必須已固定；合法提交且無其他既有阻擋條件即具結案資格，但不自動進入 CLOSED
+- 原複審提交者另行正式結案，同時固定尚未固定的複審結果；binding unknown
 
 ---
 
@@ -255,6 +256,7 @@
 - 驗證 submission stage 為 `INITIAL`
 - 驗證案件未 `CLOSED`
 - 驗證案件未 `CANCELLED`
+- 驗證目前有效結果未固定（D-031／032）
 - 驗證 actor 為原審查醫師
 - 建立新 revision submission
 - 將舊版標記為 `SUPERSEDED`
@@ -273,7 +275,8 @@
 - 驗證 submission stage 為 `REREVIEW`
 - 驗證案件未 `CLOSED`
 - 驗證案件未 `CANCELLED`
-- 驗證 actor 為複審醫師
+- 驗證目前有效結果未固定（D-031／032）
+- 驗證 actor 為合法原複審提交者（D-003／032）
 - 建立新 revision submission
 - 將舊版標記為 `SUPERSEDED`
 - 不改變案件主狀態
@@ -289,7 +292,7 @@
 
 ```yaml id="b3g9cs"
 revision_orchestration_rules:
-  - revision 僅適用未結案且未取消案件
+  - revision 僅適用未固定的合法提交結果，且案件未結案、未取消
   - revision 必須建立新 submission record
   - revision 不改變案件主狀態
   - revision 不等於 reopen
@@ -319,27 +322,10 @@ revision_orchestration_rules:
 
 ### 10.2 `GetReviewSubmissionDetailUseCase` — D-018 Masking Logic（GAP-15）
 
-* 若 actor 角色為 `REREVIEWER` 且案件無 `SUBMITTED` 複審 submission：
-  - 將 `answers`、`comment`、`totalScore` 設為 `null`
-  - 於 view 中加入 `maskedFields: ["answers", "comment", "totalScore"]`
-* 遮罩為 view-level 操作，不改變 `ReviewSubmission` domain state
-* `maskedFields` 欄位僅在有遮罩時出現，無遮罩時不帶此欄位（D-026）
-
----
-
-## 11. Platform Administration Boundary
-
-這組明確說明 system admin 能做什麼、不能做什麼。
-
-| Use Case                         | SYSTEM_ADMIN 是否可用 | 說明                      |
-| -------------------------------- | ----------------: | ----------------------- |
-| `ManageAccountsAndRolesUseCase`  |                 Y | 平台帳號 / 角色 / 權限治理        |
-| `GetOperationalMetadataUseCase`  |                 Y | 查看執行狀態、批次 metadata、錯誤訊息 |
-| `TriggerBusinessSamplingUseCase` |                 N | 不直接執行院內業務抽選             |
-| `AssignReviewCaseUseCase`        |                 N | 不直接分派初審 / 複審            |
-| `ReviseInitialReviewUseCase`     |                 N | 不可代修                    |
-| `ReviseRereviewUseCase`          |                 N | 不可代修                    |
-| `ViewFullAnswerContentUseCase`   |                 N | 不可查看完整評分內容              |
+* 依 D-033，actor 為同案複審醫師時，初審 `answers`、`comment`、`totalScore` 全生命週期遮罩；不依是否存在 SUBMITTED 複審解除。
+* 遮罩為 application / view-level 操作，不改 domain 原始分數；有遮罩時使用 `maskedFields`，無遮罩仍保留既有慣例。
+* 同樣保護 case detail、list、history／compare、report／export 及 command 回應；不得提供可由複審分數與權重反推初審分數的 finalScore／preview／diff。
+* 其他角色政策維持 PM；不能以 frontend 隱藏代替 server response 保護。跨角色授權合成與精確衍生欄位清單 unknown，不得預設放行。
 
 ### 11.1 原則
 
@@ -353,7 +339,8 @@ SYSTEM_ADMIN 的 application service 邊界只到平台治理與 operational met
 
 * 指派 reviewer / rereviewer
 * submission draft save
-* submission submit + case 狀態更新
+* submission submit + case 結果關聯／適用狀態更新（不把複審提交當結案）
+* 初審固定與以固定結果判斷流向；正式結案與複審固定必須保持業務一致性，技術交易／併發機制 unknown
 * revision 建立 + 舊版標記 `SUPERSEDED`
 * batch 建立 + selected case refs 寫入
 
@@ -462,3 +449,9 @@ application service 可透過下列 adapter 協作：
 5. state machine
 6. application service
 7. API / persistence / UI 實作
+
+## 17. 固定與正式結案 orchestration（D-031／032）
+
+初審固定為獨立業務操作，其授權角色與 use case 技術名稱 unknown；不得把 submit 當固定。application service 協調有效初審 submission 與 Case guard，固定後才依 D-019 分支自動進複審，或允許 manager 手工派複審／不需複審時結案。
+複審正式結案為提交後獨立業務操作：驗證角色、hospital scope、原複審提交者身份、合法有效提交及既有阻擋條件，交由 ReviewCase 執行結案規則，同時固定尚未固定的複審結果。沒有合法提交、actor 不符、已取消等拒絕不得寫成功事件。
+所有 revision 保留 D-004 append-only 與 D-005 Case 主狀態不變；固定後拒絕。正式結案的技術名稱／binding unknown，不新增 API。

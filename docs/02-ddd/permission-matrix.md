@@ -31,7 +31,7 @@
 1. page access、data visibility、action executability 分離建模。
 2. metadata-only / FULL 屬同頁不同 projection，不拆雙頁。
 3. action visibility 與 action executability 由統一 policy 推導，不散落 component if-else。
-4. revision 採 append-only，且 actor/stage guard 嚴格遵守 D-002 / D-003 / D-021。
+4. revision 採 append-only，且 actor/stage guard 嚴格遵守 D-002 / D-003 / D-031 / D-032。
 
 ---
 
@@ -72,7 +72,7 @@ Legend: `Y` 可進入、`R` 僅唯讀/有限視角、`N` 不可進入
 | SYSTEM_ADMIN | GLOBAL_METADATA | metadata-only | N |
 | HOSPITAL_MANAGER | hospital-only | FULL | Y |
 | REVIEWER | self-assigned + self-submitted | FULL (within scope) | Y |
-| REREVIEWER | self-assigned + self-submitted | FULL (within scope) | Y |
+| REREVIEWER | self-assigned + self-submitted | 合法範圍且永久盲審（D-033） | 本人複審內容可見；初審答案／分數／評語與可反推衍生資訊不可見 |
 | AUDITOR | authorized hospitals only | FULL (within authorization) | Y |
 
 補充：
@@ -125,11 +125,11 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 | startInitialReview (UI-012) | N | N | Y | N | N | actor = assigned reviewer |
 | saveInitialDraft (UI-012) | N | N | Y | N | N | actor/scope valid |
 | submitInitialReview (UI-012) | N | N | Y | N | N | draft valid + actor owned |
-| reviseInitialReview (UI-012) | N | N | C | N | N | actor=original reviewer, not CLOSED/CANCELLED |
-| startRereview (UI-013) | N | N | N | Y | N | actor = assigned rereviewer |
+| reviseInitialReview (UI-012) | N | N | C | N | N | actor=original submitter, result not fixed, not CLOSED/CANCELLED |
+| startRereview (UI-013) | N | N | N | Y | N | actor = assigned rereviewer; initial result fixed |
 | saveRereviewDraft (UI-013) | N | N | N | Y | N | actor/scope valid |
 | submitRereview (UI-013) | N | N | N | Y | N | draft valid + actor owned |
-| reviseRereview (UI-013) | N | N | N | C | N | actor=original rereviewer, CLOSED allowed, CANCELLED denied |
+| reviseRereview (UI-013) | N | N | N | C | N | actor=original submitter, result not fixed, CLOSED/CANCELLED denied |
 | viewRevisionHistory (UI-014) | R (metadata) | Y | Y (scope) | Y (scope) | Y | data scope + projection policy |
 
 ---
@@ -142,7 +142,7 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 | scope 不符（跨院或非本人案件） | deny + forbidden message，不回 full content |
 | metadata-only actor 請求 full detail | downgrade 為 metadata projection；隱藏敏感欄位 |
 | terminal state 下嘗試 command | 顯示 blocked reason + disabled/hidden action（不得 silent fail） |
-| CLOSED + rereview revision 合法責任人 | 允許導向 revision command flow（UI-014 -> UI-013），仍禁止 reopen/new submit |
+| CLOSED + 任一 stage revision | deny；原提交者亦不可例外修正／reopen／新提交（D-032） |
 | submission actor mismatch | deny（`REVISION_ACTOR_MISMATCH` / `SUBMISSION_NOT_OWNED_BY_ACTOR`） |
 
 ---
@@ -163,3 +163,19 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 2. `REREVIEW_IN_PROGRESS` 是否允許 manager 改派 rereviewer（UI-011 目前偏保守不開）。
 3. REVIEWER / REREVIEWER 在 UI-014 的 default tab 是否固定（目前依 page spec 建議，不宣稱強制）。
 4. audit trail 入口在各頁權限是否需單獨 matrix（本版先視為 UI-010/UI-014 的 read capability）。
+
+## 10) 固定、結案與永久盲審（D-031～D-033）
+
+| 業務操作 | Actor 與必要條件 |
+|---|---|
+| 初審 revision | 原提交者；已合法提交、未固定、未 CLOSED／CANCELLED |
+| 初審固定 | 授權角色 unknown；本輪不推定 manager 或 reviewer 有權執行 |
+| 進入複審（自動／手工） | 初審已固定；自動依既有閾值，手工仍由 manager |
+| 無需複審時正式結案 | HOSPITAL_MANAGER；初審已固定，且不需複審 |
+| 複審提交 | assigned rereviewer 且擁有合法 submission；初審已固定；不結案 |
+| 複審 revision | 合法原提交者；結果未固定，案件未 CLOSED／CANCELLED |
+| 複審正式結案 | 原複審提交者；合法提交且無其他既有阻擋條件；同時固定尚未固定的複審結果 |
+| CLOSED revision／reopen | 所有 actor 均禁止 |
+
+複審醫師所有階段皆不得取得初審答案、分數、評語，包含提交後、revision、固定後及 CLOSED。finalScore／preview／diff 等可反推初審資訊者亦不得提供；所有查詢、command ack、歷程／compare、報表／匯出與快取均適用，不能靠頁面隱藏代替 response 保護。
+其他角色存取政策不變；多角色 actor 的技術授權合成 unknown，不得以切換入口繞過同案盲審。

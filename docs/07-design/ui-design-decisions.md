@@ -1,5 +1,7 @@
 # UI Design Decisions
 
+> D-032／D-033 規格變更：下文涉及 CLOSED_REVISION_EXCEPTION、CLOSED_EXCEPTION_ENTRY、CLOSED_REREVIEWER_HINT、O1-C 修正入口及其視覺決策，僅保留歷史設計依據，已被取代，不作現行可操作規則。CLOSED 不得 revision／reopen；複審永久盲審，含可反推分數。現有 wireframe／prototype 未於本輪修改，不作新流程完成 evidence。其他不衝突視覺決策保留。
+
 ## 文件角色
 
 本文件收斂 P1 wireframe + prototype 視覺驗核後，尚未在上游 authority 中明確落地的

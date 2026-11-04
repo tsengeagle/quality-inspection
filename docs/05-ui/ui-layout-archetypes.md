@@ -238,16 +238,16 @@ archetypes:
   - draft banner
   - revision banner
   - readonly blocked banner
-  - CLOSED exception banner（UI-013）
+  - CLOSED blocked banner（D-032，例外修正已撤銷）
 - **mode indicator pattern**:
   - NEW / EDIT_DRAFT / REVISION / READONLY_BLOCKED
-  - UI-013 另含 CLOSED revision-exception 呈現
+  - UI-013 CLOSED 僅 readonly／blocked，不提供 revision-exception（D-032）
 - **projection behavior**:
   - 主情境 FULL；不建立 metadata-only 作業頁
 - **blocked / forbidden behavior**:
   - ownership/role/status 不符時禁用命令區並顯示原因
 - **exception handling notes**:
-  - O1-C：CLOSED 僅允許合法 rereview revision exception，不可 new submit、不可 reopen
+  - D-032 取代 O1-C：CLOSED 禁止所有 revision、new submit 與 reopen
 - **navigation / entry expectations**:
   - 由 detail 或 history 導入；提交後回 detail/history
 - **responsive structure notes**:

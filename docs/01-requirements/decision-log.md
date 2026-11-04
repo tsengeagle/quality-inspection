@@ -40,7 +40,7 @@ decision_status:
   - rejected
 ```
 
-本版只收錄 `accepted` 決策。
+本版保留 accepted 決策及其 superseded 歷史；部分取代以 Status 下的範圍說明為準。
 
 ---
 
@@ -52,7 +52,9 @@ decision_status:
 
 ### Status
 
-`accepted`
+`accepted`（部分取代）
+
+> 部分被 D-032 取代：撤銷 CLOSED 複審 revision 例外；保留 CLOSED terminal、禁止新提交與 reopen。下列為歷史決策原文。
 
 ### Category
 
@@ -655,7 +657,9 @@ ScoreSheetDefinition 的建立採 create-then-update 模式：`POST /score-sheet
 
 ### Status
 
-`accepted`
+`superseded`
+
+> `superseded` by D-033：撤銷複審完成後可查看初審內容的規則；改為全生命週期盲審。下列為歷史原文。
 
 ### Category
 
@@ -693,7 +697,9 @@ ScoreSheetDefinition 的建立採 create-then-update 模式：`POST /score-sheet
 
 ### Status
 
-`accepted`
+`accepted`（部分取代）
+
+> 部分被 D-031 取代：閾值判斷與自動進複審延至初審固定後；手工派複審與無需複審的手工結案均要求初審固定。保留 > threshold、≤ threshold／null 分支與 manager 責任。下列為歷史原文。
 
 ### Category
 
@@ -773,7 +779,9 @@ ProjectVersion 中存儲 `initialReviewWeight` 與 `rereviewWeight`，默認各 
 
 ### Status
 
-`accepted`
+`superseded`
+
+> `superseded` by D-032：CLOSED 後不再有複審 revision 例外。下列為歷史原文。
 
 ### Category
 
@@ -951,7 +959,9 @@ HTTP 403 因角色不符觸發時，使用獨立 error code `ROLE_DENIED`（對�
 
 ### Status
 
-`accepted`
+`accepted`（部分取代）
+
+> 部分被 D-033 取代：撤銷「無 SUBMITTED 複審才遮罩」條件；保留 application/view layer 遮罩及 maskedFields 慣例。下列為歷史原文。
 
 ### Category
 
@@ -1090,7 +1100,9 @@ decision_dependencies:
 
 ### Status
 
-`accepted`
+`superseded`
+
+> `superseded` by D-032：取消 CLOSED 例外修正入口；UI-014 仍為閱讀與合法導頁頁面，不直接提交 revision。下列為歷史原文。
 
 ### Category
 
@@ -1237,3 +1249,111 @@ Frontend 正式採用 **RBAC**（Role-Based Access Control，以 actor context �
 * 既有 legacy hardcoded role 不強制立即重構，但一旦碰到該 component 就必須改
 * 新增任何 access control 邏輯必須以 guard 或 directive 配合 actor context 實作
 * `CaseDetailPageComponent` / `RevisionHistoryPageComponent` 已消費 backend `actorRole` 的做法符合本規則，可保留；但 `MANAGER` / `ADMIN` legacy alias 在下次碰到時應同步清除
+
+
+---
+
+## D-031 — 初審提交、固定與後續流向分離
+
+### Status
+
+`accepted` — 使用者本輪確認。
+
+### Category
+
+`domain-lifecycle-and-revision`
+
+### Decision
+
+* 初審提交與固定為不同業務事實；提交本身不代表固定、進入複審或結案。
+* 原提交者可 revision 合法已提交且未固定的初審結果；固定後禁止 revision。
+* 初審固定是進入複審的必要條件。系統以固定的初審結果依既有規則判斷：分數 > qualityThreshold 自動進入複審；≤ threshold 或 threshold 為 null 不強制複審，保留 manager 手工派複審選項。
+* 手工派複審亦不得繞過初審固定；複審始終建立在已固定初審結果之上。
+* 不需複審的案件，只能由院方管理者在初審固定後正式結案；提交、固定本身都不自動結案。
+
+### Supersession / Preserved Rules
+
+部分取代 D-019 的判斷／流向時機及無需複審的結案前置條件；保留其閾值比較、null 分支及 manager 手工派複審責任。
+D-002 原責任人 revision、D-004 append-only、D-005 revision 不等於 reopen、D-006 CANCELLED terminal 保留。
+
+### Rationale / Consequences
+
+固定界定初審可修訂窗口，避免複審建立於仍可變動的結果。固定與評分表／ProjectVersion 的 immutable snapshot 是不同事實。
+ReviewCase 保護進複審與結案條件；ReviewSubmission 保護提交與 revision。沿用既有 aggregate 邊界，不新增 aggregate。
+初審固定操作的授權角色、method 名稱、事件技術名稱、API、狀態／儲存表示為 unknown；未確認前不可自行補造。
+
+### Affected Artifacts
+
+Requirements / glossary、domain-model、state-machine、domain-events、application-service、permission-matrix、API / persistence、examples / test scenarios、UI-010～014 與 frontend bridge。
+
+---
+
+## D-032 — 複審提交與正式結案分離，結案固定結果
+
+### Status
+
+`accepted` — 使用者本輪確認。
+
+### Category
+
+`domain-lifecycle-and-revision`
+
+### Decision
+
+* 複審正式提交不自動 CLOSED，也不自動固定結果。
+* 合法複審提交完成且不存在其他既有阻擋條件時，即具備結案資格；資格不等於已結案。不新增分數門檻、額外審批或其他未確認條件。
+* 由原複審提交者決定正式結案時間；只有指派角色、manager 身份或曾提交歷史版本，不足以代替目前合法結果的提交責任驗證。
+* 已提交且未固定、未 CLOSED／CANCELLED 的複審結果，可由合法原提交者 append-only revision；revision 不直接改變 Case 主狀態。
+* 正式結案同時固定尚未固定的複審結果；不得出現已 CLOSED 而結果仍可修訂的成功結果。
+* CLOSED 後禁止所有 revision、新提交與 reopen。CANCELLED 保持 terminal。
+* D-012／D-020 不變：finalScore = initialReviewScore × initialReviewWeight + rereviewScore × rereviewWeight；默認各 0.5、權重和為 1、均 > 0 且 ≤ 1，發布版本權重不變；複審 revision 後依相同固定初審結果與權重重算。
+
+### Supersession / Preserved Rules
+
+取代 D-021、D-027 的 CLOSED 複審 revision 及入口例外；部分取代 D-001 B4 的例外內容，保留 terminal 與 no-reopen。
+取代 state-machine、application-service 等下游「複審提交即結案」語意。
+D-003 合法原責任人、D-004、D-005、D-012、D-020、D-023／024 的角色及院所 scope guard 保留。
+
+### Rationale / Consequences
+
+提交、具備結案資格、正式結案是不同業務事實；ReviewCase 保護正式結案，application service 協調提交、有效版本、分數與固定的一致性。
+不在本輪新增 CaseStatus／SubmissionStatus、aggregate、endpoint 或 DB 欄位。複審已提交未結案的狀態表示、獨立結案 binding、固定的持久化／併發機制，以及是否提供獨立複審固定操作均為 unknown。
+既有資料遷移與 API／事件相容性需後續評估；文件更新不代表實作已對齊。
+
+### Affected Artifacts
+
+D-031 所列相關文件；另含歷程／報表及 UI-013／014 的 CLOSED 操作政策。
+
+---
+
+## D-033 — 複審全生命週期盲審與衍生資訊防洩漏
+
+### Status
+
+`accepted` — 使用者本輪確認。
+
+### Category
+
+`permission-and-visibility`
+
+### Decision
+
+* 複審醫師始終不可取得同案初審答案、分數、評語；提交後、revision 期間、固定後、CLOSED 後均不解除。
+* 防止 finalScore 等衍生資訊間接洩漏初審分數。已知複審分數與非零權重時，加權 finalScore 可反推出初審分數，故不得向該複審醫師提供可推回初審資訊的 finalScore、preview、分數差異或等價衍生資訊。
+* 規則涵蓋查詢、submit／revision／close 回應、列表／詳情／歷程／compare、報表／匯出與前端快取；不得只隱藏畫面而在 response 暴露值。
+* 不改變 manager 本院完整明細、reviewer 合法範圍、auditor 授權院區、system admin metadata-only 等既有政策。複審醫師不可藉視圖／入口切換繞過同案盲審。
+* 遮罩仍在 application / view shaping 與 authorization boundary，不能修改 domain 原始分數；maskedFields 慣例保留。
+
+### Supersession / Preserved Rules
+
+取代 D-018 的時段限制及提交後解除遮罩；部分取代 D-026 的條件，保留 application/view layer 位置及既有 maskedFields 慣例。
+D-008／009／010、D-012／020、D-017 與 D-028～030 不變；權重計算與資料可見性分開處理。
+
+### Rationale / Consequences
+
+永久盲審避免提交後修訂受到初審資訊影響；最終分數仍由系統按原公式計算與保存。
+不預設新 projection enum、DTO、error code 或資料欄位；精確欄位表示、跨角色 actor 的授權合成方式與衍生欄位安全清單為 unknown，實作不得以 unknown 為理由放出受限資料。
+
+### Affected Artifacts
+
+Requirements / glossary、permission-matrix、application-service、API、persistence read model 說明、examples / test scenarios、UI-009～014 與 frontend projection／API binding／測試文件。

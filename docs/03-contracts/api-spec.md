@@ -993,6 +993,8 @@ Accept: application/json
 
 ## 11.3 提交初審
 
+D-031：提交不等於固定；未固定不得自動／手工進複審或結案。流向依固定結果判斷，不把本回應當作已固定或已進複審。
+
 ### `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
 
 #### 權限
@@ -1010,8 +1012,7 @@ Accept: application/json
     "status": "SUBMITTED",
     "caseId": "RC-001",
     "caseStatus": "INITIAL_REVIEW_COMPLETED",
-    "totalScore": 88.5,
-    "rereviewRequired": true
+    "totalScore": 88.5
   }
 }
 ```
@@ -1029,6 +1030,7 @@ Accept: application/json
 
 #### 限制
 
+* 初審結果不得已固定（D-031）
 * 案件不得為 `CLOSED`
 * 案件不得為 `CANCELLED`
 * 不可覆寫舊 submission
@@ -1096,28 +1098,13 @@ Accept: application/json
 
 ### `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
 
-#### 權限
+#### 權限與結果（D-032／033）
 
-* `REREVIEWER`
-* 且必須為 submission 所屬複審醫師
-
-#### Response
-
-```json
-{
-  "success": true,
-  "data": {
-    "submissionId": "SUB-RR-001",
-    "status": "SUBMITTED",
-    "caseId": "RC-001",
-    "caseStatus": "CLOSED",
-    "finalScore": 92.0,
-    "finalConclusion": "PASS"
-  }
-}
-```
-
----
+* REREVIEWER 且為合法 submission 提交者，初審已固定；保留 role／hospital scope／ownership guard。
+* 提交成功形成 SUBMITTED 複審結果，不自動固定或 CLOSED。
+* 合法提交且無其他既有阻擋條件即具結案資格；資格不等於已結案。原複審提交者另行決定正式結案時間。
+* 系統仍依 D-012／020 計算 finalScore；回應複審醫師時不得回傳可反推初審分數的 finalScore、preview 或等價衍生資訊。
+* 本節撤銷原 `caseStatus: CLOSED` 與向複審醫師回傳 finalScore 的成功範例。複審已提交未結案的狀態表示／精確 response schema 為 unknown，本輪不捏造 enum／DTO。
 
 ## 12.4 修正已提交複審
 
@@ -1130,7 +1117,7 @@ Accept: application/json
 
 #### 限制
 
-* 案件不得為 `CLOSED`（D-021 例外：`CLOSED` 後仍允許複審 revision）
+* 結果不得已固定，案件不得為 `CLOSED`（D-032 取代 D-021 例外）
 * 案件不得為 `CANCELLED`
 * 不可覆寫舊 submission
 * 建立新 revision
@@ -1159,8 +1146,7 @@ Accept: application/json
     "newSubmissionId": "SUB-RR-002",
     "revisionNo": 2,
     "stage": "REREVIEW",
-    "caseId": "RC-001",
-    "finalScore": 90.0
+    "caseId": "RC-001"
   }
 }
 ```
@@ -1184,7 +1170,7 @@ Accept: application/json
 
 #### D-018 Masking 行為（GAP-15）
 
-當 actor 為 `REREVIEWER` 且案件尚無已提交（`SUBMITTED`）的複審 submission 時，
+依 D-033，當 actor 為同案複審醫師時，不論是否已提交、revision、固定或 CLOSED，
 初審的以下欄位回傳 `null`，且 response 包含 `maskedFields`：
 
 ```json
@@ -1201,7 +1187,7 @@ Accept: application/json
 }
 ```
 
-複審完成後（存在 `SUBMITTED` 複審），不遮罩，`maskedFields` 欄位不出現。
+複審提交後及 CLOSED 後均維持遮罩，不得解除。finalScore／preview／diff 等可反推初審分數的衍生資訊亦不得提供（D-033）；此規則同樣適用 §10 案件、§13.2 歷程、§14 稽核、§15 報表及 command 回應。其他角色合法存取政策不變。
 
 ---
 
@@ -1387,7 +1373,7 @@ Accept: application/json
 ### 17.1 API 不可違反的規則
 
 * 不可用 update API 覆寫已提交 submission
-* 不可在 `CANCELLED` 後 revision；`CLOSED` 僅允許複審 revision（D-021 例外）
+* 不可在結果固定、`CLOSED` 或 `CANCELLED` 後 revision；CLOSED 亦不得 reopen（D-031／032）
 * revision 不等於 reopen
 * 初審 / 複審 revision actor 不可混用
 * 抽選執行必須使用正式 published version
@@ -1425,3 +1411,19 @@ Accept: application/json
 
 如果你要，我下一則直接幫你做 **Persistence Model v1**。
 ```
+
+## 19. 固定、正式結案與 response 保護（D-031～D-033）
+
+本輪只調整既有 API 的業務契約，不新增 endpoint／DTO／欄位／error code。
+
+| 業務操作 | 必要契約 |
+|---|---|
+| 初審固定 | 與提交分離；角色與 binding unknown，不能假定現有 submit API 已支援 |
+| 進入／開始複審 | 初審已固定；閾值與 manager 手工派發規則不變 |
+| 無需複審的正式結案 | 初審已固定，由院方管理者操作；未固定拒絕 |
+| 複審 revision | 合法原提交者，已提交且未固定、未 CLOSED／CANCELLED；append-only，重算加權分數 |
+| 複審正式結案 | 原複審提交者，合法提交且無其他既有阻擋條件；同時固定；獨立 binding unknown |
+| 固定後／CLOSED revision 或 CLOSED reopen | 拒絕，不寫新 revision／成功事件 |
+
+新的拒絕條件之精確 HTTP／error code mapping unknown，保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
+複審醫師任何階段不得取得初審答案／分數／評語，亦不得從 command ack、list/detail、revision history/compare、audit、report/export、前端 cache 取得可反推值。finalScore 數值仍在 domain 依原公式計算；所有廣義 FULL view／共用回應範例都須先套用 D-033 角色限制。精確衍生欄位清單與多角色 policy 合成 unknown。

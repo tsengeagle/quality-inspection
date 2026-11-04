@@ -130,7 +130,7 @@ classification_layers:
 - supportedArchetypes: A2/A3/A4/A5
 - structural origin: `status_or_blocked_banner`
 - visibility / projection constraints: FULL/METADATA_ONLY 都可見（內容受遮罩與權限影響）。
-- mode / state / exception constraints: CLOSED exception 時需由文案區分「submit blocked vs revise allowed」。
+- mode / state / exception constraints: D-032：CLOSED 所有 submit／revision blocked，不再區分例外修正。
 - ownership boundary: `shared`
 - notes for future view-model binding: 依 action policy 產生 machine-readable reason code。
 - notes for future wireframe: 必畫 blocked、forbidden、exception 三類訊息差異；exception 使用 amber / warning 語意，blocked 則需維持獨立 blocked tone。
@@ -147,7 +147,7 @@ classification_layers:
 - mode / state / exception constraints: UI-013 必含 CLOSED revision-exception 模式標示。
 - ownership boundary: `shared`
 - notes for future view-model binding: 綁定 mode resolver 輸出與 display label mapping。
-- notes for future wireframe: 需在 command page 顯示高可見優先序；UI-013 `CLOSED_REVISION_EXCEPTION` 顯示 label 固定為 `例外修正（已結案）`。
+- notes for future wireframe: 需在 command page 顯示高可見優先序；D-032 撤銷 UI-013 CLOSED 例外修正模式；CLOSED 只讀／blocked。
 - notes for future implementation: 不內含表單或 command 觸發。
 
 ### C04. ProjectionNoticeBanner
@@ -486,7 +486,7 @@ classification_layers:
 | UI-010 案件詳情頁 | A2 | C01, C02, C03, C08, C09, C10, C11, C24 | shared: C01/C02/C03; feature: C08/C09/C10/C11; deferred: C24 | metadata-only control center；CLOSED exception 僅導頁不提交 |
 | UI-011 案件分派頁 | A3 | C01, C02, C03, C12, C13, C14, C23 | shared: C01/C02/C03; feature: C12/C13/C14; deferred: C23 | READONLY_BLOCKED（CLOSED/CANCELLED）；無 metadata-only 主情境 |
 | UI-012 初審作業頁 | A4 | C01, C02, C03, C15, C16, C17 | shared: C01/C02/C03; feature: C15/C16/C17 | command page；blocked/ownership guard；無 metadata-only 主情境 |
-| UI-013 複審作業頁 | A4 | C01, C02, C03, C15, C16, C17, C18, C19 | shared: C01/C02/C03; feature: C15/C16/C17; page-owned: C18/C19 | O1-C：CLOSED submit blocked + revise exception allowed |
+| UI-013 複審作業頁 | A4 | C01, C02, C03, C15, C16, C17, C18, C19 | shared: C01/C02/C03; feature: C15/C16/C17; page-owned: C18/C19 | D-032：CLOSED 所有 submit／revision blocked |
 | UI-014 Revision 歷程頁 | A5 | C01, C02, C03, C04, C09, C20, C21, C22 | shared: C01/C02/C03/C04; feature: C09/C20/C21/C22 | metadata-only compare 降級；navigate-only action；條件式 exception 導頁 |
 
 ---
@@ -555,3 +555,11 @@ classification_layers:
 ### 給 future implementation planning
 - shared 與 feature-scoped 的初步 ownership boundary 已可用於估算拆分。
 - deferred 區塊在 pending 清除前不得強行共用化。
+
+## D-031～D-033 同步契約
+
+以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
+
+C02／C03／C16／C22 不再呈現 CLOSED 例外修正；歷程區只導向仍合法的未固定 revision（D-031／032）。初審固定與複審正式結案 binding unknown，不新增按鈕權限或 capability 欄位。所有 summary／score／compare 元件套用 D-033：同案複審醫師不得從 response／cache 取得初審內容或可反推分數，其他角色政策維持。
+
+驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

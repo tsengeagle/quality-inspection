@@ -243,7 +243,7 @@
 
 * manager / auditor：可看摘要
 * reviewer：可看自己的摘要與操作入口
-* rereviewer：可看摘要，作為複審前置資訊
+* rereviewer：僅可看不洩漏初審答案／分數／評語的流程 metadata（D-033）
 * system admin：metadata only，不顯示完整答案內容
 
 ### 建議操作
@@ -405,8 +405,8 @@
 ### 可看
 
 * 自己合法範圍內案件資訊
-* 初審摘要
-* 複審摘要
+* 初審固定的流程事實，不含初審答案／分數／評語或可反推值
+* 本人複審摘要，不含可反推初審分數的 finalScore
 * 追溯摘要
 
 ### 可做
@@ -762,3 +762,11 @@
 * 版本檢視頁
 
 負責。
+
+## D-031～D-033 生命週期與資料可見性對齊
+
+以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
+
+本頁維持 control center／導頁責任。初審未固定不得導向可執行複審或無需複審的 manager 結案；複審已提交不等於 CLOSED；正式結案限原複審提交者且具資格，操作 binding unknown。CLOSED 僅唯讀歷程，無例外修正入口（D-031／032）。複審醫師的所有摘要、finalScore、history 導頁均遵守 D-033。
+
+驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。
