@@ -1418,12 +1418,46 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 | 業務操作 | 必要契約 |
 |---|---|
-| 初審固定 | 與提交分離；角色與 binding unknown，不能假定現有 submit API 已支援 |
+| 初審固定 | 與提交分離；僅目前有效初審結果的合法提交醫師（DD-03）；binding UNKNOWN，不能假定現有 submit API 已支援 |
 | 進入／開始複審 | 初審已固定；閾值與 manager 手工派發規則不變 |
 | 無需複審的正式結案 | 初審已固定，由院方管理者操作；未固定拒絕 |
 | 複審 revision | 合法原提交者，已提交且未固定、未 CLOSED／CANCELLED；append-only，重算加權分數 |
-| 複審正式結案 | 原複審提交者，合法提交且無其他既有阻擋條件；同時固定；獨立 binding unknown |
+| 複審正式結案 | 目前有效合法複審結果的提交醫師另行 Close Command；既有角色／scope／ownership 與資格成立；同時固定；獨立 binding UNKNOWN（D-034） |
 | 固定後／CLOSED revision 或 CLOSED reopen | 拒絕，不寫新 revision／成功事件 |
 
 新的拒絕條件之精確 HTTP／error code mapping unknown，保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
 複審醫師任何階段不得取得初審答案／分數／評語，亦不得從 command ack、list/detail、revision history/compare、audit、report/export、前端 cache 取得可反推值。finalScore 數值仍在 domain 依原公式計算；所有廣義 FULL view／共用回應範例都須先套用 D-033 角色限制。精確衍生欄位清單與多角色 policy 合成 unknown。
+
+## DD-03 初審固定的語意契約（binding UNKNOWN）
+
+沿用 `/api/quality-inspection/**`、`api-key` 與既有 actor context；固定為與 submit 分離的操作，不新增路徑或暗示既有 submit 已支援。
+
+| 項目 | 必要保證 |
+|---|---|
+| 授權 | 僅目前有效 INITIAL 結果的合法提交醫師；既有角色、院所 scope、ownership 全部適用；僅有 manager／指派／歷史提交身份不可代行 |
+| 輸入語意 | 明確辨識 case 與欲固定的有效 submission，執行時驗證仍有效；具體欄位及版本 token UNKNOWN |
+| 成功 | 固定該有效結果且可追溯操作者、時間、submission；不自動結案；依 D-031 流向且遵守 D-033 response 保護 |
+| 拒絕 | 無合法提交、DRAFT／SUPERSEDED、actor／scope 不符、terminal case、過期版本不得成功固定；無新 revision 或成功事件 |
+| 併發 | 固定與 revision 不可同時對同一結果成功；不得將舊版請求悄悄改為固定新版；進複審／結案以已固定有效結果為準 |
+| 重試 | 重複固定、遺失成功回應後重試的冪等／衝突策略 UNKNOWN；不可據此改變已固定內容或重複推進流程 |
+
+既有 role／hospital scope 錯誤維持 §3 的 403；既有通用 CONFLICT 為 409。固定新增拒絕條件的精確 HTTP／error code mapping、schema 與 binding 為 UNKNOWN，未建立可直接呼叫的完成契約。相容性與 consumer 對齊尚未驗證。
+
+
+## D-034 複審獨立 Close Command 對齊
+
+以下為語意契約，不指定 HTTP method、endpoint path、request／response schema：
+
+| 操作／情境 | 必要行為 |
+|---|---|
+| 不需複審結案 | 初審已固定，由符合既有 scope 的 HOSPITAL_MANAGER 另行操作；提交／固定均不自動結案 |
+| 複審 submit | 初審已固定，合法醫師正式提交有效結果；不自動固定或 CLOSED，不隱含 Close Command |
+| 複審 Close Command | 明確辨識 case 與欲結案的有效 REREVIEW submission；執行時重驗 REREVIEWER、scope、ownership、合法有效提交及既有阻擋條件；僅該有效結果合法提交醫師可另行操作 |
+| 成功 | 同時固定尚未固定的有效複審結果並 CLOSED，保存一致有效引用及原公式計分；不新增 manager 簽核或獨立複審固定操作 |
+| 未提交／非法目標 | 不存在、DRAFT、SUPERSEDED、跨案、錯 stage 或過期 submission 拒絕；不偷偷改用新版 |
+| 非法操作者 | 非有效結果提交者、僅指派／manager／複審角色／歷史提交身份，或 scope 不符，不能據此結案 |
+| terminal／競爭 | CLOSED／CANCELLED 不得新結案；revision 先完成則舊版 close 拒絕，close 先完成則 revision 拒絕 |
+| 失敗 | 不留下部分固定／CLOSED／成功事件；拒絕回應亦不得洩漏初審資訊 |
+| 永久盲審 | submit／revision／close ack、錯誤、查詢、歷程、報表／匯出及快取均適用 D-033；CLOSED 不解除，finalScore 等可反推資訊不得向同案複審醫師提供 |
+
+沿用正式 base path 與 api-key／actor context baseline。精確 binding、schema、版本 token、錯誤細碼／新增拒絕條件的 HTTP mapping、重複 close／網路重試回應、多角色授權合成與 consumer 相容性方案均 UNKNOWN；既有通用 role／scope 與 conflict 契約不因此重新定義。不得以 UNKNOWN 放出受限資料或重複推進 CLOSED。

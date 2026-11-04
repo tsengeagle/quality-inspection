@@ -113,7 +113,7 @@ example_template:
 
 ### Then
 
-未固定保持初審完成，不產生升級事件；固定後依規則進 PENDING_REREVIEW、rereviewRequired=true，產生 ReviewCaseEscalatedToRereview。固定操作角色／API unknown，不由此例假定。
+未固定保持初審完成，不產生升級事件；固定後依規則進 PENDING_REREVIEW、rereviewRequired=true，產生 ReviewCaseEscalatedToRereview。固定僅由目前有效初審結果的合法提交醫師執行（DD-03）；API UNKNOWN。
 
 ### Mapping
 
@@ -2004,7 +2004,7 @@ mapping:
 | manager 手工派複審／不需複審時結案 | 初審未固定 | rejected |
 | 提交／revision | CLOSED／CANCELLED | rejected |
 
-固定操作授權角色與表示 unknown（D-031），不得由本表補造。
+固定操作授權依 DD-03，僅目前有效初審結果的合法提交醫師；表示 UNKNOWN，不由本表補造。
 
 ## 10.2 Revision 可否成立
 
@@ -2064,7 +2064,7 @@ D-031。
 
 ### Then
 
-均拒絕／不推進，不發布升級或開始事件；確認固定事實後自動依 > 分支進 PENDING_REREVIEW。固定授權角色不在本例假定。
+均拒絕／不推進，不發布升級或開始事件；確認固定事實後自動依 > 分支進 PENDING_REREVIEW。固定由目前有效初審結果的合法提交醫師執行（DD-03）。
 
 ### Mapping
 
@@ -2167,7 +2167,7 @@ D-032。
 
 ### Rule
 
-D-032、D-023、D-024。
+D-032／034、D-023、D-024。
 
 ### Given
 
@@ -2175,11 +2175,11 @@ D-032、D-023、D-024。
 
 ### When
 
-非原提交者、manager、其他 rereviewer、跨院 actor 嘗試正式結案；再由合法原提交者操作。
+以獨立 fixture 讓非有效結果提交者、僅 manager、僅 assigned rereviewer、其他 rereviewer、僅歷史版本提交者及跨院 actor 嘗試 Close Command；再由目前有效結果的合法原提交者另行操作（D-034）。
 
 ### Then
 
-不合法 actor／scope 均拒絕；合法原提交者可自行決定時間，正式結案轉 CLOSED 且同時固定複審結果。
+不合法 actor／scope 均拒絕且無固定／結案寫入或成功事件；合法原提交者可自行決定時間，另行 Close Command 才轉 CLOSED 且同時固定複審結果。manager 不作複審簽核；submit 本身不結案（D-034）。
 
 ### Mapping
 
@@ -2323,3 +2323,184 @@ D-008、D-009、D-010、D-033。
 
 * Test: TS-DA-012
 * Domain / application / API 契約層級依 test-scenarios 對映；未定 binding 不造新 endpoint。
+
+## EX-053 固定成功與有效提交者授權
+
+### Rule
+DD-03 決策 1、2、5；D-031。
+
+### Given
+同院 REVIEWER A 合法提交有效初審 S2，S1 已 SUPERSEDED；案件未固定、未結案、未取消。
+
+### When
+A 固定 S2；各自使用獨立 fixture，讓僅有 manager 身份的 M、僅被指派但未提交的 B、僅有歷史提交責任的 C、跨院 actor 嘗試固定；另對無提交、DRAFT、SUPERSEDED 結果嘗試固定。
+
+### Then
+A 成功固定 S2，保存 A、固定時間及 S2 關聯，答案／分數／評語不變。其餘請求拒絕，不改有效結果、不留下成功固定／流向／事件。固定後 A 直接改結果或 revision 亦拒絕。若合法資料不允許不同版本有不同提交者，不製造成功 revision 繞過 guard；以授權驗證 fixture 驗證歷史身份不足。
+
+### Mapping
+TS-DD03-001；Domain / application / API / persistence 契約驗證。binding UNKNOWN，不創造 endpoint。
+
+
+## EX-054 固定與 revision／流向的併發
+
+### Rule
+DD-03 決策 2、3、5；D-004／005／031。
+
+### Given
+A 為有效 S1 合法提交醫師；未固定、未結案、未取消。分別準備 > threshold 與 ≤ threshold／null 案件。
+
+### When
+交錯執行固定 S1 與合法 revision；分別控制 revision 先完成、固定先完成；並交錯進複審／manager 結案請求。
+
+### Then
+revision 先完成時 S2 有效、S1 SUPERSEDED，舊版固定不可成功；後續必須重新驗證有效結果及 actor 才可固定 S2。固定先完成則 revision 拒絕且無新版本。固定前進複審／結案拒絕；固定後 > 分支按既有規則進複審；≤／null 不自動結案，manager 符合不需複審條件才可結案。不可固定舊版卻使用新版分數，不可同一結果固定與 revision 同時成功。
+
+### Mapping
+TS-DD03-002；Domain / application / API / persistence 契約驗證。binding UNKNOWN，不創造 endpoint。
+
+
+## EX-055 固定追溯、失敗與重試邊界
+
+### Rule
+DD-03 決策 5；D-031／033。
+
+### Given
+A 對合法有效 S2 固定；可於後續保存或流向處理注入失敗。
+
+### When
+分別驗證成功、保存追溯／流向失敗回復、成功後重新查詢，以及回應遺失後重試。
+
+### Then
+成功後可還原固定時的 A、時間、S2 與 case，歷史不可被之後 assignment 或 latest 指標替代；失敗不留下部分成功固定／流向／成功事件。重試不得改寫固定內容或重複推進流向；精確重試回應及冪等策略 UNKNOWN，相關斷言待定案，不宣稱此情境可完整自動執行。查詢及 ack 遵守 D-033。
+
+### Mapping
+TS-DD03-003；Domain / application / API / persistence 契約驗證。binding UNKNOWN，不創造 endpoint。
+
+
+## EX-056 提交、複審與結案正反向回歸
+
+### Rule
+D-031／032／033；DD-03 決策 2～4。
+
+### Given
+各自獨立的合法 INITIAL／REREVIEW draft；正確 actor／院所／scope，複審 fixture 的初審已固定。
+
+### When
+合法醫師提交；非所屬提交者、跨院、非法狀態、CLOSED／CANCELLED 各嘗試提交。再驗證無需複審的 manager 結案及複審原提交者結案；以未固定初審、無合法複審提交、錯誤 actor 與 terminal case 各嘗試對應操作。
+
+### Then
+合法初審提交成為有效 SUBMITTED，不固定／不進複審／不結案；合法複審提交不固定／不結案。非法提交拒絕且無新有效結果／成功事件。無需複審時僅 manager 可於初審固定後結案；有複審時僅合法有效複審結果原提交者具資格才可正式結案並同時固定。其餘對應結案請求拒絕，不 CLOSED。複審固定前合法 revision 成功、固定或 CLOSED 後拒絕，沿用 EX-045～047，不改計分與盲審。
+
+### Mapping
+TS-DD03-004；Domain / application / API / persistence 契約驗證。binding UNKNOWN，不創造 endpoint。
+
+
+## EX-057 過期或非法複審 submission 不得結案
+
+### Rule
+D-034；D-031／032／033、DD-03 保留。
+
+### Given
+初審已固定；合法複審醫師 A 原提交 S1，合法 revision 後 S1 為 SUPERSEDED、S2 為目前有效 SUBMITTED。另準備不存在、DRAFT、跨案及 INITIAL stage 目標。
+
+### When
+A 分別以 S1 與各非法目標另行執行 Close Command。
+
+### Then
+執行時驗證有效版本及 case／stage；各非法目標均拒絕，不把 S1 請求自動換成 S2。
+案件不 CLOSED，S2 及既有固定初審不變；不新增複審固定或成功結案事件。
+
+### Mapping
+TS-DC-001；Domain / Application / API / Persistence。binding、schema、error code、版本／鎖定／交易技術 UNKNOWN，本例不定案。
+
+
+## EX-058 terminal 不得產生新的結案轉移
+
+### Rule
+D-034；D-031／032／033、DD-03 保留。
+
+### Given
+各自獨立的 CLOSED 與 CANCELLED 案件，以及可識別的既有複審結果。
+
+### When
+合法原複審提交者、manager 及其他醫師分別嘗試新的 Close Command、revision、新提交；對 CLOSED 另嘗試 reopen。
+
+### Then
+CLOSED／CANCELLED 不得產生新的結案轉移、revision 或新提交；CLOSED 不得 reopen。
+既有分數、有效引用、固定事實、terminal 與時間不被覆寫，不產生新的成功事件。已成功 close 遺失回應的重放策略 UNKNOWN，此例不指定重試 HTTP 回應。
+
+### Mapping
+TS-DC-002；Domain / Application / API / Persistence。binding、schema、error code、版本／鎖定／交易技術 UNKNOWN，本例不定案。
+
+
+## EX-059 Close Command 與複審 revision 競爭
+
+### Rule
+D-034；D-031／032／033、DD-03 保留。
+
+### Given
+初審已固定；S1 是 A 的目前有效合法 SUBMITTED 複審，未固定、未 terminal，無其他既有阻擋條件。
+
+### When
+分別控制兩種順序：revision S1→S2 先完成後執行指向 S1 的 close；close S1 先完成後執行 revision。
+
+保留上述兩個循序情境，另以各自獨立的相同初始 fixture 驗證以下真正重疊的情境。Close 與 Revision 均由合法 A 發起，明確以同一 S1 為目標，且雙方均已讀取 S1 為目前有效、未固定、非 terminal 的結果並開始處理；在任一方完成前，另一方也已開始，不能以第一方完成後才啟動第二方替代。
+
+1. 重疊情境 R：先發出 Close 請求、再發出 Revision 請求，使兩者處理重疊且均達上述共同起點；之後控制 Revision S1→S2 先成功提交並完成，Close 才嘗試完成其成功提交。
+2. 重疊情境 C：先發出 Revision 請求、再發出 Close 請求，使兩者處理重疊且均達上述共同起點；之後控制 Close S1 先成功提交並完成，Revision 才嘗試完成其成功提交。
+
+此處「成功提交並完成」指該操作的業務變更已一致持久化，不是醫師 submit 複審結果，也不是請求送達或回應返回順序。須分別觀察請求發出順序與成功持久化順序；勝負依後者及執行時有效性判斷，不以先發請求或共同起點的舊讀取授權落敗方成功。不指定鎖定、隔離、交易實作或協調技術。
+
+
+### Then
+revision 先完成則舊版 close 拒絕、S2 保持有效且案件未 CLOSED；close 先完成則 S1 固定並 CLOSED、revision 拒絕，不產生 S2。
+不得固定過期結果或同時讓同一結果的 close 與 revision 成功；有效引用、計分、固定及成功事件與勝出結果一致。
+
+重疊情境 R：Revision 勝出，S1 為 SUPERSEDED 且指向 S2，S2 是唯一有效 SUBMITTED 複審；Close 雖已讀過有效 S1，完成時仍須拒絕過期目標，不得改結 S2。案件有效引用為 S2，系統內分數依原固定初審、S2 分數及既有發布版本權重重算；S1／S2 均未因本次競爭被固定，案件維持原非 terminal 主狀態、未 CLOSED，無新結案時間。僅 Revision 成功事件可留下，不得留下 Close 成功、ReviewCaseClosed 或成功固定事件（若有對應事件）。
+
+重疊情境 C：Close 勝出，S1 保持唯一有效 SUBMITTED 複審並固定，案件有效及結案引用均為 S1；系統內分數依原固定初審、S1 分數及既有發布版本權重計算，案件 CLOSED 且結案時間與固定事實一致保存。Revision 即使已讀過未固定 S1 或算出 S2 分數，也必須拒絕；不得持久留下 S2、把 S1 標為 SUPERSEDED、更換有效引用或寫入 S2 分數。僅 Close 成功事件（含 ReviewCaseClosed，以及若有對應的成功固定事件）可留下，不得留下 Revision 成功事件。
+
+兩種情境均須在雙方結束後重新查詢持久化結果與成功事件，確認沒有落敗方的部分寫入、事件或延遲覆寫；既有固定初審及其分數不變。不得同時成功，不以 response shaping 改寫 domain 分數；對複審醫師的回應與查詢仍遵守 D-033。
+
+
+### Mapping
+TS-DC-003；Application / Persistence integration / API。binding、schema、error code、版本／鎖定／交易技術 UNKNOWN，本例不定案。
+
+
+## EX-060 複審結案失敗不得部分成功
+
+### Rule
+D-034；D-031／032／033、DD-03 保留。
+
+### Given
+初審已固定；A 有目前有效合法 SUBMITTED 複審 S1，未固定、非 terminal 且具結案資格；另以獨立 fixture 驗證正常成功。
+
+### When
+A 另行 Close Command；分別在固定保存、案件／計分保存及成功事件處理注入失敗，再執行獨立正常成功對照。
+
+### Then
+失敗不得留下部分固定、CLOSED 或成功事件；成功對照須同時固定 S1 並 CLOSED。
+原固定初審輸入、發布版本權重及公式不變；可於重新查詢確認一致結果。失敗注入點與交易／事件技術 UNKNOWN，待技術契約確定後轉成可執行測試，不假稱已具備故障注入能力。
+
+### Mapping
+TS-DC-004；Application / Persistence / Event integration。binding、schema、error code、版本／鎖定／交易技術 UNKNOWN，本例不定案。
+
+
+## EX-061 複審 Close Command 不解除永久盲審
+
+### Rule
+D-034；D-031／032／033、DD-03 保留。
+
+### Given
+同案複審醫師 A 已合法提交有效結果，具結案資格；含初審答案、分數、評語及可反推初審分數的加權結果。
+
+### When
+A 結案前查詢，另行 Close Command 成功後查看 ack、詳情、列表、歷程／compare、可達報表／匯出與快取；另驗拒絕 close 的回應。
+
+### Then
+各階段及成功／拒絕出口均不向 A 提供初審答案、分數、評語或可反推值；CLOSED 不解除盲審。
+finalScore、preview、diff 等衍生資訊遵守 D-033；domain 原始分數及加權計算不因遮罩改寫。不以角色／入口切換繞過同案限制；多角色合成技術仍 UNKNOWN。
+
+### Mapping
+TS-DC-005；Application / API / Frontend / Acceptance。binding、schema、error code、版本／鎖定／交易技術 UNKNOWN，本例不定案。

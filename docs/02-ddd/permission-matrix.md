@@ -126,6 +126,7 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 | saveInitialDraft (UI-012) | N | N | Y | N | N | actor/scope valid |
 | submitInitialReview (UI-012) | N | N | Y | N | N | draft valid + actor owned |
 | reviseInitialReview (UI-012) | N | N | C | N | N | actor=original submitter, result not fixed, not CLOSED/CANCELLED |
+| 固定初審（binding UNKNOWN） | N | N | C | N | N | 目前有效合法 INITIAL 提交者；未固定、非 terminal；既有 role/scope/ownership guard（DD-03） |
 | startRereview (UI-013) | N | N | N | Y | N | actor = assigned rereviewer; initial result fixed |
 | saveRereviewDraft (UI-013) | N | N | N | Y | N | actor/scope valid |
 | submitRereview (UI-013) | N | N | N | Y | N | draft valid + actor owned |
@@ -169,12 +170,12 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 | 業務操作 | Actor 與必要條件 |
 |---|---|
 | 初審 revision | 原提交者；已合法提交、未固定、未 CLOSED／CANCELLED |
-| 初審固定 | 授權角色 unknown；本輪不推定 manager 或 reviewer 有權執行 |
+| 初審固定 | 僅目前有效初審結果的合法提交醫師；須通過既有 REVIEWER、ownership、hospital scope guard；manager／指派身份或歷史版本提交者不足以授權（DD-03） |
 | 進入複審（自動／手工） | 初審已固定；自動依既有閾值，手工仍由 manager |
 | 無需複審時正式結案 | HOSPITAL_MANAGER；初審已固定，且不需複審 |
 | 複審提交 | assigned rereviewer 且擁有合法 submission；初審已固定；不結案 |
 | 複審 revision | 合法原提交者；結果未固定，案件未 CLOSED／CANCELLED |
-| 複審正式結案 | 原複審提交者；合法提交且無其他既有阻擋條件；同時固定尚未固定的複審結果 |
+| 複審正式結案（獨立 Close Command） | 目前有效合法複審結果的提交醫師；REREVIEWER、ownership、hospital scope 均合法，初審已固定且無其他既有阻擋條件；同時固定尚未固定的複審結果。僅 manager／指派／複審角色／歷史提交者不足以授權（D-034） |
 | CLOSED revision／reopen | 所有 actor 均禁止 |
 
 複審醫師所有階段皆不得取得初審答案、分數、評語，包含提交後、revision、固定後及 CLOSED。finalScore／preview／diff 等可反推初審資訊者亦不得提供；所有查詢、command ack、歷程／compare、報表／匯出與快取均適用，不能靠頁面隱藏代替 response 保護。
