@@ -282,18 +282,11 @@ public class ReviewCase {
     public void updateFinalScoreForRereview(BigDecimal newRereviewScore,
                                              BigDecimal initialWeight,
                                              BigDecimal rereviewWeight) {
-        requireNotCancelled();
+        requireNotTerminal();
         Objects.requireNonNull(newRereviewScore, "newRereviewScore must not be null");
         this.finalScore = this.initialReviewScore.multiply(initialWeight)
                 .add(newRereviewScore.multiply(rereviewWeight))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
-    }
-
-    private void requireNotCancelled() {
-        if (this.status == CaseStatus.CANCELLED) {
-            throw new DomainStateConflictException("CASE_CANCELLED",
-                    "Operation not allowed on CANCELLED case");
-        }
     }
 
     /**
@@ -314,6 +307,17 @@ public class ReviewCase {
         Objects.requireNonNull(newScore, "newScore must not be null");
         this.initialReviewScore = newScore;
         this.finalScore = newScore;
+    }
+
+    public void recordInitialReviewRevision(String previousSubmissionId, String newSubmissionId,
+                                            BigDecimal newScore) {
+        requireNotTerminal();
+        if (!Objects.equals(previousSubmissionId, this.latestInitialSubmissionId)) {
+            throw new DomainStateConflictException("CONFLICT", "Initial submission is no longer current");
+        }
+        Objects.requireNonNull(newSubmissionId, "newSubmissionId must not be null");
+        updateFinalScore(newScore);
+        this.latestInitialSubmissionId = newSubmissionId;
     }
 
     /**

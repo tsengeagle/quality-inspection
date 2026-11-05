@@ -238,18 +238,16 @@ class ReviewCaseRereviewTest {
     // --- updateFinalScoreForRereview tests (rereview revision) ---
 
     @Test
-    void updateFinalScoreForRereview_closedCase_shouldUpdateScore() {
+    void updateFinalScoreForRereview_closedCase_shouldRejectWithoutChangingScore() {
         ReviewCase rc = caseAtRereviewInProgress();
         rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
-        // CLOSED state
+        BigDecimal beforeScore = rc.getFinalScore();
+        LocalDateTime beforeClosedAt = rc.getClosedAt();
+        assertThrows(DomainStateConflictException.class, () -> rc.updateFinalScoreForRereview(
+                new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")));
+        assertEquals(beforeScore, rc.getFinalScore());
+        assertEquals(beforeClosedAt, rc.getClosedAt());
         assertEquals(CaseStatus.CLOSED, rc.getStatus());
-        // Rereview revision updates final score
-        rc.updateFinalScoreForRereview(
-                new BigDecimal("80"),
-                new BigDecimal("0.5"),
-                new BigDecimal("0.5"));
-        // 90*0.5 + 80*0.5 = 85.00
-        assertEquals(0, new BigDecimal("85.00").compareTo(rc.getFinalScore()));
     }
 
     @Test

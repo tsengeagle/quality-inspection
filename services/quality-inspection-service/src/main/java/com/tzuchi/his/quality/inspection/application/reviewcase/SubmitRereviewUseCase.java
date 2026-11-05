@@ -1,10 +1,15 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.SubmitRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectVersion;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -56,6 +61,11 @@ public class SubmitRereviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
+        reviewCase.requireNotTerminal();
+        if (reviewCase.getStatus() != CaseStatus.REREVIEW_IN_PROGRESS) {
+            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+                    "Case must be in REREVIEW_IN_PROGRESS to submit");
+        }
 
         // Validate actor is the assigned rereviewer
         if (reviewCase.getRereviewerAssignment() == null
@@ -66,6 +76,25 @@ public class SubmitRereviewUseCase {
 
         ReviewSubmission submission = submissionRepository.findById(cmd.getSubmissionId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewSubmission", cmd.getSubmissionId()));
+
+        if (!reviewCase.getCaseId().equals(submission.getCaseId())
+                || submission.getStage() != ReviewStage.REREVIEW) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission must belong to this case and REREVIEW stage");
+        }
+        if (!actor.getUserId().equals(submission.getReviewerId())) {
+            throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
+                    "Only the submission owner can perform this operation");
+        }
+        if (submission.getStatus() != SubmissionStatus.DRAFT) {
+            throw new DomainStateConflictException("SUBMISSION_NOT_DRAFT",
+                    "Submission must be DRAFT");
+        }
+        if (!submission.getSubmissionId().equals(reviewCase.getLatestRereviewSubmissionId())
+                || submission.getSupersededBySubmissionId() != null) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission is not the current rereview result");
+        }
 
         // Load score sheet for scoring
         ScoreSheetDefinition scoreSheet = scoreSheetRepository

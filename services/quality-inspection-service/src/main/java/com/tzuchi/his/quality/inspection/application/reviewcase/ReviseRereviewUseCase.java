@@ -1,10 +1,14 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectVersion;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -27,7 +31,7 @@ import java.util.stream.Collectors;
 
 /**
  * Use case: Revise a submitted rereview.
- * Per D-021, CLOSED cases are allowed rereview revision (not CANCELLED).
+ * D-032: only non-terminal cases may receive a rereview revision.
  * Creates a new revision of the rereview submission and recalculates the weighted final score.
  * This is the "append-only revision" pattern — old submission is marked SUPERSEDED,
  * new revision is directly SUBMITTED.
@@ -64,6 +68,9 @@ public class ReviseRereviewUseCase {
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
 
+        actor.requireHospitalScope(reviewCase.getHospitalId());
+        reviewCase.requireNotTerminal();
+
         if (reviewCase.getRereviewerAssignment() == null
                 || !actor.getUserId().equals(reviewCase.getRereviewerAssignment().getReviewerId())) {
             throw new DomainRuleViolationException("NOT_ASSIGNED_REREVIEWER",
@@ -73,6 +80,25 @@ public class ReviseRereviewUseCase {
         // 3. Load old ReviewSubmission by submissionId
         ReviewSubmission oldSubmission = submissionRepository.findById(cmd.getSubmissionId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewSubmission", cmd.getSubmissionId()));
+
+        if (!reviewCase.getCaseId().equals(oldSubmission.getCaseId())
+                || oldSubmission.getStage() != ReviewStage.REREVIEW) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission must belong to this case and REREVIEW stage");
+        }
+        if (!actor.getUserId().equals(oldSubmission.getReviewerId())) {
+            throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
+                    "Only the submission owner can perform this operation");
+        }
+        if (oldSubmission.getStatus() != SubmissionStatus.SUBMITTED) {
+            throw new DomainStateConflictException("SUBMISSION_NOT_SUBMITTED",
+                    "Submission must be SUBMITTED");
+        }
+        if (!oldSubmission.getSubmissionId().equals(reviewCase.getLatestRereviewSubmissionId())
+                || oldSubmission.getSupersededBySubmissionId() != null) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission is not the current rereview result");
+        }
 
         // 4. Load ScoreSheetDefinition via reviewCase.getScoreSheetVersionRef()
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
@@ -108,7 +134,7 @@ public class ReviseRereviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewProject", reviewCase.getProjectId()));
         ProjectVersion version = project.getCurrentVersion();
 
-        // 11. Update case final score for rereview (D-021: CLOSED cases allowed)
+        // 11. Update case final score without changing its lifecycle state
         reviewCase.updateFinalScoreForRereview(
                 result.getTotalScore(),
                 version.getInitialReviewWeight(),

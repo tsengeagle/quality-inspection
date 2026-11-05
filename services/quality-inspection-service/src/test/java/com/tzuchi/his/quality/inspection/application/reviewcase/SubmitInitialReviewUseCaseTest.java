@@ -30,6 +30,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 
 class SubmitInitialReviewUseCaseTest {
 
@@ -262,5 +264,35 @@ class SubmitInitialReviewUseCaseTest {
         ActorContext wrongHospital = new ActorContext("different-user", "Other Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("OTHER_HOSPITAL"));
         assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, CASE_ID));
+    }
+
+    @Test
+    void restart_submitsReferencedDraftDespiteEqualRevisionNumbers() {
+        seedProject(null);
+        seedScoreSheet();
+        ReviewCase rc = seedCaseInProgress();
+        ReviewSubmission old = seedDraftWithAnswers();
+        rc.returnToInitialReview("return");
+        rc.reopenInitialReview();
+        rc.startInitialReview("sub-2", SCORE_SHEET_ID);
+        caseRepo.save(rc);
+        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+        current.updateDraft(old.getAnswerSet(), old.getTotalScore(), "current");
+        submissionRepo.save(current);
+        InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
+        doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
+        SubmitInitialReviewUseCase submitting = new SubmitInitialReviewUseCase(
+                caseRepo, selected, projectRepo, scoreSheetRepo, eventPublisher, new ScoreCalculationService());
+        assertEquals(1, old.getRevisionNo());
+        assertEquals(1, current.getRevisionNo());
+        SubmitInitialReviewResult result = submitting.execute(reviewer(), CASE_ID);
+        assertEquals("sub-2", result.getSubmissionId());
+        assertEquals(SubmissionStatus.SUBMITTED, current.getStatus());
+        assertEquals(SubmissionStatus.DRAFT, old.getStatus());
+        assertEquals(new BigDecimal("17.5"), old.getTotalScore());
+        assertEquals("draft comment", old.getComment());
+        assertEquals("15", old.getAnswerSet().get(1).getAnswerValue());
+        assertNull(old.getSubmittedAt());
+        verify(selected, never()).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
     }
 }

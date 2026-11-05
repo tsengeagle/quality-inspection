@@ -21,6 +21,10 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreType;
 import com.tzuchi.his.quality.inspection.testfixture.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -93,6 +97,7 @@ class SubmitRereviewUseCaseTest {
         // score 90 > threshold 80 → PENDING_REREVIEW
         rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.of(2026, 6, 30, 23, 59));
         rc.startRereview(REREVIEWER_ID);
+        rc.setLatestRereviewSubmissionId(SUBMISSION_ID);
         caseRepo.save(rc);
     }
 
@@ -108,7 +113,7 @@ class SubmitRereviewUseCaseTest {
     }
 
     @Test
-    void execute_happyPath_shouldCloseWithWeightedScore() {
+    void execute_happyPath_shouldSubmitAndCalculateScore() {
         seedProject();
         seedScoreSheet();
         seedRereviewInProgressCase();
@@ -124,13 +129,10 @@ class SubmitRereviewUseCaseTest {
         assertNotNull(result.getSubmissionId());
         assertEquals("SUBMITTED", result.getStatus());
         assertEquals(CASE_ID, result.getCaseId());
-        assertEquals("CLOSED", result.getCaseStatus());
         assertEquals(0, new BigDecimal("53.75").compareTo(result.getFinalScore()));
 
         ReviewCase saved = caseRepo.findById(CASE_ID).orElseThrow();
-        assertEquals(CaseStatus.CLOSED, saved.getStatus());
         assertNotNull(saved.getFinalScore());
-        assertNotNull(saved.getClosedAt());
 
         // finalScore = initialScore(90) * 0.5 + rereviewScore * 0.5
         // rereviewScore = Q001(10*1.0=10) + Q002(15*0.5=7.5) = 17.5
@@ -140,6 +142,21 @@ class SubmitRereviewUseCaseTest {
         ReviewSubmission sub = submissionRepo.findById(SUBMISSION_ID).orElseThrow();
         assertEquals(SubmissionStatus.SUBMITTED, sub.getStatus());
         assertTrue(eventPublisher.events.size() >= 1);
+    }
+
+    @Test
+    void execute_submitMustNotCloseCase_D032() {
+        seedProject();
+        seedScoreSheet();
+        seedRereviewInProgressCase();
+        seedRereviewDraftWithAnswers();
+        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
+        cmd.setCaseId(CASE_ID);
+        cmd.setSubmissionId(SUBMISSION_ID);
+        useCase.execute(rereviewerActor(), cmd);
+        ReviewCase saved = caseRepo.findById(CASE_ID).orElseThrow();
+        assertNotEquals(CaseStatus.CLOSED, saved.getStatus());
+        assertNull(saved.getClosedAt());
     }
 
     @Test
@@ -188,5 +205,77 @@ class SubmitRereviewUseCaseTest {
         ActorContext wrongHospital = new ActorContext(REREVIEWER_ID, "ReReviewer",
                 EnumSet.of(DomainRole.REREVIEWER), Optional.of("OTHER_HOSPITAL"));
         assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"otherCase", "initialStage", "otherOwner", "stale", "missingPointer", "submitted", "superseded", "closed", "cancelled", "wrongHospital"})
+    void execute_invalidSubmissionOrCase_rejectsWithoutMutation(String scenario) {
+        seedProject();
+        seedScoreSheet();
+        seedRereviewInProgressCase();
+        seedRereviewDraftWithAnswers();
+        ReviewCase reviewCase = caseRepo.findById(CASE_ID).orElseThrow();
+        ReviewSubmission original = submissionRepo.findById(SUBMISSION_ID).orElseThrow();
+        ReviewSubmission target = original;
+        if (scenario.equals("otherCase") || scenario.equals("initialStage") || scenario.equals("otherOwner")) {
+            target = ReviewSubmission.reconstitute(original.getSubmissionId(),
+                    scenario.equals("otherCase") ? "other-case" : CASE_ID,
+                    scenario.equals("initialStage") ? ReviewStage.INITIAL : ReviewStage.REREVIEW,
+                    scenario.equals("otherOwner") ? "other-owner" : REREVIEWER_ID,
+                    original.getStatus(), original.getRevisionNo(), original.getAnswerSet(),
+                    original.getTotalScore(), original.getComment(), original.getSubmittedAt(),
+                    original.getBasedOnScoreSheetVersionId(), original.getSupersededBySubmissionId(),
+                    original.getAttachmentRefsJson(), original.getCreatedAt(), original.getUpdatedAt());
+            submissionRepo.save(target);
+        }
+        if (scenario.equals("draft")) {
+            target = ReviewSubmission.createRereviewDraft(SUBMISSION_ID, CASE_ID, REREVIEWER_ID);
+            submissionRepo.save(target);
+        }
+        if (scenario.equals("submitted")) target.submit();
+        if (scenario.equals("superseded")) {
+            if (target.getStatus() == SubmissionStatus.DRAFT) target.submit();
+            target.markSuperseded("newer-submission");
+        }
+        if (scenario.equals("stale")) {
+            ReviewSubmission newer = ReviewSubmission.createRereviewDraft("newer-submission", CASE_ID, REREVIEWER_ID);
+            submissionRepo.save(newer);
+            reviewCase.setLatestRereviewSubmissionId(newer.getSubmissionId());
+        }
+        if (scenario.equals("missingPointer")) reviewCase.setLatestRereviewSubmissionId(null);
+        if (scenario.equals("closed")) reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5"));
+        if (scenario.equals("cancelled")) reviewCase.cancel("cancelled");
+        caseRepo.save(reviewCase);
+        List<Object> beforeCase = caseState(reviewCase);
+        Map<String, List<Object>> beforeSubmissions = submissionState();
+        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
+        cmd.setCaseId(CASE_ID);
+        cmd.setSubmissionId(SUBMISSION_ID);
+
+        ActorContext actor = scenario.equals("wrongHospital")
+                ? new ActorContext(REREVIEWER_ID, "ReReviewer", EnumSet.of(DomainRole.REREVIEWER), Optional.of("OTHER"))
+                : rereviewerActor();
+        RuntimeException failure = assertThrows(RuntimeException.class, () -> useCase.execute(actor, cmd));
+        assertTrue(failure instanceof DomainStateConflictException
+                || failure instanceof com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException
+                || failure instanceof com.tzuchi.his.quality.inspection.application.common.AccessDeniedException,
+                "Expected an explicit guard rejection, not an incidental failure: " + failure);
+        assertEquals(beforeCase, caseState(caseRepo.findById(CASE_ID).orElseThrow()));
+        assertEquals(beforeSubmissions, submissionState());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
+    private List<Object> caseState(ReviewCase rc) {
+        return Arrays.asList(rc.getStatus(), rc.getFinalScore(), rc.getInitialReviewScore(),
+                rc.getLatestInitialSubmissionId(), rc.getLatestRereviewSubmissionId(), rc.getClosedAt(), rc.getCancelledAt());
+    }
+
+    private Map<String, List<Object>> submissionState() {
+        Map<String, List<Object>> state = new LinkedHashMap<>();
+        submissionRepo.store.forEach((id, sub) -> state.put(id, Arrays.asList(
+                sub.getCaseId(), sub.getStage(), sub.getReviewerId(), sub.getStatus(), sub.getRevisionNo(),
+                new ArrayList<>(sub.getAnswerSet()), sub.getTotalScore(), sub.getComment(), sub.getSubmittedAt(),
+                sub.getSupersededBySubmissionId(), sub.getCreatedAt(), sub.getUpdatedAt())));
+        return state;
     }
 }
