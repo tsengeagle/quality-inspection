@@ -66,10 +66,13 @@ public class SubmitInitialReviewUseCase {
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
 
-        ReviewSubmission submission = submissionRepository
-                .findLatestByCaseIdAndStage(caseId, ReviewStage.INITIAL)
-                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND",
-                        "No INITIAL submission found for case: " + caseId));
+        String activeSubmissionId = reviewCase.getLatestInitialSubmissionId();
+        if (activeSubmissionId == null || activeSubmissionId.isBlank()) {
+            throw new DomainStateConflictException("CONFLICT", "Case has no active INITIAL submission reference");
+        }
+        ReviewSubmission submission = submissionRepository.findById(activeSubmissionId)
+                .orElseThrow(() -> new DomainStateConflictException("CONFLICT",
+                        "Case references an unavailable INITIAL submission"));
 
         if (!actor.getUserId().equals(submission.getReviewerId())) {
             throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
@@ -87,6 +90,14 @@ public class SubmitInitialReviewUseCase {
             throw new DomainStateConflictException(
                     "SUBMISSION_NOT_DRAFT",
                     "Submission must be in DRAFT status. Current: " + submission.getStatus());
+        }
+
+        if (!submission.getSubmissionId().equals(reviewCase.getLatestInitialSubmissionId())
+                || !caseId.equals(submission.getCaseId())
+                || submission.getStage() != ReviewStage.INITIAL
+                || submission.getSupersededBySubmissionId() != null) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission is not the current INITIAL result for this case");
         }
 
         ScoreSheetDefinition scoreSheet = scoreSheetRepository

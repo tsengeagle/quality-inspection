@@ -25,6 +25,8 @@ import java.math.BigDecimal;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 
 class SaveInitialReviewDraftUseCaseTest {
 
@@ -212,5 +214,34 @@ class SaveInitialReviewDraftUseCaseTest {
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("OTHER_HOSPITAL"));
         assertThrows(AccessDeniedException.class,
                 () -> useCase.execute(wrongHospital, CASE_ID, Collections.emptyList(), null));
+    }
+
+    @Test
+    void restart_savesReferencedDraftDespiteEqualRevisionNumbers() {
+        seedPublishedScoreSheet();
+        ReviewCase rc = seedReviewCase();
+        ReviewSubmission old = seedDraftSubmission();
+        old.updateDraft(Collections.emptyList(), new BigDecimal("7"), "historical");
+        rc.returnToInitialReview("return");
+        rc.reopenInitialReview();
+        rc.startInitialReview("sub-2", SCORE_SHEET_ID);
+        caseRepo.save(rc);
+        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+        submissionRepo.save(current);
+        InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
+        doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
+        SaveInitialReviewDraftUseCase saving = new SaveInitialReviewDraftUseCase(
+                selected, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), caseRepo);
+        assertEquals(1, old.getRevisionNo());
+        assertEquals(1, current.getRevisionNo());
+        SaveDraftResult result = saving.execute(reviewer(), CASE_ID,
+                Collections.singletonList(new AnswerInput("Q001", "true")), "current");
+        assertEquals("sub-2", result.getSubmissionId());
+        assertEquals("current", current.getComment());
+        assertEquals(SubmissionStatus.DRAFT, old.getStatus());
+        assertEquals(new BigDecimal("7"), old.getTotalScore());
+        assertEquals("historical", old.getComment());
+        assertTrue(old.getAnswerSet().isEmpty());
+        verify(selected, never()).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
     }
 }

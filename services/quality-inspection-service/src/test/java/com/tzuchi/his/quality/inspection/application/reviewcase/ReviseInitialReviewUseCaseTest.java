@@ -134,6 +134,7 @@ class ReviseInitialReviewUseCaseTest {
         // Case finalScore updated
         ReviewCase savedCase = caseRepo.store.get(CASE_ID);
         assertEquals(result.getTotalScore(), savedCase.getFinalScore());
+        assertEquals(result.getNewSubmissionId(), savedCase.getLatestInitialSubmissionId());
 
         // Event published
         assertEquals(1, eventPublisher.events.size());

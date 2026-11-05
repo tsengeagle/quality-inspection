@@ -48,6 +48,7 @@ class SaveRereviewDraftUseCaseTest {
         rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80"));
         rc.assignRereviewer("rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59));
         rc.startRereview("rereviewer-1");
+        rc.setLatestRereviewSubmissionId("sub-r1");
         caseRepository.save(rc);
 
         ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1");

@@ -6,6 +6,8 @@ import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
@@ -54,6 +56,7 @@ public class ReviseInitialReviewUseCase {
         ReviewCase reviewCase = caseRepository.findById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND",
                         "ReviewCase not found: " + caseId));
+        actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
 
         // Load and validate old submission
@@ -74,6 +77,16 @@ public class ReviseInitialReviewUseCase {
         if (!actor.getUserId().equals(oldSubmission.getReviewerId())) {
             throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
                     "Only the original reviewer can revise this submission");
+        }
+
+        if (oldSubmission.getStatus() != SubmissionStatus.SUBMITTED) {
+            throw new DomainStateConflictException("SUBMISSION_NOT_SUBMITTED",
+                    "Submission must be SUBMITTED");
+        }
+        if (!submissionId.equals(reviewCase.getLatestInitialSubmissionId())
+                || oldSubmission.getSupersededBySubmissionId() != null) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission is not the current INITIAL result");
         }
 
         // Load score sheet for scoring
@@ -98,7 +111,7 @@ public class ReviseInitialReviewUseCase {
         oldSubmission.markSuperseded(newSubmissionId);
 
         // Update case's final score (no status change)
-        reviewCase.updateFinalScore(result.getTotalScore());
+        reviewCase.recordInitialReviewRevision(submissionId, newSubmissionId, result.getTotalScore());
 
         // Persist
         submissionRepository.save(oldSubmission);

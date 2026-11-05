@@ -6,6 +6,9 @@ import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
@@ -57,16 +60,36 @@ public class SaveInitialReviewDraftUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND",
                         "ReviewCase not found: " + caseId));
         actor.requireHospitalScope(reviewCase.getHospitalId());
+        reviewCase.requireNotTerminal();
+        if (reviewCase.getStatus() != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
+            throw new DomainStateConflictException("CASE_NOT_IN_PROGRESS",
+                    "Case must be in INITIAL_REVIEW_IN_PROGRESS to save a draft");
+        }
 
-        ReviewSubmission submission = submissionRepository
-                .findLatestByCaseIdAndStage(caseId, ReviewStage.INITIAL)
-                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND",
-                        "No INITIAL submission found for case: " + caseId));
+        String activeSubmissionId = reviewCase.getLatestInitialSubmissionId();
+        if (activeSubmissionId == null || activeSubmissionId.isBlank()) {
+            throw new DomainStateConflictException("CONFLICT", "Case has no active INITIAL submission reference");
+        }
+        ReviewSubmission submission = submissionRepository.findById(activeSubmissionId)
+                .orElseThrow(() -> new DomainStateConflictException("CONFLICT",
+                        "Case references an unavailable INITIAL submission"));
 
         // Identity guard: only the submission owner
         if (!actor.getUserId().equals(submission.getReviewerId())) {
             throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
                     "Only the reviewer who owns this submission can save a draft");
+        }
+
+        if (!submission.getSubmissionId().equals(reviewCase.getLatestInitialSubmissionId())
+                || !caseId.equals(submission.getCaseId())
+                || submission.getStage() != ReviewStage.INITIAL
+                || submission.getSupersededBySubmissionId() != null) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission is not the current INITIAL result for this case");
+        }
+        if (submission.getStatus() != SubmissionStatus.DRAFT) {
+            throw new DomainStateConflictException("SUBMISSION_NOT_DRAFT",
+                    "Submission must be DRAFT");
         }
 
         // If no answers, update with empty + zero
