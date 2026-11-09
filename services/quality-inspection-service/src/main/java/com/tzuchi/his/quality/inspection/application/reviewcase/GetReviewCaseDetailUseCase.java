@@ -24,8 +24,14 @@ public class GetReviewCaseDetailUseCase {
 
     private final ReviewCaseQueryPort queryPort;
 
-    public GetReviewCaseDetailUseCase(ReviewCaseQueryPort queryPort) {
+    private final ReviewReadAccessPolicy accessPolicy;
+    private final CaseDetailMetadataMapper metadataMapper;
+
+    public GetReviewCaseDetailUseCase(ReviewCaseQueryPort queryPort, ReviewReadAccessPolicy accessPolicy,
+                                       CaseDetailMetadataMapper metadataMapper) {
         this.queryPort = queryPort;
+        this.accessPolicy = accessPolicy;
+        this.metadataMapper = metadataMapper;
     }
 
     public ReviewCaseDetailView execute(ActorContext actor, String caseId) {
@@ -35,6 +41,12 @@ public class GetReviewCaseDetailUseCase {
 
         ReviewCaseDetailView raw = queryPort.findDetailById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
+
+        accessPolicy.requireAccess(actor, raw);
+        if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) return metadataMapper.project(raw);
+        if (actor.hasRole(DomainRole.REREVIEWER)) {
+            raw = raw.withRestrictedContent(actor.getUserId(), false);
+        }
 
         String projectionType = actor.hasRole(DomainRole.SYSTEM_ADMIN) ? "METADATA_ONLY" : "FULL";
 
@@ -49,8 +61,8 @@ public class GetReviewCaseDetailUseCase {
         boolean isOwner = actor.getUserId().equals(raw.getReviewerId())
                        || actor.getUserId().equals(raw.getRereviewerId());
 
-        InitialReviewBootstrapView initialReviewContext = buildInitialReviewContext(actor, actorRole, raw);
-        RereviewBootstrapView rereviewContext = buildRereviewContext(actor, actorRole, raw);
+        InitialReviewBootstrapView initialReviewContext = actor.hasRole(DomainRole.SYSTEM_ADMIN) ? null : buildInitialReviewContext(actor, actorRole, raw);
+        RereviewBootstrapView rereviewContext = actor.hasRole(DomainRole.SYSTEM_ADMIN) ? null : buildRereviewContext(actor, actorRole, raw);
 
         return raw.enrich(projectionType, actorRole, isOwner, initialReviewContext, rereviewContext);
     }

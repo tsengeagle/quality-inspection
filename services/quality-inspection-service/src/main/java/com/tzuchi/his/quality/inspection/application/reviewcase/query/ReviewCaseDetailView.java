@@ -121,6 +121,21 @@ public class ReviewCaseDetailView {
     public InitialReviewBootstrapView getInitialReviewContext() { return initialReviewContext; }
     public RereviewBootstrapView getRereviewContext() { return rereviewContext; }
 
+    public ReviewCaseDetailView withRestrictedContent(String actorId, boolean metadataOnly) {
+        List<SubmissionSummaryItem> visibleSubmissions = this.submissions.stream()
+                .map(s -> new SubmissionSummaryItem(s.getSubmissionId(), s.getStage(), s.getReviewerId(),
+                        s.getRevisionNo(), s.getStatus(),
+                        !metadataOnly && "REREVIEW".equals(s.getStage()) && actorId.equals(s.getReviewerId())
+                                ? s.getTotalScore() : null,
+                        s.getSubmittedAt()))
+                .collect(java.util.stream.Collectors.toList());
+        return new ReviewCaseDetailView(caseId, projectId, batchId, hospitalId, status, reviewerId,
+                rereviewerId, metadataOnly ? null : medicalRecordType, metadataOnly ? null : sourceCaseKey,
+                null, null, null, createdAt, assignedAt, dueAt, closedAt, cancelledAt,
+                latestInitialSubmissionId, scoreSheetVersionRef, visibleSubmissions, latestRereviewSubmissionId,
+                projectionType, actorRole, isOwner, null, null);
+    }
+
     public ReviewCaseDetailView enrich(String projectionType, String actorRole, boolean isOwner,
                                        InitialReviewBootstrapView initialReviewContext,
                                        RereviewBootstrapView rereviewContext) {

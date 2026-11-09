@@ -26,20 +26,24 @@ public class GetRevisionHistoryUseCase {
     private final ReviewSubmissionRepository submissionRepository;
     private final ReviewCaseRepository reviewCaseRepository;
 
+    private final ReviewReadAccessPolicy accessPolicy;
+
     public GetRevisionHistoryUseCase(ReviewSubmissionRepository submissionRepository,
-                                     ReviewCaseRepository reviewCaseRepository) {
+                                     ReviewCaseRepository reviewCaseRepository, ReviewReadAccessPolicy accessPolicy) {
         this.submissionRepository = submissionRepository;
         this.reviewCaseRepository = reviewCaseRepository;
+        this.accessPolicy = accessPolicy;
     }
 
     public RevisionHistoryView execute(ActorContext actor, String caseId) {
         actor.requireAnyRole(DomainRole.REVIEWER, DomainRole.HOSPITAL_MANAGER,
-                DomainRole.REREVIEWER, DomainRole.AUDITOR);
+                DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
         ReviewCase reviewCase = reviewCaseRepository.findById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
 
         List<ReviewSubmission> submissions = submissionRepository.findAllByCaseId(caseId);
+        accessPolicy.requireAccess(actor, reviewCase, submissions);
 
         List<ReviewSubmission> sorted = submissions.stream()
                 .sorted(Comparator.comparing(ReviewSubmission::getStage)
@@ -57,8 +61,9 @@ public class GetRevisionHistoryUseCase {
         List<RevisionHistoryEntry> entries = sorted.stream()
                 .map(s -> new RevisionHistoryEntry(
                         s.getSubmissionId(), s.getStage().name(), s.getReviewerId(),
-                        s.getStatus().name(), s.getRevisionNo(), s.getTotalScore(),
-                        s.getComment(), s.getSubmittedAt(), s.getSupersededBySubmissionId()))
+                        s.getStatus().name(), s.getRevisionNo(),
+                        accessPolicy.canReadContent(actor, s.getStage().name(), s.getReviewerId()) ? s.getTotalScore() : null,
+                        accessPolicy.canReadContent(actor, s.getStage().name(), s.getReviewerId()) ? s.getComment() : null, s.getSubmittedAt(), s.getSupersededBySubmissionId()))
                 .collect(Collectors.toList());
 
         return new RevisionHistoryView(caseId, entries, hasExceptionEntry);

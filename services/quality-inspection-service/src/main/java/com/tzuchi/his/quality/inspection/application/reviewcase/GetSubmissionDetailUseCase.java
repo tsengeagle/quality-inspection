@@ -4,6 +4,8 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionDetailView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionQueryPort;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryPort;
+import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,8 +18,14 @@ public class GetSubmissionDetailUseCase {
 
     private final SubmissionQueryPort queryPort;
 
-    public GetSubmissionDetailUseCase(SubmissionQueryPort queryPort) {
+    private final ReviewCaseQueryPort caseQueryPort;
+    private final ReviewReadAccessPolicy accessPolicy;
+
+    public GetSubmissionDetailUseCase(SubmissionQueryPort queryPort, ReviewCaseQueryPort caseQueryPort,
+                                      ReviewReadAccessPolicy accessPolicy) {
         this.queryPort = queryPort;
+        this.caseQueryPort = caseQueryPort;
+        this.accessPolicy = accessPolicy;
     }
 
     public SubmissionDetailView execute(ActorContext actor, String submissionId) {
@@ -28,8 +36,13 @@ public class GetSubmissionDetailUseCase {
         SubmissionDetailView view = queryPort.findDetailById(submissionId)
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewSubmission", submissionId));
 
-        boolean shouldMask = actor.hasRole(DomainRole.REREVIEWER)
-                && !queryPort.existsSubmittedRereview(view.getCaseId());
+        accessPolicy.requireAccess(actor, caseQueryPort.findDetailById(view.getCaseId())
+                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", view.getCaseId())));
+        if (actor.hasRole(DomainRole.REREVIEWER) && "REREVIEW".equals(view.getStage())
+                && !actor.getUserId().equals(view.getReviewerId())) {
+            throw new AccessDeniedException("Cannot read another rereviewer's submission content");
+        }
+        boolean shouldMask = !accessPolicy.canReadContent(actor, view.getStage(), view.getReviewerId());
 
         if (!shouldMask) {
             return view;
@@ -44,10 +57,10 @@ public class GetSubmissionDetailUseCase {
                 view.getReviewerId(),
                 null,
                 null,
-                view.getAttachmentRefsJson(),
+                null,
                 null,
                 view.getCreatedAt(),
                 view.getSubmittedAt(),
-                List.of("answers", "comment", "totalScore"));
+                List.of("answers", "comment", "totalScore", "attachmentRefsJson"));
     }
 }

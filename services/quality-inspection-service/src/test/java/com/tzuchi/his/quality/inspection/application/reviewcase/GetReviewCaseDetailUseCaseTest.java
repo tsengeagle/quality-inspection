@@ -22,11 +22,12 @@ class GetReviewCaseDetailUseCaseTest {
     @BeforeEach
     void setUp() {
         queryPort = new InMemoryQueryPort();
-        useCase = new GetReviewCaseDetailUseCase(queryPort);
+        useCase = new GetReviewCaseDetailUseCase(queryPort, new ReviewReadAccessPolicy(org.mockito.Mockito.mock(com.tzuchi.his.quality.inspection.application.audit.AuditTrailQueryPort.class), new com.fasterxml.jackson.databind.ObjectMapper()),
+                new CaseDetailMetadataMapper(org.mockito.Mockito.mock(com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectQueryPort.class)));
     }
 
     @Test
-    void returnsDetailWhenFound() {
+    void managerWithUnknownHistoryIsDenied_D035() {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
                 "c1", "p1", "b1", "H001", "CLOSED", "r1", null,
                 "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85),
@@ -35,10 +36,8 @@ class GetReviewCaseDetailUseCaseTest {
         queryPort.setDetail("c1", detail);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        ReviewCaseDetailView result = useCase.execute(actor, "c1");
-
-        assertEquals("c1", result.getCaseId());
-        assertEquals("CLOSED", result.getStatus());
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
+                () -> useCase.execute(actor, "c1"));
     }
 
     @Test
@@ -56,7 +55,7 @@ class GetReviewCaseDetailUseCaseTest {
     }
 
         @Test
-        void assignedReviewer_shouldReceiveInitialReviewDraftBootstrapContext() {
+        void assignedReviewerWithUnknownHistoryIsDenied_D035() {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
             "c1", "p1", "b1", "H001", "INITIAL_REVIEW_IN_PROGRESS",
             "reviewer-1", null, "OUTPATIENT", "SK-1",
@@ -71,16 +70,8 @@ class GetReviewCaseDetailUseCaseTest {
         ActorContext actor = new ActorContext(
             "reviewer-1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
-        ReviewCaseDetailView result = useCase.execute(actor, "c1");
-
-        assertNotNull(result.getInitialReviewContext());
-        assertEquals("EDIT_DRAFT", result.getInitialReviewContext().getPageMode());
-        assertTrue(result.getInitialReviewContext().isHasDraft());
-        assertFalse(result.getInitialReviewContext().isHasSubmittedBase());
-        assertEquals("sub-init-draft",
-            result.getInitialReviewContext().getEditableSubmission().getSubmissionId());
-        assertEquals(List.of("SAVE_INITIAL_REVIEW_DRAFT", "SUBMIT_INITIAL_REVIEW"),
-            result.getInitialReviewContext().getAllowedActions());
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
+                () -> useCase.execute(actor, "c1"));
         }
 
         @Test
@@ -112,7 +103,10 @@ class GetReviewCaseDetailUseCaseTest {
             result.getRereviewContext().getBasedOnVersion().getSubmissionId());
         assertEquals("sub-init-1", result.getRereviewContext().getInitialSubmissionId());
         assertEquals("reviewer-1", result.getRereviewContext().getInitialReviewerId());
-        assertEquals(BigDecimal.valueOf(85), result.getRereviewContext().getFinalScore());
+        assertNull(result.getRereviewContext().getFinalScore());
+        assertNull(result.getRereviewContext().getInitialTotalScore());
+        assertNull(result.getInitialReviewScore());
+        assertNull(result.getFinalScore());
         assertEquals(List.of("REVISE_REREVIEW"), result.getRereviewContext().getAllowedActions());
         }
 

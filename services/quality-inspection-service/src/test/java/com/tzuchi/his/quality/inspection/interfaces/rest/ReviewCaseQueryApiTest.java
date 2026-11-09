@@ -101,18 +101,17 @@ class ReviewCaseQueryApiTest {
     }
 
     @Test
-    void getCaseDetail_returnsDetail() throws Exception {
+    void getCaseDetail_returnsDetail_D035RejectsUnknown() throws Exception {
         seedCase("c1", CaseStatus.CLOSED);
 
         mockMvc.perform(get("/review-cases/c1")
                         .header("api-key", hmToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.caseId").value("c1"))
-                .andExpect(jsonPath("$.data.status").value("CLOSED"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
     }
 
             @Test
-            void getCaseDetail_returnsInitialBootstrapContextForReviewer() throws Exception {
+            void getCaseDetail_returnsInitialBootstrapContextForReviewer_D035RejectsUnknown() throws Exception {
             ReviewCaseEntity e = new ReviewCaseEntity();
             e.setCaseId("c1");
             e.setBatchId("b1");
@@ -130,14 +129,8 @@ class ReviewCaseQueryApiTest {
 
             mockMvc.perform(get("/review-cases/c1")
                     .header("api-key", reviewerToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.initialReviewContext.pageMode").value("EDIT_DRAFT"))
-                .andExpect(jsonPath("$.data.initialReviewContext.hasDraft").value(true))
-                .andExpect(jsonPath("$.data.initialReviewContext.hasSubmittedBase").value(false))
-                .andExpect(jsonPath("$.data.initialReviewContext.scoreSheetVersionId").value("ss-init-v1"))
-                .andExpect(jsonPath("$.data.initialReviewContext.currentSubmission.submissionId").value("sub-init-draft"))
-                .andExpect(jsonPath("$.data.initialReviewContext.allowedActions[0]").value("SAVE_INITIAL_REVIEW_DRAFT"))
-                .andExpect(jsonPath("$.data.initialReviewContext.allowedActions[1]").value("SUBMIT_INITIAL_REVIEW"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
             }
 
             @Test
@@ -174,8 +167,8 @@ class ReviewCaseQueryApiTest {
                 .andExpect(jsonPath("$.data.rereviewContext.basedOnVersion.submissionId").value("sub-rereview-1"))
                 .andExpect(jsonPath("$.data.rereviewContext.initialSubmissionId").value("sub-init-1"))
                 .andExpect(jsonPath("$.data.rereviewContext.initialReviewerId").value("reviewer-1"))
-                .andExpect(jsonPath("$.data.rereviewContext.finalScore").value(85))
-                .andExpect(jsonPath("$.data.rereviewContext.finalConclusion").value("FINAL_PASS"))
+                .andExpect(jsonPath("$.data.rereviewContext.finalScore").isEmpty())
+                .andExpect(jsonPath("$.data.rereviewContext.finalConclusion").isEmpty())
                 .andExpect(jsonPath("$.data.rereviewContext.allowedActions[0]").value("REVISE_REREVIEW"));
             }
 

@@ -1,6 +1,9 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.TestTokenFactory;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.ReviewCaseEntity;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.ReviewCaseJpaRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.submission.ReviewSubmissionEntity;
@@ -26,10 +29,15 @@ class SubmissionQueryApiTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ReviewSubmissionJpaRepository submissionRepo;
+    @Autowired private ReviewCaseJpaRepository caseRepo;
 
     private final String hmToken = TestTokenFactory.hospitalManagerToken();
 
     private void seedSubmission(String submissionId) {
+        ReviewCaseEntity rc = new ReviewCaseEntity();
+        rc.setCaseId("c1"); rc.setBatchId("b1"); rc.setProjectId("p1");
+        rc.setHospitalId("H001"); rc.setStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
+        caseRepo.save(rc);
         ReviewSubmissionEntity e = new ReviewSubmissionEntity();
         e.setSubmissionId(submissionId);
         e.setCaseId("c1");
@@ -43,14 +51,13 @@ class SubmissionQueryApiTest {
     }
 
     @Test
-    void getSubmissionDetail_returnsDetail() throws Exception {
+    void getSubmissionDetail_returnsDetail_D035RejectsUnknown() throws Exception {
         seedSubmission("sub1");
 
         mockMvc.perform(get("/review-submissions/sub1")
                         .header("api-key", hmToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.submissionId").value("sub1"))
-                .andExpect(jsonPath("$.data.stage").value("INITIAL"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
     }
 
     @Test

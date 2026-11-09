@@ -22,20 +22,26 @@ class GetSubmissionDetailUseCaseTest {
     @BeforeEach
     void setUp() {
         queryPort = new InMemorySubmissionQueryPort();
-        useCase = new GetSubmissionDetailUseCase(queryPort);
+        GetReviewCaseDetailUseCaseTest.InMemoryQueryPort casePort = new GetReviewCaseDetailUseCaseTest.InMemoryQueryPort();
+        for (int i = 1; i <= 3; i++) {
+            casePort.setDetail("c" + i, new com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView(
+                    "c" + i, "p", "b", "H001", "PENDING_REREVIEW", "r" + i, i == 1 ? "assigned-rereviewer" : "u" + i,
+                    null, null, null, null, null, null, null, null, null, null,
+                    Collections.emptyList(), null, null, null, false));
+        }
+        useCase = new GetSubmissionDetailUseCase(queryPort, casePort, new ReviewReadAccessPolicy(org.mockito.Mockito.mock(com.tzuchi.his.quality.inspection.application.audit.AuditTrailQueryPort.class), new com.fasterxml.jackson.databind.ObjectMapper()));
     }
 
     @Test
-    void returnsDetailWhenFound() {
+    void managerWithUnknownHistoryIsDenied_D035() {
         SubmissionDetailView detail = new SubmissionDetailView(
                 "sub1", "c1", "INITIAL", 1, "SUBMITTED", "r1",
                 Collections.emptyList(), "ok", null, BigDecimal.valueOf(90), null, null, null);
         queryPort.setDetail("sub1", detail);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        SubmissionDetailView result = useCase.execute(actor, "sub1");
-
-        assertEquals("sub1", result.getSubmissionId());
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
+                () -> useCase.execute(actor, "sub1"));
     }
 
     @Test
@@ -72,7 +78,7 @@ class GetSubmissionDetailUseCaseTest {
     }
 
     @Test
-    void execute_rerereviewerAfterRereviewSubmitted_shouldNotMask() {
+    void execute_rerereviewerAfterRereviewSubmitted_shouldStillMask() {
         SubmissionDetailView detail = new SubmissionDetailView(
                 "sub3", "c3", "INITIAL", 1, "SUBMITTED", "r3",
                 Collections.emptyList(), "some comment", null, BigDecimal.valueOf(70), null, null, null);
@@ -83,9 +89,9 @@ class GetSubmissionDetailUseCaseTest {
 
         SubmissionDetailView result = useCase.execute(actor, "sub3");
 
-        assertNotNull(result.getComment());
-        assertNotNull(result.getTotalScore());
-        assertNull(result.getMaskedFields());
+        assertNull(result.getComment());
+        assertNull(result.getTotalScore());
+        assertNotNull(result.getMaskedFields());
     }
 
     static class InMemorySubmissionQueryPort implements SubmissionQueryPort {

@@ -377,3 +377,8 @@ EX-041～EX-052 分別一對一映射 TS-DA-001～TS-DA-012。Domain 層驗固�
 | EX-061 | TS-DC-005 | Application / API / Frontend / Acceptance | 複審 Close Command 不解除永久盲審 |
 
 沿用 EX-043 / TS-DA-003（無需複審 manager 結案）、EX-044～047 / TS-DA-004～007（提交分離、未提交拒絕、有效結果提交者另行 Close Command、結案前 revision）、EX-056 / TS-DD03-004（兩條路徑回歸）。不得用 in-memory unit test 宣稱交易競爭／rollback 保證；API binding、schema、error code、鎖定／交易與事件技術 UNKNOWN。本次只補設計映射，未新增或執行程式測試。
+
+
+## D-035 Fail-closed 驗證映射
+
+EX-062～065 一對一對應 TS-FC-001～004。沿用 78 個 completeness HTTP/JPA 案例；24 個缺失歷史洩漏須轉為明確 403；完整讀者對照改驗 D-035 已接受的拒絕，逐項記錄期望異動。Unit 驗三值分類；HTTP 驗無受限 JSON／無靜默降級；JPA 驗原資料與 Audit 不變。沒有可靠負面證明來源，不虛構 Proven non-historical。D-032 Red Test 仍須實際執行。

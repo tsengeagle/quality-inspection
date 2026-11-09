@@ -717,17 +717,17 @@
 ```json id="4rlo1t"
 {
   "caseId": "RC-001",
-  "projectId": "RP-001",
-  "projectVersionId": "RPV-003",
-  "batchId": "BATCH-001",
-  "scoreSheetVersionId": "SSV-002",
   "caseStatus": "PENDING_REREVIEW",
-  "dueAt": "2026-04-10T23:59:59+08:00",
+  "projectName": "品質審查專案",
+  "hospitalId": "H001",
   "reviewerId": "DOC-1001",
   "rereviewerId": "DOC-2001",
-  "viewMode": "METADATA_ONLY"
+  "updatedAt": null,
+  "latestRevisionSummary": null
 }
 ```
+
+兩個 null 僅表達目前值契約／實作未完成（UNKNOWN），不作完成度承諾。
 
 ---
 
@@ -770,3 +770,12 @@
 本頁維持 control center／導頁責任。初審未固定不得導向可執行複審或無需複審的 manager 結案；複審已提交不等於 CLOSED；正式結案限原複審提交者且具資格，操作 binding unknown。CLOSED 僅唯讀歷程，無例外修正入口（D-031／032）。複審醫師的所有摘要、finalScore、history 導頁均遵守 D-033。
 
 驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。
+
+
+## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
+
+UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
+
+`updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。
