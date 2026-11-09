@@ -72,7 +72,7 @@ Accept: application/json
 - shared base：`caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`
 - page extension：
   - UI-009：`batchId`, `dueAt`
-  - UI-010：`lifecycleLatestStage`, `latestRevisionSummary`
+  - UI-010：`latestRevisionSummary`
   - UI-014：`stage`, `revisionNo`, `submittedAt`, `submittedBy`, `isCurrentEffective`
 
 超出白名單欄位視為 FULL-only，不得回傳於 metadata-only 視角。
@@ -1461,3 +1461,17 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 | 永久盲審 | submit／revision／close ack、錯誤、查詢、歷程、報表／匯出及快取均適用 D-033；CLOSED 不解除，finalScore 等可反推資訊不得向同案複審醫師提供 |
 
 沿用正式 base path 與 api-key／actor context baseline。精確 binding、schema、版本 token、錯誤細碼／新增拒絕條件的 HTTP mapping、重複 close／網路重試回應、多角色授權合成與 consumer 相容性方案均 UNKNOWN；既有通用 role／scope 與 conflict 契約不因此重新定義。不得以 UNKNOWN 放出受限資料或重複推進 CLOSED。
+
+
+## D-035 歷史身份 Fail-closed 讀取契約
+
+Submission Detail、Case Detail、Revision History：完整初審內容讀取新增 D-035 前置條件。Role／scope 符合但歷史身份 Proven historical 或 UNKNOWN 時，使用既有 HTTP 403、ACCESS_DENIED 與錯誤外殼；不得回傳受限內容、成功資料或默默降級。這包括合法 Manager／Auditor、無需複審案件及無可靠排除證明的初審 REVIEWER。非法 Role／院所等既有拒絕仍優先執行；合法 REREVIEWER 本人複審內容及 SYSTEM_ADMIN 白名單投影不因此擴張。路徑／schema 不變，無新的 completeness token。
+
+
+## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
+
+UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
+
+`updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。

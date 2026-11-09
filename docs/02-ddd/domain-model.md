@@ -648,3 +648,8 @@ BatchStatus:
 ## D-034 複審獨立 Close Command 對齊
 
 Close Command 依目前有效合法 REREVIEW submission 驗證結案資格；不是依歷史版本或目前 assignment 推定授權。ReviewCase 保護流程、有效引用與 terminal；ReviewSubmission 保護固定後不可變。兩者由 application 協調：不得 CLOSED 而複審結果仍可 revision，不得因 close 改用過期版本或更換固定初審計分輸入。初審未固定、無合法有效提交或 terminal 均不得產生新的成功結案。
+
+
+## D-035 歷史身份 Fail-closed 讀取契約
+
+D-035 是 application/query 授權條件，不是新增 aggregate invariant 或持久化狀態。不得從目前 assignment、submission、case 狀態或 rereviewRequired 推定完整身份歷史。Domain 原始結果、分數及 append-only revision 語意不變。

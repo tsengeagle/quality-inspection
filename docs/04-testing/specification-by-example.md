@@ -2504,3 +2504,96 @@ finalScore、preview、diff 等衍生資訊遵守 D-033；domain 原始分數及
 
 ### Mapping
 TS-DC-005；Application / API / Frontend / Acceptance。binding、schema、error code、版本／鎖定／交易技術 UNKNOWN，本例不定案。
+
+
+## EX-062 缺失歷史不得授權完整初審內容
+
+### Rule
+D-035、D-033；保留 D-024／028。
+
+### Given
+A 指派後未提交即被合法改派 B；僅 A 或全部指派 Audit 缺失；A 以同院 Manager／Auditor 查詢三條路徑，另含 CLOSED。
+
+### When
+執行既有 Submission Detail、Case Detail、Revision History 查詢，重新讀取持久化快照。
+
+### Then
+可靠排除能力不足，身份為 UNKNOWN；拒絕完整讀取，403 ACCESS_DENIED，無成功資料或靜默降級；Case／Submission／Audit 與事件不變。
+
+### Mapping
+TS-FC-001；Application Unit、HTTP／JPA integration。不存在可信負面證明 provider，不偽造 completeness marker。
+
+
+## EX-063 正向及損壞證據的拒絕
+
+### Rule
+D-035、D-033；保留 D-024／028。
+
+### Given
+A 的正向歷史仍存在（含只缺 B），或 A 的證據 JSON 損壞；以完整讀者身份查詢。
+
+### When
+執行既有 Submission Detail、Case Detail、Revision History 查詢，重新讀取持久化快照。
+
+### Then
+正向身份不得讀初審；損壞不能作負面證明，同樣拒絕，無資料及成功事件變更。
+
+### Mapping
+TS-FC-002；Application Unit、HTTP／JPA integration。不存在可信負面證明 provider，不偽造 completeness marker。
+
+
+## EX-064 合法完整讀者的收緊是預期行為
+
+### Rule
+D-035、D-033；保留 D-024／028。
+
+### Given
+合法同院 Manager／Auditor 或初審本人查詢；包含測試中未曾複審／不需複審案件，但無可靠負面身份證明。
+
+### When
+執行既有 Submission Detail、Case Detail、Revision History 查詢，重新讀取持久化快照。
+
+### Then
+仍為 UNKNOWN，403 ACCESS_DENIED 是 D-035 接受的結果；不把 fixture 已知過去、目前狀態或空 Audit 當作 Proven non-historical。
+
+### Mapping
+TS-FC-003；Application Unit、HTTP／JPA integration。不存在可信負面證明 provider，不偽造 completeness marker。
+
+
+## EX-065 本人複審與 metadata 保留有限讀取
+
+### Rule
+D-035、D-033；保留 D-024／028。
+
+### Given
+合法 B 為目前複審醫師或合法本人提交者；或合法 SYSTEM_ADMIN 以原 scope 查詢 metadata。
+
+### When
+執行既有 Submission Detail、Case Detail、Revision History 查詢，重新讀取持久化快照。
+
+### Then
+B 在原 scope 內可讀本人複審內容，初審及衍生值持續隱藏；metadata 僅白名單，不新增完整內容授權或修改原始資料。
+
+### Mapping
+TS-FC-004；Application Unit、HTTP／JPA integration。不存在可信負面證明 provider，不偽造 completeness marker。
+
+
+## EX-066 UI-010 metadata 暫移除 Latest Stage
+
+### Rule
+
+依 D-036，SYSTEM_ADMIN 案件詳情投影精確八欄；Lifecycle 業務需求保留，新 Milestone／Latest Stage 投影延後。
+
+### Given
+
+合法 scope 的 SYSTEM_ADMIN 與含 FULL-only 資料的案件；DTO 可能新增 getter。
+
+### When
+
+查詢 UI-010 案件詳情，包含既有 bootstrap 資料的底層 view。
+
+### Then
+
+JSON 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 不存在（不是 null）；無 FULL-only 或敏感 nested objects，新增 getter 不擴大白名單。狀態由 `caseStatus` 表達；保留兩欄值契約及實作 UNKNOWN。
+
+既有 Lifecycle API 與 EX-039 不變，不以此例宣稱完整生命週期已實作。Mapping：TS-MD-001。

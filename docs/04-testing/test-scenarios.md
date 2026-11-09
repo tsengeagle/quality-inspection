@@ -2365,3 +2365,122 @@ finalScore、preview、diff 等衍生資訊遵守 D-033；domain 原始分數及
 
 ### Non-goals
 不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
+
+
+## TS-FC-001 缺失歷史不得授權完整初審內容
+
+### Authority
+D-035、D-033；EX-062。
+
+### Level
+Application Unit / HTTP / JPA integration。
+
+### Preconditions
+A 指派後未提交即被合法改派 B；僅 A 或全部指派 Audit 缺失；A 以同院 Manager／Auditor 查詢三條路徑，另含 CLOSED。
+
+### Steps
+對三條既有讀取路徑執行查詢，核對 HTTP JSON、資料／Audit 與事件前後快照。
+
+### Primary Assertion
+可靠排除能力不足，身份為 UNKNOWN；拒絕完整讀取，403 ACCESS_DENIED，無成功資料或靜默降級；Case／Submission／Audit 與事件不變。
+
+### Secondary Assertions
+Role／院所／ownership 不放寬；CLOSED 不解除；D-032 既有 Red Test 保留。
+
+### Non-goals
+不建立歷史完整性 provider、schema／migration／保留政策；不補造 Audit；不處理 IMP-02B、metadata 三欄值或 Close 流程。
+
+
+## TS-FC-002 正向及損壞證據的拒絕
+
+### Authority
+D-035、D-033；EX-063。
+
+### Level
+Application Unit / HTTP / JPA integration。
+
+### Preconditions
+A 的正向歷史仍存在（含只缺 B），或 A 的證據 JSON 損壞；以完整讀者身份查詢。
+
+### Steps
+對三條既有讀取路徑執行查詢，核對 HTTP JSON、資料／Audit 與事件前後快照。
+
+### Primary Assertion
+正向身份不得讀初審；損壞不能作負面證明，同樣拒絕，無資料及成功事件變更。
+
+### Secondary Assertions
+Role／院所／ownership 不放寬；CLOSED 不解除；D-032 既有 Red Test 保留。
+
+### Non-goals
+不建立歷史完整性 provider、schema／migration／保留政策；不補造 Audit；不處理 IMP-02B、metadata 三欄值或 Close 流程。
+
+
+## TS-FC-003 合法完整讀者的收緊是預期行為
+
+### Authority
+D-035、D-033；EX-064。
+
+### Level
+Application Unit / HTTP / JPA integration。
+
+### Preconditions
+合法同院 Manager／Auditor 或初審本人查詢；包含測試中未曾複審／不需複審案件，但無可靠負面身份證明。
+
+### Steps
+對三條既有讀取路徑執行查詢，核對 HTTP JSON、資料／Audit 與事件前後快照。
+
+### Primary Assertion
+仍為 UNKNOWN，403 ACCESS_DENIED 是 D-035 接受的結果；不把 fixture 已知過去、目前狀態或空 Audit 當作 Proven non-historical。
+
+### Secondary Assertions
+Role／院所／ownership 不放寬；CLOSED 不解除；D-032 既有 Red Test 保留。
+
+### Non-goals
+不建立歷史完整性 provider、schema／migration／保留政策；不補造 Audit；不處理 IMP-02B、metadata 三欄值或 Close 流程。
+
+
+## TS-FC-004 本人複審與 metadata 保留有限讀取
+
+### Authority
+D-035、D-033；EX-065。
+
+### Level
+Application Unit / HTTP / JPA integration。
+
+### Preconditions
+合法 B 為目前複審醫師或合法本人提交者；或合法 SYSTEM_ADMIN 以原 scope 查詢 metadata。
+
+### Steps
+對三條既有讀取路徑執行查詢，核對 HTTP JSON、資料／Audit 與事件前後快照。
+
+### Primary Assertion
+B 在原 scope 內可讀本人複審內容，初審及衍生值持續隱藏；metadata 僅白名單，不新增完整內容授權或修改原始資料。
+
+### Secondary Assertions
+Role／院所／ownership 不放寬；CLOSED 不解除；D-032 既有 Red Test 保留。
+
+### Non-goals
+不建立歷史完整性 provider、schema／migration／保留政策；不補造 Audit；不處理 IMP-02B、metadata 三欄值或 Close 流程。
+
+
+## TS-MD-001 UI-010 SYSTEM_ADMIN 八欄 exact-key 投影
+
+### Authority
+
+D-036／EX-066；D-028 僅 UI-010 extension 部分被取代。
+
+### Given / When
+
+合法院所 scope 的 SYSTEM_ADMIN 查詢案件詳情；底層 view 含分數、評語、bootstrap 等 FULL-only 資料，並模擬未來新增 getter。
+
+### Expected
+
+- HTTP 200，data keys 精確為 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。
+- `lifecycleLatestStage` 不存在，不得以 null 代替；無額外欄位、敏感巢狀內容或 getter 洩漏。
+- `caseStatus` 保留正確值；另兩個保留欄位值契約與實作仍 UNKNOWN，不補來源。
+- Case／Submission／Audit 不變；既有盲審、D-035、院所拒絕與 Lifecycle API 測試保留。
+- EX-039／TS-TR-005 完整生命週期需求保留，新增 Milestone／Latest Stage 實作延後；D-032 已知 Red 保留。
+
+### Test Level
+
+Mapper 序列化 unit、MockMvc HTTP exact-key、JPA／H2 snapshot 與既有 Lifecycle 回歸。

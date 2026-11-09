@@ -108,7 +108,7 @@ shared_sub_models:
   - `projectionMode`, `actionPanel`, `revisionEntry`
 - UI 聚合結果：`actionPanel`, `revisionEntry`
 - FULL only：`initialSummary.fullAnswerDigest`, `rereviewSummary.fullAnswerDigest`（若回傳）
-- METADATA_ONLY 保留（O3-C）：shared base + UI-010 extension（lifecycleLatestStage/latestRevisionSummary）
+- METADATA_ONLY 保留（O3-C）：shared base + UI-010 extension（latestRevisionSummary；D-036）
 - 受 policy/mode 影響：`actionPanel.availableActions`, `blockedHints`
 
 ## 5.4 CaseActionPanelViewModel
@@ -234,3 +234,12 @@ shared_sub_models:
 固定事實、合法 revision、結案資格及 actor guard 必須參與 mode／capability 推導，不以單一 caseStatus 或 SUBMITTED 代替（D-031／032）。新表示 unknown，不新增 view-model 欄位。D-033 先保護 response 再組裝 view model；同案複審醫師不可取得初審內容或加權 finalScore／preview，cache 同樣限制。其他角色政策不變。
 
 驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。
+
+
+## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
+
+UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
+
+`updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。

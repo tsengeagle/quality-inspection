@@ -747,3 +747,17 @@ aggregate 對外唯一應被直接操作的根物件。
 ### DD-03：目前有效初審結果的合法提交醫師
 
 指目前有效、合法已提交之 INITIAL submission 的提交責任醫師，且符合既有角色、ownership 與院所 scope；不等同目前被指派醫師、歷史版本提交者或管理者。固定時必須驗證此關係。固定追溯指保存該次操作者、時間與有效 submission 的歷史關聯，不以事後 latest 結果替代。
+
+
+## D-035 歷史身份 Fail-closed 讀取契約
+
+Proven historical：有可信正向關聯證據。Proven non-historical：需可靠排除該醫師曾任同案複審醫師；現有來源尚無此證明能力。UNKNOWN：無法完成可靠排除，包含空／部分／損壞證據；不等於沒有歷史身份。完整初審讀取遇 UNKNOWN 必須拒絕，不降級成功回應。
+
+
+## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
+
+UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
+
+`updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。

@@ -467,3 +467,8 @@ application service 可透過下列 adapter 協作：
 Close Command 與 submit 分開接受業務意圖，不因提交成功自行呼叫 close。從可信 actor context 驗證既有 REREVIEWER、hospital scope 與目前有效合法複審結果的提交責任；不得相信 client 自報身份或僅查 assignment／歷史提交。
 執行時重新驗證固定初審、case／stage、合法 SUBMITTED、有效版本與既有阻擋條件；過期目標不得自動換新版。協調固定尚未固定的複審結果、依固定初審及既有發布版本權重計分、有效引用、CLOSED 與成功事件的一致性。close／revision 競爭與保存／事件失敗不得留下部分成功。無需複審的 manager 結案沿用獨立路徑，不形成複審 manager 簽核。
 成功、拒絕與後續查詢均維持 D-033，不能在 close ack 或錯誤內容暴露初審或可反推值。use case 技術名稱、binding、版本 token、交易／鎖定／事件技術與重試策略 UNKNOWN。
+
+
+## D-035 歷史身份 Fail-closed 讀取契約
+
+三條既有讀取 use case 共用歷史身份授權：先驗 Role／scope／ownership，再對欲完整讀取初審內容者評估三值身份。匹配的正向證據可得 Proven historical；空查詢、未命中、部分缺失及損壞不得得 Proven non-historical。沒有可靠排除來源時維持 UNKNOWN 並拋既有 AccessDeniedException。禁止默默回傳 metadata 取代拒絕。本人合法複審讀取及既有 metadata-only 查詢保留原有限制，不改寫 Case／Submission／Audit。

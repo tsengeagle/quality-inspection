@@ -70,10 +70,10 @@ Legend: `Y` 可進入、`R` 僅唯讀/有限視角、`N` 不可進入
 | Role | Scope | Default Projection | Full Answers/Comments/Attachments |
 |---|---|---|---|
 | SYSTEM_ADMIN | GLOBAL_METADATA | metadata-only | N |
-| HOSPITAL_MANAGER | hospital-only | FULL | Y |
-| REVIEWER | self-assigned + self-submitted | FULL (within scope) | Y |
+| HOSPITAL_MANAGER | hospital-only | FULL（須通過 D-035） | 條件式；UNKNOWN 拒絕 |
+| REVIEWER | self-assigned + self-submitted | FULL（within scope，須通過 D-035） | 條件式；UNKNOWN 拒絕 |
 | REREVIEWER | self-assigned + self-submitted | 合法範圍且永久盲審（D-033） | 本人複審內容可見；初審答案／分數／評語與可反推衍生資訊不可見 |
-| AUDITOR | authorized hospitals only | FULL (within authorization) | Y |
+| AUDITOR | authorized hospitals only | FULL（within authorization，須通過 D-035） | 條件式；UNKNOWN 拒絕 |
 
 補充：
 - `SYSTEM_ADMIN` detail/revision 仍可進入，但必須 masked/metadata projection。
@@ -100,7 +100,6 @@ metadata_whitelist_strategy:
       - batchId
       - dueAt
     UI-010:
-      - lifecycleLatestStage
       - latestRevisionSummary
     UI-014:
       - stage
@@ -180,3 +179,17 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 
 複審醫師所有階段皆不得取得初審答案、分數、評語，包含提交後、revision、固定後及 CLOSED。finalScore／preview／diff 等可反推初審資訊者亦不得提供；所有查詢、command ack、歷程／compare、報表／匯出與快取均適用，不能靠頁面隱藏代替 response 保護。
 其他角色存取政策不變；多角色 actor 的技術授權合成 unknown，不得以切換入口繞過同案盲審。
+
+
+## D-035 歷史身份 Fail-closed 讀取契約
+
+完整初審內容的 Role／hospital／ownership 合法不足以單獨授權：Proven historical 與 UNKNOWN 均拒絕；Proven non-historical 才能在既有 scope 下繼續。現有證據來源尚無負面身份證明能力，因此 Manager／Auditor、無需複審案件及初審 REVIEWER 本人的完整讀取均可能 403。合法 REREVIEWER 仍只讀本人複審內容，初審永遠遮罩；SYSTEM_ADMIN 僅 metadata-only，D-024 scope 不變。
+
+
+## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
+
+UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
+
+`updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。

@@ -1433,3 +1433,58 @@ Close Command 是獨立業務意圖，不代表本輪已決定 HTTP method／end
 | 過期目標與 terminal 拒絕 | state-machine、API D-034 | EX-057、058 / TS-DC-001、002 |
 | close／revision 與失敗一致性 | domain-model、persistence D-034 | EX-059、060 / TS-DC-003、004 |
 | 結案後永久盲審 | permission-matrix §10；API D-034 | EX-061 / TS-DC-005；既有 EX-049～052 / TS-DA-009～012 |
+
+
+## D-035 — 歷史複審身份 UNKNOWN 的完整初審讀取採 Fail-closed
+
+### Status
+
+`accepted` — 2026-11-06，使用者確認方案 A。
+
+### Decision
+
+1. 歷史複審身份不能可靠排除時，不得提供受限初審答案、分數、評語或可反推的衍生資訊。UNKNOWN 必須拒絕完整讀取，不得當作「沒有歷史身份」，也不得默默降級 response。
+2. 區分 Proven historical、Proven non-historical、UNKNOWN。匹配的指派／提交事實可證明正向身份；空 Audit、部分缺失、損壞或沒有命中某醫師，不構成負面身份證明。現有來源尚不能產生可信的 Proven non-historical；不得補造完整性標記、legacy 歷史或保留政策。
+3. 完整初審讀取仍須先通過既有 Role、hospital scope 與 assignment／ownership 範圍；它們是必要條件，不取代新增的歷史身份安全條件。已證明歷史身份與 UNKNOWN 均使用既有拒絕機制；只有可靠排除後才可能進入原有完整讀取分支。
+4. 接受合法 Manager／Auditor 的完整查詢暫時受限，包含測試中未受指派及無需複審案件；目前狀態、rereviewRequired=false 與測試 fixture 的已知過去都不是完整歷史證明。同一安全前置條件不得因 REVIEWER 本人、其他完整讀取角色或入口切換而省略；相關初審本人查詢亦可能被拒絕。
+5. 合法 REREVIEWER 仍可在既有 scope 內讀取自己的複審內容；初審永久遮罩，提交／CLOSED／歷史改派均不解除。SYSTEM_ADMIN 繼續既有 metadata-only 白名單與院所 scope；不新增完整內容權限。未定多角色合成不放寬。
+6. 本次僅落實 Submission Detail、Case Detail、Revision History 的共同讀取邊界；不新增 API、schema、migration、角色或事件保留機制，不改原始資料、公式、審查流程或 Audit。
+
+### Relationship / Supersession
+
+補充 D-033 的 UNKNOWN 拒絕策略；對 D-008／D-009 與 permission matrix 的完整明細授權增加安全前置條件，部分取代「角色及院所符合即完整讀取」的無條件解讀，保留其角色與 scope 限制。D-024、D-028 的既有院所／metadata 白名單、D-031／032／034、DD-03、原始決策與 superseded 紀錄均保留。此決策不宣稱 Audit 歷史完整。
+
+### Consequences / UNKNOWN
+
+現有來源無法證明負面身份，故本次受保護的完整讀取可能全面遭拒；這是已接受的保守行為，不代表角色或院所錯誤。使用既有 AccessDeniedException／403 ACCESS_DENIED，不新增錯誤回應 schema。恢復完整讀取所需的可靠完整性／legacy 契約仍 UNKNOWN；不以假資料或測試 mock 宣稱已具備。D-032 Red Test 保留，IMP-02B 與 metadata 三個未定值不在本次範圍。
+
+### Mapping
+
+EX-062～065 / TS-FC-001～004；對應既有 78 個 completeness HTTP/JPA 案例、讀取授權 Unit/API 回歸。
+
+
+---
+
+## D-036 — UI-010 metadata 暫移除 lifecycleLatestStage，Lifecycle 新投影延後
+
+### Status
+
+`accepted`（2026-11-09，依使用者確認）
+
+### Decision
+
+僅部分調整 D-028 的 UI-010 page extension：暫時移除 `lifecycleLatestStage`，欄位不得出現在 metadata-only JSON，包含不得以 null 保留。UI-010 以既有 `caseStatus` 表達目前案件狀態，不將它冒充完整 Lifecycle／Milestone。
+
+UI-010 SYSTEM_ADMIN metadata-only 正式白名單精確為八欄：`caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。shared base 與其他頁 extension 不變；FULL-only、敏感 nested objects 及未來新增 DTO getter 均不得自動加入。
+
+`updatedAt`、`latestRevisionSummary` 保留，但值契約與實作尚未完成（UNKNOWN）；本次不補值來源，不宣稱 IMP-02A 全面完成。
+
+### Supersession / Compatibility
+
+部分 supersede D-028 的 UI-010 extension 中 `lifecycleLatestStage`；保留 D-028 原文、shared base + page extension 策略及其他頁白名單。這是已確認的 response 欄位移除；repo 引用盤點未發現 Angular 或外部 consumer 的實際依賴，repo 外使用情形 UNKNOWN。
+
+既有 Lifecycle Query、`GET /review-cases/{caseId}/lifecycle` 與 EX-039／TS-TR-005 完整生命週期需求保留；新增 Milestone／Latest Stage 投影實作延後，未取消業務需求。D-024 scope、D-033 永久盲審、D-035 Fail-closed 不變。不修改 State Machine、Domain Event、Audit 或 schema。
+
+### Affected Artifacts / Verification
+
+Glossary、Permission Matrix、API、UI-010、Frontend ViewModel、EX-066／TS-MD-001 與 metadata 序列化／HTTP exact-key tests 同步；兩個保留欄位的值完成度仍為 UNKNOWN。
