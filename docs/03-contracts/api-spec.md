@@ -1475,3 +1475,15 @@ UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, 
 `updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
 
 既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。
+
+
+## D-037 — updatedAt 契約
+
+updatedAt 採案件層級持久化 UTC 時間點，ISO 8601 輸出；涵蓋 C／相關 S／兩種 Draft Save，建案初始化；缺乏可信歷史的 legacy 為 null。No-change 禁止寫入或宣稱新變更成功，但現有 API 沒有專用 No-change 契約，exception／code／HTTP status 均待決，本輪不新增 HTTP 行為。八欄及授權不變；實作尚未完成。
+
+
+## D-038 — No-change API 契約補充
+
+D-038 補足 D-037 原待決回應：完全無業務變更的 Draft Save 回 `409 Conflict`／`NO_CHANGES`，沿用既有 error envelope，`success=false` 且不得帶成功儲存結果。不得寫入 Submission／Case.updatedAt、發布 Draft Save Event 或新增 Audit。所有原 Guards 先執行；真實變更保留合法儲存能力。D-033／035／036 與 Lifecycle 延後不變。
+
+目前完整 Draft 比較未實作；attachments 未由 Controller 傳入 Draft UseCase，答案順序、null／空字串、數值 scale 與正規化等語意 UNKNOWN。測試先限於同 API 成功保存後完全相同 payload；不得據此宣稱全部業務相等情形已定義。

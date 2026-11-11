@@ -926,3 +926,48 @@ v1 建議：
 複審 SUBMITTED 與正式 CLOSED 須可區別；Close Command 只可引用執行當下合法有效 REREVIEW submission，保留既有 append-only／SUPERSEDED 鏈。成功結案須一致保存有效版本引用、尚未固定結果的固定事實、原公式計分及 CLOSED；既有固定初審輸入不可被更換。不得只由目前 assignment 或歷史提交推定結案資格。
 revision 先完成則舊版 close 不得成功；close 先完成則不能再寫 revision；保存或事件處理失敗不得留下部分成功結案／固定及成功事件。此為可觀察一致性要求，不宣稱現有 DB 已保證。
 欄位／table／constraint、鎖定／版本／交易與事件技術、提交後狀態表示、close 重試持久化、legacy 補正／遷移均 UNKNOWN；不得以 submittedAt／closedAt 或指派者補造未確認歷史。read model 與 audit 出口遵守 D-033，包括結案後的初審及衍生資訊遮罩。本次不改 DB、不執行 migration。
+
+
+## D-037 — updatedAt 契約
+
+案件層級持久化 updatedAt 與業務變更同交易，rollback 不留時間；並行不倒退且 touch 不得造成資料遺失，不要求 commit 排序。欄位／型別、migration、Clock、併發技術待決；legacy 無可信歷史保留 null。現有 schema 不具備案件欄位，本輪不得新增 schema 或 migration。
+
+
+## IMP-02A-MD-03 — updatedAt 最小技術設計（PROPOSED，待審，未實作）
+
+### 現有能力與部署邊界
+
+ReviewCase／ReviewCaseEntity 無通用時間欄位；ReviewCaseRepositoryImpl.toEntity 每次建立完整 Entity 再 save，不能拿過期 Domain 快照只為 touch 而整筆覆寫。Submission 已有 LocalDateTime updatedAt，但會在相同 Draft Save 重設，不能作案件可信來源。ReviewCaseJpaRepository 僅繼承 JpaRepository，無 lock／version／時間更新方法。
+
+application.yml 的共用 ddl-auto=none、local H2 memory profile 為 update；測試使用既有 create-drop H2。build.gradle 未宣告 Flyway／Liquibase，repo 未確認 migration 工具、正式資料庫及 timestamp 精度。現有能力不足以執行下述機制驗證；本輪不增加欄位、DDL 或 migration。H2 僅能驗證未來本地機制，不能代替未知正式 DB 驗收。
+
+### Domain／Entity／DB／Query
+
+建議 ReviewCase 與 ReviewCaseEntity 使用 nullable Instant updatedAt，Repository 重建／保存均映射，DB 欄位候選名 updated_at。UTC SQL 型別／JDBC 行為依實際 DB 與 provider 驗證，不預先指定跨 DB DDL。注入共享 Clock.systemUTC 作操作時間來源，避免依 JVM default timezone；JSON 使用既有 Jackson Java time 支援輸出可解析的 UTC ISO 8601（Z 或 +00:00）。Query 從可信持久化欄位映射到既有八欄投影，不新增欄位、不得讀取時補 now()。
+
+createFromSampling 的正式建案及 retry 新案件，與 local seed 的新增案件均初始化；重建 legacy 不初始化。案件時間與業務資料同交易，第一次成功真實更新可由 null 轉 UTC 值；無變更的 legacy Draft 仍維持 null。舊資料不回填不可靠的 batch／audit／submission 最大時間。
+
+### 建議最小併發機制：案件父列交易鎖
+
+1. 每個既有案件寫入入口先驗角色，再在同一既有交易以 PESSIMISTIC_WRITE 取得該 ReviewCase 列並讀取新鮮狀態，之後驗 scope／owner／terminal／有效引用；不得沿用鎖前已讀的過期快照。這是待審的 Repository 查詢擴充，不宣稱目前已存在。
+2. 需要更新 Submission 時，統一先鎖 Case、再讀／改相關 Submission；Initial／Rereview Draft 的全部 Guards 完成後才比較內容。無變更拋 NO_CHANGES 的既有 409 類型路徑，無 Case／S save、時間 touch 或事件。讀取列鎖不是業務更新。
+3. 真實變更時候選時間取共享 UTC Clock；持有父列鎖下設定 max(目前可信 updatedAt, 候選時間)，null 則用候選值。時間可相等，不要求嚴格遞增／commit 排序；時鐘倒退亦不倒退。
+4. Case-only：保存新鮮且已鎖定的 Case 業務值與時間。Submission-only：保存 S 並在同交易保存同一新鮮 C 的時間；不得從舊快照建立整筆 Case 來 touch。Submit／Revision 涉及多筆 S／C 使用同一操作候選時間，統一一次案件時間推進。
+5. 鎖維持至 commit／rollback。任何業務 save、時間保存或 Audit listener 失敗都撤銷同交易資料與時間；不得 REQUIRES_NEW、after-commit 補時間或吞掉例外。鎖等待／deadlock 的現有錯誤映射與 timeout 尚 UNKNOWN，不新增未接受 HTTP 規則。
+6. 所有同案 C／S writer 必須遵循同一順序，包括指派／改派、Return／Reopen／Cancel／Close／Send、Start／Draft／Submit／Revision，以及以後新增入口。新建案無既有父列，用插入交易初始化。local seed 只新增缺少案件，須明確交易化；repo 外 SQL／其他 writer 不遵守時不能提供保證。
+
+此機制依靠序列化同案 writer 與重新讀取避免時間 touch 遺失其他欄位，不只靠 max()；沒有納入全部 writer 就不成立。若改採單欄原子 SQL touch，仍無法單獨解決既有完整 Case merge 的 stale overwrite，不能宣稱同等保證。僅增加 @Version 也需完整版本映射及衝突行為，不是本輪既有能力。
+
+### Migration／Legacy
+
+待正式 DB 與 migration 管理方式確認後，最小部署是 nullable 欄位、無預設 now()、無全表歷史回填，再發布完整映射／writer 整合。舊版本 writer 在滾動部署期間可能不維護時間，須停寫切換或另定相容部署窗口；不假定加欄位即可達成全路徑保證。若未確認，migration 落地 BLOCKED。
+
+### 必要整合測試與可執行性
+
+- 現在可執行：兩條 Draft HTTP No-change Red、changed-save、Guard 優先、原資料 rollback 對照及既有盲審／八欄回歸。
+- 待欄位／機制就緒：獨立交易重新查詢案件時間；逐個 writer 對應；建案／legacy；業務、Case 時間、Audit 寫入失敗後三者共同回復。
+- 兩個連線／獨立交易，以 latch／barrier 控制交錯：A 保持父列鎖，B 開始同案更新；A commit 後 B 必須讀最新資料；分別測 A／B commit 及 A rollback，驗證最終業務欄位、S chain、時間及 Audit。測不同候選時間與倒退 Clock、相等值、null 首次更新。
+- 重現舊快照覆寫：A 修改合法指派／狀態，B 僅修改 S／時間，B 完成不得撤回 A 欄位；測 Case-only、Submission-only 與跨入口組合。不得以只有時間 max 通過代替資料不遺失。
+- 驗 no-change 在鎖後 Guards 優先且零 update／insert；驗鎖失敗不產生成功事件／時間。正式 DB 須重跑相同競爭案例，H2 PASS 不代表正式 PASS。
+
+目前沒有案件時間欄位或鎖查詢，以上 timestamp／併發整合測試尚不能對正式機制執行，明確 BLOCKED；本節不是 accepted technical decision 或已完成實作。

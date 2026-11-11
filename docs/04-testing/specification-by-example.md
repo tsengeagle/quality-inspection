@@ -2597,3 +2597,29 @@ TS-FC-004；Application Unit、HTTP／JPA integration。不存在可信負面證
 JSON 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 不存在（不是 null）；無 FULL-only 或敏感 nested objects，新增 getter 不擴大白名單。狀態由 `caseStatus` 表達；保留兩欄值契約及實作 UNKNOWN。
 
 既有 Lifecycle API 與 EX-039 不變，不以此例宣稱完整生命週期已實作。Mapping：TS-MD-001。
+
+
+## EX-067 案件 updatedAt 與無變更 Draft
+
+### Given / When
+
+合法案件建立、Case-only 更新、相關 Submission Draft／Submit／Revision；或送出完全相同 Draft，包含操作者／scope／狀態／引用不合法的對照。
+
+### Then
+
+依 D-037，建案及真實變更持久化 UTC 時間，API ISO 8601；無變更先驗 Guards，禁止 C／S save、時間變動、新 Draft Event／Audit 與新儲存成功宣稱。失敗交易回復資料與時間；並行時間不倒退且時間機制不覆寫業務資料。無可信 legacy 時間保留 null；metadata 八欄、永久盲審及 Fail-closed 保留。
+
+No-change HTTP status／code 待決；schema／migration／併發技術待決，不以自創測試替身代替真實驗證。Mapping：TS-MD-002。
+
+
+## EX-068 Draft 相同 payload 不得回成功儲存
+
+### Given
+
+合法 Initial／Rereview Draft 經真實 API 成功保存有變更的答案與評語（Rereview 含既有 totalScore），建立可查詢的持久化基準。
+
+### When / Then
+
+重送完全相同 payload，回 409／NO_CHANGES，success=false，無成功 data；重新查詢 Case／Submission／Audit 與事件數量均不變，無新增 entity update／insert。相同內容若 scope／role／owner／terminal／有效引用非法，須先回原 Guard 錯誤，不能被 NO_CHANGES 取代。真實有變更仍成功保存。
+
+附件與非完全相同資料正規化未定，不以本例推定；Mapping：TS-MD-003。

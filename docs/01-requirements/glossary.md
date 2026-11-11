@@ -761,3 +761,8 @@ UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, 
 `updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
 
 既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。
+
+
+## D-037 — updatedAt 契約
+
+案件 updatedAt：案件及相關 Submission 最後成功業務變更的 UTC 時間點；建案初始化。完全相同 Draft 不寫入、不更新時間、不發布新儲存事實。legacy 缺證保留 null；不是讀取時間，也不承諾 commit 順序。

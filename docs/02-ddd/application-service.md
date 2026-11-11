@@ -472,3 +472,15 @@ Close Command 與 submit 分開接受業務意圖，不因提交成功自行呼�
 ## D-035 歷史身份 Fail-closed 讀取契約
 
 三條既有讀取 use case 共用歷史身份授權：先驗 Role／scope／ownership，再對欲完整讀取初審內容者評估三值身份。匹配的正向證據可得 Proven historical；空查詢、未命中、部分缺失及損壞不得得 Proven non-historical。沒有可靠排除來源時維持 UNKNOWN 並拋既有 AccessDeniedException。禁止默默回傳 metadata 取代拒絕。本人合法複審讀取及既有 metadata-only 查詢保留原有限制，不改寫 Case／Submission／Audit。
+
+
+## D-037 — updatedAt 契約
+
+C／S 成功變更與案件時間同交易；包含兩種 Draft Save。先執行完整 Guards，再判定業務內容是否改變；完全相同 Draft 不得 save C／S、touch 時間或發布 Draft Save Event／Audit，不得宣稱新變更已儲存。No-change 的具體結果／錯誤映射待決，不得自行指定。rollback 一併撤銷時間。併發不得倒退或因 touch 覆寫其他業務資料。
+
+
+## D-038 — No-change API 契約補充
+
+D-038 補足 D-037 原待決回應：完全無業務變更的 Draft Save 回 `409 Conflict`／`NO_CHANGES`，沿用既有 error envelope，`success=false` 且不得帶成功儲存結果。不得寫入 Submission／Case.updatedAt、發布 Draft Save Event 或新增 Audit。所有原 Guards 先執行；真實變更保留合法儲存能力。D-033／035／036 與 Lifecycle 延後不變。
+
+目前完整 Draft 比較未實作；attachments 未由 Controller 傳入 Draft UseCase，答案順序、null／空字串、數值 scale 與正規化等語意 UNKNOWN。測試先限於同 API 成功保存後完全相同 payload；不得據此宣稱全部業務相等情形已定義。
