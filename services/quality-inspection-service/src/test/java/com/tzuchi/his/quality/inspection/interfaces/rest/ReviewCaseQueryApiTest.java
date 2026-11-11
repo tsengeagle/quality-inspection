@@ -9,6 +9,10 @@ import com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.R
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.submission.ReviewSubmissionEntity;
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.submission.ReviewSubmissionJpaRepository;
 import org.junit.jupiter.api.Test;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.staffdirectory.HisStaffDirectoryEntity;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.staffdirectory.HisStaffDirectoryJpaRepository;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateRole;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -32,6 +36,17 @@ class ReviewCaseQueryApiTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ReviewCaseJpaRepository caseRepo;
     @Autowired private ReviewSubmissionJpaRepository submissionRepo;
+    @Autowired private HisStaffDirectoryJpaRepository staffDirectoryRepo;
+
+    @BeforeEach
+    void seedStaffDirectory() {
+        staffDirectoryRepo.saveAll(List.of(
+                new HisStaffDirectoryEntity("reviewer-1", "Dr. Reviewer One", "H001", AssignmentCandidateRole.REVIEWER, true),
+                new HisStaffDirectoryEntity("reviewer-1", "Dr. Reviewer One", "H001", AssignmentCandidateRole.REREVIEWER, true),
+                new HisStaffDirectoryEntity("reviewer-2", "Dr. Reviewer Two", "H001", AssignmentCandidateRole.REVIEWER, true),
+                new HisStaffDirectoryEntity("rereviewer-1", "Dr. ReReviewer One", "H001", AssignmentCandidateRole.REREVIEWER, true)
+        ));
+    }
 
     private final String hmToken = TestTokenFactory.hospitalManagerToken();
     private final String reviewerToken = TestTokenFactory.reviewerToken();

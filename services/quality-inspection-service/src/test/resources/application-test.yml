@@ -1,0 +1,11 @@
+# Test profile: each Spring context gets its own empty in-memory database.
+# The local demo data seed (@Profile("local")) is not loaded.
+spring:
+  datasource:
+    url: jdbc:h2:mem:${random.uuid};DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
