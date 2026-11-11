@@ -51,12 +51,31 @@ class ListAuditTrailsUseCaseTest {
         assertEquals(1, result.getContent().size());
     }
 
+    @Test
+    void nonAdmin_queriesOwnHospital_ignoringRequestedHospital() {
+        ActorContext actor = new ActorContext("u1", "Auditor", EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        useCase.execute(actor, new AuditTrailQueryCriteria(null, null, "H002", null, null, null, 0, 20));
+
+        assertEquals("H001", queryPort.lastCriteria.getHospitalId());
+    }
+
+    @Test
+    void systemAdmin_mayQueryAnyHospital() {
+        ActorContext actor = new ActorContext("u1", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+
+        useCase.execute(actor, new AuditTrailQueryCriteria(null, null, "H002", null, null, null, 0, 20));
+
+        assertEquals("H002", queryPort.lastCriteria.getHospitalId());
+    }
+
     static class InMemoryAuditTrailQueryPort implements AuditTrailQueryPort {
         private Page<AuditTrailEntry> page = new Page<>(Collections.emptyList(), 0, 20, 0);
+        AuditTrailQueryCriteria lastCriteria;
         void setPage(Page<AuditTrailEntry> p) { this.page = p; }
 
         @Override
-        public Page<AuditTrailEntry> findAuditTrails(AuditTrailQueryCriteria criteria) { return page; }
+        public Page<AuditTrailEntry> findAuditTrails(AuditTrailQueryCriteria criteria) { lastCriteria = criteria; return page; }
 
         @Override
         public List<AuditTrailEntry> findLifecycleByEntityId(String entityType, String entityId) {

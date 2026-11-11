@@ -8,6 +8,7 @@ import com.tzuchi.his.quality.inspection.domain.sampling.ExecutionMode;
  */
 public class SamplingBatchQueryCriteria {
 
+    private final String hospitalId;
     private final String projectId;
     private final BatchStatus status;
     private final ExecutionMode executionMode;
@@ -16,6 +17,12 @@ public class SamplingBatchQueryCriteria {
 
     public SamplingBatchQueryCriteria(String projectId, BatchStatus status,
                                       ExecutionMode executionMode, int page, int size) {
+        this(null, projectId, status, executionMode, page, size);
+    }
+
+    private SamplingBatchQueryCriteria(String hospitalId, String projectId, BatchStatus status,
+                                       ExecutionMode executionMode, int page, int size) {
+        this.hospitalId = hospitalId;
         this.projectId = projectId;
         this.status = status;
         this.executionMode = executionMode;
@@ -23,6 +30,12 @@ public class SamplingBatchQueryCriteria {
         this.size = size > 0 ? Math.min(size, 100) : 20;
     }
 
+    /** Same criteria restricted to batches of projects in the given hospital; null means all hospitals. */
+    public SamplingBatchQueryCriteria withHospitalId(String hospitalId) {
+        return new SamplingBatchQueryCriteria(hospitalId, projectId, status, executionMode, page, size);
+    }
+
+    public String getHospitalId() { return hospitalId; }
     public String getProjectId() { return projectId; }
     public BatchStatus getStatus() { return status; }
     public ExecutionMode getExecutionMode() { return executionMode; }

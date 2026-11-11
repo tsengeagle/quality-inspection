@@ -33,6 +33,7 @@ public class PreviewSamplingPopulationUseCase {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+        actor.requireHospitalScope(project.getHospitalId());
 
         if (project.getStatus() != ProjectStatus.ACTIVE) {
             throw new DomainRuleViolationException("PROJECT_NOT_ACTIVE",

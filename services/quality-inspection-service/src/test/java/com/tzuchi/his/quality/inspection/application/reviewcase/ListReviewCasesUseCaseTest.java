@@ -70,14 +70,39 @@ class ListReviewCasesUseCaseTest {
         assertEquals("c1", result.getContent().get(0).getCaseId());
     }
 
+    @Test
+    void nonAdmin_queriesOwnHospital_ignoringRequestedHospital() {
+        ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        useCase.execute(actor, new ReviewCaseQueryCriteria("H002", null, null, null, null, null, null, 0, 20));
+        assertEquals("H001", queryPort.lastCriteria.getHospitalId());
+
+        useCase.execute(actor, new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20));
+        assertEquals("H001", queryPort.lastCriteria.getHospitalId());
+    }
+
+    @Test
+    void systemAdmin_mayQueryAnyHospital() {
+        ActorContext actor = new ActorContext("u1", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+
+        useCase.execute(actor, new ReviewCaseQueryCriteria("H002", null, null, null, null, null, null, 0, 20));
+        assertEquals("H002", queryPort.lastCriteria.getHospitalId());
+
+        useCase.execute(actor, new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20));
+        assertNull(queryPort.lastCriteria.getHospitalId());
+    }
+
     // --- InMemory test double ---
     static class InMemoryReviewCaseQueryPort implements ReviewCaseQueryPort {
         private Page<ReviewCaseSummary> page = new Page<>(Collections.emptyList(), 0, 20, 0);
+
+        ReviewCaseQueryCriteria lastCriteria;
 
         void setPage(Page<ReviewCaseSummary> page) { this.page = page; }
 
         @Override
         public Page<ReviewCaseSummary> findCases(ReviewCaseQueryCriteria criteria) {
+            lastCriteria = criteria;
             return page;
         }
 

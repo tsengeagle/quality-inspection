@@ -124,4 +124,11 @@ class GetRereviewRevisionHistoryUseCaseTest {
         assertTrue(view.getEntries().isEmpty());
         assertFalse(view.isHasExceptionEntry());
     }
+
+    @Test
+    void execute_otherHospital_shouldThrowAccessDenied() {
+        ActorContext otherHospital = new ActorContext("manager-2", "Hospital Manager",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H002"));
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class, () -> useCase.execute(otherHospital, queryFor(CASE_ID)));
+    }
 }

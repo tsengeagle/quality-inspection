@@ -28,6 +28,7 @@ public class ReassignRereviewerUseCase {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+        actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.reassignRereviewer(cmd.getRereviewerId(), cmd.getDueAt());
         caseRepository.save(reviewCase);
         eventPublisher.publish(new RereviewerAssignedEvent(

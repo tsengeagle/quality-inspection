@@ -328,7 +328,7 @@ examples:
 # 這些規則目前沒有辦法用範例驗證，原因各自列出。
 not_covered:
   - rules: [RP-PUB-03, RP-INV-02, RP-INV-03]
-    reason: 沒有任何 use case 能設定權重（Q-10），所以造不出「權重不合法」的專案
+    reason: 權重的輸入已定（D-047），範例尚未補
   - rules: [RP-DEA-01]
     reason: Q-04 已裁決（D-039），範例尚未補；寫法與 activating_an_active_project_changes_nothing 相同
   - rules: [RP-CRT-02, RP-UPD-03, RP-CRT-03, RP-UPD-04, RP-PUB-04]
