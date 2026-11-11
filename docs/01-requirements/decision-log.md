@@ -1488,3 +1488,60 @@ UI-010 SYSTEM_ADMIN metadata-only 正式白名單精確為八欄：`caseId`, `ca
 ### Affected Artifacts / Verification
 
 Glossary、Permission Matrix、API、UI-010、Frontend ViewModel、EX-066／TS-MD-001 與 metadata 序列化／HTTP exact-key tests 同步；兩個保留欄位的值完成度仍為 UNKNOWN。
+
+
+---
+
+## D-037 — 案件 updatedAt 的持久化、無變更與一致性契約
+
+### Status
+
+`accepted`（依使用者 IMP-02A-MD-02 確認；本輪僅 Authority 與 Red Tests）
+
+### Decision
+
+1. `updatedAt` 表示案件相關業務資料最後更新時間，採案件層級持久化，涵蓋 ReviewCase 與相關 ReviewSubmission；案件建立成功即設定初始值。
+2. Initial／Rereview Draft Save 均在範圍內。Draft 業務內容完全未變時禁止儲存：不得寫入 Case／Submission、更新時間、新增 Draft Save Event／Audit，亦不得宣稱新的變更已儲存成功。
+3. 既有 role／scope／status／owner／有效引用 Guard 不得被無變更判斷旁路。
+4. 時間採統一 UTC 時間點；API 使用 ISO 8601。時間與業務資料由同一交易維護，rollback 不得保留更新時間。
+5. 最小併發保證為時間不倒退，且時間更新機制不得造成業務資料遺失；不要求精確代表 commit 順序。
+6. 無可信歷史時間的 legacy 案件保留 null，不推測或補造。
+
+### Relationship / Supersession
+
+部分補足 D-036 對 updatedAt 的待定業務契約，保留原決策及八欄 whitelist。實作仍未完成；latestRevisionSummary 的值契約仍 UNKNOWN，Lifecycle Milestone／Latest Stage 延後不變。D-031～035、永久盲審、Fail-closed、原 Guards 與 IMP-01 checkpoint 不因本決策放寬；不修復 D-032。
+
+### Pending Technical Contracts / BLOCKED
+
+No-change 尚無既有專用 Domain／HTTP 錯誤契約。最小建議是明確、可辨識的無變更拒絕結果，沿用既有錯誤外殼；具體 exception／error code／HTTP status 待使用者決定，不在本輪新增映射或測試固定狀態碼。內容正規化、答案順序、null／空字串、數值 scale 等非完全相同情形仍 UNKNOWN。
+
+案件時間欄位／型別、migration／legacy 部署、Clock、原子更新或競爭保護技術未決。現行 schema 無案件時間欄位，現行 Repository 無相關併發機制；不能以 mock、假欄位或僅檢查缺少 getter 宣稱 rollback／時間單調性／資料不遺失已驗證。須在後續契約與實作就緒後補齊真實 JPA 競爭驗證。
+
+### Mapping
+
+EX-067／TS-MD-002；本輪保留現有測試，新增真實 UseCase／JPA／HTTP Red 與 Guard／rollback 對照。測試通過範圍不得擴張為 updatedAt 已完成。
+
+
+---
+
+## D-038 — Draft No-change 採 409／NO_CHANGES
+
+### Status
+
+`accepted`（2026-11-10，依使用者 IMP-02A-MD-03 確認）
+
+### Decision
+
+Draft Save 業務內容沒有實際變化時，HTTP 回傳 `409 Conflict`，`error.code=NO_CHANGES`，沿用既有 API error envelope，`success=false` 且不得有成功儲存結果。不得更新 Submission、Case.updatedAt 或新增 Draft Save Event／Audit。原有 role／scope／owner／terminal／有效引用等 Guard 必須先執行；有實際變更時原合法儲存能力保留。
+
+### Relationship / Supersession
+
+補足 D-037 的 No-change 回應待決項，保留 D-037 原文與全部 updatedAt 決策。不修改 D-033／035／036、八欄 metadata、Lifecycle 延後及 D-032 已知缺口。此決策未宣稱完整 Draft 比較、持久化或併發已實作。
+
+### Evidence / Remaining UNKNOWN
+
+現有 DomainStateConflictException 已映射 409，可作最小沿用途徑（技術建議，非本決策指定 exception 類別）。現有兩條 Draft API 尚直接回成功結果，無 NO_CHANGES guard。AnswerItem.equals 只覆蓋單筆 item／answer／derivedScore，沒有完整 Draft 比較；Request attachments 未進入 Draft Command／UseCase。附件、順序、正規化與數值 scale 等比較仍 UNKNOWN，不將忽略欄位推定為等價。
+
+### Mapping
+
+EX-068／TS-MD-003：以同 API 成功儲存後重送相同 payload 的 HTTP／JPA Red，以及既有 Guard 優先與 changed-save 對照驗證。updatedAt 持久化／並行設計位於 persistence-model.md，僅為待審技術提案。

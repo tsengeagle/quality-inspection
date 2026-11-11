@@ -2484,3 +2484,34 @@ D-036／EX-066；D-028 僅 UI-010 extension 部分被取代。
 ### Test Level
 
 Mapper 序列化 unit、MockMvc HTTP exact-key、JPA／H2 snapshot 與既有 Lifecycle 回歸。
+
+
+## TS-MD-002 updatedAt 持久化與 No-change Red Test 矩陣
+
+Authority：D-037／EX-067。
+
+| 情境 | 預期／驗證邊界 |
+|---|---|
+| 新建案 | 真實 createFromSampling／Repository 後 API 回非 null UTC 時間 |
+| Initial／Rereview Draft 實變 | 真實 UseCase 後持久化案件時間及 API 非 null |
+| Initial／Rereview 完全相同 Draft | 無 C／S 寫入、時間／Event／Audit 不變；拒絕回應形式待決 |
+| 相同內容但非法 Guard | role／scope／status／owner／有效引用拒絕，資料事件不變 |
+| Submit／Revision／Case-only | 成功後案件時間更新，業務資料保留 |
+| rollback | 交易內業務變更後故障，重新查詢資料與時間未改 |
+| 並行／時間倒退／資料不遺失 | 真實不同交易交錯，要求時間不倒退與非目標資料不被 touch 覆寫；目前案件 schema／機制不足，BLOCKED，不能聲稱已覆蓋 |
+| legacy null | 真實既有案件無可信時間，metadata 仍 null，不補造 |
+| HTTP／授權 | D-036 八欄、D-035／D-033 保持；D-032 已知失敗獨立執行 |
+
+具體 No-change exception／error code／HTTP status 尚未決定，不在測試發明。UTC 型別／持久化路徑就緒後須補真實 rollback 與並行驗證；目前僅資料 rollback 對照不算案件時間 rollback PASS。
+
+
+## TS-MD-003 No-change HTTP／JPA Red
+
+Authority：D-038／EX-068；補足 TS-MD-002 的回應待決項。
+
+- Initial 與 Rereview 先成功保存，再重送相同 payload：409、error.code=NO_CHANGES、success=false、data 缺失或 null。
+- assertAll 同時驗證回應、重新查詢持久化快照、Hibernate entity update／insert 數與 Domain Event／Audit，不能因第一個狀態碼失敗而跳過資料副作用斷言。
+- 同 payload 的 role／scope／owner／terminal／有效引用非法：保留原錯誤，且無資料／事件變動。
+- 有變更 payload：200 與成功結果、實際答案及評語保存；Rereview 另驗 totalScore。沿用真實 Controller／UseCase／Repository／H2，不用 mock。
+- attachments 傳遞及完整 Draft 比較仍 BLOCKED；UTC 持久化、rollback 與並行機制尚不存在，另依 persistence-model 待審提案補驗，不用 mock 宣稱 PASS。
+- 保留前輪 Red、D-032 已知失敗與 D-035／D-033／D-036 回歸。
