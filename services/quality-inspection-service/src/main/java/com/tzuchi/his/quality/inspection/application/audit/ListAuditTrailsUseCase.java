@@ -18,6 +18,7 @@ public class ListAuditTrailsUseCase {
 
     public Page<AuditTrailEntry> execute(ActorContext actor, AuditTrailQueryCriteria criteria) {
         actor.requireAnyRole(DomainRole.SYSTEM_ADMIN, DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR);
-        return queryPort.findAuditTrails(criteria);
+        return queryPort.findAuditTrails(
+                criteria.withHospitalId(actor.readScopeHospitalId(criteria.getHospitalId())));
     }
 }

@@ -84,4 +84,18 @@ class ReassignRereviewerUseCaseTest {
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
         assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, cmd));
     }
+
+    @Test
+    void execute_otherHospitalManager_shouldThrowAccessDenied() {
+        seedAssignedRereviewCase();
+        ActorContext otherHospital = new ActorContext("mgr-2", "Manager",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H002"));
+        ReassignRereviewerCommand cmd = new ReassignRereviewerCommand();
+        cmd.setCaseId("c1");
+        cmd.setRereviewerId("rereviewer-2");
+
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class, () -> useCase.execute(otherHospital, cmd));
+        assertEquals("rereviewer-1",
+                caseRepository.findById("c1").get().getRereviewerAssignment().getReviewerId());
+    }
 }

@@ -16,11 +16,15 @@ class GetCaseLifecycleUseCaseTest {
 
     private InMemoryAuditPort queryPort;
     private GetCaseLifecycleUseCase useCase;
+    private com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository caseRepository;
 
     @BeforeEach
     void setUp() {
         queryPort = new InMemoryAuditPort();
-        useCase = new GetCaseLifecycleUseCase(queryPort);
+        caseRepository = new com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository();
+        caseRepository.save(com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.createFromSampling(
+                "c1", "b1", "p1", "H001", "SK-001", com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.OUTPATIENT));
+        useCase = new GetCaseLifecycleUseCase(queryPort, caseRepository);
     }
 
     @Test
@@ -55,5 +59,19 @@ class GetCaseLifecycleUseCaseTest {
         public List<AuditTrailEntry> findLifecycleByEntityId(String entityType, String entityId) {
             return lifecycles.getOrDefault(entityType + ":" + entityId, Collections.emptyList());
         }
+    }
+
+    @Test
+    void otherHospital_shouldThrowAccessDenied() {
+        ActorContext actor = new ActorContext("u2", "Auditor", EnumSet.of(DomainRole.AUDITOR), Optional.of("H002"));
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class, () -> useCase.execute(actor, "c1"));
+    }
+
+    @Test
+    void systemAdmin_readsAcrossHospitals() {
+        AuditTrailEntry e1 = new AuditTrailEntry("e1", "ReviewCase", "c1", "CREATED", "u1", "Mgr", "H001", Instant.now(), "{}");
+        queryPort.setLifecycle("ReviewCase", "c1", Collections.singletonList(e1));
+        ActorContext actor = new ActorContext("u3", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H002"));
+        assertEquals(1, useCase.execute(actor, "c1").size());
     }
 }

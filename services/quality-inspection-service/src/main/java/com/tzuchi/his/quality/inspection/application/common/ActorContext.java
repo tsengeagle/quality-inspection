@@ -65,6 +65,24 @@ public class ActorContext {
         }
     }
 
+    /**
+     * Hospital scope for read access (D-042, D-047): SYSTEM_ADMIN reads across hospitals,
+     * every other role must belong to the target hospital.
+     */
+    public void requireReadScope(String targetHospitalId) {
+        if (hasRole(DomainRole.SYSTEM_ADMIN)) return;
+        requireHospitalScope(targetHospitalId);
+    }
+
+    /**
+     * Hospital filter for list queries (D-042, D-047): the actor's own hospital, never the client's value.
+     * SYSTEM_ADMIN may narrow by a requested hospital, or pass null to read all hospitals.
+     */
+    public String readScopeHospitalId(String requestedHospitalId) {
+        if (hasRole(DomainRole.SYSTEM_ADMIN)) return requestedHospitalId;
+        return requireHospitalId();
+    }
+
     public String getUserId() { return userId; }
     public String getUserName() { return userName; }
     public Set<DomainRole> getRoles() { return Collections.unmodifiableSet(roles); }

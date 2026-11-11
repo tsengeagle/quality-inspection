@@ -28,6 +28,11 @@ public class ReviewCaseQueryCriteria {
         this.size = size > 0 ? Math.min(size, 100) : 20;
     }
 
+    public ReviewCaseQueryCriteria withHospitalId(String hospitalId) {
+        return new ReviewCaseQueryCriteria(hospitalId, projectId, batchId, status,
+                reviewerId, rereviewerId, medicalRecordType, page, size);
+    }
+
     public String getHospitalId() { return hospitalId; }
     public String getProjectId() { return projectId; }
     public String getBatchId() { return batchId; }

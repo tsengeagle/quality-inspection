@@ -30,13 +30,13 @@ public class SamplingBatchQueryAdapter implements SamplingBatchQueryPort {
         CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         Root<SamplingBatchEntity> countRoot = countQuery.from(SamplingBatchEntity.class);
         countQuery.select(cb.count(countRoot));
-        countQuery.where(buildPredicates(cb, countRoot, criteria).toArray(new Predicate[0]));
+        countQuery.where(buildPredicates(cb, countQuery, countRoot, criteria).toArray(new Predicate[0]));
         long total = em.createQuery(countQuery).getSingleResult();
 
         // Data query
         CriteriaQuery<SamplingBatchEntity> dataQuery = cb.createQuery(SamplingBatchEntity.class);
         Root<SamplingBatchEntity> dataRoot = dataQuery.from(SamplingBatchEntity.class);
-        dataQuery.where(buildPredicates(cb, dataRoot, criteria).toArray(new Predicate[0]));
+        dataQuery.where(buildPredicates(cb, dataQuery, dataRoot, criteria).toArray(new Predicate[0]));
         dataQuery.orderBy(cb.desc(dataRoot.get("startedAt")));
 
         TypedQuery<SamplingBatchEntity> typedQuery = em.createQuery(dataQuery);
@@ -79,9 +79,18 @@ public class SamplingBatchQueryAdapter implements SamplingBatchQueryPort {
         return Optional.of(toDetailView(results.get(0)));
     }
 
-    private List<Predicate> buildPredicates(CriteriaBuilder cb, Root<SamplingBatchEntity> root,
+    private List<Predicate> buildPredicates(CriteriaBuilder cb, CriteriaQuery<?> query,
+                                             Root<SamplingBatchEntity> root,
                                              SamplingBatchQueryCriteria criteria) {
         List<Predicate> predicates = new ArrayList<>();
+        if (criteria.getHospitalId() != null) {
+            // A batch has no hospital of its own; it belongs to its project's hospital.
+            Subquery<String> projectIds = query.subquery(String.class);
+            Root<ReviewProjectEntity> project = projectIds.from(ReviewProjectEntity.class);
+            projectIds.select(project.get("projectId"))
+                    .where(cb.equal(project.get("hospitalId"), criteria.getHospitalId()));
+            predicates.add(root.get("projectId").in(projectIds));
+        }
         if (criteria.getProjectId() != null) {
             predicates.add(cb.equal(root.get("projectId"), criteria.getProjectId()));
         }

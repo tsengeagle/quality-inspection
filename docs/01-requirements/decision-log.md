@@ -1735,3 +1735,27 @@ spec-draft：`RP-G-03`。
 ### Mapping
 
 spec-draft：`RP-CRT-03`、`RP-UPD-04`、`RP-PUB-04`、`ProjectVersion.qualityThreshold`。
+
+
+---
+
+## D-047 — SYSTEM_ADMIN 讀取不受院區限制；權重與品質線走同一個輸入管道
+
+### Status
+
+`accepted`（2026-11-12，依使用者裁決）
+
+### Decision
+
+1. `SYSTEM_ADMIN` 的讀取（查詢、列表、匯出）一律跨院區，不做院區範圍檢查。列表查詢時可以用請求參數指定院區來縮小範圍，不指定則看全部。
+2. 其他角色的讀取範圍一律是登入者自己的院區（D-042）；請求帶的院區參數不採用。
+3. 寫入命令的角色與院區檢查不變。
+4. 權重（`initialReviewWeight`、`rereviewWeight`）與品質線走同一個輸入管道：建立專案與更新草稿時可填，發布時依 D-020 驗證。數值規則維持 D-020（相加為 1.0，各自大於 0、小於等於 1），不是整數 1～10。
+
+### Relationship / Evidence
+
+補足 D-042、D-043、D-046 的 Pending。`SYSTEM_ADMIN` 看到的內容仍受 D-036 的 metadata-only 白名單與 D-033 盲審限制，本決策只放寬院區範圍。案件讀取原本對 `SYSTEM_ADMIN` 也檢查院區，已依本決策放寬。權重的輸入管道尚未實作。
+
+### Mapping
+
+spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` 的權重輸入。

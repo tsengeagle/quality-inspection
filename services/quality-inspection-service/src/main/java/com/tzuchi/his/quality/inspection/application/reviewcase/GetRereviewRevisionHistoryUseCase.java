@@ -37,6 +37,7 @@ public class GetRereviewRevisionHistoryUseCase {
 
         ReviewCase reviewCase = reviewCaseRepository.findById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
+        actor.requireReadScope(reviewCase.getHospitalId());
 
         // Any authenticated role can query — visibility enforced at API/UI layer
         List<ReviewSubmission> sorted = submissionRepository.findAllByCaseId(caseId).stream()

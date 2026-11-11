@@ -27,7 +27,8 @@ public class ListReviewCasesUseCase {
                 DomainRole.HOSPITAL_MANAGER, DomainRole.REVIEWER,
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
-        Page<ReviewCaseSummary> raw = queryPort.findCases(criteria);
+        Page<ReviewCaseSummary> raw = queryPort.findCases(
+                criteria.withHospitalId(actor.readScopeHospitalId(criteria.getHospitalId())));
         String projectionType = actor.hasRole(DomainRole.SYSTEM_ADMIN) ? "METADATA_ONLY" : "FULL";
         List<ReviewCaseSummary> enriched = raw.getContent().stream()
                 .map(s -> s.withProjectionType(projectionType))

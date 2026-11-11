@@ -47,7 +47,7 @@ public class ReviewReadAccessPolicy {
         if (actor.getRoles().size() != 1) {
             throw new AccessDeniedException("Multi-role read authorization is pending confirmation");
         }
-        actor.requireHospitalScope(hospital);
+        actor.requireReadScope(hospital);
         if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) return;
         boolean allowed = actor.hasRole(DomainRole.HOSPITAL_MANAGER) || actor.hasRole(DomainRole.AUDITOR);
         allowed |= actor.hasRole(DomainRole.REVIEWER)

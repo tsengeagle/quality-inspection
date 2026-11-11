@@ -50,9 +50,8 @@ usecases:
       - { name: description,        type: text,                        required: false, status: decided, source: decision-log.md D-040 }
       - { name: medicalRecordTypes, type: "set<enum MedicalRecordType>", required: true }
       - { name: qualityThreshold,   type: int,                         required: false, status: decided, source: decision-log.md D-046 }
-    open_inputs:
-      - text: 兩個權重從哪一支 use case 設定、範圍為何，未定（D-046 Pending）
-        question: Q-10
+      - { name: initialReviewWeight, type: decimal(2),                 required: false, status: decided, source: decision-log.md D-047 }
+      - { name: rereviewWeight,     type: decimal(2),                  required: false, status: decided, source: decision-log.md D-047 }
     guards: [RP-G-01]
     rules:
       - id: RP-CRT-01
@@ -92,9 +91,8 @@ usecases:
       - { name: description,        type: text,                        required: false, status: decided, source: decision-log.md D-040 }
       - { name: medicalRecordTypes, type: "set<enum MedicalRecordType>", required: true }
       - { name: qualityThreshold,   type: int,                         required: false, status: decided, source: decision-log.md D-046 }
-    open_inputs:
-      - text: 兩個權重從哪一支 use case 設定、範圍為何，未定（D-046 Pending）
-        question: Q-10
+      - { name: initialReviewWeight, type: decimal(2),                 required: false, status: decided, source: decision-log.md D-047 }
+      - { name: rereviewWeight,     type: decimal(2),                  required: false, status: decided, source: decision-log.md D-047 }
     guards: [RP-G-01, RP-G-02, RP-G-03]
     rules:
       - id: RP-UPD-01
@@ -221,8 +219,7 @@ usecases:
       - { name: projectId, type: id, required: true }
     guards: [RP-G-01, RP-G-02, RP-G-03]
     guard_exceptions:
-      - text: SYSTEM_ADMIN 是否不受 RP-G-03 限制
-        question: Q-12
+      - { guard: RP-G-03, text: SYSTEM_ADMIN 不受院區限制, status: decided, source: decision-log.md D-047 }
     output:
       status: decided
       source: decision-log.md D-043

@@ -186,7 +186,7 @@ class SamplingUseCaseTest {
 
     @Test
     void preview_inactiveProject_shouldThrow() {
-        ReviewProject project = ReviewProject.create("p-draft", "H1", "Draft Project",
+        ReviewProject project = ReviewProject.create("p-draft", "H001", "Draft Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         projectRepo.save(project);
 
@@ -293,7 +293,7 @@ class SamplingUseCaseTest {
     @Test
     void getDetail_notFound_shouldThrow404() {
         InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
-        GetSamplingBatchDetailUseCase detailUseCase = new GetSamplingBatchDetailUseCase(queryPort);
+        GetSamplingBatchDetailUseCase detailUseCase = new GetSamplingBatchDetailUseCase(queryPort, projectRepo);
 
         assertThrows(com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException.class,
                 () -> detailUseCase.execute(hospitalManagerActor, "nonexistent"));
@@ -308,11 +308,73 @@ class SamplingUseCaseTest {
                 new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
                 List.of());
         queryPort.details.put("b1", detail);
-        ExportSamplingBatchResultUseCase exportUseCase = new ExportSamplingBatchResultUseCase(queryPort);
+        projectRepo.save(createActiveProject("p1"));
+        ExportSamplingBatchResultUseCase exportUseCase = new ExportSamplingBatchResultUseCase(queryPort, projectRepo);
 
         SamplingBatchExportResult result = exportUseCase.execute(hospitalManagerActor, "b1");
 
         assertEquals("b1", result.getDetail().getBatchId());
+    }
+
+    @Test
+    void export_otherHospital_shouldThrowAccessDenied() {
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        SamplingBatchDetailView detail = new SamplingBatchDetailView(
+                "b1", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+                10, 8, 2, 5, null, null, Instant.now(), Instant.now(),
+                new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
+                List.of());
+        queryPort.details.put("b1", detail);
+        projectRepo.save(createActiveProject("p1"));
+        ExportSamplingBatchResultUseCase exportUseCase = new ExportSamplingBatchResultUseCase(queryPort, projectRepo);
+        ActorContext otherHospital = new ActorContext("u-other", "Other",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
+
+        assertThrows(AccessDeniedException.class, () -> exportUseCase.execute(otherHospital, "b1"));
+    }
+
+    @Test
+    void getDetail_otherHospital_deniedExceptSystemAdmin() {
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        SamplingBatchDetailView detail = new SamplingBatchDetailView(
+                "b1", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+                10, 8, 2, 5, null, null, Instant.now(), Instant.now(),
+                new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
+                List.of());
+        queryPort.details.put("b1", detail);
+        projectRepo.save(createActiveProject("p1"));
+        GetSamplingBatchDetailUseCase detailUseCase = new GetSamplingBatchDetailUseCase(queryPort, projectRepo);
+        ActorContext otherAuditor = new ActorContext("u-aud", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("OTHER_HOSPITAL"));
+        ActorContext admin = new ActorContext("u-adm", "Admin",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+
+        assertThrows(AccessDeniedException.class, () -> detailUseCase.execute(otherAuditor, "b1"));
+        assertEquals("b1", detailUseCase.execute(hospitalManagerActor, "b1").getBatchId());
+        assertEquals("b1", detailUseCase.execute(admin, "b1").getBatchId());
+    }
+
+    @Test
+    void preview_otherHospital_shouldThrowAccessDenied() {
+        projectRepo.save(createActiveProject("p1"));
+        ActorContext otherHospital = new ActorContext("u-other", "Other",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
+
+        assertThrows(AccessDeniedException.class, () -> previewUseCase.execute(otherHospital, "p1"));
+    }
+
+    @Test
+    void listBatches_nonAdmin_queriesOwnHospitalOnly() {
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(queryPort);
+        ActorContext admin = new ActorContext("u-adm", "Admin",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+
+        listUseCase.execute(hospitalManagerActor, new SamplingBatchQueryCriteria(null, null, null, 0, 20));
+        assertEquals("H001", queryPort.lastCriteria.getHospitalId());
+
+        listUseCase.execute(admin, new SamplingBatchQueryCriteria(null, null, null, 0, 20));
+        assertNull(queryPort.lastCriteria.getHospitalId());
     }
 
     @Test
@@ -421,9 +483,11 @@ class SamplingUseCaseTest {
         final List<SamplingBatchSummary> summaries = new ArrayList<>();
         final Map<String, SamplingBatchDetailView> details = new HashMap<>();
         SamplingBatchDetailView latestDetail;
+        SamplingBatchQueryCriteria lastCriteria;
 
         @Override
         public Page<SamplingBatchSummary> findBatches(SamplingBatchQueryCriteria criteria) {
+            lastCriteria = criteria;
             List<SamplingBatchSummary> filtered = summaries.stream()
                     .filter(s -> criteria.getProjectId() == null || s.getProjectId().equals(criteria.getProjectId()))
                     .filter(s -> criteria.getStatus() == null || s.getStatus().equals(criteria.getStatus()))

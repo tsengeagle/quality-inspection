@@ -53,4 +53,35 @@ class ActorContextScopeGuardTest {
         assertThrows(AccessDeniedException.class,
                 () -> actor.requireHospitalScope("H001"));
     }
+
+    @Test
+    void requireReadScope_otherHospital_shouldThrowForNonAdmin() {
+        ActorContext actor = new ActorContext("u1", "User1",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+        assertDoesNotThrow(() -> actor.requireReadScope("H001"));
+        assertThrows(AccessDeniedException.class, () -> actor.requireReadScope("H002"));
+    }
+
+    @Test
+    void requireReadScope_systemAdmin_readsAcrossHospitals() {
+        ActorContext actor = new ActorContext("u1", "User1",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+        assertDoesNotThrow(() -> actor.requireReadScope("H002"));
+    }
+
+    @Test
+    void readScopeHospitalId_nonAdmin_ignoresRequestedHospital() {
+        ActorContext actor = new ActorContext("u1", "User1",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+        assertEquals("H001", actor.readScopeHospitalId("H002"));
+        assertEquals("H001", actor.readScopeHospitalId(null));
+    }
+
+    @Test
+    void readScopeHospitalId_systemAdmin_usesRequestedHospital() {
+        ActorContext actor = new ActorContext("u1", "User1",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+        assertEquals("H002", actor.readScopeHospitalId("H002"));
+        assertNull(actor.readScopeHospitalId(null));
+    }
 }

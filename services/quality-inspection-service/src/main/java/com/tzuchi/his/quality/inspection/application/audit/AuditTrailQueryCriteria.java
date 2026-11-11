@@ -26,6 +26,10 @@ public class AuditTrailQueryCriteria {
         this.size = size > 0 ? Math.min(size, 100) : 20;
     }
 
+    public AuditTrailQueryCriteria withHospitalId(String hospitalId) {
+        return new AuditTrailQueryCriteria(aggregateType, aggregateId, hospitalId, eventName, from, to, page, size);
+    }
+
     public String getAggregateType() { return aggregateType; }
     public String getAggregateId() { return aggregateId; }
     public String getHospitalId() { return hospitalId; }
