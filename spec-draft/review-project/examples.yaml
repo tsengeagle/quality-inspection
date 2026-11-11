@@ -1,0 +1,338 @@
+# 草稿，尚未經人工審核。格式說明見 ../README.md
+#
+# 每個範例的 basis 指向 usecases.yaml 或 model.yaml 的規則 id。
+# basis 裡只要有一條規則是 proposed，這個範例就還不能當驗收依據。
+spec_version: 0.1-draft
+kind: examples
+aggregate: ReviewProject
+
+actors:
+  manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
+  manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
+  reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+
+# 可重複使用的準備步驟。
+fixtures:
+  draft_project:
+    steps:
+      - run: CreateReviewProject
+        as: manager_h1
+        input: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT] }
+        save: { p: projectId }
+
+  bound_project:
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    steps:
+      - use: draft_project
+      - run: CreateScoreSheetDraft
+        as: manager_h1
+        input_pending: 評分表的規格尚未轉換
+        save: { s: scoreSheetId }
+      - run: PublishScoreSheetVersion
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+      - run: BindScoreSheetToProject
+        as: manager_h1
+        input: { projectId: "${p}", scoreSheetId: "${s}" }
+
+  published_project:
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    steps:
+      - use: bound_project
+      - run: PublishReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+
+  active_project:
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    steps:
+      - use: published_project
+      - run: ActivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+
+examples:
+
+  # ---------- CreateReviewProject ----------
+
+  - name: creates_a_draft_project
+    basis: [RP-CRT-S1, RP-CRT-S2, RP-CRT-S3, RP-CRT-S4, RP-CRT-S5]
+    derived_from: [TS-PV-001]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT] }
+      save: { p: projectId }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect:
+          result: SUCCESS
+          output:
+            hospitalId: H-01
+            name: "門診品質審查"
+            description: "2026 年度"
+            medicalRecordTypes: [OUTPATIENT]
+            status: DRAFT
+            versionNo: 1
+            versionPublished: false
+            initialReviewWeight: "0.50"
+            rereviewWeight: "0.50"
+
+  - name: rejects_create_by_a_non_manager
+    basis: [RP-G-01]
+    derived_from: [TS-PV-002]
+    when:
+      run: CreateReviewProject
+      as: reviewer_h1
+      input: { name: "門診品質審查", medicalRecordTypes: [OUTPATIENT] }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_create_with_a_blank_name
+    basis: [RP-CRT-01]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "   ", medicalRecordTypes: [OUTPATIENT] }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  # ---------- UpdateReviewProjectDraft ----------
+
+  - name: updates_a_draft_project
+    basis: [RP-UPD-S1, RP-UPD-S2]
+    given:
+      - use: draft_project
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "${p}", name: "住院品質審查", description: "修訂", medicalRecordTypes: [INPATIENT, EMERGENCY] }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect:
+          result: SUCCESS
+          output:
+            name: "住院品質審查"
+            description: "修訂"
+            medicalRecordTypes: [INPATIENT, EMERGENCY]
+            status: DRAFT
+            versionNo: 1
+            versionPublished: false
+
+  - name: rejects_update_with_a_blank_name
+    basis: [RP-UPD-02]
+    given:
+      - use: draft_project
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "${p}", name: "", medicalRecordTypes: [OUTPATIENT] }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { name: "門診品質審查" } }
+
+  - name: rejects_update_from_another_hospital
+    basis: [RP-G-03]
+    given:
+      - use: draft_project
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h2
+      input: { projectId: "${p}", name: "被改掉", medicalRecordTypes: [OUTPATIENT] }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { name: "門診品質審查" } }
+
+  - name: rejects_update_of_an_unknown_project
+    basis: [RP-G-02]
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "no-such-project", name: "任意", medicalRecordTypes: [OUTPATIENT] }
+    then: { result: REJECTED, code: PROJECT_NOT_FOUND }
+
+  - name: rejects_update_after_the_version_is_published
+    basis: [RP-UPD-01, RP-INV-01]
+    derived_from: [EX-018, TS-PV-004]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: published_project
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "${p}", name: "被改掉", medicalRecordTypes: [OUTPATIENT] }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { name: "門診品質審查", versionPublished: true } }
+
+  # ---------- PublishReviewProjectVersion ----------
+
+  - name: rejects_publish_without_a_bound_score_sheet
+    basis: [RP-PUB-02]
+    given:
+      - use: draft_project
+    when:
+      run: PublishReviewProjectVersion
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { versionPublished: false } }
+
+  - name: publishes_the_draft_version
+    basis: [RP-PUB-S1, RP-PUB-S2]
+    derived_from: [TS-PV-003]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: bound_project
+    when:
+      run: PublishReviewProjectVersion
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: DRAFT, versionNo: 1, versionPublished: true } }
+
+  - name: rejects_publish_of_an_already_published_version
+    basis: [RP-PUB-01]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: published_project
+    when:
+      run: PublishReviewProjectVersion
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+
+  # ---------- ActivateReviewProject ----------
+
+  - name: rejects_activate_before_any_version_is_published
+    basis: [RP-ACT-03]
+    given:
+      - use: draft_project
+    when:
+      run: ActivateReviewProject
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: DRAFT } }
+
+  - name: activates_a_published_project
+    basis: [RP-T-01, RP-ACT-S1]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: published_project
+    when:
+      run: ActivateReviewProject
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: ACTIVE } }
+
+  - name: activating_an_active_project_changes_nothing
+    basis: [RP-ACT-01]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: active_project
+    when:
+      run: ActivateReviewProject
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: ACTIVE } }
+
+  # ---------- DeactivateReviewProject ----------
+
+  - name: rejects_deactivate_of_a_draft_project
+    basis: [RP-DEA-02]
+    given:
+      - use: draft_project
+    when:
+      run: DeactivateReviewProject
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: DRAFT } }
+
+  - name: deactivates_an_active_project
+    basis: [RP-T-02, RP-DEA-S1]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: active_project
+    when:
+      run: DeactivateReviewProject
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: DEACTIVATED } }
+
+  - name: rejects_activate_of_a_deactivated_project
+    basis: [RP-ACT-02]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: active_project
+      - run: DeactivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+    when:
+      run: ActivateReviewProject
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: DEACTIVATED } }
+
+# 這些規則目前沒有辦法用範例驗證，原因各自列出。
+not_covered:
+  - rules: [RP-PUB-03, RP-INV-02, RP-INV-03]
+    reason: 沒有任何 use case 能設定權重（Q-10），所以造不出「權重不合法」的專案
+  - rules: [RP-DEA-01]
+    reason: 待 Q-04 裁決後補；寫法與 activating_an_active_project_changes_nothing 相同
+  - rules: [emits]
+    reason: >
+      範圍內沒有查詢看得到 event。要驗證 event，得透過稽核軌跡的查詢（不在本次範圍），
+      或由實作端的白箱測試負責
+  - rules: [RP-INV-04]
+    reason: 由抽選的 use case 執行，不在本次範圍

@@ -1,0 +1,142 @@
+# 草稿，尚未經人工審核。格式說明見 ../README.md
+spec_version: 0.1-draft
+kind: aggregate
+name: ReviewProject
+term: 審查專案            # glossary.md「審查專案 [ReviewProject]」
+
+sources:
+  - docs/01-requirements/0_品質審查系統規格草案.md §7.1, §8.1, §9.3
+  - docs/01-requirements/glossary.md（審查專案、專案版本）
+  - docs/01-requirements/decision-log.md D-011, D-019, D-020, D-031
+  - docs/02-ddd/domain-model.md §5.1
+
+identity:
+  name: projectId
+  type: id
+  assigned_by: system      # api-spec.md §7.1 的回應帶 projectId；請求不帶
+
+attributes:
+  - name: hospitalId
+    type: ref Hospital
+    external: true          # 院區主檔由外部系統提供
+    required: true
+    mutable: false
+    source: domain-model.md §5.1
+  - name: name
+    type: text
+    required: true
+    source: 規格草案 §8.1
+  - name: description
+    type: text
+    required: false
+    status: proposed
+    question: Q-05
+  - name: medicalRecordTypes
+    type: set<enum MedicalRecordType>
+    required: true
+    source: domain-model.md §5.1
+    note: 空集合是否允許未定，見 Q-05
+  - name: status
+    type: enum ProjectStatus
+    initial: DRAFT
+    source: test-scenarios.md TS-PV-001（只提到 DRAFT）
+    status: proposed
+    question: Q-01
+  - name: currentVersion
+    type: ProjectVersion
+    source: domain-model.md §5.1
+
+entities:
+  - name: ProjectVersion
+    term: 專案版本
+    attributes:
+      - name: versionNo
+        type: int
+        initial: 1
+        status: proposed
+        question: Q-08
+      - name: published
+        type: boolean
+        initial: false
+        status: proposed
+        question: Q-08
+      - name: scoreSheetRef
+        type: ref ScoreSheetDefinition
+        required: false
+        note: 指向評分表還是評分表版本，文件互相矛盾，見 Q-09
+      - name: qualityThreshold
+        type: decimal(2)
+        required: false       # D-019、D-031 都有「threshold 為 null」的分支
+        source: decision-log.md D-019, D-031
+      - name: initialReviewWeight
+        type: decimal(2)
+        initial: "0.50"
+        source: decision-log.md D-020
+      - name: rereviewWeight
+        type: decimal(2)
+        initial: "0.50"
+        source: decision-log.md D-020
+
+# domain-model.md §5.1 列出、但本次試作不處理的屬性。
+# 這些屬性的規則在文件裡只有名稱，沒有內容。
+deferred_attributes:
+  - reviewTargetPolicy
+  - dateCriteriaPolicy
+  - samplingPolicy
+  - stratificationPolicy
+  - excludedDepartments
+  - reviewerPoolPolicy
+  - rereviewPolicy
+  - effectivePeriod
+
+enums:
+  - name: MedicalRecordType
+    values: [OUTPATIENT, INPATIENT, EMERGENCY]
+    source: domain-model.md §5.1
+  - name: ProjectStatus
+    values: [DRAFT, ACTIVE, DEACTIVATED]
+    status: proposed
+    question: Q-01
+
+transitions:
+  - id: RP-T-01
+    from: DRAFT
+    by: ActivateReviewProject
+    to: ACTIVE
+    status: proposed
+    question: Q-02
+  - id: RP-T-02
+    from: ACTIVE
+    by: DeactivateReviewProject
+    to: DEACTIVATED
+    status: proposed
+    question: Q-03
+
+terminal_states:
+  - value: DEACTIVATED
+    status: proposed
+    question: Q-03
+
+invariants:
+  - id: RP-INV-01
+    text: 已發布的專案版本內容不可修改；要調整必須建立新版本
+    source:
+      - glossary.md「專案版本」
+      - domain-model.md §5.1 Domain Invariants
+      - specification-by-example.md EX-018
+    status: decided
+  - id: RP-INV-02
+    text: initialReviewWeight + rereviewWeight = 1.00，且兩者都大於 0、小於等於 1
+    source: decision-log.md D-020
+    status: decided
+  - id: RP-INV-03
+    text: 版本發布後權重固定，不可修改
+    source: decision-log.md D-020
+    status: decided
+  - id: RP-INV-04
+    text: 未啟用的專案不得執行抽選
+    source:
+      - domain-model.md §5.1 Domain Invariants
+      - permission-matrix.md §6（executeSampling 的 Key Guard）
+    status: decided
+    enforced_by: 抽選的 use case（不在本次範圍）
