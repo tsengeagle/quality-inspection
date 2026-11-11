@@ -322,8 +322,7 @@ Accept: application/json
 }
 ```
 
-> **Implementation note:** 發布成功回傳 `null`，不回傳版本詳情。
-> 如需取得版本資訊，使用 `GET /review-projects/{projectId}/version`。
+發布成功時 `data` 為 `null`，不回傳版本詳情。版本資訊由 `GET /review-projects/{projectId}/version` 取得。
 
 ---
 
@@ -339,7 +338,7 @@ Accept: application/json
 
 ```json
 {
-  "scoreSheetId": "SS-001"
+  "scoreSheetVersionId": "SSV-001"
 }
 ```
 
@@ -1479,11 +1478,9 @@ UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, 
 
 ## D-037 — updatedAt 契約
 
-updatedAt 採案件層級持久化 UTC 時間點，ISO 8601 輸出；涵蓋 C／相關 S／兩種 Draft Save，建案初始化；缺乏可信歷史的 legacy 為 null。No-change 禁止寫入或宣稱新變更成功，但現有 API 沒有專用 No-change 契約，exception／code／HTTP status 均待決，本輪不新增 HTTP 行為。八欄及授權不變；實作尚未完成。
+updatedAt 採案件層級持久化 UTC 時間點，ISO 8601 輸出；涵蓋 C／相關 S／兩種 Draft Save，建案初始化；缺乏可信歷史的 legacy 為 null。No-change 禁止寫入或宣稱新變更成功，回應見 D-038。八欄及授權不變；實作尚未完成。
 
 
 ## D-038 — No-change API 契約補充
 
-D-038 補足 D-037 原待決回應：完全無業務變更的 Draft Save 回 `409 Conflict`／`NO_CHANGES`，沿用既有 error envelope，`success=false` 且不得帶成功儲存結果。不得寫入 Submission／Case.updatedAt、發布 Draft Save Event 或新增 Audit。所有原 Guards 先執行；真實變更保留合法儲存能力。D-033／035／036 與 Lifecycle 延後不變。
-
-目前完整 Draft 比較未實作；attachments 未由 Controller 傳入 Draft UseCase，答案順序、null／空字串、數值 scale 與正規化等語意 UNKNOWN。測試先限於同 API 成功保存後完全相同 payload；不得據此宣稱全部業務相等情形已定義。
+無變更的 Draft Save 回 `409 Conflict`／`NO_CHANGES`。完整內容見 `decision-log.md` D-038；比較方式見 D-044。

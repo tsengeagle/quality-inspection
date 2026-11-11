@@ -1496,7 +1496,7 @@ Glossary、Permission Matrix、API、UI-010、Frontend ViewModel、EX-066／TS-M
 
 ### Status
 
-`accepted`（依使用者 IMP-02A-MD-02 確認；本輪僅 Authority 與 Red Tests）
+`accepted`（依使用者 IMP-02A-MD-02 確認，2026-11-12 再次確認；本輪僅 Authority 與 Red Tests）
 
 ### Decision
 
@@ -1545,3 +1545,193 @@ Draft Save 業務內容沒有實際變化時，HTTP 回傳 `409 Conflict`，`err
 ### Mapping
 
 EX-068／TS-MD-003：以同 API 成功儲存後重送相同 payload 的 HTTP／JPA Red，以及既有 Guard 優先與 changed-save 對照驗證。updatedAt 持久化／並行設計位於 persistence-model.md，僅為待審技術提案。
+
+
+---
+
+## D-039 — 審查專案的狀態、啟用與停用
+
+### Status
+
+`accepted`（2026-11-12，依使用者裁決 spec-draft Q-01～Q-04）
+
+### Decision
+
+1. 審查專案的狀態為 `DRAFT`、`ACTIVE`、`DEACTIVATED`。
+2. 啟用：`DRAFT` 或 `DEACTIVATED` 可轉為 `ACTIVE`，前置條件是目前版本已發布；未發布時拒絕，`409 INVALID_STATE_TRANSITION`。
+3. 停用：只有 `ACTIVE` 可轉為 `DEACTIVATED`。`DEACTIVATED` 不是終點，可再啟用。
+4. 草稿不是正式文件，沒有停用的問題：對 `DRAFT` 停用一律拒絕，`409 INVALID_STATE_TRANSITION`。
+5. 對已是 `ACTIVE` 的專案啟用、對已是 `DEACTIVATED` 的專案停用：回成功，不改狀態，不發 event，不新增稽核紀錄。
+
+### Relationship / Evidence
+
+既有文件與決策沒有禁止再啟用；`domain-events.md` §4.2「由非啟用轉為啟用」與本決策一致。現行程式把 `DEACTIVATED` 當終點，且重複啟用仍發 event，與本決策不符，尚未修改。`state-machine.md` 尚未補上專案狀態機。
+
+### Mapping
+
+spec-draft：`RP-T-01`～`RP-T-03`、`RP-ACT-01`、`RP-ACT-03`、`RP-DEA-01`、`RP-DEA-02`。
+
+
+---
+
+## D-040 — 審查專案的建立、草稿更新與版本
+
+### Status
+
+`accepted`（2026-11-12，依使用者裁決 spec-draft Q-05～Q-08、Q-13、Q-14）
+
+### Decision
+
+1. `hospitalId` 取自登入者，請求不帶。
+2. `name` 必填且不可空白；同院區的專案名稱可以重複，唯一識別是 `projectId`。`medicalRecordTypes` 至少一個。`description` 選填。
+3. 更新草稿時，`name`、`description`、`medicalRecordTypes` 由輸入整組取代。
+4. 上述三個欄位屬於版本內容。目前版本已發布後再更新一律拒絕，`409 INVALID_STATE_TRANSITION`。
+5. `versionNo` 從 1 開始；發布不遞增；建立下一個草稿版本時才遞增。
+6. 欄位格式不合法回 `400 VALIDATION_ERROR`；發布時權重不符合 D-020 回 `422 PROJECT_VERSION_NOT_PUBLISHABLE`。
+7. 草稿更新成功要發布 `ReviewProjectDraftUpdated` event。
+
+### Pending
+
+「建立新草稿版本」的 use case 另案處理，尚未設計。對已發布版本再次發布的錯誤代碼未定（現行測試預期 409）。品質線與權重的輸入管道見 spec-draft Q-10，未決。
+
+### Mapping
+
+spec-draft：`RP-CRT-01`、`RP-CRT-02`、`RP-CRT-S2`、`RP-CRT-S3`、`RP-UPD-01`～`RP-UPD-03`、`RP-UPD-S1`、`RP-UPD-S2`、`RP-PUB-03`、`RP-PUB-S2`。TS-PV-003、TS-PV-004 已同步。
+
+
+---
+
+## D-041 — 專案綁定的是評分表版本，發布前必須已綁定
+
+### Status
+
+`accepted`（2026-11-12，依使用者裁決 spec-draft Q-09）
+
+### Decision
+
+專案綁定的對象是評分表「版本」（`scoreSheetVersionId`），不是評分表本體。發布專案版本時必須已綁定，否則拒絕，`422 PROJECT_VERSION_NOT_PUBLISHABLE`。啟用不再另外檢查綁定。
+
+### Relationship / Evidence
+
+與 `application-service.md` §5、TS-PV-003 及 D-011（案件可追溯到評分表版本）一致。`api-spec.md` §7.6 的請求欄位已改為 `scoreSheetVersionId`。現行程式綁定的是 `scoreSheetId`，且在啟用時才檢查，尚未修改。
+
+### Pending
+
+綁定時是否要求該版本存在且已發布，未定。
+
+### Mapping
+
+spec-draft：`RP-PUB-02`、`ProjectVersion.scoreSheetVersionRef`。
+
+
+---
+
+## D-042 — 院區範圍一律取自登入者，並適用於審查專案與查詢
+
+### Status
+
+`accepted`（2026-11-12，依使用者裁決 gap 報告 R-02 與 spec-draft Q-11）
+
+### Decision
+
+1. D-024 的院區範圍檢查擴及 `ReviewProject`，以及所有列表、查詢、匯出類的 use case。
+2. 範圍判斷所用的院區一律取自登入者；client 傳入的院區參數不得用來決定或擴大可見範圍。
+
+### Relationship / Evidence
+
+補足 D-024（原條文只寫 `ReviewCase` 與 `SamplingBatch`）。gap 報告 2026-11-11 R-02 列出 9 支未檢查的 use case，其中列表類端點的院區來自選填的請求參數，尚未修改。
+
+### Pending
+
+`SYSTEM_ADMIN` 是否不受院區限制，未定。api-gateway 是否另有一層院區檢查，未確認。
+
+### Mapping
+
+spec-draft：`RP-G-03`。
+
+
+---
+
+## D-043 — 審查專案詳情的讀取角色與欄位
+
+### Status
+
+`accepted`（2026-11-12，依使用者裁決 spec-draft Q-12）
+
+### Decision
+
+`SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR` 可以查詢專案詳情。回傳欄位為 `projectId`、`hospitalId`、`name`、`description`、`medicalRecordTypes`、`status`、`versionNo`、`versionPublished`、`qualityThreshold`、`initialReviewWeight`、`rereviewWeight`。
+
+### Relationship / Evidence
+
+現行程式拒絕 `AUDITOR`，與本決策不符，尚未修改。
+
+### Pending
+
+`REVIEWER`／`REREVIEWER` 的「唯讀必要範圍」未定，在定義前不開放。
+
+
+---
+
+## D-044 — Draft 無變更的判定方式
+
+### Status
+
+`accepted`（2026-11-12，依使用者確認）
+
+### Decision
+
+1. 答案以題目 id 對應後比較，不看順序。
+2. 數值以數值比較，不看小數位數。
+3. 文字欄位的 null 與空字串視為相同。
+4. 附件在 Controller 尚未把它傳入 Draft use case 之前，不納入比較。
+5. 前端收到 `NO_CHANGES` 時視為「已是最新」，不顯示錯誤。
+
+### Relationship
+
+補足 D-038 標為 UNKNOWN 的比較語意。附件接上之後的比較方式另行決定。
+
+
+---
+
+## D-045 — 案件的併發保護採樂觀鎖
+
+### Status
+
+`accepted`（2026-11-12，依使用者確認）；落地 BLOCKED
+
+### Decision
+
+案件的併發保護採版本欄位的樂觀鎖：以過期資料寫入時，後寫者失敗，不得覆寫先寫者的資料。取代 `persistence-model.md`「IMP-02A-MD-03」提案中的悲觀鎖做法；該提案其餘內容（`updatedAt` 欄位、Clock、legacy 保留 null、必要的整合測試）仍為待審提案。
+
+### Pending / BLOCKED
+
+正式資料庫與 migration 工具未定，在決定之前不得新增欄位或 migration。衝突時的錯誤代碼與 HTTP 狀態未定。
+
+
+---
+
+## D-046 — 品質線：草稿可為空，發布時必填，範圍為整數 1～10
+
+### Status
+
+`accepted`（2026-11-12，依使用者裁決 spec-draft Q-10）；範圍為暫定值
+
+### Decision
+
+1. 品質線（`qualityThreshold`）是建立專案與更新草稿的選填輸入；草稿階段可以是 null。
+2. 發布專案版本時品質線必填；為 null 時拒絕，`422 PROJECT_VERSION_NOT_PUBLISHABLE`。
+3. 品質線的值是 1 到 10 的整數（暫定）；超出範圍或不是整數回 `400 VALIDATION_ERROR`。
+
+### Relationship / Evidence
+
+保留 D-019、D-031 的「threshold 為 null 不強制複審」分支，不廢止。但本決策生效後，新發布的版本一定有品質線，該分支只會出現在本決策之前建立的資料。現行程式沒有任何 use case 能設定品質線，正常操作建立的專案品質線都是 null，尚未修改。
+
+### Pending
+
+- 權重（`initialReviewWeight`、`rereviewWeight`）的輸入管道與範圍未定：使用者表示「權重也一致」，但 D-020 規定兩個權重相加為 1.0 且各自大於 0、小於等於 1，與「整數 1～10」不相容，待釐清。
+- 初審總分的量尺未定。`api-spec.md` §7.1 與 `domain-events.md` 的範例品質線是 80，與 1～10 不一致，範例尚未修改。
+
+### Mapping
+
+spec-draft：`RP-CRT-03`、`RP-UPD-04`、`RP-PUB-04`、`ProjectVersion.qualityThreshold`。
