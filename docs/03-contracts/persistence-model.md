@@ -935,6 +935,8 @@ revision 先完成則舊版 close 不得成功；close 先完成則不能再寫 
 
 ## IMP-02A-MD-03 — updatedAt 最小技術設計（PROPOSED，待審，未實作）
 
+> D-045（2026-11-12）：併發保護改採樂觀鎖。下方「建議最小併發機制：案件父列交易鎖」一節已被取代，僅供參考；其餘內容仍為待審提案。
+
 ### 現有能力與部署邊界
 
 ReviewCase／ReviewCaseEntity 無通用時間欄位；ReviewCaseRepositoryImpl.toEntity 每次建立完整 Entity 再 save，不能拿過期 Domain 快照只為 touch 而整筆覆寫。Submission 已有 LocalDateTime updatedAt，但會在相同 Draft Save 重設，不能作案件可信來源。ReviewCaseJpaRepository 僅繼承 JpaRepository，無 lock／version／時間更新方法。

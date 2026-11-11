@@ -36,9 +36,8 @@ guards:
   - id: RP-G-03
     when: 操作者的院區與專案的 hospitalId 不同
     outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
-    source: api-spec.md §4.2（說明寫「案件/專案院所不符」）
-    status: proposed
-    question: Q-11
+    source: [decision-log.md D-042, api-spec.md §4.2]
+    status: decided
 
 usecases:
 
@@ -48,24 +47,38 @@ usecases:
     actor: { roles: [HOSPITAL_MANAGER] }
     input:
       - { name: name,               type: text,                        required: true }
-      - { name: description,        type: text,                        required: false, status: proposed, question: Q-05 }
+      - { name: description,        type: text,                        required: false, status: decided, source: decision-log.md D-040 }
       - { name: medicalRecordTypes, type: "set<enum MedicalRecordType>", required: true }
+      - { name: qualityThreshold,   type: int,                         required: false, status: decided, source: decision-log.md D-046 }
+    open_inputs:
+      - text: 兩個權重從哪一支 use case 設定、範圍為何，未定（D-046 Pending）
+        question: Q-10
     guards: [RP-G-01]
     rules:
       - id: RP-CRT-01
         when: name 為 null 或空白
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
-        status: proposed
-        question: Q-14
+        source: decision-log.md D-040
+        status: decided
+      - id: RP-CRT-03
+        when: qualityThreshold 有給，但不是 1 到 10 的整數
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: decision-log.md D-046
+        status: decided
+      - id: RP-CRT-02
+        when: medicalRecordTypes 為空集合
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: decision-log.md D-040
+        status: decided
     success:
       output:
         - { name: projectId, type: id }
       state:
         - { id: RP-CRT-S1, text: status = DRAFT, source: test-scenarios.md TS-PV-001, status: decided }
-        - { id: RP-CRT-S2, text: hospitalId = 操作者的院區（不由輸入指定）, status: proposed, question: Q-05 }
-        - { id: RP-CRT-S3, text: currentVersion.versionNo = 1 且 published = false, status: proposed, question: Q-08 }
+        - { id: RP-CRT-S2, text: hospitalId = 操作者的院區（不由輸入指定）, status: decided, source: decision-log.md D-040 }
+        - { id: RP-CRT-S3, text: currentVersion.versionNo = 1 且 published = false, status: decided, source: decision-log.md D-040 }
         - { id: RP-CRT-S4, text: 兩個權重都是 0.50, source: decision-log.md D-020, status: decided }
-        - { id: RP-CRT-S5, text: name、description、medicalRecordTypes 等於輸入, status: decided, source: api-spec.md §7.1 }
+        - { id: RP-CRT-S5, text: name、description、medicalRecordTypes、qualityThreshold 等於輸入, status: decided, source: [api-spec.md §7.1, decision-log.md D-046] }
       emits:
         - { event: ReviewProjectCreated, source: domain-events.md §4.1, status: decided }
 
@@ -76,31 +89,40 @@ usecases:
     input:
       - { name: projectId,          type: id,                          required: true }
       - { name: name,               type: text,                        required: true }
-      - { name: description,        type: text,                        required: false, status: proposed, question: Q-05 }
+      - { name: description,        type: text,                        required: false, status: decided, source: decision-log.md D-040 }
       - { name: medicalRecordTypes, type: "set<enum MedicalRecordType>", required: true }
+      - { name: qualityThreshold,   type: int,                         required: false, status: decided, source: decision-log.md D-046 }
     open_inputs:
-      - text: qualityThreshold 與兩個權重從哪一支 use case 設定，文件沒有寫
+      - text: 兩個權重從哪一支 use case 設定、範圍為何，未定（D-046 Pending）
         question: Q-10
     guards: [RP-G-01, RP-G-02, RP-G-03]
     rules:
       - id: RP-UPD-01
         when: currentVersion.published = true
         outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
-        source: [specification-by-example.md EX-018, api-spec.md §7.2, model RP-INV-01]
-        status: proposed
-        question: Q-07
-        note: 「要拒絕」已有依據；用哪個錯誤代碼沒有（TS-PV-004 寫的是「409 或 422」）
+        source: [decision-log.md D-040, specification-by-example.md EX-018, model RP-INV-01]
+        status: decided
       - id: RP-UPD-02
         when: name 為 null 或空白
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
-        status: proposed
-        question: Q-14
+        source: decision-log.md D-040
+        status: decided
+      - id: RP-UPD-04
+        when: qualityThreshold 有給，但不是 1 到 10 的整數
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: decision-log.md D-046
+        status: decided
+      - id: RP-UPD-03
+        when: medicalRecordTypes 為空集合
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: decision-log.md D-040
+        status: decided
     success:
       state:
-        - { id: RP-UPD-S1, text: name、description、medicalRecordTypes 被輸入整組取代（不是只改有給的欄位）, status: proposed, question: Q-05 }
-        - { id: RP-UPD-S2, text: status 與 currentVersion 不變, status: proposed, question: Q-07 }
+        - { id: RP-UPD-S1, text: name、description、medicalRecordTypes、qualityThreshold 被輸入整組取代（不是只改有給的欄位）, status: decided, source: [decision-log.md D-040, decision-log.md D-046] }
+        - { id: RP-UPD-S2, text: status 與 currentVersion 不變, status: decided, source: decision-log.md D-040 }
       emits:
-        - { event: ReviewProjectDraftUpdated, status: proposed, question: Q-13 }
+        - { event: ReviewProjectDraftUpdated, status: decided, source: decision-log.md D-040 }
 
   - name: PublishReviewProjectVersion
     kind: command
@@ -115,23 +137,26 @@ usecases:
         outcome: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
         status: proposed
         question: Q-08
+        note: 「要拒絕」已定；錯誤代碼未定（D-040 Pending；現行測試預期 409）
       - id: RP-PUB-02
-        when: 專案尚未綁定評分表
+        when: 專案尚未綁定評分表版本
         outcome: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
-        source: test-scenarios.md TS-PV-003（前置條件「綁定合法 score sheet version」）
-        status: proposed
-        question: Q-09
+        source: [decision-log.md D-041, test-scenarios.md TS-PV-003]
+        status: decided
       - id: RP-PUB-03
         when: 權重不符合 RP-INV-02
         outcome: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
-        source: decision-log.md D-020（「publish API 時應驗證」）
-        status: proposed
-        question: Q-14
-        note: 「發布時要驗證」已決定；錯誤代碼未定
+        source: [decision-log.md D-020, decision-log.md D-040]
+        status: decided
+      - id: RP-PUB-04
+        when: currentVersion.qualityThreshold 為 null
+        outcome: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+        source: decision-log.md D-046
+        status: decided
     success:
       state:
         - { id: RP-PUB-S1, text: currentVersion.published = true, status: decided, source: domain-events.md §4.4 }
-        - { id: RP-PUB-S2, text: versionNo 不變；status 不變, status: proposed, question: Q-08 }
+        - { id: RP-PUB-S2, text: versionNo 不變；status 不變, status: decided, source: decision-log.md D-040 }
       emits:
         - { event: ReviewProjectVersionPublished, source: domain-events.md §4.4, status: decided }
 
@@ -146,20 +171,14 @@ usecases:
       - id: RP-ACT-01
         when: status = ACTIVE
         outcome: { result: SUCCESS, no_change: true }
-        status: proposed
-        question: Q-04
-        note: domain-events.md §4.2 寫「由非啟用轉為啟用」才發 event，暗示重複啟用不發
-      - id: RP-ACT-02
-        when: status = DEACTIVATED
-        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
-        status: proposed
-        question: Q-03
+        source: decision-log.md D-039
+        status: decided
+      # RP-ACT-02（停用後不可再啟用）已依 D-039 廢止，id 不再使用。
       - id: RP-ACT-03
         when: currentVersion.published = false
         outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
-        source: permission-matrix.md §6（抽選需要 project active + published version）
-        status: proposed
-        question: Q-02
+        source: decision-log.md D-039
+        status: decided
     success:
       state:
         - { id: RP-ACT-S1, text: status = ACTIVE, source: domain-events.md §4.2, status: decided }
@@ -177,16 +196,16 @@ usecases:
       - id: RP-DEA-01
         when: status = DEACTIVATED
         outcome: { result: SUCCESS, no_change: true }
-        status: proposed
-        question: Q-04
+        source: decision-log.md D-039
+        status: decided
       - id: RP-DEA-02
         when: status = DRAFT
         outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
-        status: proposed
-        question: Q-03
+        source: decision-log.md D-039
+        status: decided
     success:
       state:
-        - { id: RP-DEA-S1, text: status = DEACTIVATED, source: domain-events.md §4.3, status: proposed, question: Q-01 }
+        - { id: RP-DEA-S1, text: status = DEACTIVATED, source: decision-log.md D-039, status: decided }
       emits:
         - { event: ReviewProjectDeactivated, source: domain-events.md §4.3, status: decided }
 
@@ -205,8 +224,8 @@ usecases:
       - text: SYSTEM_ADMIN 是否不受 RP-G-03 限制
         question: Q-12
     output:
-      status: proposed
-      question: Q-12
+      status: decided
+      source: decision-log.md D-043
       fields:
         - { name: projectId,          type: id }
         - { name: hospitalId,         type: ref Hospital }
@@ -216,6 +235,6 @@ usecases:
         - { name: status,             type: enum ProjectStatus }
         - { name: versionNo,          type: int }
         - { name: versionPublished,   type: boolean }
-        - { name: qualityThreshold,   type: decimal(2) }
+        - { name: qualityThreshold,   type: int }
         - { name: initialReviewWeight, type: decimal(2) }
         - { name: rereviewWeight,     type: decimal(2) }

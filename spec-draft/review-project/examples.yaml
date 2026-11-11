@@ -31,9 +31,10 @@ fixtures:
       - run: PublishScoreSheetVersion
         as: manager_h1
         input: { scoreSheetId: "${s}" }
+        save: { sv: scoreSheetVersionId }
       - run: BindScoreSheetToProject
         as: manager_h1
-        input: { projectId: "${p}", scoreSheetId: "${s}" }
+        input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
 
   published_project:
     needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
@@ -305,8 +306,8 @@ examples:
         input: { projectId: "${p}" }
         expect: { result: SUCCESS, output: { status: DEACTIVATED } }
 
-  - name: rejects_activate_of_a_deactivated_project
-    basis: [RP-ACT-02]
+  - name: reactivates_a_deactivated_project
+    basis: [RP-T-03, RP-ACT-S1]
     needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
     given:
       - use: active_project
@@ -317,19 +318,21 @@ examples:
       run: ActivateReviewProject
       as: manager_h1
       input: { projectId: "${p}" }
-    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    then: { result: SUCCESS }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
         input: { projectId: "${p}" }
-        expect: { result: SUCCESS, output: { status: DEACTIVATED } }
+        expect: { result: SUCCESS, output: { status: ACTIVE } }
 
 # 這些規則目前沒有辦法用範例驗證，原因各自列出。
 not_covered:
   - rules: [RP-PUB-03, RP-INV-02, RP-INV-03]
     reason: 沒有任何 use case 能設定權重（Q-10），所以造不出「權重不合法」的專案
   - rules: [RP-DEA-01]
-    reason: 待 Q-04 裁決後補；寫法與 activating_an_active_project_changes_nothing 相同
+    reason: Q-04 已裁決（D-039），範例尚未補；寫法與 activating_an_active_project_changes_nothing 相同
+  - rules: [RP-CRT-02, RP-UPD-03, RP-CRT-03, RP-UPD-04, RP-PUB-04]
+    reason: D-040、D-046 新增的規則，範例尚未補。既有的 published_project fixture 沒有給品質線，補上之前依 RP-PUB-04 會被拒絕
   - rules: [emits]
     reason: >
       範圍內沒有查詢看得到 event。要驗證 event，得透過稽核軌跡的查詢（不在本次範圍），

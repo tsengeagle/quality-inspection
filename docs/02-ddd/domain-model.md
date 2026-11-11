@@ -105,6 +105,7 @@ ReviewProject:
     - OUTPATIENT
     - INPATIENT
     - EMERGENCY
+  # 以下 8 個屬性目前只有名稱，規則內容未定
   reviewTargetPolicy: ReviewTargetPolicy
   dateCriteriaPolicy: DateCriteriaPolicy
   samplingPolicy: SamplingPolicy
@@ -113,8 +114,9 @@ ReviewProject:
     - DepartmentId
   reviewerPoolPolicy: ReviewerPoolPolicy
   rereviewPolicy: RereviewPolicy
-  qualityThreshold: QualityThreshold
   effectivePeriod: EffectivePeriod
+  # 以上 8 個屬性規則內容未定
+  qualityThreshold: QualityThreshold
   status: ProjectStatus
   currentVersion: ProjectVersion
 ```

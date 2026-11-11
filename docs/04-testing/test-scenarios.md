@@ -85,7 +85,7 @@
 1. 呼叫 `POST /review-projects`
 
 ### Expected
-- 回傳 `403 FORBIDDEN`
+- 回傳 `403 ROLE_DENIED`
 - 不建立任何 project
 
 ---
@@ -102,11 +102,11 @@
 - 專案處於可發布狀態
 
 ### Steps
-1. 呼叫 `POST /review-projects/{projectId}/publish-version`
+1. 呼叫 `POST /review-projects/{projectId}/publish`
 
 ### Expected
-- 建立 `projectVersionId`
-- `versionNo` 遞增
+- 目前版本成為已發布
+- `versionNo` 不變（D-040）
 - `ReviewProjectVersionPublished` event 成立
 - 舊 version 不被覆寫
 
@@ -124,7 +124,7 @@
 1. 嘗試以一般 update API 直接修改已發布版本內容
 
 ### Expected
-- 回傳 `409 CONFLICT` 或 `422 UNPROCESSABLE_ENTITY`
+- 回傳 `409 INVALID_STATE_TRANSITION`（D-040）
 - 已發布 version 不被改寫
 - 若要修改，必須建立新 draft / 新 version
 
