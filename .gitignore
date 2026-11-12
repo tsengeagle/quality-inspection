@@ -1,3 +1,6 @@
+# === Harness references (copyrighted papers, local only) ===
+docs/harness/references/
+
 # === OS ===
 .DS_Store
 Thumbs.db
