@@ -4,9 +4,11 @@
 
 ## 一、版本控制
 
-- 工作分支：`fix/imp01-submission-integrity`，已推送，領先 `origin/main` 12 個 commit。尚未開 PR。
-- 本地 `main` 領先 `origin/main` 3 個 commit，沒有另外推送，但內容已包含在上述分支。
-- `origin/main` 停在 2026-04-21。2026-11-12 推送之前，七個月的工作只存在本機。
+2026-11-13 更新（本節以外仍是 2026-11-12 的快照）：
+
+- `fix/imp01-submission-integrity` 的 12 個 commit 已由 PR #5 以 rebase 方式併入 `origin/main`（2026-11-12）。內容相同，commit 編號不同。
+- 本目錄的文件在 `main` 上，接在 PR #5 之後。
+- 2026-11-12 推送之前，`origin/main` 停在 2026-04-21，七個月的工作只存在本機。
 
 ## 二、測試
 
