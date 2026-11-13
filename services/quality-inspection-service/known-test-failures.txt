@@ -1,0 +1,23 @@
+# 已知失敗清單（凍結基線）
+#
+# `./gradlew test` 實際失敗的測試必須與本清單完全相同，否則建置失敗。
+# 格式：每行一個「類別全名#方法名」。以 # 開頭的行是註解。
+#
+# 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
+# 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
+# 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+
+# D-037、D-038 尚未實作（updatedAt 契約、NO_CHANGES）
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#caseOnlyChangeMustUpdateTime
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#changedDraftMustUpdateCaseTime x2
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#identicalDraftMustNotWriteTimestampOrAudit x2
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#identicalHttpDraftMustReject409NoChangesWithoutSideEffects x2
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#newCaseMustInitializeTime
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#rereviewRevisionMustUpdateCaseTime
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#rereviewSubmitMustUpdateCaseTime_withoutRepairingD032
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#revisionMustUpdateCaseTime
+com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#submitMustUpdateCaseTime
+
+# D-032 尚未實作（複審提交不結案）
+com.tzuchi.his.quality.inspection.application.reviewcase.SubmitRereviewUseCaseTest#execute_submitMustNotCloseCase_D032
+com.tzuchi.his.quality.inspection.interfaces.rest.RereviewApiTest#fullRereviewFlow
