@@ -126,7 +126,7 @@
 擋不到的：
 
 - 清單上的測試換了失敗原因。
-- 只引用另一層的編譯期常數。常數會被編譯器直接寫進呼叫端，ArchUnit 看不到依賴。`ActorContextArgumentResolver` 引用 `ApiKeyAuthFilter` 就是這種，gap 報告有列，基線裡沒有。
+- 只引用另一層的編譯期常數。常數會被編譯器直接寫進呼叫端，ArchUnit 看不到依賴。`ActorContextArgumentResolver` 引用 `ApiKeyAuthFilter` 就是這種，gap 報告有列，基線裡沒有。待辦：做 P2 時補一條檢查 `import` 敘述的文字規則；該常數 `ACTOR_CONTEXT_ATTR` 較合理的落點是 `application.common`。
 - 清單、基線、規則本身被改。這要等 P6。
 - CI 還不是必要檢查，紅燈仍可合併。這也屬於 P6。
 
