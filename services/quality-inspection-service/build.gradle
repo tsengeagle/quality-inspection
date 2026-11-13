@@ -102,3 +102,24 @@ tasks.named('test') {
         }
     }
 }
+
+// 沒有測試原始碼時，test 的 doLast 不會執行，清單與架構規則都沒有被評估。沒有評估不能算通過。
+// Gradle 對這種情況有兩種回報：NO-SOURCE；或是在清掉上一次的輸出後回報「已執行但沒有做事」。兩種都要擋。
+tasks.register('verifyTestsExecuted') {
+    mustRunAfter 'test'
+    doLast {
+        def state = tasks.test.state
+        def inGraph = gradle.taskGraph.hasTask(tasks.test)
+        if (inGraph && state.failure == null && (state.noSource || (!state.didWork && !state.upToDate))) {
+            throw new GradleException('test 沒有執行任何測試（沒有測試原始碼），閘門沒有被評估')
+        }
+    }
+}
+
+tasks.named('test') {
+    finalizedBy 'verifyTestsExecuted'
+}
+
+tasks.named('check') {
+    dependsOn 'verifyTestsExecuted'
+}
