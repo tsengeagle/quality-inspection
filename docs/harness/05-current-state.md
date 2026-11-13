@@ -100,7 +100,7 @@
 
 取自 gap 報告，數字是報告當時的統計。
 
-- 沒有 lint。CI 於 2026-11-13 建立（`.github/workflows/backend-check.yml`），只涵蓋後端。
+- 沒有 CI（`.github/` 底下沒有 workflows）、沒有 lint。
 - 沒有 migration、沒有樂觀鎖、索引為 0，測試只跑 H2。
 - 3 處分層違規；12 個檔案直接取系統時間或亂數 id；15 處 `IllegalArgumentException`。
 - 68 個 `EX-` 範例與 97 個 `TS-` 情境，在測試中的引用數是 0。
@@ -108,28 +108,4 @@
 
 ## 十、harness 進度
 
-2026-11-13 更新。對應 `03-harness-plan.md` 第六節的順序。
-
-| 步驟 | 狀態 | 證據或缺口 |
-|---|---|---|
-| 1. P1：CI 加 ArchUnit | 閘門已建，本機驗證過 | `./gradlew check` 嚴格模式：819 個測試，805 通過，14 個已知失敗，0 個非預期。植入一個分層違規後失敗。CI 的執行結果與「設為必要檢查」見下方 |
-| 2. P6：CODEOWNERS 加 branch protection | 只有檔案 | `.github/CODEOWNERS` 已建；branch protection 要在 GitHub 上手動設，見 `07-github-settings.md` |
-| 3. P2：違規樣本 | 完成 | 三條規則各有樣本；把規則改成永遠通過後，樣本測試失敗 |
-| 4. P10：驗收範例可執行 | 未動工 | |
-| 5 到 7 | 未動工 | |
-
-本次連帶發現並處理的事：
-
-- **Gradle wrapper 的 jar 從未進 repo。** `.gitignore` 的例外規則寫成 `!gradle/wrapper/gradle-wrapper.jar`，只對 repo 根目錄有效，對 `services/quality-inspection-service/gradle/wrapper/` 無效。乾淨的 clone 無法執行 `./gradlew`，CI 也不能。已修正 `.gitignore` 並補上 7.6.4 的 wrapper jar。
-- **14 個已知失敗的處理方式。** 直接跑 `./gradlew check` 會永遠紅燈，閘門就沒有用。改成凍結基線：`harness/known-test-failures.txt` 列出這 14 筆和對應的決策；實際失敗的集合必須和清單完全相同，多一筆或少一筆都失敗。測試沒有被停用或跳過。這是本次自行採用的做法，待確認。
-- **分層違規重新統計是 5 組類別對**，不是 gap 報告的 3 處。多出來的兩組：`infrastructure.security.ApiKeyAuthFilter` → `interfaces.rest.dto.ApiResponse`、`reporting.ExportQueryService` → `interfaces.rest.BadRequestException`。直接取時間或亂數 id 的 12 個檔案、15 處 `IllegalArgumentException` 與報告一致。
-
-本次自行採用、待確認的設計：
-
-| 項目 | 採用的做法 | 影響 |
-|---|---|---|
-| 分層依賴的方向矩陣 | 見 `services/quality-inspection-service/harness/README.md` | 既有文件只寫了各層責任，沒有寫誰可以依賴誰。`reporting` → `application` 目前算允許 |
-| CI 的 JDK | 17 | `build.gradle` 宣告 Java 11，文件記載本機實際用 17 |
-| `.claude/settings.json` 的 `permissions.deny` | 沒做 | 擋掉對 `decision-log.md` 的編輯，會連「依指示寫入裁決」也擋掉。要不要改用 `ask`，待決定 |
-
-及格線四項（`04-definition-of-enough.md` 第一節）的現況：第 3 項在本機通過；第 1 項在本機通過，尚未在 PR 上驗證；第 2 項要等 branch protection；第 4 項要等驗收範例的執行器。
+尚未動工。下一步見 `03-harness-plan.md` 第六節。

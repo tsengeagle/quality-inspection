@@ -1,6 +1,6 @@
 # 本專案的 harness 計畫
 
-狀態：第六節的第 1 到 3 步已動工（2026-11-13），進度見第三節與 `05-current-state.md` 第十節。工具選擇是討論中的建議，不是既有文件規定的做法。
+狀態：計畫，尚未動工。工具選擇是討論中的建議，不是既有文件規定的做法。
 
 ## 一、三個前提的修正
 
@@ -74,19 +74,19 @@
 
 ## 三、十條義務對照
 
-現況欄是 2026-11-13 的狀況。機制的位置與驗證紀錄見 `services/quality-inspection-service/harness/README.md`；GitHub 端待做的設定見 `07-github-settings.md`。
+現況欄是 2026-11-12 的狀況。
 
 | 義務 | 在本專案用什麼落實 | 現況 |
 |---|---|---|
-| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | ⚠️ 閘門與 workflow 已建（2026-11-13），本機驗證過會擋；尚未設為必要檢查 |
-| P2 manifestation | 每條架構規則配一個故意違規的樣本 | 三條規則都有樣本（2026-11-13）；弄壞規則後樣本測試失敗，已驗證 |
-| P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 三條規則只有閘門與禁則，沒有準則和範本，四種形式缺二 |
+| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 有測試，沒有 CI |
+| P2 manifestation | 每條架構規則配一個故意違規的樣本 | 無 |
+| P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
 | P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | 無 |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
-| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ CODEOWNERS 已建（2026-11-13）；branch protection 未設，目前沒有強制力 |
+| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | 無 |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
 | P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
-| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 未設。跳過的測試已會讓閘門失敗 |
+| P9 scaffolding | CI 檢查設為必要，不可跳過 | 無 |
 | P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | 有範例，還不能執行 |
 
 之後每加一個機制就更新這張表。寫不出證據的列標 ⚠️，照實留著。

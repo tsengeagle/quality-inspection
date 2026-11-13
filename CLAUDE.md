@@ -45,7 +45,6 @@ Tech stack 已確認，build/test/run 指令已建立。lint/static analysis/CI 
 Backend:
 - Build: `cd services/quality-inspection-service && ./gradlew build`
 - Test: `cd services/quality-inspection-service && ./gradlew test`
-- Gate: `cd services/quality-inspection-service && ./gradlew check` — 測試、ArchUnit 與已知失敗基線，CI 跑同一個指令；說明見 `services/quality-inspection-service/harness/README.md`
 - Run: `cd services/quality-inspection-service && ./gradlew bootRun`
 
 Frontend:
