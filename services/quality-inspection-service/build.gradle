@@ -20,6 +20,7 @@ dependencies {
     runtimeOnly 'com.h2database:h2'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.1'
 }
 
 // 已知失敗清單（凍結基線）：實際失敗的測試必須與 known-test-failures.txt 完全相同。
@@ -29,6 +30,12 @@ def knownFailuresFile = file('known-test-failures.txt')
 tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'spring.profiles.active', 'test'
+
+    // ArchUnit 凍結基線平常唯讀（見 src/test/resources/archunit.properties）
+    if (project.hasProperty('updateArchBaseline')) {
+        systemProperty 'archunit.freeze.store.default.allowStoreCreation', 'true'
+        systemProperty 'archunit.freeze.store.default.allowStoreUpdate', 'true'
+    }
 
     inputs.file(knownFailuresFile)
     ignoreFailures = true

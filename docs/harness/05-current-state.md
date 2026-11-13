@@ -108,4 +108,28 @@
 
 ## 十、harness 進度
 
-尚未動工。下一步見 `03-harness-plan.md` 第六節。
+2026-11-13：P1 的閘門已建立，路徑都在 `services/quality-inspection-service/` 底下。下一步是 P6，見 `03-harness-plan.md` 第六節。
+
+| 機制 | 檔案 | 擋什麼 |
+|---|---|---|
+| 已知失敗清單 | `known-test-failures.txt`、`build.gradle` 的 `test` 任務 | 實際失敗的測試與清單不同就失敗。清單目前 11 個方法、14 次失敗（D-037、D-038、D-032 未實作） |
+| ArchUnit 規則 | `src/test/java/.../architecture/ArchitectureRules.java` | ARCH-01 分層依賴方向；ARCH-02 `domain` 與 `application` 不得取系統時間或產生亂數 id；ARCH-03 同兩層不得丟 `IllegalArgumentException` |
+| ArchUnit 凍結基線 | `src/test/resources/archunit_store/` | 既有違規 14、31、15 筆；只擋新增的。基線平常唯讀，更新用 `./gradlew test -PupdateArchBaseline` |
+| CI | `.github/workflows/backend-check.yml` | 每個 PR 與 `main` 的 push 跑 `./gradlew check` |
+
+本機驗證紀錄（2026-11-13，每項都實際弄壞一次再還原）：
+
+- 清單：新增失敗、清單上的測試變綠、失敗次數改變、清單上的測試沒執行，四種都讓建置失敗。
+- ArchUnit：在 `interfaces` 引用 `infrastructure` 的類別、在 `domain` 呼叫 `Instant.now()`、丟 `IllegalArgumentException`，三條規則各自失敗；`Instant.now(clock)` 不算違規。
+- 基線：沒有基線時不會自動建立；基線裡留著已修掉的違規時失敗。
+
+擋不到的：
+
+- 清單上的測試換了失敗原因。
+- 只引用另一層的編譯期常數。常數會被編譯器直接寫進呼叫端，ArchUnit 看不到依賴。`ActorContextArgumentResolver` 引用 `ApiKeyAuthFilter` 就是這種，gap 報告有列，基線裡沒有。
+- 清單、基線、規則本身被改。這要等 P6。
+- CI 還不是必要檢查，紅燈仍可合併。這也屬於 P6。
+
+三條規則的依據是 `03-harness-plan.md` 第六節和 gap 報告 §3.7；ARCH-01 的依賴方向是依 backend `README.md` §6.1 的層責任推定的。`decision-log.md` 裡沒有對應的裁決。
+
+CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的是 Java 11。
