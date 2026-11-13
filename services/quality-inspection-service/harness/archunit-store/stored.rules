@@ -1,0 +1,5 @@
+#
+#Fri Nov 13 09:33:19 UTC 2026
+QI-ARCH-001\ layer\ dependency\ direction=9a3f72cf-ac15-41a4-a9e3-79214f75e12e
+QI-ARCH-002\ domain\ and\ application\ must\ not\ read\ the\ system\ clock\ or\ generate\ random\ ids=7fd18e8a-cdd9-44f3-b4b2-a9679cbe12c0
+QI-ARCH-003\ domain\ and\ application\ must\ not\ create\ IllegalArgumentException=6ac32151-ea27-4304-b87b-faafd68b722d
