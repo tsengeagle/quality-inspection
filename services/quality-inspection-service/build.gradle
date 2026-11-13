@@ -20,9 +20,106 @@ dependencies {
     runtimeOnly 'com.h2database:h2'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.1'
 }
+
+// 已知失敗清單（凍結基線）：實際失敗的測試必須與 known-test-failures.txt 完全相同。
+// 新增的失敗、清單上的測試不再失敗（通過或被跳過）、清單上的測試沒有執行，都算未通過。
+def knownFailuresFile = file('known-test-failures.txt')
 
 tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'spring.profiles.active', 'test'
+
+    // ArchUnit 凍結基線平常唯讀（見 src/test/resources/archunit.properties）
+    if (project.hasProperty('updateArchBaseline')) {
+        systemProperty 'archunit.freeze.store.default.allowStoreCreation', 'true'
+        systemProperty 'archunit.freeze.store.default.allowStoreUpdate', 'true'
+    }
+
+    inputs.file(knownFailuresFile)
+    ignoreFailures = true
+
+    def executed = new TreeSet<String>()
+    def failed = new TreeMap<String, Integer>()   // 方法 -> 失敗的呼叫次數
+    def skipped = new TreeSet<String>()
+
+    afterTest { desc, result ->
+        // 參數化測試的每次呼叫歸到同一個方法
+        def id = "${desc.className}#${desc.name.replaceAll(/[(\[].*$/, '')}".toString()
+        executed << id
+        if (result.resultType == TestResult.ResultType.FAILURE) {
+            failed[id] = (failed[id] ?: 0) + 1
+        } else if (result.resultType == TestResult.ResultType.SKIPPED) {
+            skipped << id
+        }
+    }
+
+    doLast {
+        def known = new TreeMap<String, Integer>()
+        knownFailuresFile.readLines().collect { it.trim() }.findAll { it && !it.startsWith('#') }.each {
+            def m = it =~ /^(\S+)(?:\s+x(\d+))?$/
+            if (!m.matches()) {
+                throw new GradleException("${knownFailuresFile.name} 格式錯誤：${it}")
+            }
+            known[m.group(1)] = (m.group(2) ?: '1') as Integer
+        }
+        def fullRun = filter.includePatterns.isEmpty() && filter.commandLineIncludePatterns.isEmpty()
+
+        def format = { id, n -> n > 1 ? "${id} x${n}" : id }
+        def unexpected = failed.findAll { id, n -> !known.containsKey(id) }.collect(format)
+        def countChanged = failed.findAll { id, n -> known.containsKey(id) && known[id] != n }
+                .collect { id, n -> "${id}（清單 ${known[id]} 次，實際 ${n} 次）" }
+        def noLongerFailing = known.keySet().findAll { it in executed && !failed.containsKey(it) }
+        def notExecuted = fullRun ? known.keySet() - executed : []
+
+        def actualFile = layout.buildDirectory.file('reports/known-failures/actual-failures.txt').get().asFile
+        actualFile.parentFile.mkdirs()
+        actualFile.text = failed.collect(format).join('\n') + (failed ? '\n' : '')
+
+        logger.lifecycle("測試閘門：執行 ${executed.size()} 個測試方法，其中失敗 ${failed.size()}（清單 ${known.size()}），跳過 ${skipped.size()}" +
+                (fullRun ? '' : '；本次有篩選條件，只核對有執行的測試'))
+
+        def problems = []
+        if (fullRun && executed.isEmpty()) {
+            problems << '沒有執行任何測試'
+        }
+        if (unexpected) {
+            problems << "不在清單上的失敗（${unexpected.size()}）：\n  " + unexpected.join('\n  ')
+        }
+        if (countChanged) {
+            problems << "失敗的呼叫次數與清單不同（${countChanged.size()}）：\n  " + countChanged.join('\n  ')
+        }
+        if (noLongerFailing) {
+            problems << "清單上的測試不再失敗，通過者請從清單移除，被跳過者請恢復執行（${noLongerFailing.size()}）：\n  " + noLongerFailing.join('\n  ')
+        }
+        if (notExecuted) {
+            problems << "清單上的測試沒有執行，可能已改名或刪除（${notExecuted.size()}）：\n  " + notExecuted.join('\n  ')
+        }
+        if (problems) {
+            throw new GradleException("測試結果與 ${knownFailuresFile.name} 不符。\n" + problems.join('\n') +
+                    "\n本次實際失敗的清單：${actualFile}")
+        }
+    }
+}
+
+// 沒有測試原始碼時，test 的 doLast 不會執行，清單與架構規則都沒有被評估。沒有評估不能算通過。
+// Gradle 對這種情況有兩種回報：NO-SOURCE；或是在清掉上一次的輸出後回報「已執行但沒有做事」。兩種都要擋。
+tasks.register('verifyTestsExecuted') {
+    mustRunAfter 'test'
+    doLast {
+        def state = tasks.test.state
+        def inGraph = gradle.taskGraph.hasTask(tasks.test)
+        if (inGraph && state.failure == null && (state.noSource || (!state.didWork && !state.upToDate))) {
+            throw new GradleException('test 沒有執行任何測試（沒有測試原始碼），閘門沒有被評估')
+        }
+    }
+}
+
+tasks.named('test') {
+    finalizedBy 'verifyTestsExecuted'
+}
+
+tasks.named('check') {
+    dependsOn 'verifyTestsExecuted'
 }

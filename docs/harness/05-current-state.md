@@ -108,4 +108,68 @@
 
 ## 十、harness 進度
 
-尚未動工。下一步見 `03-harness-plan.md` 第六節。
+2026-11-13：P1 的閘門已建立，路徑都在 `services/quality-inspection-service/` 底下。同日接著做了 P6 的檔案部分與 P2，見本節末尾「P6 與 P2」。下一步是在 GitHub 上設定 main 的保護規則，然後是 P10。
+
+| 機制 | 檔案 | 擋什麼 |
+|---|---|---|
+| 已知失敗清單 | `known-test-failures.txt`、`build.gradle` 的 `test` 任務 | 實際失敗的測試與清單不同就失敗。清單目前 11 個方法、14 次失敗（D-037、D-038、D-032 未實作） |
+| ArchUnit 規則 | `src/test/java/.../architecture/ArchitectureRules.java` | ARCH-01 分層依賴方向；ARCH-02 `domain` 與 `application` 不得取系統時間或產生亂數 id；ARCH-03 同兩層不得丟 `IllegalArgumentException` |
+| ArchUnit 凍結基線 | `src/test/resources/archunit_store/` | 既有違規 14、31、15 筆；只擋新增的。基線平常唯讀，更新用 `./gradlew test -PupdateArchBaseline` |
+| CI | `.github/workflows/backend-check.yml` | 每個 PR 與 `main` 的 push 跑 `./gradlew check` |
+| import 規則 ARCH-04 | `.../architecture/LayerImportRule.java`、`src/test/resources/layer-import-baseline.txt` | 與 ARCH-01 相同的依賴方向，改看原始碼的 import 敘述。既有違規 5 筆，實際違規必須與基線完全相同 |
+| 違規樣本 | `.../architecture/samples/`、`ArchitectureRuleSamplesTest`、`LayerImportRuleTest` | 規則被弄壞（改成永遠通過） |
+| 空執行檢查 | `build.gradle` 的 `verifyTestsExecuted` | 沒有測試原始碼時 `check` 仍然通過 |
+
+本機驗證紀錄（2026-11-13，每項都實際弄壞一次再還原）：
+
+- 清單：新增失敗、清單上的測試變綠、失敗次數改變、清單上的測試沒執行，四種都讓建置失敗。
+- ArchUnit：在 `interfaces` 引用 `infrastructure` 的類別、在 `domain` 呼叫 `Instant.now()`、丟 `IllegalArgumentException`，三條規則各自失敗；`Instant.now(clock)` 不算違規。
+- 基線：沒有基線時不會自動建立；基線裡留著已修掉的違規時失敗。
+
+擋不到的：
+
+- 清單上的測試換了失敗原因。
+- 只引用另一層的編譯期常數，而且不寫 import、直接用完整類別名稱。有 import 的情況已由 ARCH-04 擋下（`ActorContextArgumentResolver` 引用 `ApiKeyAuthFilter` 已在 ARCH-04 的基線裡）。常數 `ACTOR_CONTEXT_ATTR` 較合理的落點是 `application.common`。
+- ARCH-02、ARCH-03 以外的寫法：`new Date()`、`Clock.systemUTC()`、`IllegalArgumentException` 的子類別、JDK 內部丟出的 `IllegalArgumentException`、反射。
+- 清單、基線、規則本身被改。這要等 P6。
+- CI 還不是必要檢查，紅燈仍可合併。這也屬於 P6。
+
+三條規則的依據是 `03-harness-plan.md` 第六節和 gap 報告 §3.7；ARCH-01 的依賴方向是依 backend `README.md` §6.1 的層責任推定的。`decision-log.md` 裡沒有對應的裁決。
+
+CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的是 Java 11。
+
+### P6 與 P2（2026-11-13，接在 PR #6 之後）
+
+以下修改疊在 PR #6 的分支上，尚未合併。
+
+| 項目 | 內容 | 狀態 |
+|---|---|---|
+| P6：CODEOWNERS | `.github/CODEOWNERS` 涵蓋 `decision-log.md`、`/specs/`、`/spec-draft/`、後端的建置設定、已知失敗清單、架構規則、樣本、三份基線、workflows、CODEOWNERS 本身 | ⚠️ 只有檔案。main 的保護規則要在 GitHub 上手動設，步驟與驗收見 `07-github-settings.md` |
+| P2：違規樣本 | 四條規則各有一組故意違規的類別和合規對照。規則改成以根套件為參數，閘門與樣本執行同一份定義 | 完成 |
+| ARCH-04 | 補 ARCH-01 看不到編譯期常數的缺口 | 完成 |
+| PR #6 的審查意見 | ARCH-02、ARCH-03 改看「存取」，方法參考（`UUID::randomUUID`、`IllegalArgumentException::new`）也算，基線不變；`verifyTestsExecuted` 擋沒有測試原始碼的執行 | 完成。四則留言都是自動審查工具留的，尚未回覆 |
+
+本機驗證紀錄（JDK 17，每項弄壞一次再還原）：
+
+| 操作 | 結果 |
+|---|---|
+| 不改任何東西跑 `./gradlew check` | 通過：820 個測試，14 個失敗，全部在清單上，0 個跳過 |
+| 把 ARCH-01 到 ARCH-04 都改成永遠通過 | 失敗：五個樣本測試全部失敗；四個閘門測試也失敗（基線與現況不符） |
+| 在 `application` 新增一個只引用 `infrastructure` 常數的類別 | 失敗：ARCH-04。ARCH-01 沒有報 |
+| 移走 `src/test/java` 後跑 `check` | 失敗。Gradle 有兩種回報方式（NO-SOURCE；清掉舊輸出後回報已執行），兩種都驗證過。第一版只擋 NO-SOURCE，第二種漏掉，已修正 |
+| 還原後連跑兩次 | 第二次 `test` 是 UP-TO-DATE，`check` 通過 |
+
+沒有驗證的：
+
+- 這些修改還沒有在 GitHub 的 CI 上跑過。workflow 只在 PR 和 `main` 的 push 觸發，這個分支沒有開 PR。
+- CODEOWNERS 的語法沒有經 GitHub 驗證（要在 GitHub 的檔案頁面看有沒有錯誤提示）。
+- 及格線（`04-definition-of-enough.md` 第一節）：第 3 項在本機通過；第 1 項在本機通過，還沒在 PR 上做；第 2 項要等保護規則；第 4 項要等驗收範例的執行器。
+
+待決定：
+
+| 題目 | 現況 |
+|---|---|
+| ARCH-01 的依賴方向 | 仍是依層責任推定的，`decision-log.md` 沒有對應的裁決。有爭議的兩點：`reporting` 依賴 `application`（允許）、`infrastructure` 依賴 `reporting`（禁止） |
+| 單人 repo 的 code owner 核准 | GitHub 不允許作者核准自己的 PR。見 `07-github-settings.md` 第二節 |
+| `.claude/settings.json` 的 `permissions.deny` | 沒做。直接 deny 會連「依指示把裁決寫進 `decision-log.md`」也擋掉 |
+| 閘門訊息的編碼 | `build.gradle` 的中文訊息在非 UTF-8 的終端機顯示成問號（本次的雲端環境就是）。GitHub 的 runner 是否正常，未確認 |
