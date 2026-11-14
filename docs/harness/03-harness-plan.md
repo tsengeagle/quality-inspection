@@ -1,6 +1,6 @@
 # 本專案的 harness 計畫
 
-狀態：計畫，尚未動工。工具選擇是討論中的建議，不是既有文件規定的做法。
+狀態：計畫。2026-11-13 起動工，進度見 `05-current-state.md` 第十節。工具選擇是討論中的建議，不是既有文件規定的做法。
 
 ## 一、三個前提的修正
 
@@ -78,7 +78,7 @@
 
 | 義務 | 在本專案用什麼落實 | 現況 |
 |---|---|---|
-| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 有測試，沒有 CI |
+| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋；CI 尚未設為必要檢查。證據見 `05-current-state.md` 第十節 |
 | P2 manifestation | 每條架構規則配一個故意違規的樣本 | 無 |
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
 | P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | 無 |
