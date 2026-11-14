@@ -86,7 +86,7 @@
 | P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；2026-11-14 裁決：單人 repo 無法自我核准，code owner 只保留形式，不啟用強制核准，所以沒有伺服器端的強制力。見 `07-github-settings.md` 第二節。本機端的防護未做。修法機制第 1 期已實作（清冊、判決程式、修法紀錄；還不驗簽章），見 `law/README.md` |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
 | P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
-| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 未設為必要檢查。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
+| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 2026-11-14 已裁決：三項必要檢查、不留繞過權限；GitHub 上的設定尚未確認完成。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
 | P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | 有範例，還不能執行 |
 
 之後每加一個機制就更新這張表。寫不出證據的列標 ⚠️，照實留著。
@@ -150,13 +150,13 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 | 期 | 內容 | 對應義務 | 狀態 |
 |---|---|---|---|
-| 1 | CI 跑 `./gradlew check`、ArchUnit、已知失敗清單 | P1 | 完成，在 PR #6，未合併 |
+| 1 | CI 跑 `./gradlew check`、ArchUnit、已知失敗清單 | P1 | 完成，已進 `main`（PR #6） |
 | 2 | 律法保護 | P6、P4 | 進行中 |
-| 2-1 | 清冊、判決程式、GitHub 接法（不驗簽章） | | 完成，在 PR #7；`law-check` 尚未在 GitHub 上執行過 |
+| 2-1 | 清冊、判決程式、GitHub 接法（不驗簽章） | | 完成，已進 `main`（PR #7、#8、#9）。`law-check` 在 GitHub 上的執行紀錄見 `08-legislation-design.md` 第十一節 |
 | 2-2 | 簽章核准，支援多種簽章方案 | | 未動工。PR 處理完之後最先做 |
 | 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
 | 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
-| 3 | 每條規則配一組違規樣本 | P2 | 完成，在 PR #7 |
+| 3 | 每條規則配一組違規樣本 | P2 | 完成，已進 `main`（PR #7、#8） |
 | 4 | 讓 `spec-draft/review-project/examples.yaml` 變成可執行的測試 | P10 | 未動工。最花工的一項 |
 | 5 | 維護義務對照表（本文件第三節） | 全部 | 持續進行 |
 | 6 | 把在地傳統寫成模式語言：先挑一支範本 use case，為它涉及的每個模式補齊準則、範本、禁則 | P3 | 未動工。D-048 的 CQRS 閘門規則屬於這一期。這是 P3 的主體，不是可有可無的便利功能 |
@@ -166,8 +166,8 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 | 項目 | 狀態 |
 |---|---|
-| 合併 PR #6、PR #7 | 待審。目前所有成果都還沒進 `main` |
-| GitHub 設定：把 `check` 設為必要檢查、禁止 force push | 要手動做，步驟在 `07-github-settings.md` |
+| 合併 PR #6、PR #7 | 完成（2026-11-14）。PR #7 當時合併進了 `harness/p1-gate` 而不是 `main`，由 PR #8 補進；PR #9 是三項修正 |
+| GitHub 設定：把 `check`、`law-check`、`law-selftest` 設為必要檢查，不留繞過權限，禁止 force push | 2026-11-14 已裁決，要手動做。步驟在 `07-github-settings.md` 第一節；檢查本身壞掉時的處置在第四節 |
 | `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 未定。第 4 期之前要先決定 |
 | `reporting` 搬進 `application` 的查詢側（D-048） | 未動工 |
 | 測試分級：本機跑快的，CI 跑全套 | P7，未排期 |

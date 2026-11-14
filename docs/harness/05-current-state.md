@@ -173,5 +173,5 @@ CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的�
 |---|---|
 | ARCH-01 的依賴方向 | 2026-11-14 已裁決（D-048）：採 DDD 加 CQRS，查詢經過 `application` 的查詢埠。過渡期 `reporting` 只能依賴 `application.common`（新增 ARCH-05，含樣本，植入違規後失敗）；`infrastructure` 不得依賴 `reporting` |
 | 單人 repo 的 code owner 核准 | 2026-11-14 已裁決：只保留形式，不啟用強制核准。見 `07-github-settings.md` 第二節 |
-| 修法機制 | 2026-11-14 第 1 期已實作：`law/manifest.txt`、`law/check.py`（25 個測試）、`.github/workflows/law-check.yml`。只做分類與結構檢查，還不驗簽章；workflow 尚未在 GitHub 上執行過。設計與驗收紀錄見 `08-legislation-design.md` |
+| 修法機制 | 2026-11-14 第 1 期已實作並進 `main`：`law/manifest.txt`、`law/check.py`（26 個測試）、`.github/workflows/law-check.yml`。只做分類與結構檢查，還不驗簽章。合併後的檢查已在 GitHub 上通過一次；對 PR 的檢查第一版失敗、已改寫，執行紀錄見 `08-legislation-design.md` 第十一節 |
 | 閘門訊息的編碼 | `build.gradle` 的中文訊息在非 UTF-8 的終端機顯示成問號（本次的雲端環境就是）。GitHub 的 runner 是否正常，未確認 |
