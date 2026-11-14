@@ -87,6 +87,7 @@
 - D-031、D-032、D-034、DD-03：已接受但尚未實作。「固定」「結案」的 use case 名稱與 API 在文件裡仍是 `UNKNOWN`，要先補設計。
 - D-037、D-038：尚未實作（對應 12 個紅燈測試）。
 - `GetRereviewRevisionHistoryUseCase` 沒有角色檢查，任何角色都可查。本次只補了院區。
+- D-042：報表（`DashboardQueryService`）與匯出（`ExportQueryService`）的院區取自請求參數，沒有改用登入者的院區。2026-11-14 以 `ReportHospitalScopeIntegrationTest` 對真實資料庫確認：H001 的 `HOSPITAL_MANAGER` 不帶院區參數時看到全部院區，指定 H002 時看到 H002 的資料。四個紅燈測試已列入 `known-test-failures.txt`。api-gateway 是否另外擋，仍未確認。
 
 ## 八、尚未驗證的事
 
