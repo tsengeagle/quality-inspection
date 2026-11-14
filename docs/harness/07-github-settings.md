@@ -19,18 +19,23 @@
 
 這個名稱要等 workflow 在 GitHub 上跑過才會出現在可選清單裡；PR #6 已經跑過一次。
 
-## 二、單人 repo 的限制
+## 二、單人 repo 的限制與目前的裁決
 
-GitHub 不允許 PR 的作者核准自己的 PR。目前 CODEOWNERS 只有一個人，所以：
+GitHub 不允許 PR 的作者核准自己的 PR。目前 CODEOWNERS 只有一個人，而所有 PR（包含 AI 產生的）都是用這個帳號開的，所以沒有人能核准。
 
-- AI 或其他帳號開的 PR：負責人核准後才能合併。這是 P6 要的效果。
-- 負責人自己開的 PR：沒有人能核准。只能把自己放進 bypass 清單，或再加一位 code owner。
+**2026-11-14 裁決：code owner 目前只保留形式。** 具體做法：
 
-放進 bypass 清單代表負責人自己的修法不受機制約束，要在義務對照表上照實記為 ⚠️。
+- `.github/CODEOWNERS` 留著，標明哪些路徑屬於律法與閘門，PR 頁面會顯示這些檔案的負責人。
+- 第一節的「Require review from Code Owners」與「Required approvals」**暫不啟用**。啟用後負責人自己的 PR 無法合併。
+- 其餘設定（必須經 PR、必要檢查 `check`、禁止 force push）不受影響，仍然要設。
+
+後果：P6 沒有伺服器端的強制力。修改律法或閘門的 PR 只要 CI 通過就能合併，防線只剩合併前的人工檢視。義務對照表的 P6 維持 ⚠️。
+
+重新啟用的條件（任一成立）：有第二位可核准的人；或 AI 改用另一個 GitHub 帳號開 PR，讓負責人成為核准者而不是作者。
 
 ## 三、設定完成後的驗收
 
 對應 `04-definition-of-enough.md` 的及格線第 1、2 項，各做一次並把 PR 連結記到 `05-current-state.md`：
 
 1. 開一個 PR，在 `interfaces` 層直接引用 `infrastructure` 的類別。預期：`check` 紅燈，無法合併。
-2. 用非負責人的身分開一個 PR 修改 `decision-log.md`。預期：顯示需要 code owner 核准，無法合併。
+2. 用非負責人的身分開一個 PR 修改 `decision-log.md`。預期：顯示需要 code owner 核准，無法合併。**依第二節的裁決，這一項目前無法驗收。**

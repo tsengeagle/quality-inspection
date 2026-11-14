@@ -163,13 +163,13 @@ CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的�
 
 - 這些修改還沒有在 GitHub 的 CI 上跑過。workflow 只在 PR 和 `main` 的 push 觸發，這個分支沒有開 PR。
 - CODEOWNERS 的語法沒有經 GitHub 驗證（要在 GitHub 的檔案頁面看有沒有錯誤提示）。
-- 及格線（`04-definition-of-enough.md` 第一節）：第 3 項在本機通過；第 1 項在本機通過，還沒在 PR 上做；第 2 項要等保護規則；第 4 項要等驗收範例的執行器。
+- 及格線（`04-definition-of-enough.md` 第一節）：第 3 項在本機通過；第 1 項在本機通過，還沒在 PR 上做；第 2 項依 2026-11-14 的裁決目前無法達成（code owner 只保留形式）；第 4 項要等驗收範例的執行器。
 
 待決定：
 
 | 題目 | 現況 |
 |---|---|
 | ARCH-01 的依賴方向 | 仍是依層責任推定的，`decision-log.md` 沒有對應的裁決。有爭議的兩點：`reporting` 依賴 `application`（允許）、`infrastructure` 依賴 `reporting`（禁止） |
-| 單人 repo 的 code owner 核准 | GitHub 不允許作者核准自己的 PR。見 `07-github-settings.md` 第二節 |
+| 單人 repo 的 code owner 核准 | 2026-11-14 已裁決：只保留形式，不啟用強制核准。見 `07-github-settings.md` 第二節 |
 | `.claude/settings.json` 的 `permissions.deny` | 沒做。直接 deny 會連「依指示把裁決寫進 `decision-log.md`」也擋掉 |
 | 閘門訊息的編碼 | `build.gradle` 的中文訊息在非 UTF-8 的終端機顯示成問號（本次的雲端環境就是）。GitHub 的 runner 是否正常，未確認 |

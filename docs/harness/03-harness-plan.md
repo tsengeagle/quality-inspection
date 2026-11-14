@@ -83,7 +83,7 @@
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
 | P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | 無 |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
-| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；main 的保護規則未設，目前沒有強制力。待做設定見 `07-github-settings.md`。`permissions.deny` 未做 |
+| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；2026-11-14 裁決：單人 repo 無法自我核准，code owner 只保留形式，不啟用強制核准，所以沒有伺服器端的強制力。見 `07-github-settings.md` 第二節。本機端的防護未做 |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
 | P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
 | P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 未設為必要檢查。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
