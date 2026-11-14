@@ -74,7 +74,8 @@ class RepoCase(unittest.TestCase):
         self.tmp.cleanup()
 
     def git(self, *args):
-        return subprocess.run(["git", "-C", self.repo, *args], check=True, capture_output=True, text=True).stdout
+        return subprocess.run(["git", "-C", self.repo, *args], check=True, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace").stdout
 
     def write(self, files):
         for path, content in files.items():
@@ -337,7 +338,8 @@ law/allowed_signers    gate
     def run_approve(self, script, signer="owner", key=None):
         head = self.git("rev-parse", "HEAD").strip()
         return subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
-                               "--signer", signer, "--key", key or self.owner_key], capture_output=True, text=True)
+                               "--signer", signer, "--key", key or self.owner_key], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
 
     def approve(self, signer="owner", key=None):
         """用核准工具（放在被檢查的 repo 之外）對目前的 HEAD 簽章，並把核准檔 commit 進去。"""
@@ -542,7 +544,8 @@ law/allowed_signers    gate
         head = self.git("rev-parse", "HEAD").strip()
         self.git("checkout", "-q", "main")
         result = subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
-                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
+                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("核准的 commit：" + head, result.stdout)
         self.git("checkout", "-q", "change")
@@ -564,7 +567,8 @@ law/allowed_signers    gate
         self.git("checkout", "-q", "main")
         self.write({"harness-core/__pycache__/law_check.cpython-312.pyc": "cache"})
         result = subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
-                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
+                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
     def test_tool_refuses_when_its_own_files_have_uncommitted_changes(self):
@@ -578,7 +582,8 @@ law/allowed_signers    gate
         with open(script, "a", encoding="utf-8") as f:
             f.write("\n# local edit\n")
         result = subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
-                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
+                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertIn("還沒 commit 的修改", result.stderr)
 
