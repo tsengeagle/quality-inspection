@@ -30,7 +30,7 @@ CLASSES = {"ruling", "spec", "gate", "tradition", "baseline"}
 EXIT_PASS, EXIT_FAIL, EXIT_NOT_EVALUATED = 0, 1, 2
 APPROVAL_SUFFIX = ".approval.json"
 SIGNATURE_NAMESPACE = "law-amendment"       # 簽章的用途標記，避免拿別處的簽章來充當
-DIGEST_HEADER = b"law-amendment-v1\n"
+DIGEST_HEADER = b"law-amendment-v2\n"
 
 
 class NotEvaluated(Exception):
@@ -152,6 +152,12 @@ def blob(repo, commit, path):
     return result.stdout if result.returncode == 0 else None
 
 
+def file_mode(repo, commit, path):
+    """檔案在某個 commit 的 git 模式，例如 100644、100755（可執行）、120000（符號連結）。"""
+    out = git(repo, "ls-tree", commit, "--", path).stdout.decode("utf-8", "replace")
+    return out.split(None, 1)[0] if out.strip() else "missing"
+
+
 def amendment_digest(repo, head, record_path, law_paths):
     """這次修法的內容雜湊：修法紀錄本身，加上每個被改動的律法檔案在 head 的內容。
 
@@ -161,7 +167,11 @@ def amendment_digest(repo, head, record_path, law_paths):
     digest = hashlib.sha256(DIGEST_HEADER)
     for path in sorted(set(law_paths) | {record_path}):
         content = blob(repo, head, path)
-        state = "deleted" if content is None else hashlib.sha256(content).hexdigest()
+        if content is None:
+            state = "deleted"
+        else:
+            # 模式也算在內：一般檔案、可執行檔、符號連結的內容可以相同，意義卻不同
+            state = "%s %s" % (file_mode(repo, head, path), hashlib.sha256(content).hexdigest())
         digest.update(("%s\t%s\n" % (path, state)).encode("utf-8"))
     return "sha256:" + digest.hexdigest()
 

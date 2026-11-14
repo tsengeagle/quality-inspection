@@ -408,7 +408,7 @@ law/allowed_signers    gate
     def test_tampered_signature_fails(self):
         self.amend()
         self.approve()
-        path = os.path.join(self.repo, "law/amendments/2026-01-01-change.approval.json")
+        path = os.path.join(self.repo, "law/amendments/2026-01-01-change.owner.approval.json")
         with open(path, encoding="utf-8") as f:
             approval = json.load(f)
         lines = approval["signature"].splitlines()
@@ -423,12 +423,12 @@ law/allowed_signers    gate
     def test_approval_copied_from_another_amendment_fails(self):
         self.amend()
         self.approve()
-        approval = self.git("show", "HEAD:law/amendments/2026-01-01-change.approval.json")
+        approval = self.git("show", "HEAD:law/amendments/2026-01-01-change.owner.approval.json")
         # 另起一個修改，沿用同一個紀錄檔名，但改的是別的律法檔案
         self.git("checkout", "-q", "-B", "other", self.base)
         path, content = record()
         self.write({"rules/Other.java": "class Other {}\n", path: content,
-                    "law/amendments/2026-01-01-change.approval.json": approval})
+                    "law/amendments/2026-01-01-change.owner.approval.json": approval})
         self.commit("reuse an approval")
         passed, report = self.verdict()
         self.assertFalse(passed, report)
@@ -446,7 +446,7 @@ law/allowed_signers    gate
                        check=True, capture_output=True)
         with open(message + ".sig", encoding="utf-8") as f:
             signature = f.read()
-        self.write({"law/amendments/2026-01-01-change.approval.json": json.dumps(
+        self.write({"law/amendments/2026-01-01-change.owner.approval.json": json.dumps(
             {"amendment": "2026-01-01-change", "scheme": "ssh", "signer": "owner", "digest": digest,
              "signature": signature})})
         self.commit("approval with the wrong namespace")
@@ -457,7 +457,7 @@ law/allowed_signers    gate
     def test_scheme_not_accepted_by_the_manifest_fails(self):
         self.amend()
         self.approve()
-        path = os.path.join(self.repo, "law/amendments/2026-01-01-change.approval.json")
+        path = os.path.join(self.repo, "law/amendments/2026-01-01-change.owner.approval.json")
         with open(path, encoding="utf-8") as f:
             approval = json.load(f)
         approval["scheme"] = "x509"
@@ -511,6 +511,53 @@ law/allowed_signers    gate
         passed, report = self.verdict()
         self.assertFalse(passed, report)
         self.assertIn("有效 1 個", report)
+        # 第二位核准者照同樣的流程簽，不能蓋掉第一位的核准檔
+        self.approve(signer="second", key=self.intruder_key)
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertIn("owner（ssh）", report)
+        self.assertIn("second（ssh）", report)
+
+    def test_same_signer_approving_twice_counts_once(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": self.SIGNED_MANIFEST + "@approvals-required 2\n"})
+        self.base = self.commit("base that requires two approvals")
+        self.git("checkout", "-q", "-B", "change")
+        self.amend()
+        self.approve()
+        approval = self.git("show", "HEAD:law/amendments/2026-01-01-change.owner.approval.json")
+        self.write({"law/amendments/2026-01-01-change.copy.approval.json": approval})
+        self.commit("duplicate the approval under another file name")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("有效 1 個", report)
+
+    def test_making_a_law_file_executable_after_approval_invalidates_it(self):
+        self.amend()
+        self.approve()
+        os.chmod(os.path.join(self.repo, "rules/Rule.java"), 0o755)
+        self.commit("flip the executable bit")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽的是另一份內容", report)
+
+    def test_replacing_a_law_file_with_a_symlink_after_approval_invalidates_it(self):
+        # 連結的內容（指向的路徑字串）和原本的檔案內容相同，只有類型不同
+        self.git("checkout", "-q", "main")
+        self.write({"rules/pointer": "Rule.java"})
+        self.base = self.commit("base with a file whose content is a path")
+        self.git("checkout", "-q", "-B", "change")
+        path, content = record()
+        self.write({"rules/pointer": "Other.java", path: content})
+        self.commit("amend")
+        self.approve()
+        target = os.path.join(self.repo, "rules/pointer")
+        os.remove(target)
+        os.symlink("Other.java", target)
+        self.commit("turn the file into a symlink with the same bytes")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽的是另一份內容", report)
 
 
 if __name__ == "__main__":

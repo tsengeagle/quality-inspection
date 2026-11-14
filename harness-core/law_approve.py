@@ -10,7 +10,8 @@
     1. 找出目前分支相對於 base 的那一筆新增的修法紀錄。
     2. 列出這次修法改了哪些律法檔案，以及內容雜湊。請先看過這些修改再簽。
     3. 呼叫 ssh-keygen 簽章。使用實體金鑰時，這一步要碰一下金鑰。
-    4. 把核准檔寫進修法紀錄的目錄。接著由核准者 commit 並推送。
+    4. 把核准檔寫進修法紀錄的目錄，檔名是 <修法紀錄的 id>.<核准者名稱>.approval.json。
+       接著由核准者 commit 並推送。
 
 簽的是「已經 commit 的內容」。簽完之後律法檔案或修法紀錄再改，簽章就失效，要重簽。
 """
@@ -18,6 +19,7 @@ import argparse
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -78,6 +80,9 @@ def main(argv=None):
     parser.add_argument("--repo", default=".", help="git 工作目錄（預設：目前目錄）")
     parser.add_argument("--manifest", default=law_check.DEFAULT_MANIFEST_PATH)
     args = parser.parse_args(argv)
+    if not re.match(r"^[A-Za-z0-9._@+-]+$", args.signer):
+        print("無法核准：核准者名稱只能用英數字與 . _ @ + -", file=sys.stderr)
+        return 2
     try:
         dirty = law_check.git(args.repo, "status", "--porcelain").stdout.decode().strip()
         record_path, record_id, law_paths, digest = find_amendment(args.repo, args.base, args.head, args.manifest)
@@ -92,7 +97,8 @@ def main(argv=None):
     except law_check.NotEvaluated as error:
         print("無法核准：%s" % error, file=sys.stderr)
         return 2
-    target = os.path.join(args.repo, record_path[:-len(".json")] + law_check.APPROVAL_SUFFIX)
+    # 每位核准者一個檔案，檔名帶核准者名稱；多位核准者依序簽章時不會互相覆蓋
+    target = os.path.join(args.repo, "%s.%s%s" % (record_path[:-len(".json")], args.signer, law_check.APPROVAL_SUFFIX))
     with open(target, "w", encoding="utf-8") as f:
         json.dump({"amendment": record_id, "scheme": "ssh", "signer": args.signer, "digest": digest,
                    "signature": signature}, f, ensure_ascii=False, indent=2)
