@@ -81,7 +81,7 @@
 | P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋；CI 尚未設為必要檢查。證據見 `05-current-state.md` 第十節 |
 | P2 manifestation | 每條架構規則配一個故意違規的樣本 | 2026-11-13：ARCH-01 到 ARCH-04 都有違規樣本與合規對照；把四條規則改成永遠通過後，樣本測試全部失敗。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄 |
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
-| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ 2026-11-14：`law/check.py` 會擋修法 PR 夾帶程式修改，本機測試通過；CI 的 workflow 已寫好，尚未在 GitHub 上執行過 |
+| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ 2026-11-14：`harness-core/law_check.py` 會擋修法 PR 夾帶程式修改。`law-check` 已在 GitHub 上判決過建構 PR（#10）與修法 PR（#11），都通過；尚未設為必要檢查 |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
 | P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；2026-11-14 裁決：單人 repo 無法自我核准，code owner 只保留形式，不啟用強制核准，所以沒有伺服器端的強制力。見 `07-github-settings.md` 第二節。本機端的防護未做。修法機制第 1 期已實作（清冊、判決程式、修法紀錄；還不驗簽章），見 `law/README.md` |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
@@ -153,7 +153,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 1 | CI 跑 `./gradlew check`、ArchUnit、已知失敗清單 | P1 | 完成，已進 `main`（PR #6） |
 | 2 | 律法保護 | P6、P4 | 進行中 |
 | 2-1 | 清冊、判決程式、GitHub 接法（不驗簽章） | | 完成，已進 `main`（PR #7、#8、#9）。`law-check` 在 GitHub 上的執行紀錄見 `08-legislation-design.md` 第十一節 |
-| 2-2 | 把核心搬進 `harness-core/`（之後拆成獨立的 repo）；簽章核准，支援多種簽章方案 | | 進行中。`harness-core/` 已登記進清冊；搬移與簽章尚未動工 |
+| 2-2 | 把核心搬進 `harness-core/`（之後拆成獨立的 repo）；簽章核准，支援多種簽章方案 | | 進行中。判決程式與測試已搬進 `harness-core/`（行為不變）；簽章尚未動工；尚未拆成獨立的 repo |
 | 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
 | 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
 | 3 | 每條規則配一組違規樣本 | P2 | 完成，已進 `main`（PR #7、#8） |

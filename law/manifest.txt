@@ -1,5 +1,5 @@
 # 律法清冊：哪些路徑是律法、屬於哪一類。
-# 判決程式 law/check.py 讀的是 base 分支上的這一份，不是 PR 帶來的。
+# 判決程式（harness-core/law_check.py）讀的是 base 分支上的這一份，不是 PR 帶來的。
 # 說明見 law/README.md 與 docs/harness/08-legislation-design.md。
 #
 # 格式：每行「路徑樣式  類別」。# 開頭是註解。

@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-14-move-core-to-harness-core",
+  "decision": "none",
+  "reason": "把判決程式與它的測試從 law/ 搬到 harness-core/，行為不變。依負責人 2026-11-14 的指示：修法機制的核心要能獨立於專案之外，先在本 repo 的獨立目錄養成可搬走的樣子，之後拆成獨立的 repo。連帶修改：清冊的位置改成可用 --manifest 指定（預設不變），判決程式不再寫死專案路徑；workflow 改從 harness-core/ 取判決程式，過渡期保留舊位置當後備；law-selftest 改跑新位置的測試並檢查 workflow 與範本一致；law/README.md 與 CLAUDE.md 的路徑說明同步。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "law/",
+    "harness-core/",
+    ".github/workflows/",
+    "CLAUDE.md"
+  ]
+}

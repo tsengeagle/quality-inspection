@@ -1,6 +1,6 @@
 # 修法機制
 
-本目錄是修法機制本身：律法清冊、判決程式、修法紀錄。設計與分期見 `docs/harness/08-legislation-design.md`。
+本目錄是這個專案的律法資料：律法清冊與修法紀錄。判決程式在 `harness-core/`，它是不分專案的核心，說明見 `harness-core/README.md`。設計與分期見 `docs/harness/08-legislation-design.md`。
 
 **目前是第 1 期**：只做分類與結構檢查。修法紀錄還沒有簽章，所以它不代表有人核准。
 這一期讓每次修法看得見、有紀錄、有固定結構；擋不住偽造。
@@ -10,13 +10,11 @@
 | 檔案 | 用途 |
 |---|---|
 | `manifest.txt` | 律法清冊：哪些路徑是律法、屬於哪一類 |
-| `check.py` | 判決程式。只用 Python 標準函式庫與 git |
 | `amendments/` | 修法紀錄，每次修法一個 JSON 檔 |
-| `tests/` | 判決程式的測試 |
 
 ## 判決規則
 
-`check.py` 比較 base 與 head 兩個 commit，清冊一律讀 base 上的版本。
+`harness-core/law_check.py` 比較 base 與 head 兩個 commit，清冊一律讀 base 上的版本。
 
 | 這次修改的內容 | 判決 |
 |---|---|
@@ -67,10 +65,10 @@
 
 ```bash
 # 檢查目前的分支相對於 main 的修改
-python3 law/check.py --base origin/main --head HEAD
+python3 harness-core/law_check.py --base origin/main --head HEAD
 
 # 判決程式的測試
-python3 -m unittest discover -s law/tests -v
+python3 -m unittest discover -s harness-core/tests -v
 ```
 
 人和各種 AI 工具都跑同一個指令。
