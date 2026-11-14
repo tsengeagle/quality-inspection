@@ -185,12 +185,15 @@ def evaluate(repo, base, head):
     if one_record:
         path = added_records[0]
         try:
-            record = json.loads(show(repo, head, path) or "")
+            parsed = json.loads(show(repo, head, path) or "")
         except ValueError as error:
             checks.append(("修法紀錄是合法的 JSON", False, str(error)))
-        if record is not None and not isinstance(record, dict):
-            checks.append(("修法紀錄是 JSON 物件", False, ""))
-            record = None
+        else:
+            # null、陣列、字串、數字都是合法的 JSON，但都不是一筆紀錄
+            if isinstance(parsed, dict):
+                record = parsed
+            else:
+                checks.append(("修法紀錄是 JSON 物件", False, "實際是 %s" % type(parsed).__name__))
 
     if record is not None:
         path = added_records[0]

@@ -1,0 +1,9 @@
+{
+  "id": "2026-11-14-reject-non-object-record",
+  "decision": "none",
+  "reason": "修正判決程式的漏洞：修法紀錄的內容若是 JSON 的 null，id、reason、paths、decision 的檢查會被整個跳過，律法修改因此通過。改成只接受 JSON 物件，並補上測試。來源是 PR #8 的自動審查意見，已重現。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "law/"
+  ]
+}
