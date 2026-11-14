@@ -23,8 +23,13 @@ public class DashboardQueryService {
     public DashboardSummary getSummary(ActorContext actor, DashboardQueryCriteria criteria) {
         actor.requireAnyRole(DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
-        String whereClause = buildWhereClause(criteria);
-        List<Object> params = buildParams(criteria);
+        // D-042、D-047：院區取自登入者，請求帶的院區只有 SYSTEM_ADMIN 能用來縮小範圍
+        DashboardQueryCriteria scoped = new DashboardQueryCriteria(
+                actor.readScopeHospitalId(criteria.getHospitalId()),
+                criteria.getProjectId(), criteria.getFrom(), criteria.getTo());
+
+        String whereClause = buildWhereClause(scoped);
+        List<Object> params = buildParams(scoped);
 
         long total = countWithCondition("", whereClause, params);
         long closed = countWithCondition("AND e.status = 'CLOSED'", whereClause, params);

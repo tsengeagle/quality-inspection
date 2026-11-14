@@ -1,0 +1,60 @@
+name: law-check
+
+# 修法檢查（P6、P4）。設計見 docs/harness/08-legislation-design.md，用法見 law/README.md。
+#
+# 為什麼用 pull_request_target：它執行 base 分支上的 workflow 與判決程式，
+# PR 改不了檢查自己的那支程式。這個 job 只用 git 讀取 PR 的內容，不執行 PR 裡的任何程式。
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  amendment:
+    name: law-check
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      # 取出 base 的內容：判決程式與清冊都來自這裡
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch the pull request head (read only)
+        run: git fetch --no-tags origin "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+
+      - name: law-check
+        run: python3 law/check.py --base "$BASE_SHA" --head refs/remotes/pr/head | tee -a "$GITHUB_STEP_SUMMARY"; exit "${PIPESTATUS[0]}"
+
+  # 後援：合併進 main 之後，用合併前的判決程式再檢查一次這次帶進來的律法修改。
+  # 只能事後發現，不能事前阻擋。
+  post-merge:
+    name: law-check (post-merge)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BEFORE_SHA: ${{ github.event.before }}
+      AFTER_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.before }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch the pushed commit (read only)
+        run: git fetch --no-tags origin "$AFTER_SHA"
+
+      - name: law-check
+        run: python3 law/check.py --base "$BEFORE_SHA" --head "$AFTER_SHA" | tee -a "$GITHUB_STEP_SUMMARY"; exit "${PIPESTATUS[0]}"

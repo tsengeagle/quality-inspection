@@ -33,9 +33,13 @@ public class ExportQueryService {
             throw new BadRequestException("Unsupported reportType: " + criteria.getReportType());
         }
 
-        List<ExportRow> rows = queryRows(criteria);
+        // D-042、D-047：院區取自登入者，請求帶的院區只有 SYSTEM_ADMIN 能用來縮小範圍
+        ExportCriteria scoped = new ExportCriteria(criteria.getReportType(),
+                actor.readScopeHospitalId(criteria.getHospitalId()), criteria.getFrom(), criteria.getTo());
+
+        List<ExportRow> rows = queryRows(scoped);
         DashboardQueryCriteria dashCriteria = new DashboardQueryCriteria(
-                criteria.getHospitalId(), null, criteria.getFrom(), criteria.getTo());
+                scoped.getHospitalId(), null, scoped.getFrom(), scoped.getTo());
         DashboardSummary summary = dashboardQueryService.getSummary(actor, dashCriteria);
 
         return new ExportResult(criteria.getReportType(), rows, summary);
