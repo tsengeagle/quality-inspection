@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-14-remove-transition-fallback",
+  "decision": "none",
+  "reason": "移除 law-check workflow 裡過渡期的後備路徑。判決程式搬進 harness-core/ 時，workflow 保留了從舊位置 law/check.py 取得的後備，讓搬移當下的合併後檢查能運作。舊位置已經不存在於 main，後備路徑沒有用途，留著只會讓人誤以為那個位置仍然有效。這也是啟用核准簽章之後的第一筆修法，用來驗證完整的簽章流程。",
+  "drafted_by": "claude-code",
+  "paths": [
+    ".github/workflows/law-check.yml",
+    "harness-core/ci/github/law-check.yml",
+    "law/"
+  ]
+}
