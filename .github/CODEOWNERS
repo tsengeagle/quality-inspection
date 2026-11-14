@@ -11,6 +11,9 @@
 /services/quality-inspection-service/build.gradle                 @tsengeagle
 /services/quality-inspection-service/settings.gradle              @tsengeagle
 /services/quality-inspection-service/gradle/                      @tsengeagle
+/services/quality-inspection-service/gradlew                      @tsengeagle
+/services/quality-inspection-service/gradlew.bat                  @tsengeagle
+/services/quality-inspection-service/gradle.properties            @tsengeagle
 /services/quality-inspection-service/known-test-failures.txt      @tsengeagle
 /services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/   @tsengeagle
 /services/quality-inspection-service/src/test/resources/archunit.properties          @tsengeagle

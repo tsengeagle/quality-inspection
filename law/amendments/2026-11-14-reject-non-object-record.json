@@ -1,9 +1,10 @@
 {
   "id": "2026-11-14-reject-non-object-record",
   "decision": "none",
-  "reason": "修正判決程式的漏洞：修法紀錄的內容若是 JSON 的 null，id、reason、paths、decision 的檢查會被整個跳過，律法修改因此通過。改成只接受 JSON 物件，並補上測試。來源是 PR #8 的自動審查意見，已重現。",
+  "reason": "兩項修正，來源都是 PR #8 的自動審查意見，都已查證屬實。（1）判決程式的漏洞：修法紀錄的內容若是 JSON 的 null，id、reason、paths、decision 的檢查會被整個跳過；改成只接受 JSON 物件，並補上測試。（2）清冊的缺口：後端的 gradlew、gradlew.bat 沒有列為律法，把啟動腳本換成空殼就能讓 CI 的 check 直接通過，卻只會被判成一般的建構 PR；已列為閘門，gradle.properties 一併列入。",
   "drafted_by": "claude-code",
   "paths": [
-    "law/"
+    "law/",
+    ".github/CODEOWNERS"
   ]
 }
