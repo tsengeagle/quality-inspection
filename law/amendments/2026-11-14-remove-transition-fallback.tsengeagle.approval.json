@@ -1,0 +1,7 @@
+{
+  "amendment": "2026-11-14-remove-transition-fallback",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:f191c7d393ccbda31cc1c0c0c8491880b9972878f665c76b1c76f089eea87359",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgLuJoBS\nUmRINtbaWNfjs7XqhmoldTfksBZR0x/OG7ILQAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEAds4KLND3d6iB5p05c35Ig0rrXmNOfkEld1vINGNtt3mVSbtSL/cch\n29jOzdurXJiHdUq48NHiS1dEFS5Pzg8GAQAAAA0=\n-----END SSH SIGNATURE-----\n"
+}
