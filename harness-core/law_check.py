@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""law/check.py — 修法檢查（第 1 期：分類與結構檢查，不驗簽章）。
+"""law_check.py — 修法檢查（第 1 期：分類與結構檢查，不驗簽章）。
 
 判斷 base 到 head 之間的修改有沒有動到律法；動到的話，是否附了合格的修法紀錄。
 判決是確定性的：只用 git 讀取兩個 commit 的內容，不執行被檢查的那一方的任何程式。
 
 用法：
-    python3 law/check.py --base <commit> --head <commit>
+    python3 law_check.py --base <commit> --head <commit> [--manifest law/manifest.txt]
 
-律法清冊一律讀 base 上的版本。在 CI 上，這支程式本身也必須取自 base。
+律法清冊一律讀 base 上的版本。在 CI 上，這支程式本身也必須取自 base，或取自專案之外。
 
+這支程式屬於 harness 的核心，不含任何專案專屬的設定；專案的設定全部寫在清冊裡。
 結束代碼：0 通過；1 未通過；2 無法評估（例如 base 上沒有清冊）。無法評估不算通過。
 只使用 Python 標準函式庫，GitHub Actions 與 GitLab CI 都能直接執行。
 """
@@ -18,7 +19,7 @@ import re
 import subprocess
 import sys
 
-MANIFEST_PATH = "law/manifest.txt"
+DEFAULT_MANIFEST_PATH = "law/manifest.txt"
 CLASSES = {"ruling", "spec", "gate", "tradition", "baseline"}
 EXIT_PASS, EXIT_FAIL, EXIT_NOT_EVALUATED = 0, 1, 2
 
@@ -120,12 +121,12 @@ def line_counts(repo, start, head, path):
     return (int(added), int(deleted))
 
 
-def evaluate(repo, base, head):
+def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
     """回傳 (是否通過, 報告行的清單)。"""
     report = []
-    manifest_text = show(repo, base, MANIFEST_PATH)
+    manifest_text = show(repo, base, manifest_path)
     if manifest_text is None:
-        raise NotEvaluated("base（%s）上沒有 %s" % (base, MANIFEST_PATH))
+        raise NotEvaluated("base（%s）上沒有 %s" % (base, manifest_path))
     manifest = Manifest(manifest_text)
     start = git(repo, "merge-base", base, head).stdout.decode().strip()
     head_sha = git(repo, "rev-parse", head).stdout.decode().strip()
@@ -243,9 +244,11 @@ def main(argv=None):
     parser.add_argument("--base", required=True, help="合併的目標 commit；清冊讀這個 commit 上的版本")
     parser.add_argument("--head", required=True, help="要檢查的 commit")
     parser.add_argument("--repo", default=".", help="git 工作目錄（預設：目前目錄）")
+    parser.add_argument("--manifest", default=DEFAULT_MANIFEST_PATH,
+                        help="律法清冊在 repo 裡的路徑（預設：%s）" % DEFAULT_MANIFEST_PATH)
     args = parser.parse_args(argv)
     try:
-        passed, report = evaluate(args.repo, args.base, args.head)
+        passed, report = evaluate(args.repo, args.base, args.head, args.manifest)
     except NotEvaluated as error:
         print("修法檢查：無法評估 — %s" % error)
         print("無法評估不算通過。")

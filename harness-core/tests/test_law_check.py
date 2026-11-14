@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""law/check.py 的測試：每個案例在暫存的 git repo 裡做一次修改，再跑判決。
+"""law_check.py 的測試：每個案例在暫存的 git repo 裡做一次修改，再跑判決。
 
-執行：python3 -m unittest discover -s law/tests -v
+測試只用自己建立的暫存 repo，不依賴所在專案的任何內容。
+
+執行：python3 -m unittest discover -s harness-core/tests -v
 """
 import importlib.util
 import json
@@ -11,7 +13,7 @@ import tempfile
 import unittest
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-spec = importlib.util.spec_from_file_location("law_check", os.path.join(HERE, "..", "check.py"))
+spec = importlib.util.spec_from_file_location("law_check", os.path.join(HERE, "..", "law_check.py"))
 check = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(check)
 
@@ -250,11 +252,25 @@ class LawCheckTest(unittest.TestCase):
     def test_command_line_exit_codes(self):
         self.write({"rules/Rule.java": "class Rule {}\n"})
         head = self.commit("change")
-        script = os.path.join(HERE, "..", "check.py")
+        script = os.path.join(HERE, "..", "law_check.py")
         run = lambda *a: subprocess.run(["python3", script, "--repo", self.repo, *a], capture_output=True).returncode
         self.assertEqual(1, run("--base", self.base, "--head", head))
         self.assertEqual(0, run("--base", self.base, "--head", self.base))
         self.assertEqual(2, run("--base", "no-such-commit", "--head", head))
+
+    def test_manifest_location_can_be_set_on_the_command_line(self):
+        # 專案可以把清冊放在別的位置；判決程式不寫死專案的路徑
+        self.git("checkout", "-q", "main")
+        self.git("mv", "law/manifest.txt", "governance.txt")
+        self.base = self.commit("base with the manifest elsewhere")
+        self.git("checkout", "-q", "-B", "change")
+        self.write({"rules/Rule.java": "class Rule { boolean strict = false; }\n"})
+        head = self.commit("change")
+        script = os.path.join(HERE, "..", "law_check.py")
+        run = lambda *a: subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base,
+                                         "--head", head, *a], capture_output=True).returncode
+        self.assertEqual(2, run())                                   # 預設位置找不到清冊：無法評估
+        self.assertEqual(1, run("--manifest", "governance.txt"))     # 指定位置後照常判決
 
     # --- 路徑樣式 ---
 

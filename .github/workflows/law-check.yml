@@ -1,6 +1,7 @@
 name: law-check
 
-# 修法檢查（P6、P4）。設計見 docs/harness/08-legislation-design.md，用法見 law/README.md。
+# 修法檢查（P6、P4）。這份檔案是 harness-core/ci/github/law-check.yml 的副本，兩者必須相同；
+# law-selftest 會檢查。說明見 harness-core/README.md。
 #
 # 為什麼用 pull_request_target：它執行 base 分支上的 workflow，PR 改不了這份檔案。
 # 判決程式也取自 base：用 git show 從 base 的 commit 抽出來，放到工作目錄之外再執行。
@@ -31,12 +32,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # law/check.py 是搬進 harness-core/ 之前的位置，只為了過渡期保留
       - name: Take the verdict script from the base commit
         run: |
-          if ! git show "${BASE_SHA}:law/check.py" > "${RUNNER_TEMP}/law-check.py"; then
-            echo "修法檢查：無法評估 — base（${BASE_SHA}）上沒有 law/check.py。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 2
-          fi
+          for path in harness-core/law_check.py law/check.py; do
+            if git show "${BASE_SHA}:${path}" > "${RUNNER_TEMP}/law-check.py" 2>/dev/null; then
+              echo "判決程式取自 ${BASE_SHA}:${path}"
+              exit 0
+            fi
+          done
+          echo "修法檢查：無法評估 — base（${BASE_SHA}）上沒有判決程式。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 2
 
       - name: law-check
         run: |
@@ -61,10 +67,14 @@ jobs:
 
       - name: Take the verdict script from the commit before the push
         run: |
-          if ! git show "${BEFORE_SHA}:law/check.py" > "${RUNNER_TEMP}/law-check.py"; then
-            echo "修法檢查：無法評估 — 推送前的 commit（${BEFORE_SHA}）上沒有 law/check.py。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
-            exit 2
-          fi
+          for path in harness-core/law_check.py law/check.py; do
+            if git show "${BEFORE_SHA}:${path}" > "${RUNNER_TEMP}/law-check.py" 2>/dev/null; then
+              echo "判決程式取自 ${BEFORE_SHA}:${path}"
+              exit 0
+            fi
+          done
+          echo "修法檢查：無法評估 — 推送前的 commit（${BEFORE_SHA}）上沒有判決程式。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 2
 
       - name: law-check
         run: |

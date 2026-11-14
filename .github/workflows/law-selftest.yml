@@ -18,4 +18,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: python3 -m unittest discover -s law/tests -v
+      - name: Tests of the verdict script
+        run: python3 -m unittest discover -s harness-core/tests -v
+      - name: The installed workflow matches the template in harness-core
+        run: diff -u harness-core/ci/github/law-check.yml .github/workflows/law-check.yml
