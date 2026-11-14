@@ -31,6 +31,8 @@ law/                                    gate
 .github/workflows/                      gate
 .github/CODEOWNERS                      gate
 .gitlab-ci.yml                          gate
+# .gitignore 決定哪些檔案進 repo；Gradle wrapper 的 jar 曾因為它而沒有被提交
+.gitignore                              gate
 
 # 閘門：後端的建置設定、架構規則、違規樣本
 services/quality-inspection-service/build.gradle        gate

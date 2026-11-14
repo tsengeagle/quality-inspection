@@ -23,3 +23,4 @@
 # 執行閘門與保護律法的設定本身
 /.github/workflows/   @tsengeagle
 /.github/CODEOWNERS   @tsengeagle
+/.gitignore          @tsengeagle
