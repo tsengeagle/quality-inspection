@@ -1,0 +1,54 @@
+# 律法清冊：哪些路徑是律法、屬於哪一類。
+# 判決程式 law/check.py 讀的是 base 分支上的這一份，不是 PR 帶來的。
+# 說明見 law/README.md 與 docs/harness/08-legislation-design.md。
+#
+# 格式：每行「路徑樣式  類別」。# 開頭是註解。
+#   *  比對一層目錄內的任意字元；** 可跨目錄；結尾是 / 表示整個目錄。
+#   一個路徑符合多行時，以最後一行為準。
+#
+# 類別與規則：
+#   ruling     裁決          任何修改都要修法紀錄；刪改既有內容會另外標示
+#   spec       規格          任何修改都要修法紀錄
+#   gate       閘門          任何修改都要修法紀錄
+#   tradition  給 AI 的指示  任何修改都要修法紀錄
+#   baseline   凍結基線      只刪除行的修改免修法；新增或改寫行、刪除整個檔案要修法紀錄
+
+@decision-log docs/01-requirements/decision-log.md
+@amendments law/amendments/
+# 修法 PR 除了律法路徑之外，還可以一起改的路徑（P4：修法與建構不混在同一個 PR）
+@allowed-with-amendment docs/**
+@allowed-with-amendment **/*.md
+
+# 裁決
+docs/01-requirements/decision-log.md    ruling
+
+# 規格
+specs/                                  spec
+spec-draft/                             spec
+
+# 閘門：修法機制本身
+law/                                    gate
+.github/workflows/                      gate
+.github/CODEOWNERS                      gate
+.gitlab-ci.yml                          gate
+
+# 閘門：後端的建置設定、架構規則、違規樣本
+services/quality-inspection-service/build.gradle        gate
+services/quality-inspection-service/settings.gradle     gate
+services/quality-inspection-service/gradle/             gate
+services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/   gate
+services/quality-inspection-service/src/test/resources/archunit.properties                          gate
+
+# 凍結基線
+services/quality-inspection-service/known-test-failures.txt                         baseline
+services/quality-inspection-service/src/test/resources/archunit_store/              baseline
+services/quality-inspection-service/src/test/resources/layer-import-baseline.txt    baseline
+
+# 給 AI 的指示
+AGENTS.md                               tradition
+CLAUDE.md                               tradition
+**/CLAUDE.md                            tradition
+.github/copilot-instructions.md         tradition
+.github/instructions/                   tradition
+.ai/                                    tradition
+.kiro/steering/                         tradition

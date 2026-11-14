@@ -17,6 +17,9 @@
 /services/quality-inspection-service/src/test/resources/archunit_store/              @tsengeagle
 /services/quality-inspection-service/src/test/resources/layer-import-baseline.txt    @tsengeagle
 
+# 修法機制：清冊、判決程式、修法紀錄
+/law/   @tsengeagle
+
 # 執行閘門與保護律法的設定本身
 /.github/workflows/   @tsengeagle
 /.github/CODEOWNERS   @tsengeagle

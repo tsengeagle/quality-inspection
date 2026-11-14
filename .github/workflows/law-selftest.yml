@@ -1,0 +1,21 @@
+name: law-selftest
+
+# 判決程式自己的測試。這裡執行的是 PR 帶來的版本，所以只給唯讀權限。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    name: law-selftest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s law/tests -v
