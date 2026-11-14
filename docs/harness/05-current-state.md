@@ -158,6 +158,7 @@ CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的�
 | 在 `application` 新增一個只引用 `infrastructure` 常數的類別 | 失敗：ARCH-04。ARCH-01 沒有報 |
 | 移走 `src/test/java` 後跑 `check` | 失敗。Gradle 有兩種回報方式（NO-SOURCE；清掉舊輸出後回報已執行），兩種都驗證過。第一版只擋 NO-SOURCE，第二種漏掉，已修正 |
 | 還原後連跑兩次 | 第二次 `test` 是 UP-TO-DATE，`check` 通過 |
+| 在 `application` 的一個檔案裡，把違規的 import 接在既有 import 的同一行（位元組碼不變） | 失敗：ARCH-04。修正前有兩個缺口：`test` 沒把原始碼列為輸入，所以是 UP-TO-DATE 直接通過；列為輸入後，逐行比對又漏掉同一行的第二個 import。兩者都是 PR #7 的審查意見與重跑驗證找到的，已修正並補上跨行、同一行、註解三個樣本 |
 
 沒有驗證的：
 

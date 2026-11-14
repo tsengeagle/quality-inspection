@@ -53,6 +53,13 @@ class LayerImportRuleTest {
         assertReported(result.violations, "infrastructure/InfrastructureUsesReporting.java");
         // 只引用編譯期常數：ARCH-01 看不到，這條規則要看得到
         assertReported(result.violations, "interfaces/InterfacesUsesInfrastructureConstant.java");
+        // import 敘述跨行
+        assertReported(result.violations, "interfaces/InterfacesUsesInfrastructureMultilineImport.java");
+        // 同一行的第二個 import
+        assertReported(result.violations, "interfaces/InterfacesUsesInfrastructureSameLineImport.java");
+        // 註解裡的 import 不是依賴
+        assertThat(result.violations).as("註解裡的 import 不應被報出")
+                .noneMatch(v -> v.startsWith("interfaces/AllowedCommentedOutImport.java"));
         assertThat(result.violations).as("合規對照不應被報出")
                 .noneMatch(v -> v.startsWith("interfaces/AllowedInterfacesUsesApplication.java"));
     }

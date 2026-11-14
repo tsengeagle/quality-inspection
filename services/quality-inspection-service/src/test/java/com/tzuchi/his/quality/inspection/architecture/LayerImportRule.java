@@ -21,6 +21,7 @@ import java.util.stream.Stream;
  * 位元組碼裡沒有依賴。允許的方向與 {@link ArchitectureRules#layerDependencies(String)} 相同。
  *
  * <p>擋不到：不寫 import、直接用完整類別名稱的引用；萬用字元 import 以整個套件計。
+ * 註解的去除是文字層級的：類別本體裡若有字串常值含註解符號，其後到檔尾之間不會有 import，所以不影響結果。
  */
 public final class LayerImportRule {
 
@@ -52,8 +53,9 @@ public final class LayerImportRule {
      */
     public static Result scan(Path sourceRoot, String rootPackage) {
         Path base = sourceRoot.resolve(rootPackage.replace('.', '/'));
-        Pattern importPattern = Pattern.compile(
-                "^\\s*import\\s+(?:static\\s+)?(" + Pattern.quote(rootPackage) + "\\.(\\w+)\\.[\\w.*]+)\\s*;");
+        // 在去掉註解的全文上找出每個 import 敘述（可跨行，也可以和別的敘述同一行），去掉空白後再判斷目標屬於哪一層
+        Pattern importPattern = Pattern.compile("(?<![\\w.])import\\s+(?:static\\s+)?([\\w.*\\s]+?)\\s*;");
+        Pattern targetPattern = Pattern.compile("^" + Pattern.quote(rootPackage) + "\\.(\\w+)\\..+$");
         List<Path> files;
         try (Stream<Path> walk = Files.walk(base)) {
             files = walk.filter(p -> p.toString().endsWith(".java")).collect(Collectors.toList());
@@ -74,23 +76,30 @@ public final class LayerImportRule {
                 continue;
             }
             scanned++;
-            for (String line : readLines(file)) {
-                Matcher m = importPattern.matcher(line);
-                if (!m.find()) {
+            Matcher m = importPattern.matcher(withoutComments(read(file)));
+            while (m.find()) {
+                String imported = m.group(1).replaceAll("\\s+", "");
+                Matcher target = targetPattern.matcher(imported);
+                if (!target.matches()) {
                     continue;
                 }
-                String targetLayer = m.group(2);
+                String targetLayer = target.group(1);
                 if (ALLOWED.containsKey(targetLayer) && !targetLayer.equals(layer) && !allowed.contains(targetLayer)) {
-                    violations.add(relative.toString().replace('\\', '/') + " imports " + m.group(1));
+                    violations.add(relative.toString().replace('\\', '/') + " imports " + imported);
                 }
             }
         }
         return new Result(scanned, List.copyOf(violations));
     }
 
-    private static List<String> readLines(Path file) {
+    /** 去掉區塊註解與行註解。import 敘述出現在類別宣告之前，不會遇到字串常值。 */
+    private static String withoutComments(String source) {
+        return source.replaceAll("(?s)/\\*.*?\\*/", " ").replaceAll("//[^\\n]*", "");
+    }
+
+    private static String read(Path file) {
         try {
-            return Files.readAllLines(file, StandardCharsets.UTF_8);
+            return Files.readString(file, StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

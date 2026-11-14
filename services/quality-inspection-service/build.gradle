@@ -38,6 +38,9 @@ tasks.named('test') {
     }
 
     inputs.file(knownFailuresFile)
+    // ARCH-04 直接讀原始碼。不宣告的話，位元組碼沒變的修改（例如多一個 import）不會讓 test 重跑。
+    inputs.dir('src/main/java').withPropertyName('arch04MainSources')
+    inputs.dir('src/test/java').withPropertyName('arch04SampleSources')
     ignoreFailures = true
 
     def executed = new TreeSet<String>()
