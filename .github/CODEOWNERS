@@ -22,6 +22,7 @@
 
 # 修法機制：清冊、判決程式、修法紀錄
 /law/   @tsengeagle
+/harness-core/   @tsengeagle
 
 # 執行閘門與保護律法的設定本身
 /.github/workflows/   @tsengeagle

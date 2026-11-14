@@ -28,6 +28,8 @@ spec-draft/                             spec
 
 # 閘門：修法機制本身
 law/                                    gate
+# 修法機制的核心：判決程式、測試、CI 範本。之後會拆成獨立的 repo
+harness-core/                           gate
 .github/workflows/                      gate
 .github/CODEOWNERS                      gate
 .gitlab-ci.yml                          gate

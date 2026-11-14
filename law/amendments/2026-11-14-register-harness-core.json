@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-14-register-harness-core",
+  "decision": "none",
+  "reason": "把 harness-core/ 登記為閘門類的律法路徑，為下一步「把判決程式搬進 harness-core/」做準備。判決程式讀的是 base 分支上的清冊，路徑必須先登記並合併，搬移的 PR 才不會被判成修法夾帶程式修改。依負責人 2026-11-14 的指示：核心先在本 repo 的獨立目錄養成可搬走的樣子，之後再拆成獨立的 repo。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "law/",
+    ".github/CODEOWNERS"
+  ]
+}
