@@ -544,6 +544,20 @@ law/allowed_signers    gate
         passed, report = self.verdict()
         self.assertTrue(passed, report)
 
+    def test_untracked_files_next_to_the_tool_do_not_block_it(self):
+        # 例如 Python 的快取目錄。它們不被 git 追蹤，也不會被工具載入
+        self.git("checkout", "-q", "main")
+        script = self.install_tool_in_repo()
+        self.base = self.commit("base with the tool installed")
+        self.git("checkout", "-q", "-B", "change")
+        self.amend()
+        head = self.git("rev-parse", "HEAD").strip()
+        self.git("checkout", "-q", "main")
+        self.write({"harness-core/__pycache__/law_check.cpython-312.pyc": "cache"})
+        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+
     def test_tool_refuses_when_its_own_files_have_uncommitted_changes(self):
         self.git("checkout", "-q", "main")
         script = self.install_tool_in_repo()

@@ -29,6 +29,9 @@ import subprocess
 import sys
 import tempfile
 
+# 不在工具目錄留下 Python 的快取檔：這個目錄要保持和 git 裡的內容完全相同
+sys.dont_write_bytecode = True
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("law_check", os.path.join(HERE, "law_check.py"))
 law_check = importlib.util.module_from_spec(spec)
@@ -73,7 +76,8 @@ def refuse_untrusted_copy(repo, base):
     inside = os.path.commonpath([os.path.realpath(top), os.path.realpath(HERE)]) == os.path.realpath(top)
     if not inside:
         return
-    if law_check.git(repo, "status", "--porcelain", "--", HERE).stdout.strip():
+    # 只看 git 追蹤的檔案有沒有被改過。沒被追蹤的檔案（例如快取）不會被這支程式載入
+    if law_check.git(repo, "status", "--porcelain", "--untracked-files=no", "--", HERE).stdout.strip():
         raise law_check.NotEvaluated("核准工具所在的目錄有還沒 commit 的修改，不能信任。請用乾淨的 main 執行")
     trusted = law_check.git(repo, "merge-base", "--is-ancestor", "HEAD", base, check=False).returncode == 0
     if not trusted:
