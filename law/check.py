@@ -128,6 +128,7 @@ def evaluate(repo, base, head):
         raise NotEvaluated("base（%s）上沒有 %s" % (base, MANIFEST_PATH))
     manifest = Manifest(manifest_text)
     start = git(repo, "merge-base", base, head).stdout.decode().strip()
+    head_sha = git(repo, "rev-parse", head).stdout.decode().strip()
 
     needs_amendment = []    # (路徑, 類別, 說明)
     exempt = []             # 只縮短的基線
@@ -154,7 +155,7 @@ def evaluate(repo, base, head):
             note = "刪除或改寫了既有內容，核准時請特別檢視"
         needs_amendment.append((path, law_class, note))
 
-    report.append("比較範圍：%s..%s（清冊取自 %s）" % (start[:12], head[:12] if len(head) >= 12 else head, base))
+    report.append("比較範圍：%s..%s（清冊取自 %s）" % (start[:12], head_sha[:12], base[:12]))
     report.append("")
     if exempt:
         report.append("免修法的基線修改（只刪除行）：")

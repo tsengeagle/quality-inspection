@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-14-bootstrap",
+  "decision": "none",
+  "reason": "建立修法機制第 1 期：律法清冊、判決程式、GitHub 的 workflow。依負責人 2026-11-14 的指示實作；設計見 docs/harness/08-legislation-design.md。這筆紀錄產生時機制尚未生效，沒有經過 CI 上的判決。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "law/",
+    ".github/workflows/",
+    ".github/CODEOWNERS",
+    "CLAUDE.md"
+  ]
+}
