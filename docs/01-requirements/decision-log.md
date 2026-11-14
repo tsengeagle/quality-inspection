@@ -1759,3 +1759,39 @@ spec-draft：`RP-CRT-03`、`RP-UPD-04`、`RP-PUB-04`、`ProjectVersion.qualityTh
 ### Mapping
 
 spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` 的權重輸入。
+
+
+---
+
+## D-048 — 後端採 DDD 加 CQRS：查詢經過 application 的查詢埠，讀取模型不重用寫入側的 entity
+
+### Status
+
+`accepted`（2026-11-14，依使用者裁決）
+
+### Decision
+
+1. 後端的讀寫分離做到「同一個資料庫、同一組資料表、程式路徑分開」這一級。不建立獨立的讀取表或讀取資料庫。
+2. 查詢一律經過查詢埠：埠與回傳的 view 定義在 `application`，實作（adapter）在 `infrastructure`。查詢處理器不得直接存取持久層。
+3. 讀取模型使用自己的投影（view），不得重用寫入側的 JPA entity 作為查詢結果的型別。
+4. `reporting` 不再是獨立的讀取層，其內容逐步搬進 `application` 的查詢側。搬遷完成前的過渡規則：
+   - `reporting` 對 `application` 只能依賴 `application.common`。
+   - `infrastructure` 不得依賴 `reporting`。
+5. 角色檢查與輸入驗證可以用統一的切面處理；院區範圍必須是查詢條件的明確欄位，由登入者決定（D-042、D-047），不得只靠切面隱含套用。
+
+### Relationship / Evidence
+
+- 現況已有六個查詢 adapter 採用第 2 點的寫法（`ReviewCaseQueryPort` 等介面在 `application`，`*QueryAdapter` 在 `infrastructure`）。
+- `reporting` 的兩支服務直接使用 `EntityManager` 與 `ReviewCaseEntity`，不符合第 2、3 點；這是既有違規，已凍結在架構規則的基線裡。
+- 2026-11-14 以測試確認這兩支服務沒有套用 D-042 的院區範圍，同日修正。這是「讀取側另走一條路徑時，範圍規則容易漏掉」的實例，也是第 2、5 點的理由。
+- 本決策補上架構規則 ARCH-01、ARCH-04 的依據：兩條規則的依賴方向原本是依各層責任推定的。
+
+### Pending
+
+- `reporting` 搬進 `application` 的時程與套件命名未定。
+- 下列規則尚未寫成閘門：查詢側不得依賴寫入用的 repository 或命令 use case；命令側不得依賴查詢的 view；查詢處理器一律是唯讀交易；每個查詢處理器都必須帶授權註解並接收範圍條件；原生 SQL 只能出現在 adapter。
+- 統一的授權與驗證切面尚未設計。盲審遮罩（D-033、D-036）不適用切面，維持明確的 policy。
+
+### Mapping
+
+架構規則：ARCH-01、ARCH-04（分層依賴方向）、ARCH-05（`reporting` 只能依賴 `application.common`）。

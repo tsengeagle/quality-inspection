@@ -56,6 +56,14 @@ class ArchitectureRuleSamplesTest {
         assertNotReported(violations, "AllowedThrowsIllegalState");
     }
 
+    @Test
+    void arch05_detectsReportingUsingApplicationOutsideCommon() {
+        List<String> violations = violations("layering", ArchitectureRules::reportingUsesOnlyApplicationCommon);
+
+        assertReported(violations, "ReportingCallsUseCase");
+        assertNotReported(violations, "AllowedReportingUsesApplicationCommon");
+    }
+
     private static List<String> violations(String sample, Function<String, ArchRule> rule) {
         String root = SAMPLES + "." + sample;
         JavaClasses classes = new ClassFileImporter().importPackages(root);

@@ -83,7 +83,7 @@
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
 | P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | 無 |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
-| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；2026-11-14 裁決：單人 repo 無法自我核准，code owner 只保留形式，不啟用強制核准，所以沒有伺服器端的強制力。見 `07-github-settings.md` 第二節。本機端的防護未做 |
+| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；2026-11-14 裁決：單人 repo 無法自我核准，code owner 只保留形式，不啟用強制核准，所以沒有伺服器端的強制力。見 `07-github-settings.md` 第二節。本機端的防護未做。修法機制的設計草稿見 `08-legislation-design.md` |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
 | P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
 | P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 未設為必要檢查。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
@@ -119,6 +119,8 @@
 | UC spec 的 JSON 格式 | 不搬 | 混了解法詞彙 |
 | `ezgo-law-guard.py` 與修法窗口 | 不搬 | 用 CODEOWNERS 和 branch protection 取代 |
 | 雙 profile 測試、Outbox 相關規定 | 不搬 | 本專案沒有這個架構 |
+
+**2026-11-14 補註**：下面這段的前提（用 CODEOWNERS 和 branch protection 取代）在單人 repo 不成立，見 `07-github-settings.md` 第二節。取代方案的設計草稿在 `08-legislation-design.md`：防線放在 CI 與簽章。
 
 law guard 不搬的原因：它存在是因為參考 repo 沒有 CI 和 PR 流程，所有防護只能在本機做，而本機上 AI 和人是同一個 OS 使用者。本專案有 GitHub 和 PR 流程，同一條義務用伺服器端的設定就能落實，而且更強。
 

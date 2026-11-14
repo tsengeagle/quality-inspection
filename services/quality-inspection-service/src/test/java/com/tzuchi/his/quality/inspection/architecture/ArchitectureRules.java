@@ -5,6 +5,7 @@ import com.tngtech.archunit.core.domain.AccessTarget.CodeUnitAccessTarget;
 import com.tngtech.archunit.core.domain.AccessTarget.ConstructorCallTarget;
 import com.tngtech.archunit.core.domain.AccessTarget.ConstructorReferenceTarget;
 import com.tngtech.archunit.core.domain.JavaAccess;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.lang.ArchRule;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
@@ -15,7 +16,8 @@ import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
  *
  * <p>出處：{@code docs/harness/03-harness-plan.md} 第六節「第一批 ArchUnit 規則」、
  * {@code design-implementation-gap-2026-11-11.md} §3.7、
- * {@code services/quality-inspection-service/README.md} §6.1。
+ * {@code services/quality-inspection-service/README.md} §6.1；
+ * 依賴方向與 ARCH-05 的依據是 {@code decision-log.md} 的 D-048。
  *
  * <p>規則的描述文字（{@code as(...)}）是凍結基線的索引鍵，改動後要重建該規則的基線。
  */
@@ -28,6 +30,8 @@ public final class ArchitectureRules {
     public static final ArchRule ARCH_02_NO_SYSTEM_CLOCK_OR_RANDOM_ID = noSystemClockOrRandomId(ROOT);
 
     public static final ArchRule ARCH_03_NO_ILLEGAL_ARGUMENT_EXCEPTION = noIllegalArgumentException(ROOT);
+
+    public static final ArchRule ARCH_05_REPORTING_USES_ONLY_APPLICATION_COMMON = reportingUsesOnlyApplicationCommon(ROOT);
 
     /**
      * 允許的依賴方向：
@@ -69,6 +73,21 @@ public final class ArchitectureRules {
                 .should().accessTargetWhere(constructs(IllegalArgumentException.class))
                 .as("ARCH-03 domain 與 application 不得丟 IllegalArgumentException")
                 .because("它沒有對應的錯誤映射，會變成 HTTP 500；改用 domain.common 或 application.common 的例外");
+    }
+
+    /**
+     * D-048 的過渡規則：reporting 搬進 application 的查詢側之前，對 application 只能依賴 application.common。
+     * 目前沒有既有違規，所以不經過凍結基線。
+     */
+    public static ArchRule reportingUsesOnlyApplicationCommon(String root) {
+        return noClasses()
+                .that().resideInAPackage(root + ".reporting..")
+                .should().dependOnClassesThat(
+                        JavaClass.Predicates.resideInAPackage(root + ".application..")
+                                .and(DescribedPredicate.not(
+                                        JavaClass.Predicates.resideInAPackage(root + ".application.common.."))))
+                .as("ARCH-05 reporting 對 application 只能依賴 application.common")
+                .because("D-048：報表不得呼叫命令 use case；reporting 之後會併入 application 的查詢側");
     }
 
     // 兩個判斷式都看「存取」而不只看「呼叫」，方法參考（UUID::randomUUID、IllegalArgumentException::new）也算。

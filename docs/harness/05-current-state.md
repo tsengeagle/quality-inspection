@@ -171,7 +171,7 @@ CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的�
 
 | 題目 | 現況 |
 |---|---|
-| ARCH-01 的依賴方向 | 仍是依層責任推定的，`decision-log.md` 沒有對應的裁決。有爭議的兩點：`reporting` 依賴 `application`（允許）、`infrastructure` 依賴 `reporting`（禁止） |
+| ARCH-01 的依賴方向 | 2026-11-14 已裁決（D-048）：採 DDD 加 CQRS，查詢經過 `application` 的查詢埠。過渡期 `reporting` 只能依賴 `application.common`（新增 ARCH-05，含樣本，植入違規後失敗）；`infrastructure` 不得依賴 `reporting` |
 | 單人 repo 的 code owner 核准 | 2026-11-14 已裁決：只保留形式，不啟用強制核准。見 `07-github-settings.md` 第二節 |
-| `.claude/settings.json` 的 `permissions.deny` | 沒做。直接 deny 會連「依指示把裁決寫進 `decision-log.md`」也擋掉 |
+| 本機端的律法防護 | 改為設計一套跨工具、跨平台的修法機制，草稿見 `08-legislation-design.md`，待審 |
 | 閘門訊息的編碼 | `build.gradle` 的中文訊息在非 UTF-8 的終端機顯示成問號（本次的雲端環境就是）。GitHub 的 runner 是否正常，未確認 |
