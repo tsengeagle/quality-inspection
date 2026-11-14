@@ -69,37 +69,46 @@ tsengeagle namespaces="law-amendment" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1
 
 ## 四、每次核准修法
 
-1. 取得要核准的分支：
+**核准工具一定要從 `main` 執行，不要簽出修法的分支再執行。** 修法的 PR 可以改到核准工具本身；
+被改過的版本可以顯示一個雜湊，卻讓金鑰簽另一個。所以整個流程中，工作目錄都停在 `main`，
+工具只透過 git 讀取修法分支的內容，不執行其中任何檔案。工作目錄停在修法的分支上時，工具會拒絕執行。
+
+1. 讓工作目錄停在最新的 `main`，並取得修法的分支：
 
    ```bash
-   git fetch origin
-   git switch <修法 PR 的分支>
+   git switch main
    git pull
+   git fetch origin
    ```
 
-2. **看過修改。** 簽章代表你同意這些內容：
+2. **看過修改。** 簽章代表你同意這些內容。這個指令只顯示差異，不會執行分支上的任何東西：
 
    ```bash
-   git diff origin/main...HEAD
+   git diff origin/main...origin/<修法的分支>
    ```
 
-   PR 上 `law-check` 的報告也會列出動到哪些律法檔案。
+   PR 上 `law-check` 的報告也會列出動到哪些律法檔案，以及內容雜湊。
 
 3. 簽章（插著金鑰，過程中要碰一下）：
 
    ```bash
-   python3 harness-core/law_approve.py --signer <核准者名稱> --key ~/.ssh/law_amendment_sk
+   python3 -I harness-core/law_approve.py --head origin/<修法的分支> --signer <核准者名稱> --key ~/.ssh/law_amendment_sk
    ```
 
-   工具會列出這次修法動到的律法檔案與內容雜湊，然後呼叫 `ssh-keygen` 簽章，把核准檔寫進修法紀錄的目錄。
+   工具會印出核准的是哪個 commit、動到哪些律法檔案、內容雜湊，然後呼叫 `ssh-keygen` 簽章。
+   **核對它印出的內容雜湊和 PR 上 `law-check` 報告裡的相同**，再碰金鑰。
+   核准檔會寫到 `.git/law-approvals/`，檔名是 `<修法紀錄的 id>.<核准者名稱>.approval.json`。
 
-4. 推送核准檔：
+4. 把核准檔放進修法的分支並推送。工具會印出確切的指令，形式如下：
 
    ```bash
-   git add law/amendments/
-   git commit -m "approve: <修法紀錄的 id>"
-   git push
+   git switch <修法的分支>
+   cp .git/law-approvals/<核准檔> law/amendments/
+   git add law/amendments/ && git commit -m "approve: <修法紀錄的 id>" && git push
+   git switch main
    ```
+
+   這一步簽出了修法的分支，但沒有執行它的任何程式。
 
 5. PR 上的 `law-check` 重跑，報告會出現「核准者：<你的名稱>（ssh）」。
 
@@ -110,6 +119,7 @@ tsengeagle namespaces="law-amendment" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1
 - **只把基線縮短的修改不需要核准**，也不會讓已有的簽章失效。
 - **核准者清單讀的是合併目標分支上的版本。** PR 自己把別的金鑰加進清單，不會讓那把金鑰的簽章生效。
 - **機制只能保證「有人用那把金鑰同意」，不能保證「有人看懂了」。** 第四節的第 2 步不能省。
+- **`python3 -I` 是隔離模式**：不讀環境變數與使用者目錄裡的 Python 設定，避免被動手腳。
 
 ## 六、金鑰遺失或更換
 

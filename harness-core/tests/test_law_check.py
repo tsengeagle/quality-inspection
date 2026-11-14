@@ -325,12 +325,18 @@ law/allowed_signers    gate
             kind, material = f.read().split()[:2]
         return '%s namespaces="law-amendment" %s %s\n' % (principal, kind, material)
 
-    def approve(self, signer="owner", key=None, *extra):
-        """用核准工具對目前的 HEAD 簽章，並把核准檔 commit 進去。"""
-        script = os.path.join(HERE, "..", "law_approve.py")
-        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--signer", signer,
-                                 "--key", key or self.owner_key, *extra], capture_output=True, text=True)
+    def run_approve(self, script, signer="owner", key=None):
+        head = self.git("rev-parse", "HEAD").strip()
+        return subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+                               "--signer", signer, "--key", key or self.owner_key], capture_output=True, text=True)
+
+    def approve(self, signer="owner", key=None):
+        """用核准工具（放在被檢查的 repo 之外）對目前的 HEAD 簽章，並把核准檔 commit 進去。"""
+        result = self.run_approve(os.path.join(HERE, "..", "law_approve.py"), signer, key)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        out_dir = os.path.join(self.repo, ".git", "law-approvals")
+        for name in os.listdir(out_dir):
+            os.replace(os.path.join(out_dir, name), os.path.join(self.repo, "law/amendments", name))
         return self.commit("approve")
 
     def amend(self, files=None):
@@ -498,6 +504,60 @@ law/allowed_signers    gate
         self.base = self.commit("base with an unsupported scheme")
         with self.assertRaises(check.NotEvaluated):
             check.evaluate(self.repo, self.base, self.base)
+
+    def install_tool_in_repo(self, tamper=False):
+        """把核准工具放進被檢查的 repo（模擬專案安裝了 harness-core），回傳它在 repo 裡的路徑。"""
+        files = {}
+        for name in ("law_approve.py", "law_check.py"):
+            with open(os.path.join(HERE, "..", name), encoding="utf-8") as f:
+                files["harness-core/" + name] = f.read() + ("\n# tampered\n" if tamper else "")
+        self.write(files)
+        return os.path.join(self.repo, "harness-core", "law_approve.py")
+
+    def test_tool_refuses_to_run_from_the_branch_under_review(self):
+        # 修法的分支帶著一份被改過的核准工具；核准者若簽出這個分支再執行，工具要拒絕
+        script = self.install_tool_in_repo(tamper=True)
+        self.amend()
+        result = self.run_approve(script)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertIn("可能來自待核准的修改", result.stderr)
+        self.assertFalse(os.path.exists(os.path.join(self.repo, ".git", "law-approvals")))
+
+    def test_tool_runs_from_the_base_checkout_and_reads_the_branch_through_git(self):
+        # 正確的做法：工具在 base 上，工作目錄停在 base，用 --head 指定修法的分支
+        self.git("checkout", "-q", "main")
+        script = self.install_tool_in_repo()
+        self.base = self.commit("base with the tool installed")
+        self.git("checkout", "-q", "-B", "change")
+        self.amend()
+        head = self.git("rev-parse", "HEAD").strip()
+        self.git("checkout", "-q", "main")
+        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertIn("核准的 commit：" + head, result.stdout)
+        self.git("checkout", "-q", "change")
+        out_dir = os.path.join(self.repo, ".git", "law-approvals")
+        for name in os.listdir(out_dir):
+            os.replace(os.path.join(out_dir, name), os.path.join(self.repo, "law/amendments", name))
+        self.commit("approve")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+
+    def test_tool_refuses_when_its_own_files_have_uncommitted_changes(self):
+        self.git("checkout", "-q", "main")
+        script = self.install_tool_in_repo()
+        self.base = self.commit("base with the tool installed")
+        self.git("checkout", "-q", "-B", "change")
+        self.amend()
+        head = self.git("rev-parse", "HEAD").strip()
+        self.git("checkout", "-q", "main")
+        with open(script, "a", encoding="utf-8") as f:
+            f.write("\n# local edit\n")
+        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+                                 "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertIn("還沒 commit 的修改", result.stderr)
 
     def test_two_approvals_required(self):
         self.git("checkout", "-q", "main")
