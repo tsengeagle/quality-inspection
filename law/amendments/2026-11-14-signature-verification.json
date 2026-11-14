@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-14-signature-verification",
+  "decision": "none",
+  "reason": "修法機制第 2-2 期：判決程式加上核准簽章的驗證。為每次修法計算內容雜湊（修法紀錄加上被改動的律法檔案），核准者對它簽章；核准者清單讀 base 上的版本。驗證做成可抽換，先支援 SSH 簽章（配合實體金鑰）。新增核准工具 law_approve.py 與核准者指引。這次修改只加入能力，沒有啟用：本專案的清冊沒有 @approval-schemes，行為與之前相同。依負責人 2026-11-14 的指示實作。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "harness-core/",
+    "law/"
+  ]
+}

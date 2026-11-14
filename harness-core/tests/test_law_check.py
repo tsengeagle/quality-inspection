@@ -47,7 +47,8 @@ def record(record_id="2026-01-01-change", decision="D-001", paths=("rules/",), r
                        ensure_ascii=False, indent=2) + "\n")
 
 
-class LawCheckTest(unittest.TestCase):
+class RepoCase(unittest.TestCase):
+    """共用的準備工作：一個暫存的 git repo，base 在 main，修改在 change 分支。"""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -87,6 +88,10 @@ class LawCheckTest(unittest.TestCase):
         head = self.commit("change")
         passed, report = check.evaluate(self.repo, self.base, head)
         return passed, "\n".join(report)
+
+
+class LawCheckTest(RepoCase):
+    """清冊沒有要求核准簽章時的行為（結構檢查）。"""
 
     # --- 建構 PR ---
 
@@ -219,7 +224,7 @@ class LawCheckTest(unittest.TestCase):
         passed, report = self.judge({"rules/Rule.java": "class Rule {}\n", new_path: new_content,
                                      path: content.replace("調整規則", "事後改寫理由")})
         self.assertFalse(passed, report)
-        self.assertIn("[未通過] 既有的修法紀錄沒有被修改或刪除", report)
+        self.assertIn("[未通過] 既有的修法紀錄與核准檔沒有被修改或刪除", report)
 
     # --- P4：修法與建構不混在一起 ---
 
@@ -283,6 +288,229 @@ class LawCheckTest(unittest.TestCase):
         self.assertTrue(match("*.md", "README.md"))
         self.assertFalse(match("*.md", "docs/README.md"))
         self.assertFalse(match("AGENTS.md", "AGENTS.mdx"))
+
+
+class ApprovalTest(RepoCase):
+    """清冊要求核准簽章時的行為。測試用臨時產生的 SSH 金鑰；驗章的路徑和實體金鑰相同。"""
+
+    SIGNED_MANIFEST = MANIFEST + """
+@approval-schemes ssh
+@approvers-ssh law/allowed_signers
+law/allowed_signers    gate
+"""
+
+    def setUp(self):
+        super().setUp()
+        self.keys = tempfile.TemporaryDirectory()
+        self.owner_key = self.new_key("owner")
+        self.intruder_key = self.new_key("intruder")
+        # base：清冊要求簽章，核准者只有 owner
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": self.SIGNED_MANIFEST,
+                    "law/allowed_signers": self.allowed_line("owner", self.owner_key)})
+        self.base = self.commit("base that requires signed approval")
+        self.git("checkout", "-q", "-B", "change")
+
+    def tearDown(self):
+        self.keys.cleanup()
+        super().tearDown()
+
+    def new_key(self, name):
+        path = os.path.join(self.keys.name, name)
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", name, "-f", path], check=True)
+        return path
+
+    def allowed_line(self, principal, key):
+        with open(key + ".pub", encoding="utf-8") as f:
+            kind, material = f.read().split()[:2]
+        return '%s namespaces="law-amendment" %s %s\n' % (principal, kind, material)
+
+    def approve(self, signer="owner", key=None, *extra):
+        """用核准工具對目前的 HEAD 簽章，並把核准檔 commit 進去。"""
+        script = os.path.join(HERE, "..", "law_approve.py")
+        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--signer", signer,
+                                 "--key", key or self.owner_key, *extra], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        return self.commit("approve")
+
+    def amend(self, files=None):
+        path, content = record()
+        self.write(dict({"rules/Rule.java": "class Rule { boolean strict = false; }\n", path: content}, **(files or {})))
+        return self.commit("amend")
+
+    def verdict(self):
+        head = self.git("rev-parse", "HEAD").strip()
+        passed, report = check.evaluate(self.repo, self.base, head)
+        return passed, "\n".join(report)
+
+    def test_amendment_without_approval_fails_and_shows_the_digest(self):
+        self.amend()
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("[未通過] 有 1 個有效的核准簽章", report)
+        self.assertIn("內容雜湊：sha256:", report)
+
+    def test_amendment_approved_by_a_listed_signer_passes(self):
+        self.amend()
+        self.approve()
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertIn("核准者：owner（ssh）", report)
+        self.assertIn("結果：通過", report)
+        self.assertNotIn("沒有評估的項目", report)
+
+    def test_changing_a_law_file_after_approval_invalidates_it(self):
+        self.amend()
+        self.approve()
+        self.write({"rules/Rule.java": "class Rule { boolean strict = false; int sneaked = 1; }\n"})
+        self.commit("change after approval")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽的是另一份內容", report)
+
+    def test_changing_the_record_after_approval_invalidates_it(self):
+        self.amend()
+        self.approve()
+        path, content = record(reason="事後改寫的理由")
+        self.write({path: content})
+        self.commit("rewrite the reason after approval")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽的是另一份內容", report)
+
+    def test_adding_another_law_file_after_approval_invalidates_it(self):
+        self.amend()
+        self.approve()
+        self.write({"rules/Extra.java": "class Extra {}\n"})
+        self.commit("add a law file after approval")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+
+    def test_signature_by_an_unlisted_key_fails(self):
+        self.amend()
+        self.approve(signer="owner", key=self.intruder_key)   # 冒用名稱，但用的是別的金鑰
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽章無效", report)
+
+    def test_change_cannot_add_its_own_key_to_the_approvers(self):
+        # 修改本身把入侵者加進核准者清單，再用入侵者的金鑰簽。清單要讀 base 的版本。
+        self.amend({"law/allowed_signers": self.allowed_line("owner", self.owner_key)
+                                           + self.allowed_line("intruder", self.intruder_key)})
+        path, content = record(paths=("rules/", "law/"))
+        self.write({path: content})
+        self.commit("cover the approvers file in the record")
+        self.approve(signer="intruder", key=self.intruder_key)
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽章無效", report)
+
+    def test_tampered_signature_fails(self):
+        self.amend()
+        self.approve()
+        path = os.path.join(self.repo, "law/amendments/2026-01-01-change.approval.json")
+        with open(path, encoding="utf-8") as f:
+            approval = json.load(f)
+        lines = approval["signature"].splitlines()
+        lines[2] = lines[2][:10] + ("A" if lines[2][10] != "A" else "B") + lines[2][11:]
+        approval["signature"] = "\n".join(lines) + "\n"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(approval, f)
+        self.commit("tamper with the signature")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+
+    def test_approval_copied_from_another_amendment_fails(self):
+        self.amend()
+        self.approve()
+        approval = self.git("show", "HEAD:law/amendments/2026-01-01-change.approval.json")
+        # 另起一個修改，沿用同一個紀錄檔名，但改的是別的律法檔案
+        self.git("checkout", "-q", "-B", "other", self.base)
+        path, content = record()
+        self.write({"rules/Other.java": "class Other {}\n", path: content,
+                    "law/amendments/2026-01-01-change.approval.json": approval})
+        self.commit("reuse an approval")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽的是另一份內容", report)
+
+    def test_signature_made_for_another_purpose_fails(self):
+        # 同一把金鑰、同一段內容，但簽章的用途標記不是 law-amendment
+        self.amend()
+        head = self.git("rev-parse", "HEAD").strip()
+        digest = check.amendment_digest(self.repo, head, "law/amendments/2026-01-01-change.json", ["rules/Rule.java"])
+        message = os.path.join(self.keys.name, "message")
+        with open(message, "wb") as f:
+            f.write(check.signed_message(digest))
+        subprocess.run(["ssh-keygen", "-q", "-Y", "sign", "-f", self.owner_key, "-n", "git", message],
+                       check=True, capture_output=True)
+        with open(message + ".sig", encoding="utf-8") as f:
+            signature = f.read()
+        self.write({"law/amendments/2026-01-01-change.approval.json": json.dumps(
+            {"amendment": "2026-01-01-change", "scheme": "ssh", "signer": "owner", "digest": digest,
+             "signature": signature})})
+        self.commit("approval with the wrong namespace")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("簽章無效", report)
+
+    def test_scheme_not_accepted_by_the_manifest_fails(self):
+        self.amend()
+        self.approve()
+        path = os.path.join(self.repo, "law/amendments/2026-01-01-change.approval.json")
+        with open(path, encoding="utf-8") as f:
+            approval = json.load(f)
+        approval["scheme"] = "x509"
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(approval, f)
+        self.commit("claim another scheme")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("清冊不接受", report)
+
+    def test_approval_for_an_older_amendment_is_a_stray(self):
+        self.amend()
+        self.approve()
+        self.write({"law/amendments/2020-01-01-old.approval.json": "{}"})
+        self.commit("stray approval")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("[未通過] 核准檔都對應到這次新增的修法紀錄", report)
+
+    def test_build_change_needs_no_approval(self):
+        self.write({"src/App.java": "class App { int x; }\n"})
+        self.commit("build change")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertIn("建構 PR", report)
+
+    def test_shrinking_a_baseline_after_approval_keeps_it_valid(self):
+        self.amend()
+        self.approve()
+        self.write({"baseline.txt": "violation-a\nviolation-c\n"})
+        self.commit("shrink a baseline")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+
+    def test_manifest_naming_an_unsupported_scheme_is_not_a_pass(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": self.SIGNED_MANIFEST.replace("@approval-schemes ssh", "@approval-schemes pgp")})
+        self.base = self.commit("base with an unsupported scheme")
+        with self.assertRaises(check.NotEvaluated):
+            check.evaluate(self.repo, self.base, self.base)
+
+    def test_two_approvals_required(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": self.SIGNED_MANIFEST + "@approvals-required 2\n",
+                    "law/allowed_signers": self.allowed_line("owner", self.owner_key)
+                                           + self.allowed_line("second", self.intruder_key)})
+        self.base = self.commit("base that requires two approvals")
+        self.git("checkout", "-q", "-B", "change")
+        self.amend()
+        self.approve()
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("有效 1 個", report)
 
 
 if __name__ == "__main__":
