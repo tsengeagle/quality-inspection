@@ -153,7 +153,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 1 | CI 跑 `./gradlew check`、ArchUnit、已知失敗清單 | P1 | 完成，已進 `main`（PR #6） |
 | 2 | 律法保護 | P6、P4 | 進行中 |
 | 2-1 | 清冊、判決程式、GitHub 接法（不驗簽章） | | 完成，已進 `main`（PR #7、#8、#9）。`law-check` 在 GitHub 上的執行紀錄見 `08-legislation-design.md` 第十一節 |
-| 2-2 | 簽章核准，支援多種簽章方案 | | 未動工。PR 處理完之後最先做 |
+| 2-2 | 把核心搬進 `harness-core/`（之後拆成獨立的 repo）；簽章核准，支援多種簽章方案 | | 進行中。`harness-core/` 已登記進清冊；搬移與簽章尚未動工 |
 | 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
 | 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
 | 3 | 每條規則配一組違規樣本 | P2 | 完成，已進 `main`（PR #7、#8） |
