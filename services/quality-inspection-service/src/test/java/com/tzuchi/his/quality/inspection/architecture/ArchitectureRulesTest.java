@@ -21,4 +21,9 @@ class ArchitectureRulesTest {
 
     @ArchTest
     static final ArchRule arch03NoIllegalArgumentException = freeze(ArchitectureRules.ARCH_03_NO_ILLEGAL_ARGUMENT_EXCEPTION);
+
+    /** 沒有既有違規，不凍結。 */
+    @ArchTest
+    static final ArchRule arch05ReportingUsesOnlyApplicationCommon =
+            ArchitectureRules.ARCH_05_REPORTING_USES_ONLY_APPLICATION_COMMON;
 }

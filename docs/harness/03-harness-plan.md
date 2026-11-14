@@ -79,14 +79,14 @@
 | 義務 | 在本專案用什麼落實 | 現況 |
 |---|---|---|
 | P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋；CI 尚未設為必要檢查。證據見 `05-current-state.md` 第十節 |
-| P2 manifestation | 每條架構規則配一個故意違規的樣本 | 無 |
+| P2 manifestation | 每條架構規則配一個故意違規的樣本 | 2026-11-13：ARCH-01 到 ARCH-04 都有違規樣本與合規對照；把四條規則改成永遠通過後，樣本測試全部失敗。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄 |
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
-| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | 無 |
+| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ 2026-11-14：`law/check.py` 會擋修法 PR 夾帶程式修改，本機測試通過；CI 的 workflow 已寫好，尚未在 GitHub 上執行過 |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
-| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | 無 |
+| P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；2026-11-14 裁決：單人 repo 無法自我核准，code owner 只保留形式，不啟用強制核准，所以沒有伺服器端的強制力。見 `07-github-settings.md` 第二節。本機端的防護未做。修法機制第 1 期已實作（清冊、判決程式、修法紀錄；還不驗簽章），見 `law/README.md` |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
 | P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
-| P9 scaffolding | CI 檢查設為必要，不可跳過 | 無 |
+| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 未設為必要檢查。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
 | P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | 有範例，還不能執行 |
 
 之後每加一個機制就更新這張表。寫不出證據的列標 ⚠️，照實留著。
@@ -120,6 +120,8 @@
 | `ezgo-law-guard.py` 與修法窗口 | 不搬 | 用 CODEOWNERS 和 branch protection 取代 |
 | 雙 profile 測試、Outbox 相關規定 | 不搬 | 本專案沒有這個架構 |
 
+**2026-11-14 補註**：下面這段的前提（用 CODEOWNERS 和 branch protection 取代）在單人 repo 不成立，見 `07-github-settings.md` 第二節。取代方案的設計草稿在 `08-legislation-design.md`：防線放在 CI 與簽章。
+
 law guard 不搬的原因：它存在是因為參考 repo 沒有 CI 和 PR 流程，所有防護只能在本機做，而本機上 AI 和人是同一個 OS 使用者。本專案有 GitHub 和 PR 流程，同一條義務用伺服器端的設定就能落實，而且更強。
 
 ## 五、工具選擇
@@ -140,17 +142,40 @@ CODEOWNERS 的兩個限制：
 
 Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copilot-instructions.md`，所以主要的 gate 必須放在 build 和 CI，不能只放在 hook。
 
-## 六、建議順序
+## 六、分期與進度
 
-先做 P1、P6、P2，其他義務都建立在它們上面。
+狀態欄是 2026-11-14 的狀況。之後每完成一期就更新這張表。
 
-1. **P1**：建 CI 跑 `./gradlew check`；加入 ArchUnit。
-2. **P6**：CODEOWNERS 加 branch protection，保護 `decision-log.md`、`spec-draft/`、規則本身。
-3. **P2**：為每條 ArchUnit 規則寫一個違規樣本。
-4. **P10**：讓 `spec-draft/review-project/examples.yaml` 變成可執行的測試。這是最花工的一項。
-5. 在本目錄維護義務對照表（本文件第三節）。
-6. 把組織的在地傳統寫成模式語言：先挑一支範本 use case，為它涉及的每個模式補齊準則、範本、禁則（閘門在前面幾步已有）。這是 P3 的主體，不是可有可無的便利功能。
-7. **最後**才做「AI 依規格逐步產生程式」的工作流程（相當於 `/execute-uc`）。論文把工作流程歸在律法，它決定生成的順序；harness 只負責在閘門沒過時不讓它結束。
+主線共 7 期。先做 P1、P6、P2，其他義務都建立在它們上面。第 2 期原本是「CODEOWNERS 加 branch protection」；單人 repo 無法自我核准（見 `07-github-settings.md` 第二節），改由修法機制取代，拆成 4 個子期（設計見 `08-legislation-design.md`）。
+
+| 期 | 內容 | 對應義務 | 狀態 |
+|---|---|---|---|
+| 1 | CI 跑 `./gradlew check`、ArchUnit、已知失敗清單 | P1 | 完成，在 PR #6，未合併 |
+| 2 | 律法保護 | P6、P4 | 進行中 |
+| 2-1 | 清冊、判決程式、GitHub 接法（不驗簽章） | | 完成，在 PR #7；`law-check` 尚未在 GitHub 上執行過 |
+| 2-2 | 簽章核准，支援多種簽章方案 | | 未動工。PR 處理完之後最先做 |
+| 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
+| 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
+| 3 | 每條規則配一組違規樣本 | P2 | 完成，在 PR #7 |
+| 4 | 讓 `spec-draft/review-project/examples.yaml` 變成可執行的測試 | P10 | 未動工。最花工的一項 |
+| 5 | 維護義務對照表（本文件第三節） | 全部 | 持續進行 |
+| 6 | 把在地傳統寫成模式語言：先挑一支範本 use case，為它涉及的每個模式補齊準則、範本、禁則 | P3 | 未動工。D-048 的 CQRS 閘門規則屬於這一期。這是 P3 的主體，不是可有可無的便利功能 |
+| 7 | 「AI 依規格逐步產生程式」的工作流程（相當於 `/execute-uc`） | — | 未動工，排在最後。論文把工作流程歸在律法，它決定生成的順序；harness 只負責在閘門沒過時不讓它結束 |
+
+不在這 7 期裡、但已經提到的工作：
+
+| 項目 | 狀態 |
+|---|---|
+| 合併 PR #6、PR #7 | 待審。目前所有成果都還沒進 `main` |
+| GitHub 設定：把 `check` 設為必要檢查、禁止 force push | 要手動做，步驟在 `07-github-settings.md` |
+| `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 未定。第 4 期之前要先決定 |
+| `reporting` 搬進 `application` 的查詢側（D-048） | 未動工 |
+| 測試分級：本機跑快的，CI 跑全套 | P7，未排期 |
+| 一組不交給建構者的獨立測試 | 未排期 |
+| 正式資料庫與 migration 工具 | 未決定。卡住樂觀鎖（D-045）與「測試跑真實資料庫」 |
+| 驗證 harness 本身（`04-definition-of-enough.md` 的及格線四項） | 第 1、3 項本機通過；第 2 項要等 2-2；第 4 項要等第 4 期 |
+
+2-2 的簽章方案（2026-11-14 討論，尚未實作）：判決程式做成可抽換，修法紀錄帶 `scheme` 欄位，每種方案一個驗證器。先做「SSH 簽章加實體金鑰」；其次是「X.509 加自然人憑證」，要先查證憑證內的個資、到期與廢止、命令列環境三件事；OpenPGP 視需要；檔案金鑰不建議當核准用。
 
 和論文順序的差異：論文是先畫出模式網路，再為每個節點寫四種形式，最後才有工作流程，閘門是每個模式的第四形式。本文件把閘門提到最前面，是因為本專案已經有程式，先擋住新增的違規最划算。這是為既有程式做的調整。
 

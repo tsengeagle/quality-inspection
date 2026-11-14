@@ -1,0 +1,26 @@
+# Law 的負責人（P6）。這些路徑的修改需要負責人核准才能合併。
+# 只有在 main 的保護規則勾選「Require review from Code Owners」之後才有強制力，
+# 設定步驟見 docs/harness/07-github-settings.md。
+
+# 律法：裁決紀錄與規格
+/docs/01-requirements/decision-log.md   @tsengeagle
+/specs/                                 @tsengeagle
+/spec-draft/                            @tsengeagle
+
+# 閘門：建置設定、已知失敗清單、架構規則與違規樣本、凍結基線
+/services/quality-inspection-service/build.gradle                 @tsengeagle
+/services/quality-inspection-service/settings.gradle              @tsengeagle
+/services/quality-inspection-service/gradle/                      @tsengeagle
+/services/quality-inspection-service/known-test-failures.txt      @tsengeagle
+/services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/   @tsengeagle
+/services/quality-inspection-service/src/test/resources/archunit.properties          @tsengeagle
+/services/quality-inspection-service/src/test/resources/archunit_store/              @tsengeagle
+/services/quality-inspection-service/src/test/resources/layer-import-baseline.txt    @tsengeagle
+
+# 修法機制：清冊、判決程式、修法紀錄
+/law/   @tsengeagle
+
+# 執行閘門與保護律法的設定本身
+/.github/workflows/   @tsengeagle
+/.github/CODEOWNERS   @tsengeagle
+/.gitignore          @tsengeagle

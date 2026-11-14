@@ -7,6 +7,7 @@
 - **Hard rules**: `.ai/rules/repo-hard-rules.md` — 必讀，repository-wide 硬規則
 - **Operating guide**: `AGENTS.md` — repo map、docs index、inspection order、placement rules
 - **Project context**: `.ai/project-context.yaml` — authoritative project context、assumptions
+- **修法機制**: `law/README.md` — 律法清冊、修法紀錄與 `law/check.py`；修改律法路徑前必讀
 - **Frontend MFE governance**: `.ai/governance/repo-governance-instruction.md` — frontend MFE 治理入口，日常 frontend 任務從此進入
 
 ## Document authority precedence
