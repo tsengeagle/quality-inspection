@@ -185,9 +185,11 @@ def verify_ssh(approvers_text, signer, message, signature):
     with tempfile.TemporaryDirectory() as tmp:
         allowed = os.path.join(tmp, "allowed_signers")
         sig = os.path.join(tmp, "message.sig")
-        with open(allowed, "w", encoding="utf-8") as f:
-            f.write(approvers_text)
-        with open(sig, "w", encoding="utf-8") as f:
+        # newline="\n"：不讓 Windows 把換行改成 CRLF
+        with open(allowed, "w", encoding="utf-8", newline="\n") as f:
+            f.write(approvers_text.replace("\r\n", "\n"))
+        with open(sig, "w", encoding="utf-8", newline="\n") as f:
+            signature = signature.replace("\r\n", "\n")
             f.write(signature if signature.endswith("\n") else signature + "\n")
         try:
             result = subprocess.run(
@@ -396,7 +398,18 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
     return passed, report
 
 
+def use_utf8_output():
+    """輸出一律用 UTF-8。Windows 的主控台與 CI 預設不是 UTF-8，中文訊息會讓 print 直接出錯。
+
+    用 python -I 執行時環境變數不生效，所以要在程式裡設定。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv=None):
+    use_utf8_output()
     parser = argparse.ArgumentParser(description="修法檢查")
     parser.add_argument("--base", required=True, help="合併的目標 commit；清冊讀這個 commit 上的版本")
     parser.add_argument("--head", required=True, help="要檢查的 commit")

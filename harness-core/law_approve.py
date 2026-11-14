@@ -73,7 +73,10 @@ def refuse_untrusted_copy(repo, base):
     否則執行中的這份程式可能來自待核准的修改，不能信任它顯示的內容。
     """
     top = law_check.git(repo, "rev-parse", "--show-toplevel").stdout.decode().strip()
-    inside = os.path.commonpath([os.path.realpath(top), os.path.realpath(HERE)]) == os.path.realpath(top)
+    try:
+        inside = os.path.commonpath([os.path.realpath(top), os.path.realpath(HERE)]) == os.path.realpath(top)
+    except ValueError:
+        inside = False      # Windows：兩者在不同的磁碟機
     if not inside:
         return
     # 只看 git 追蹤的檔案有沒有被改過。沒被追蹤的檔案（例如快取）不會被這支程式載入
@@ -94,8 +97,8 @@ def sign_ssh(key, digest):
         result = subprocess.run(["ssh-keygen", "-Y", "sign", "-f", key, "-n", law_check.SIGNATURE_NAMESPACE, message])
         if result.returncode != 0:
             raise law_check.NotEvaluated("ssh-keygen 簽章失敗")
-        with open(message + ".sig", encoding="utf-8") as f:
-            return f.read()
+        with open(message + ".sig", encoding="utf-8", newline="") as f:
+            return f.read().replace("\r\n", "\n")
 
 
 def main(argv=None):
@@ -107,6 +110,7 @@ def main(argv=None):
     parser.add_argument("--repo", default=".", help="git 工作目錄（預設：目前目錄）")
     parser.add_argument("--manifest", default=law_check.DEFAULT_MANIFEST_PATH)
     args = parser.parse_args(argv)
+    law_check.use_utf8_output()
     if not re.match(r"^[A-Za-z0-9._@+-]+$", args.signer):
         print("無法核准：核准者名稱只能用英數字與 . _ @ + -", file=sys.stderr)
         return 2
@@ -131,7 +135,7 @@ def main(argv=None):
     out_dir = os.path.join(git_dir, "law-approvals")
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, name)
-    with open(target, "w", encoding="utf-8") as f:
+    with open(target, "w", encoding="utf-8", newline="\n") as f:
         json.dump({"amendment": record_id, "scheme": "ssh", "signer": args.signer, "digest": digest,
                    "signature": signature}, f, ensure_ascii=False, indent=2)
         f.write("\n")

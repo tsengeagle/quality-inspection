@@ -9,6 +9,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -47,13 +48,21 @@ def record(record_id="2026-01-01-change", decision="D-001", paths=("rules/",), r
                        ensure_ascii=False, indent=2) + "\n")
 
 
+def temporary_directory():
+    """Windows 上 .git 裡的唯讀檔會讓清理失敗；清理失敗不該讓測試失敗。"""
+    if sys.version_info >= (3, 10):
+        return tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+    return tempfile.TemporaryDirectory()
+
+
 class RepoCase(unittest.TestCase):
     """共用的準備工作：一個暫存的 git repo，base 在 main，修改在 change 分支。"""
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
+        self.tmp = temporary_directory()
         self.repo = self.tmp.name
         self.git("init", "-q", "-b", "main")
+        self.git("config", "core.autocrlf", "false")    # Windows 的 git 預設會轉換換行
         self.git("config", "user.email", "test@example.invalid")
         self.git("config", "user.name", "test")
         self.git("config", "commit.gpgsign", "false")
@@ -74,7 +83,7 @@ class RepoCase(unittest.TestCase):
                 os.remove(full)
                 continue
             os.makedirs(os.path.dirname(full), exist_ok=True)
-            with open(full, "w", encoding="utf-8") as f:
+            with open(full, "w", encoding="utf-8", newline="\n") as f:
                 f.write(content)
 
     def commit(self, message):
@@ -258,7 +267,7 @@ class LawCheckTest(RepoCase):
         self.write({"rules/Rule.java": "class Rule {}\n"})
         head = self.commit("change")
         script = os.path.join(HERE, "..", "law_check.py")
-        run = lambda *a: subprocess.run(["python3", script, "--repo", self.repo, *a], capture_output=True).returncode
+        run = lambda *a: subprocess.run([sys.executable, script, "--repo", self.repo, *a], capture_output=True).returncode
         self.assertEqual(1, run("--base", self.base, "--head", head))
         self.assertEqual(0, run("--base", self.base, "--head", self.base))
         self.assertEqual(2, run("--base", "no-such-commit", "--head", head))
@@ -272,7 +281,7 @@ class LawCheckTest(RepoCase):
         self.write({"rules/Rule.java": "class Rule { boolean strict = false; }\n"})
         head = self.commit("change")
         script = os.path.join(HERE, "..", "law_check.py")
-        run = lambda *a: subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base,
+        run = lambda *a: subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base,
                                          "--head", head, *a], capture_output=True).returncode
         self.assertEqual(2, run())                                   # 預設位置找不到清冊：無法評估
         self.assertEqual(1, run("--manifest", "governance.txt"))     # 指定位置後照常判決
@@ -301,7 +310,7 @@ law/allowed_signers    gate
 
     def setUp(self):
         super().setUp()
-        self.keys = tempfile.TemporaryDirectory()
+        self.keys = temporary_directory()
         self.owner_key = self.new_key("owner")
         self.intruder_key = self.new_key("intruder")
         # base：清冊要求簽章，核准者只有 owner
@@ -327,7 +336,7 @@ law/allowed_signers    gate
 
     def run_approve(self, script, signer="owner", key=None):
         head = self.git("rev-parse", "HEAD").strip()
-        return subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+        return subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
                                "--signer", signer, "--key", key or self.owner_key], capture_output=True, text=True)
 
     def approve(self, signer="owner", key=None):
@@ -532,7 +541,7 @@ law/allowed_signers    gate
         self.amend()
         head = self.git("rev-parse", "HEAD").strip()
         self.git("checkout", "-q", "main")
-        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+        result = subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
                                  "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
         self.assertIn("核准的 commit：" + head, result.stdout)
@@ -554,7 +563,7 @@ law/allowed_signers    gate
         head = self.git("rev-parse", "HEAD").strip()
         self.git("checkout", "-q", "main")
         self.write({"harness-core/__pycache__/law_check.cpython-312.pyc": "cache"})
-        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+        result = subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
                                  "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
         self.assertEqual(0, result.returncode, result.stdout + result.stderr)
 
@@ -568,7 +577,7 @@ law/allowed_signers    gate
         self.git("checkout", "-q", "main")
         with open(script, "a", encoding="utf-8") as f:
             f.write("\n# local edit\n")
-        result = subprocess.run(["python3", script, "--repo", self.repo, "--base", self.base, "--head", head,
+        result = subprocess.run([sys.executable, script, "--repo", self.repo, "--base", self.base, "--head", head,
                                  "--signer", "owner", "--key", self.owner_key], capture_output=True, text=True)
         self.assertEqual(2, result.returncode, result.stdout + result.stderr)
         self.assertIn("還沒 commit 的修改", result.stderr)
@@ -609,8 +618,10 @@ law/allowed_signers    gate
     def test_making_a_law_file_executable_after_approval_invalidates_it(self):
         self.amend()
         self.approve()
+        # 直接改 git 索引裡的模式：Windows 的檔案系統沒有可執行位元
         os.chmod(os.path.join(self.repo, "rules/Rule.java"), 0o755)
-        self.commit("flip the executable bit")
+        self.git("update-index", "--chmod=+x", "rules/Rule.java")
+        self.git("commit", "-q", "-m", "flip the executable bit")
         passed, report = self.verdict()
         self.assertFalse(passed, report)
         self.assertIn("簽的是另一份內容", report)
@@ -625,10 +636,11 @@ law/allowed_signers    gate
         self.write({"rules/pointer": "Other.java", path: content})
         self.commit("amend")
         self.approve()
-        target = os.path.join(self.repo, "rules/pointer")
-        os.remove(target)
-        os.symlink("Other.java", target)
-        self.commit("turn the file into a symlink with the same bytes")
+        # 直接在 git 索引裡把類型改成符號連結，沿用同一個內容物件：
+        # Windows 上建立符號連結需要額外權限
+        blob_id = self.git("rev-parse", "HEAD:rules/pointer").strip()
+        self.git("update-index", "--cacheinfo", "120000,%s,rules/pointer" % blob_id)
+        self.git("commit", "-q", "-m", "turn the file into a symlink with the same bytes")
         passed, report = self.verdict()
         self.assertFalse(passed, report)
         self.assertIn("簽的是另一份內容", report)

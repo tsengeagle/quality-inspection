@@ -22,3 +22,19 @@ jobs:
         run: python3 -m unittest discover -s harness-core/tests -v
       - name: The installed workflow matches the template in harness-core
         run: diff -u harness-core/ci/github/law-check.yml .github/workflows/law-check.yml
+
+  # 同一組測試在 Windows 上再跑一次：核准者與開發者可能用 Windows
+  selftest-windows:
+    name: law-selftest (windows)
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Tests of the verdict script
+        run: python -m unittest discover -s harness-core/tests -v
+      - name: The verdict script runs in isolated mode and prints its report
+        shell: bash
+        run: |
+          python -I harness-core/law_check.py --base HEAD --head HEAD

@@ -8,6 +8,12 @@ group = 'com.tzuchi.his.quality'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
 
+// 原始碼一律是 UTF-8。不指定的話，JDK 17 在 Windows 會用系統編碼編譯，
+// 中文字串（包含架構規則的描述，它是凍結基線的索引鍵）會被讀錯。
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 repositories {
     mavenCentral()
 }
@@ -60,7 +66,7 @@ tasks.named('test') {
 
     doLast {
         def known = new TreeMap<String, Integer>()
-        knownFailuresFile.readLines().collect { it.trim() }.findAll { it && !it.startsWith('#') }.each {
+        knownFailuresFile.readLines('UTF-8').collect { it.trim() }.findAll { it && !it.startsWith('#') }.each {
             def m = it =~ /^(\S+)(?:\s+x(\d+))?$/
             if (!m.matches()) {
                 throw new GradleException("${knownFailuresFile.name} 格式錯誤：${it}")
@@ -78,7 +84,7 @@ tasks.named('test') {
 
         def actualFile = layout.buildDirectory.file('reports/known-failures/actual-failures.txt').get().asFile
         actualFile.parentFile.mkdirs()
-        actualFile.text = failed.collect(format).join('\n') + (failed ? '\n' : '')
+        actualFile.setText(failed.collect(format).join('\n') + (failed ? '\n' : ''), 'UTF-8')
 
         logger.lifecycle("測試閘門：執行 ${executed.size()} 個測試方法，其中失敗 ${failed.size()}（清單 ${known.size()}），跳過 ${skipped.size()}" +
                 (fullRun ? '' : '；本次有篩選條件，只核對有執行的測試'))
