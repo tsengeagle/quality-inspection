@@ -86,7 +86,7 @@
 | P6 tradition-bearer | CODEOWNERS 加 branch protection；本機用 `permissions.deny` | ⚠️ 2026-11-13：`.github/CODEOWNERS` 已建；2026-11-14 裁決：單人 repo 無法自我核准，code owner 只保留形式，不啟用強制核准，所以沒有伺服器端的強制力。見 `07-github-settings.md` 第二節。本機端的防護未做。修法機制第 1 期已實作（清冊、判決程式、修法紀錄；還不驗簽章），見 `law/README.md` |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
 | P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
-| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 未設為必要檢查。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
+| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 2026-11-14 已裁決：三項必要檢查、不留繞過權限；GitHub 上的設定尚未確認完成。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
 | P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | 有範例，還不能執行 |
 
 之後每加一個機制就更新這張表。寫不出證據的列標 ⚠️，照實留著。
@@ -167,7 +167,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 項目 | 狀態 |
 |---|---|
 | 合併 PR #6、PR #7 | 完成（2026-11-14）。PR #7 當時合併進了 `harness/p1-gate` 而不是 `main`，由 PR #8 補進；PR #9 是三項修正 |
-| GitHub 設定：把 `check` 設為必要檢查、禁止 force push | 要手動做，步驟在 `07-github-settings.md` |
+| GitHub 設定：把 `check`、`law-check`、`law-selftest` 設為必要檢查，不留繞過權限，禁止 force push | 2026-11-14 已裁決，要手動做。步驟在 `07-github-settings.md` 第一節；檢查本身壞掉時的處置在第四節 |
 | `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 未定。第 4 期之前要先決定 |
 | `reporting` 搬進 `application` 的查詢側（D-048） | 未動工 |
 | 測試分級：本機跑快的，CI 跑全套 | P7，未排期 |
