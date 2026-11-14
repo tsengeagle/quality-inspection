@@ -21,9 +21,3 @@ com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegr
 # D-032 尚未實作（複審提交不結案）
 com.tzuchi.his.quality.inspection.application.reviewcase.SubmitRereviewUseCaseTest#execute_submitMustNotCloseCase_D032
 com.tzuchi.his.quality.inspection.interfaces.rest.RereviewApiTest#fullRereviewFlow
-
-# D-042 尚未落實在報表與匯出：院區取自請求參數，沒有改用登入者的院區（2026-11-14 以測試確認）
-com.tzuchi.his.quality.inspection.reporting.ReportHospitalScopeIntegrationTest#dashboard_managerRequestingOtherHospital_stillCountsOnlyOwnHospital_D042
-com.tzuchi.his.quality.inspection.reporting.ReportHospitalScopeIntegrationTest#dashboard_managerWithoutHospitalParameter_countsOnlyOwnHospital_D042
-com.tzuchi.his.quality.inspection.reporting.ReportHospitalScopeIntegrationTest#export_managerRequestingOtherHospital_returnsOnlyOwnHospital_D042
-com.tzuchi.his.quality.inspection.reporting.ReportHospitalScopeIntegrationTest#export_managerWithoutHospitalParameter_returnsOnlyOwnHospital_D042
