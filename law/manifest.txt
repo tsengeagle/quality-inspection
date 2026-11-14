@@ -38,6 +38,10 @@ law/                                    gate
 services/quality-inspection-service/build.gradle        gate
 services/quality-inspection-service/settings.gradle     gate
 services/quality-inspection-service/gradle/             gate
+# 啟動腳本：CI 執行的是 PR 帶來的 ./gradlew，把它換成空殼就能讓 check 直接通過
+services/quality-inspection-service/gradlew             gate
+services/quality-inspection-service/gradlew.bat         gate
+services/quality-inspection-service/gradle.properties   gate
 services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/   gate
 services/quality-inspection-service/src/test/resources/archunit.properties                          gate
 

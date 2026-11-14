@@ -190,6 +190,16 @@ class LawCheckTest(unittest.TestCase):
                                      "law/amendments/2026-01-01-change.json": "id: not json\n"})
         self.assertFalse(passed, report)
 
+    def test_record_that_is_json_but_not_an_object_fails(self):
+        # null、陣列、字串、數字都是合法的 JSON，但都不是一筆紀錄
+        for index, content in enumerate(["null", "[]", '"text"', "42", "true"]):
+            with self.subTest(content=content):
+                self.git("checkout", "-q", "-B", "change-%d" % index, self.base)
+                passed, report = self.judge({"rules/Rule.java": "class Rule { int v = %d; }\n" % index,
+                                             "law/amendments/2026-01-01-change.json": content + "\n"})
+                self.assertFalse(passed, report)
+                self.assertIn("[未通過] 修法紀錄是 JSON 物件", report)
+
     def test_two_records_in_one_change_fail(self):
         first = record(record_id="2026-01-01-a")
         second = record(record_id="2026-01-01-b")

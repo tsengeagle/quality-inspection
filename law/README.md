@@ -79,7 +79,7 @@ python3 -m unittest discover -s law/tests -v
 
 | 平台 | 檔案 | 狀態 |
 |---|---|---|
-| GitHub | `.github/workflows/law-check.yml` | 已寫好。用 `pull_request_target`，判決程式與清冊都取自 base。**尚未在 GitHub 上執行過**：workflow 要先進到 base 分支才會被觸發 |
+| GitHub | `.github/workflows/law-check.yml` | 用 `pull_request_target`，判決程式與清冊都取自 base。2026-11-14 第一次在 GitHub 上執行（PR #9）就失敗：私有 repo 上抓不到 PR 的內容。已改寫取得方式；**改寫後的版本還沒有在 GitHub 上執行過**，要等它進到 `main` 之後的下一個 PR |
 | GitHub | `.github/workflows/law-selftest.yml` | 判決程式的測試 |
 | GitLab | 尚未實作 | 第 3 期。要先查證怎麼讓合併請求改不了判決程式 |
 
