@@ -32,17 +32,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      # law/check.py 是搬進 harness-core/ 之前的位置，只為了過渡期保留
       - name: Take the verdict script from the base commit
         run: |
-          for path in harness-core/law_check.py law/check.py; do
-            if git show "${BASE_SHA}:${path}" > "${RUNNER_TEMP}/law-check.py" 2>/dev/null; then
-              echo "判決程式取自 ${BASE_SHA}:${path}"
-              exit 0
-            fi
-          done
-          echo "修法檢查：無法評估 — base（${BASE_SHA}）上沒有判決程式。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
-          exit 2
+          if ! git show "${BASE_SHA}:harness-core/law_check.py" > "${RUNNER_TEMP}/law-check.py"; then
+            echo "修法檢查：無法評估 — base（${BASE_SHA}）上沒有 harness-core/law_check.py。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 2
+          fi
 
       - name: law-check
         run: |
@@ -67,14 +62,10 @@ jobs:
 
       - name: Take the verdict script from the commit before the push
         run: |
-          for path in harness-core/law_check.py law/check.py; do
-            if git show "${BEFORE_SHA}:${path}" > "${RUNNER_TEMP}/law-check.py" 2>/dev/null; then
-              echo "判決程式取自 ${BEFORE_SHA}:${path}"
-              exit 0
-            fi
-          done
-          echo "修法檢查：無法評估 — 推送前的 commit（${BEFORE_SHA}）上沒有判決程式。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
-          exit 2
+          if ! git show "${BEFORE_SHA}:harness-core/law_check.py" > "${RUNNER_TEMP}/law-check.py"; then
+            echo "修法檢查：無法評估 — 推送前的 commit（${BEFORE_SHA}）上沒有 harness-core/law_check.py。無法評估不算通過。" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 2
+          fi
 
       - name: law-check
         run: |
