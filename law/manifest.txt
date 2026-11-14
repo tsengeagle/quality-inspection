@@ -19,6 +19,12 @@
 @allowed-with-amendment docs/**
 @allowed-with-amendment **/*.md
 
+# 核准簽章：修法除了要有修法紀錄，還要有核准者對這次修改內容的簽章。
+# 核准者清單在 law/ 底下，本身就是律法；更換核准者需要現有核准者簽章。
+@approval-schemes ssh
+@approvers-ssh law/allowed_signers
+@approvals-required 1
+
 # 裁決
 docs/01-requirements/decision-log.md    ruling
 

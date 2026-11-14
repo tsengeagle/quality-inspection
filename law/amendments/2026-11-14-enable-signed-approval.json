@@ -1,0 +1,9 @@
+{
+  "id": "2026-11-14-enable-signed-approval",
+  "decision": "none",
+  "reason": "啟用核准簽章：登記負責人的公鑰為核准者，並在清冊加上 @approval-schemes、@approvers-ssh、@approvals-required。合併之後，所有修法（包含更換核准者）都要現有核准者的簽章才會通過。這一筆是信任的起點，產生時還沒有人能簽章，所以沒有核准檔；公鑰由負責人本人於 2026-11-14 提供，指紋 SHA256:/5Zgv/f2kxOT1oKUwWjZe18Dd8hoB2R9lWYeFlfvgos，須由負責人親自比對後合併。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "law/"
+  ]
+}

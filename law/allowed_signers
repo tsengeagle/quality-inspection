@@ -1,0 +1,9 @@
+# 核准者清單：誰的簽章可以核准修法。OpenSSH 的 allowed_signers 格式，一行一把公鑰。
+# 判決程式讀的是合併目標分支上的這一份，不是 PR 帶來的。
+# 修改這個檔案是修法，需要現有核准者的簽章。說明見 harness-core/APPROVING.md。
+#
+# 格式：<核准者名稱> namespaces="law-amendment" <公鑰>
+#
+# tsengeagle：YubiKey 5C NFC 上的 FIDO2 金鑰，每次簽章都要實體觸碰。2026-11-14 登記。
+# 指紋 SHA256:/5Zgv/f2kxOT1oKUwWjZe18Dd8hoB2R9lWYeFlfvgos
+tsengeagle namespaces="law-amendment" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIC7iaAUlJkSDbW2ljX47O16oZqJXU35LAWUdMfzhuyC0AAAAEXNzaDpsYXctYW1lbmRtZW50 law-amendment tsengeagle
