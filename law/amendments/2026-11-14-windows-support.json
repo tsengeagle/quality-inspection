@@ -1,7 +1,7 @@
 {
   "id": "2026-11-14-windows-support",
   "decision": "none",
-  "reason": "讓 harness 能在 Windows 上運作，並在 CI 加上 Windows 的執行來驗證。修正：判決程式與核准工具的輸出固定用 UTF-8（Windows 主控台預設不是，中文訊息會讓 print 出錯）；暫存檔與核准檔固定用 LF；核准工具處理工具與 repo 在不同磁碟機的情況；build.gradle 指定原始碼與已知失敗清單的編碼為 UTF-8（否則 JDK 17 在 Windows 會把架構規則的中文描述讀錯，和凍結基線對不上）；測試不再寫死 python3，改用 git 索引操作取代符號連結與可執行位元。新增 CI 工作：law-selftest (windows) 與 check (windows)，既有工作的名稱不變。依負責人 2026-11-14 的指示：下一步先讓 harness 能跨平台。",
+  "reason": "讓 harness 能在 Windows 上運作，並在 CI 加上 Windows 的執行來驗證。修正：判決程式與核准工具的輸出固定用 UTF-8（Windows 主控台預設不是，中文訊息會讓 print 出錯）；暫存檔與核准檔固定用 LF；核准工具處理工具與 repo 在不同磁碟機的情況；build.gradle 指定原始碼與已知失敗清單的編碼為 UTF-8（否則 JDK 17 在 Windows 會把架構規則的中文描述讀錯，和凍結基線對不上）；測試不再寫死 python3，改用 git 索引操作取代符號連結與可執行位元。新增 CI 工作：law-selftest (windows) 與 check (windows)，既有工作的名稱不變。依負責人 2026-11-14 的指示：下一步先讓 harness 能跨平台。 同一筆修法另外補上律法清冊的缺口（2026-11-14 盤點，負責人裁決全部列入）：會改變測試或架構規則執行方式的設定檔（archunit_ignore_patterns.txt、junit-platform.properties、測試用的 application-test.yml、buildSrc/、其他 gradle 檔）、.gitattributes、.github/actions/、AI 工具的 hook 腳本，以及其他給 AI 的指示（.claude/、.github/prompts/、frontend-ui.instructions.md）。盤點紀錄見 docs/harness/09-law-inventory.md。",
   "drafted_by": "claude-code",
   "paths": [
     "harness-core/",
