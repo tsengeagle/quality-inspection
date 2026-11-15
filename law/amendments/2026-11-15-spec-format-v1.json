@@ -1,7 +1,7 @@
 {
   "id": "2026-11-15-spec-format-v1",
   "decision": "none",
-  "reason": "定下規格格式 v1：specs/README.md（格式）、specs/forbidden-vocabulary.txt（禁用的實作詞彙），以及檢查程式 harness-core/spec_lint.py 與它的測試。CI 新增 spec-check 工作：specs/ 底下有問題就失敗，spec-draft/ 只列出。law-selftest 安裝 PyYAML，讓 spec_lint 的測試實際執行而不是被跳過。六項格式決定由負責人 2026-11-15 照建議裁決，理由見 docs/harness/10-spec-format.md。這是「測試與規格列為律法」的前提之一（2026-11-14 裁決）。",
+  "reason": "定下規格格式 v1：specs/README.md（格式）、specs/forbidden-vocabulary.txt（禁用的實作詞彙），以及檢查程式 harness-core/spec_lint.py 與它的測試。CI 新增 spec-check 工作：specs/ 底下有問題就失敗，spec-draft/ 只列出。law-selftest 安裝 PyYAML，讓 spec_lint 的測試實際執行而不是被跳過。六項格式決定由負責人 2026-11-15 照建議裁決，理由見 docs/harness/10-spec-format.md。這是「測試與規格列為律法」的前提之一（2026-11-14 裁決）。 另外依 2026-11-15 第一次自行核准的經驗改寫核准 SOP（harness-core/APPROVING.md 第四節）：簽前確認清單、填好分支的指令、常見問題；核准工具簽完後印出填好分支與檔名、一行一個的指令，不再用 && 串接。",
   "drafted_by": "claude-code",
   "paths": [
     "specs/",

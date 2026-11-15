@@ -387,6 +387,22 @@ law/allowed_signers    gate
         self.assertIn("結果：通過", report)
         self.assertNotIn("沒有評估的項目", report)
 
+    def test_approval_tool_prints_concrete_steps_one_command_per_line(self):
+        self.amend()
+        self.git("update-ref", "refs/remotes/origin/fix-rule", "HEAD")
+        result = subprocess.run(
+            [sys.executable, os.path.join(HERE, "..", "law_approve.py"), "--repo", self.repo, "--base", self.base,
+             "--head", "origin/fix-rule", "--signer", "owner", "--key", self.owner_key],
+            capture_output=True, text=True, encoding="utf-8", errors="replace")
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        steps = [line.strip() for line in result.stdout.splitlines() if line.startswith("  git") or line.startswith("  cp")]
+        self.assertEqual("git switch fix-rule", steps[0])
+        self.assertEqual("git pull", steps[1])
+        self.assertTrue(steps[2].startswith("cp ") and "2026-01-01-change.owner.approval.json" in steps[2], steps)
+        self.assertIn('git commit -m "approve: 2026-01-01-change"', steps)
+        self.assertEqual("git switch main", steps[-1])
+        self.assertNotIn("&&", result.stdout)
+
     def test_changing_a_law_file_after_approval_invalidates_it(self):
         self.amend()
         self.approve()
