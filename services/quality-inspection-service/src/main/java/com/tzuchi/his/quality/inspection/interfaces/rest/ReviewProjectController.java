@@ -54,7 +54,8 @@ public class ReviewProjectController {
             @Valid @RequestBody CreateReviewProjectRequest request) {
         Set<MedicalRecordType> types = parseMedicalRecordTypes(request.getMedicalRecordTypes());
         String projectId = createUseCase.execute(actor, request.getName(),
-                request.getDescription(), types);
+                request.getDescription(), types, request.getQualityThreshold(),
+                request.getInitialReviewWeight(), request.getRereviewWeight());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(Map.of("projectId", projectId)));
     }
@@ -74,7 +75,8 @@ public class ReviewProjectController {
             @Valid @RequestBody UpdateReviewProjectRequest request) {
         Set<MedicalRecordType> types = parseMedicalRecordTypes(request.getMedicalRecordTypes());
         updateDraftUseCase.execute(actor, projectId, request.getName(),
-                request.getDescription(), types);
+                request.getDescription(), types, request.getQualityThreshold(),
+                request.getInitialReviewWeight(), request.getRereviewWeight());
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 

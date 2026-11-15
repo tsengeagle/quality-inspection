@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.domain.project;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
 import java.math.BigDecimal;
@@ -35,8 +36,13 @@ public class ReviewProject {
         // for JPA
     }
 
+    private static final BigDecimal MIN_QUALITY_THRESHOLD = BigDecimal.ONE;
+    private static final BigDecimal MAX_QUALITY_THRESHOLD = BigDecimal.TEN;
+
     private ReviewProject(String projectId, String hospitalId, String name,
-                          String description, Set<MedicalRecordType> medicalRecordTypes) {
+                          String description, Set<MedicalRecordType> medicalRecordTypes,
+                          BigDecimal qualityThreshold, BigDecimal initialReviewWeight,
+                          BigDecimal rereviewWeight) {
         Objects.requireNonNull(projectId, "projectId must not be null");
         Objects.requireNonNull(hospitalId, "hospitalId must not be null");
         Objects.requireNonNull(name, "name must not be null");
@@ -51,14 +57,58 @@ public class ReviewProject {
         this.medicalRecordTypes = (medicalRecordTypes != null && !medicalRecordTypes.isEmpty())
                 ? EnumSet.copyOf(medicalRecordTypes)
                 : EnumSet.noneOf(MedicalRecordType.class);
+        validateQualityThreshold(qualityThreshold);
+        validateWeightFormat("initialReviewWeight", initialReviewWeight);
+        validateWeightFormat("rereviewWeight", rereviewWeight);
         this.status = ProjectStatus.DRAFT;
-        this.currentVersion = new ProjectVersion(1, false);
+        // 權重沒給的是 0.50（D-020、RP-CRT-S4）；建立時不驗證權重，發布時才驗證（D-047、RP-PUB-03）
+        this.currentVersion = new ProjectVersion(1, false, qualityThreshold, initialReviewWeight, rereviewWeight);
     }
 
     public static ReviewProject create(String projectId, String hospitalId, String name,
                                         String description,
                                         Set<MedicalRecordType> medicalRecordTypes) {
-        return new ReviewProject(projectId, hospitalId, name, description, medicalRecordTypes);
+        return create(projectId, hospitalId, name, description, medicalRecordTypes, null, null, null);
+    }
+
+    /**
+     * Create a draft project with its scoring inputs (D-046, D-047).
+     * qualityThreshold may be null in a draft; weights not given default to 0.50.
+     */
+    public static ReviewProject create(String projectId, String hospitalId, String name,
+                                        String description,
+                                        Set<MedicalRecordType> medicalRecordTypes,
+                                        BigDecimal qualityThreshold,
+                                        BigDecimal initialReviewWeight,
+                                        BigDecimal rereviewWeight) {
+        return new ReviewProject(projectId, hospitalId, name, description, medicalRecordTypes,
+                qualityThreshold, initialReviewWeight, rereviewWeight);
+    }
+
+    /**
+     * Weights have type decimal(2): at most two decimals and one integer digit, so that a draft can store
+     * any value it accepts. The D-020 rules (each in (0, 1], sum 1) are checked at publish, not here (D-047).
+     */
+    private static void validateWeightFormat(String field, BigDecimal weight) {
+        if (weight == null) {
+            return;
+        }
+        if (weight.stripTrailingZeros().scale() > 2 || weight.abs().compareTo(BigDecimal.TEN) >= 0) {
+            throw new DomainValidationException("VALIDATION_ERROR",
+                    field + " must have at most two decimals and one integer digit, got: " + weight.toPlainString());
+        }
+    }
+
+    /** D-046: the quality threshold is optional in a draft; when given it is an integer from 1 to 10. */
+    private static void validateQualityThreshold(BigDecimal threshold) {
+        if (threshold == null) {
+            return;
+        }
+        boolean integer = threshold.signum() == 0 || threshold.stripTrailingZeros().scale() <= 0;
+        if (!integer || threshold.compareTo(MIN_QUALITY_THRESHOLD) < 0 || threshold.compareTo(MAX_QUALITY_THRESHOLD) > 0) {
+            throw new DomainValidationException("VALIDATION_ERROR",
+                    "qualityThreshold must be an integer from 1 to 10, got: " + threshold.toPlainString());
+        }
     }
 
     /**
@@ -120,14 +170,25 @@ public class ReviewProject {
 
     /**
      * Update draft project fields. Only allowed in DRAFT status.
+     * The inputs replace the draft as a whole (D-040, D-046, D-049): a threshold not given becomes null,
+     * a weight not given returns to 0.50. Weights are validated at publish, not here.
      */
-    public void updateDraft(String name, String description, Set<MedicalRecordType> types) {
+    public void updateDraft(String name, String description, Set<MedicalRecordType> types,
+                            BigDecimal qualityThreshold, BigDecimal initialReviewWeight,
+                            BigDecimal rereviewWeight) {
         requireStatusDraft();
+        // 已發布但尚未啟用時狀態仍是 DRAFT，版本內容仍不可改（D-040 第 4 點、RP-UPD-01）
+        requireDraft();
         Objects.requireNonNull(name, "name must not be null");
         if (name.isBlank()) {
             throw new DomainRuleViolationException("INVALID_PROJECT_NAME",
                     "Project name must not be blank");
         }
+        validateQualityThreshold(qualityThreshold);
+        validateWeightFormat("initialReviewWeight", initialReviewWeight);
+        validateWeightFormat("rereviewWeight", rereviewWeight);
+        this.currentVersion = new ProjectVersion(currentVersion.getVersionNumber(), currentVersion.isPublished(),
+                qualityThreshold, initialReviewWeight, rereviewWeight);
         this.name = name;
         this.description = description;
         this.medicalRecordTypes = (types != null && !types.isEmpty())
@@ -153,6 +214,8 @@ public class ReviewProject {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
                     "Current version is already published. Cannot re-publish without creating a new draft.");
         }
+        // RP-PUB-03: weights are free in a draft (D-047) and must satisfy D-020 to be published
+        this.currentVersion.validateWeightsForPublish();
         this.currentVersion = this.currentVersion.publish();
     }
 

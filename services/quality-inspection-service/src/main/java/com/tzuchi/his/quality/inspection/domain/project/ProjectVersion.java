@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.domain.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -36,24 +38,25 @@ public class ProjectVersion {
     }
 
     /**
-     * Validate that weights sum to 1.0 and each is > 0 and <= 1.
-     * Called before publishing a version.
+     * Validate that weights sum to 1.0 and each is > 0 and <= 1 (D-020).
+     * Called before publishing a version (RP-PUB-03); drafts may hold other values (D-047).
      */
     public void validateWeightsForPublish() {
         if (initialReviewWeight.compareTo(BigDecimal.ZERO) <= 0
                 || initialReviewWeight.compareTo(BigDecimal.ONE) > 0) {
-            throw new IllegalArgumentException(
-                    "initialReviewWeight must be > 0 and <= 1, got: " + initialReviewWeight);
+            throw notPublishable("initialReviewWeight must be > 0 and <= 1, got: " + initialReviewWeight);
         }
         if (rereviewWeight.compareTo(BigDecimal.ZERO) <= 0
                 || rereviewWeight.compareTo(BigDecimal.ONE) > 0) {
-            throw new IllegalArgumentException(
-                    "rereviewWeight must be > 0 and <= 1, got: " + rereviewWeight);
+            throw notPublishable("rereviewWeight must be > 0 and <= 1, got: " + rereviewWeight);
         }
         if (initialReviewWeight.add(rereviewWeight).compareTo(BigDecimal.ONE) != 0) {
-            throw new IllegalArgumentException(
-                    "Weights must sum to 1.0, got: " + initialReviewWeight + " + " + rereviewWeight);
+            throw notPublishable("Weights must sum to 1.0, got: " + initialReviewWeight + " + " + rereviewWeight);
         }
+    }
+
+    private static DomainRuleViolationException notPublishable(String message) {
+        return new DomainRuleViolationException("PROJECT_VERSION_NOT_PUBLISHABLE", message);
     }
 
     public int getVersionNumber() {

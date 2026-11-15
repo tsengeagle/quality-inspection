@@ -62,7 +62,34 @@
 
 輸入名稱對不上的 13 個修好之後，背後的範例才會真正執行，可能還會出現下一層的落差（例如 `AUDITOR` 讀取、更新草稿的參數）。這是預期的：執行器一次只能看到第一個擋住的地方。
 
-## 五、還沒做的
+## 五、建構 PR 的進度
+
+### 2-1：品質線與權重的輸入（D-046、D-047、D-049）
+
+`CreateReviewProject`、`UpdateReviewProjectDraft` 加上 `qualityThreshold`、`initialReviewWeight`、`rereviewWeight`。品質線在建立與更新時驗證（整數 1～10，否則 `VALIDATION_ERROR`）；權重只在發布時驗證。更新草稿整組取代：沒給的品質線變成 null，沒給的權重回到 0.50。
+
+自動審查後補上的兩項（同一個 PR）：
+
+- 已發布但尚未啟用的專案狀態仍是 `DRAFT`，原本只檢查狀態，已發布的版本仍可被更新；加上計分輸入後連品質線與權重都會被改掉。現在版本已發布就拒絕（`INVALID_STATE_TRANSITION`，RP-UPD-01）。
+- 權重可以輸入之後，發布要依 D-020 驗證（RP-PUB-03），否則 0.70 + 0.50 也會被發布。`validateWeightsForPublish` 原本存在但沒有被呼叫，丟的是會變成 500 的 `IllegalArgumentException`；改成 `PROJECT_VERSION_NOT_PUBLISHABLE`（422），同時少了 3 筆凍結的 ARCH-03 違規。權重在輸入時只檢查型別 `decimal(2)`（最多兩位小數、整數部分一位），讓草稿接受的值都存得進資料庫。
+
+順帶修掉 `CreateReviewProjectUseCase` 的 ARCH-02 違規：改用新的 `IdGenerator` 埠，不再直接呼叫 `UUID.randomUUID()`。改簽名會讓凍結基線裡的那一筆「換名字」，修掉違規才能只刪行。
+
+| 結果 | 範例 |
+|---|---|
+| 變綠（6） | 三個品質線範圍檢查、`rejects_update_from_another_hospital`、`rejects_activate_before_any_version_is_published`、`rejects_deactivate_of_a_draft_project` |
+| 進到下一層 | 見下表 |
+
+已知失敗清單只能刪行，不能改註解，所以剩下範例的最新原因記在這裡：
+
+| 範例 | 現在停在哪裡 | 由哪一批處理 |
+|---|---|---|
+| `creates_a_draft_project`、`creates_a_project_with_given_scoring_inputs`、`updates_a_draft_project`、`rejects_update_with_a_quality_threshold_out_of_range`、`update_resets_weights_that_are_not_given` | 專案詳情沒有 `versionNo`、`versionPublished`、`medicalRecordTypes`、`qualityThreshold`、兩個權重 | 2-2 |
+| `rejects_create_with_a_blank_name`、`rejects_update_with_a_blank_name` | 錯誤代碼是 `INVALID_PROJECT_NAME`，規格是 `VALIDATION_ERROR` | 2-3 |
+| `rejects_create_without_any_medical_record_type`、`rejects_update_without_any_medical_record_type` | 空集合沒有被拒絕 | 2-3 |
+| `rejects_publish_without_a_bound_score_sheet` | 發布沒有檢查是否已綁定評分表（RP-PUB-02，D-041） | 另一批（2-4） |
+
+## 六、還沒做的
 
 - 「沒有範例涵蓋的規則」與「`basis` 含 `proposed` 規則」從只列出改為擋下。
 - 驗證 `emits`：範圍內沒有查詢看得到 event。
