@@ -20,7 +20,9 @@ class CaseDetailMetadataMapperTest {
     void fullViewAndFuturePropertiesAreNeverSerializedThroughMetadataProjection() {
         ReviewProjectQueryPort projects = mock(ReviewProjectQueryPort.class);
         when(projects.findSummaryById("p")).thenReturn(Optional.of(new ReviewProjectSummary(
-                "p", "H001", "Project name", "secret description", ProjectStatus.ACTIVE, "sheet", 1, true)));
+                "p", "H001", "Project name", "secret description",
+                java.util.EnumSet.of(com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.OUTPATIENT),
+                ProjectStatus.ACTIVE, "sheet", 1, true, null, null, null)));
         ReviewCaseDetailView raw = new ReviewCaseDetailView("c", "p", "batch", "H001", "CLOSED", "initial", "rr",
                 "type", "secret source", java.math.BigDecimal.TEN, java.math.BigDecimal.ONE, "secret conclusion",
                 null, null, null, null, null, List.of(), null, "FULL", "HOSPITAL_MANAGER", false) {

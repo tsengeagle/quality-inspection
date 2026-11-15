@@ -69,16 +69,60 @@ class GetReviewProjectDetailUseCaseTest {
 
     @Test
     void execute_noValidRole_shouldThrow() {
-        ActorContext actor = new ActorContext("u1", "Auditor",
-                EnumSet.of(DomainRole.AUDITOR), Optional.empty());
+        // REVIEWER 的讀取範圍未裁決（Q-12），目前不在可讀的角色裡
+        ActorContext actor = new ActorContext("u1", "Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
-        assertThrows(RoleDeniedException.class,
+        RoleDeniedException e = assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(actor, "p1"));
+        assertEquals("ROLE_DENIED", e.getErrorCode());
+    }
+
+    @Test
+    void execute_auditor_ownHospital_shouldReturn() {
+        // D-043：AUDITOR 可以讀專案詳情
+        queryPort.summaries.put("p1", summary("p1", "H001"));
+        ActorContext actor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        assertEquals("p1", useCase.execute(actor, "p1").getProjectId());
+    }
+
+    @Test
+    void execute_auditor_crossHospital_shouldThrow() {
+        // D-042、D-047：只有 SYSTEM_ADMIN 跨院區；AUDITOR 限自己的院區
+        queryPort.summaries.put("p1", summary("p1", "H001"));
+        ActorContext actor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H999"));
+
+        AccessDeniedException e = assertThrows(AccessDeniedException.class,
+                () -> useCase.execute(actor, "p1"));
+        assertEquals("HOSPITAL_SCOPE_MISMATCH", e.getErrorCode());
+    }
+
+    @Test
+    void execute_returnsTheFieldsTheSpecNames() {
+        queryPort.summaries.put("p1", summary("p1", "H001"));
+        ActorContext actor = new ActorContext("u1", "Manager",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        ReviewProjectSummary result = useCase.execute(actor, "p1");
+
+        // specs/review-project 的 GetReviewProjectDetail output
+        assertEquals(1, result.getVersionNo());
+        assertFalse(result.isVersionPublished());
+        assertEquals(EnumSet.of(com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.OUTPATIENT),
+                result.getMedicalRecordTypes());
+        assertEquals(0, new java.math.BigDecimal("7").compareTo(result.getQualityThreshold()));
+        assertEquals(0, new java.math.BigDecimal("0.50").compareTo(result.getInitialReviewWeight()));
+        assertEquals(0, new java.math.BigDecimal("0.50").compareTo(result.getRereviewWeight()));
     }
 
     private ReviewProjectSummary summary(String id, String hospitalId) {
         return new ReviewProjectSummary(id, hospitalId, "Name", null,
-                ProjectStatus.DRAFT, null, 1, false);
+                java.util.EnumSet.of(com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.OUTPATIENT),
+                ProjectStatus.DRAFT, null, 1, false, new java.math.BigDecimal("7"),
+                new java.math.BigDecimal("0.50"), new java.math.BigDecimal("0.50"));
     }
 
     // --- Test double ---
