@@ -17,7 +17,6 @@ export type RereviewMode =
   | 'NEW'
   | 'EDIT_DRAFT'
   | 'REVISION'
-  | 'CLOSED_REVISION_EXCEPTION'
   | 'READONLY_BLOCKED';
 
 export interface RereviewContext {
@@ -28,7 +27,6 @@ export interface RereviewContext {
   blockedReason: string | null;
   hasDraft: boolean;
   hasSubmittedBase: boolean;
-  isClosedRevisionException: boolean;
   basedOnVersion?: SubmissionRef;
   initialSubmissionId: string;
   initialReviewerName: string;
@@ -51,7 +49,7 @@ export class RereviewPageComponent implements OnInit {
   context: RereviewContext = this.createDefaultContext('');
   mode: RereviewMode = 'NEW';
   modeLabel = 'NEW';
-  bannerTone: 'blocked' | 'exception-amber' = 'blocked';
+  bannerTone: 'blocked' = 'blocked';
   bannerMessage = '';
   commandPending = false;
   commandFeedbackMessage = '';
@@ -96,7 +94,6 @@ export class RereviewPageComponent implements OnInit {
       blockedReason: bootstrap?.blockedReason ?? null,
       hasDraft: bootstrap?.hasDraft ?? false,
       hasSubmittedBase: bootstrap?.hasSubmittedBase ?? false,
-      isClosedRevisionException: bootstrap?.closedRevisionException ?? false,
       basedOnVersion: bootstrap?.basedOnVersion,
       initialSubmissionId: bootstrap?.initialSubmissionId ?? '',
       initialReviewerName: bootstrap?.initialReviewerName || bootstrap?.initialReviewerId || '未提供',
@@ -116,19 +113,20 @@ export class RereviewPageComponent implements OnInit {
   resolveMode(context: RereviewContext, bootstrap?: RereviewBootstrapViewModel): void {
     const backendMode = bootstrap?.pageMode;
 
-    if ((!backendMode && context.blockedReason) || ['CLOSED', 'CANCELLED'].includes(context.status) && !context.isClosedRevisionException) {
+    // D-032：CLOSED 之後沒有例外修正，一律唯讀；CLOSED 代表複審結果已固定（D-053 第 3、8 點）
+    if (context.status === 'CLOSED') {
+      this.mode = 'READONLY_BLOCKED';
+      this.modeLabel = 'READONLY_BLOCKED';
+      this.bannerTone = 'blocked';
+      this.bannerMessage = '案件已結案，複審結果已固定。';
+      return;
+    }
+
+    if ((!backendMode && context.blockedReason) || context.status === 'CANCELLED') {
       this.mode = 'READONLY_BLOCKED';
       this.modeLabel = 'READONLY_BLOCKED';
       this.bannerTone = 'blocked';
       this.bannerMessage = '案件目前不可執行複審作業。';
-      return;
-    }
-
-    if (backendMode === 'REVISION_EXCEPTION_CLOSED') {
-      this.mode = 'CLOSED_REVISION_EXCEPTION';
-      this.modeLabel = 'CLOSED_REVISION_EXCEPTION';
-      this.bannerTone = 'exception-amber';
-      this.bannerMessage = '此案件已結案，但目前以例外修正骨架呈現。';
       return;
     }
 
@@ -159,16 +157,12 @@ export class RereviewPageComponent implements OnInit {
     this.bannerMessage = '';
   }
 
-  get showExceptionBanner(): boolean {
-    return this.mode === 'CLOSED_REVISION_EXCEPTION';
-  }
-
   get showBlockedBanner(): boolean {
     return this.mode === 'READONLY_BLOCKED';
   }
 
   get showVersionSummary(): boolean {
-    return this.mode === 'REVISION' || this.mode === 'CLOSED_REVISION_EXCEPTION';
+    return this.mode === 'REVISION';
   }
 
   get showCommandFeedback(): boolean {
@@ -184,10 +178,6 @@ export class RereviewPageComponent implements OnInit {
       return '開始複審';
     }
 
-    if (this.mode === 'CLOSED_REVISION_EXCEPTION') {
-      return '提交複審修正';
-    }
-
     if (this.mode === 'REVISION') {
       return '提交複審修正';
     }
@@ -200,7 +190,12 @@ export class RereviewPageComponent implements OnInit {
   }
 
   get commandSecondaryLabel(): string | undefined {
-    return this.mode === 'EDIT_DRAFT' ? '保存複審草稿' : undefined;
+    if (this.mode === 'EDIT_DRAFT') {
+      return '保存複審草稿';
+    }
+
+    // D-053 第 8 點：已提交、未結案時，由提交者另行結案；是否允許以後端的 allowedActions 為準
+    return this.mode === 'REVISION' ? '結案' : undefined;
   }
 
   get commandPrimaryDisabled(): boolean {
@@ -214,7 +209,6 @@ export class RereviewPageComponent implements OnInit {
       case 'EDIT_DRAFT':
         return !this.hasAllowedAction('SUBMIT_REREVIEW') || !this.resolveRereviewEditableSubmissionId();
       case 'REVISION':
-      case 'CLOSED_REVISION_EXCEPTION':
         return !this.hasAllowedAction('REVISE_REREVIEW') || !this.resolveRereviewRevisionBaseSubmissionId();
       default:
         return true;
@@ -224,6 +218,10 @@ export class RereviewPageComponent implements OnInit {
   get commandSecondaryDisabled(): boolean {
     if (this.commandPending || this.isBlockedByBackendTruth()) {
       return true;
+    }
+
+    if (this.mode === 'REVISION') {
+      return !this.hasAllowedAction('CLOSE_REREVIEW') || !this.resolveRereviewRevisionBaseSubmissionId();
     }
 
     if (this.mode !== 'EDIT_DRAFT') {
@@ -255,12 +253,12 @@ export class RereviewPageComponent implements OnInit {
 
       this.executeCommand(
         this.casesService.submitRereview(this.caseId, this.buildRereviewSubmitPayloadFromState(submissionId)),
-        result => result.finalScore != null ? `複審已提交，最終分數 ${result.finalScore}。` : '複審已提交。'
+        () => '複審已提交，案件尚未結案。確認結果無誤後，請按「結案」。'
       );
       return;
     }
 
-    if (this.mode === 'REVISION' || this.mode === 'CLOSED_REVISION_EXCEPTION') {
+    if (this.mode === 'REVISION') {
       const submissionId = this.resolveRereviewRevisionBaseSubmissionId();
       if (!submissionId) {
         this.setCommandFeedback('無法取得複審修正基底版本。', 'blocked');
@@ -269,13 +267,27 @@ export class RereviewPageComponent implements OnInit {
 
       this.executeCommand(
         this.casesService.reviseRereview(this.caseId, submissionId, this.buildRereviewRevisionPayloadFromState()),
-        () => this.mode === 'CLOSED_REVISION_EXCEPTION' ? '已提交已結案例外複審修正。' : '複審修正已提交。'
+        () => '複審修正已提交。'
       );
     }
   }
 
   onSecondaryAction(): void {
     if (this.commandSecondaryDisabled) {
+      return;
+    }
+
+    if (this.mode === 'REVISION') {
+      const submissionId = this.resolveRereviewRevisionBaseSubmissionId();
+      if (!submissionId) {
+        this.setCommandFeedback('無法取得要結案的複審版本。', 'blocked');
+        return;
+      }
+
+      this.executeCommand(
+        this.casesService.closeRereview(this.caseId, submissionId),
+        () => '案件已結案，複審結果已固定。'
+      );
       return;
     }
 
@@ -322,7 +334,6 @@ export class RereviewPageComponent implements OnInit {
       blockedReason: null,
       hasDraft: false,
       hasSubmittedBase: false,
-      isClosedRevisionException: false,
       initialSubmissionId: 'SUB-INITIAL-001',
       initialReviewerName: '原初審醫師',
       initialTotalScore: '82',
@@ -436,7 +447,7 @@ export class RereviewPageComponent implements OnInit {
       return this.resolveRereviewEditableSubmissionId();
     }
 
-    if (this.mode === 'REVISION' || this.mode === 'CLOSED_REVISION_EXCEPTION') {
+    if (this.mode === 'REVISION') {
       return this.resolveRereviewRevisionBaseSubmissionId();
     }
 

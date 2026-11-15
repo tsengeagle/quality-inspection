@@ -119,17 +119,12 @@ public class GetReviewCaseDetailUseCase {
 
         boolean hasDraft = latestRereviewDraft != null;
         boolean hasSubmittedBase = latestRereviewSubmitted != null;
-        boolean isClosedRevisionException = "CLOSED".equals(raw.getStatus())
-                && Objects.equals(actor.getUserId(), raw.getRereviewerId())
-                && hasSubmittedBase;
-
-        String blockedReason = resolveRereviewBlockedReason(actor, actorRole, raw, isClosedRevisionException, hasSubmittedBase);
+        // D-032 撤銷了 CLOSED 的例外修正：CLOSED 之後一律唯讀（CASE_ALREADY_CLOSED）。
+        String blockedReason = resolveRereviewBlockedReason(actor, actorRole, raw, hasSubmittedBase);
         boolean blocked = blockedReason != null;
 
         String pageMode;
-        if (isClosedRevisionException) {
-            pageMode = "REVISION_EXCEPTION_CLOSED";
-        } else if (blocked) {
+        if (blocked) {
             pageMode = "READONLY_BLOCKED";
         } else if (hasSubmittedBase) {
             pageMode = "REVISION";
@@ -148,8 +143,8 @@ public class GetReviewCaseDetailUseCase {
                 pageMode,
                 hasDraft,
                 hasSubmittedBase,
-                isClosedRevisionException,
-                blocked && !isClosedRevisionException,
+                false, // closedRevisionException：D-032 撤銷，欄位保留以維持回應格式
+                blocked,
                 blocked,
                 blockedReason,
                 raw.getScoreSheetVersionRef(),
@@ -205,7 +200,6 @@ public class GetReviewCaseDetailUseCase {
 
     private String resolveRereviewBlockedReason(ActorContext actor, String actorRole,
                                                 ReviewCaseDetailView raw,
-                                                boolean isClosedRevisionException,
                                                 boolean hasSubmittedBase) {
         if (!"REREVIEWER".equals(actorRole)) {
             return "ROLE_DENIED";
@@ -215,9 +209,6 @@ public class GetReviewCaseDetailUseCase {
         }
         if ("CANCELLED".equals(raw.getStatus())) {
             return "CASE_ALREADY_CANCELLED";
-        }
-        if (isClosedRevisionException) {
-            return null;
         }
         if ("CLOSED".equals(raw.getStatus())) {
             return "CASE_ALREADY_CLOSED";
@@ -252,8 +243,10 @@ public class GetReviewCaseDetailUseCase {
             actions.add("SAVE_REREVIEW_DRAFT");
             actions.add("SUBMIT_REREVIEW");
         }
-        if ("REVISION".equals(pageMode) || "REVISION_EXCEPTION_CLOSED".equals(pageMode)) {
+        if ("REVISION".equals(pageMode)) {
+            // 已提交、未結案：可修訂，也可另行結案（D-032、D-034、D-053 第 8 點）
             actions.add("REVISE_REREVIEW");
+            actions.add("CLOSE_REREVIEW");
         }
         return actions;
     }

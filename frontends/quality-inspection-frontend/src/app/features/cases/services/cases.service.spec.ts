@@ -556,8 +556,7 @@ describe('CasesService', () => {
         submissionId: 'SUB-REREVIEW-001',
         status: 'SUBMITTED',
         caseId: 'CASE-013',
-        caseStatus: 'CLOSED',
-        finalScore: 84
+        caseStatus: 'REREVIEW_IN_PROGRESS'
       }
     });
 
@@ -583,9 +582,8 @@ describe('CasesService', () => {
       {
         submissionId: 'SUB-REREVIEW-001',
         caseId: 'CASE-013',
-        caseStatus: 'CLOSED',
-        status: 'SUBMITTED',
-        finalScore: 84
+        caseStatus: 'REREVIEW_IN_PROGRESS',
+        status: 'SUBMITTED'
       },
       {
         caseId: 'CASE-013',
@@ -774,6 +772,18 @@ describe('CasesService', () => {
 
     expect(errors).toEqual([]);
     expect(results).toEqual([{ noChanges: true }, { noChanges: true }]);
+  });
+
+  it('posts the rereview close command without a body and maps the response (D-053)', () => {
+    const actual: unknown[] = [];
+    service.closeRereview('CASE-013', 'SUB-REREVIEW-002').subscribe(result => actual.push(result));
+
+    const request = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-013/rereview/submissions/SUB-REREVIEW-002/close`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
+    request.flush({ success: true, data: { caseId: 'CASE-013', caseStatus: 'CLOSED', submissionId: 'SUB-REREVIEW-002' } });
+
+    expect(actual).toEqual([{ caseId: 'CASE-013', caseStatus: 'CLOSED', submissionId: 'SUB-REREVIEW-002' }]);
   });
 
   it('keeps other draft save conflicts as errors', () => {

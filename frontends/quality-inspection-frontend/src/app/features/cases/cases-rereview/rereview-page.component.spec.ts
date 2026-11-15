@@ -25,7 +25,8 @@ describe('RereviewPageComponent', () => {
       'startRereview',
       'saveRereviewDraft',
       'submitRereview',
-      'reviseRereview'
+      'reviseRereview',
+      'closeRereview'
     ]);
 
     await TestBed.configureTestingModule({
@@ -309,7 +310,7 @@ describe('RereviewPageComponent', () => {
       }
     }));
     casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail({ comment: 'submit comment' })));
-    casesService.submitRereview.and.returnValue(of({ submissionId: 'SUB-REREVIEW-001', caseId: 'CASE-013', caseStatus: 'CLOSED', status: 'SUBMITTED', finalScore: 84 }));
+    casesService.submitRereview.and.returnValue(of({ submissionId: 'SUB-REREVIEW-001', caseId: 'CASE-013', caseStatus: 'REREVIEW_IN_PROGRESS', status: 'SUBMITTED' }));
 
     setInputValue('[data-testid="rereview-answer-input-0"]', 'N');
     setInputValue('[data-testid="rereview-comment-input"]', 'submit from page state');
@@ -323,7 +324,9 @@ describe('RereviewPageComponent', () => {
       answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
       comment: 'submit from page state'
     });
-    expect(fixture.nativeElement.textContent).toContain('複審已提交，最終分數 84。');
+    // D-032／D-053：提交不結案；D-033：不顯示 finalScore
+    expect(fixture.nativeElement.textContent).toContain('複審已提交，案件尚未結案。確認結果無誤後，請按「結案」。');
+    expect(fixture.nativeElement.textContent).not.toContain('最終分數');
   });
 
   it('covers REVISION baseline and keeps C17 visible', () => {
@@ -352,53 +355,73 @@ describe('RereviewPageComponent', () => {
     expect(fixture.nativeElement.querySelector('app-review-version-summary-region')).not.toBeNull();
   });
 
-  it('revises rereview in CLOSED exception mode using backend truth and page form state', () => {
+  function revisionContext(allowedActions: string[]) {
+    return {
+      pageMode: 'REVISION' as const,
+      hasDraft: false,
+      hasSubmittedBase: true,
+      closedRevisionException: false,
+      readonly: false,
+      blocked: false,
+      blockedReason: null,
+      scoreSheetVersionId: 'SS-001',
+      allowedActions,
+      basedOnVersion: { submissionId: 'SUB-REREVIEW-002', version: 2, status: 'SUBMITTED' },
+      initialSubmissionId: 'SUB-INITIAL-001',
+      initialReviewerId: 'reviewer-1',
+      initialReviewerName: 'Dr. Initial',
+      initialTotalScore: null,
+      finalConclusion: null
+    };
+  }
+
+  it('closes the case with the current submitted rereview when the backend allows it (D-053)', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: revisionContext(['REVISE_REREVIEW', 'CLOSE_REREVIEW'])
+    }));
+    casesService.closeRereview.and.returnValue(of({ caseId: 'CASE-013', caseStatus: 'CLOSED', submissionId: 'SUB-REREVIEW-002' }));
+
+    const closeButton = getButtonByText('結案');
+    expect(closeButton).toBeDefined();
+    expect(closeButton?.disabled).toBeFalse();
+
+    closeButton?.click();
+    fixture.detectChanges();
+
+    expect(casesService.closeRereview).toHaveBeenCalledWith('CASE-013', 'SUB-REREVIEW-002');
+    expect(fixture.nativeElement.textContent).toContain('案件已結案，複審結果已固定。');
+    expect(casesService.getCaseDetail).toHaveBeenCalledTimes(2);
+  });
+
+  it('disables the close button when the backend does not allow closing', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: revisionContext(['REVISE_REREVIEW'])
+    }));
+
+    expect(getButtonByText('結案')?.disabled).toBeTrue();
+    getButtonByText('結案')?.click();
+    expect(casesService.closeRereview).not.toHaveBeenCalled();
+  });
+
+  it('shows a closed case as read-only without any revision entry (D-032)', () => {
     render(buildDetail({
       status: 'CLOSED',
       rereviewContext: {
-        pageMode: 'REVISION_EXCEPTION_CLOSED',
-        hasDraft: false,
+        ...revisionContext([]),
+        pageMode: 'READONLY_BLOCKED',
         hasSubmittedBase: true,
-        closedRevisionException: true,
-        readonly: false,
-        blocked: false,
-        blockedReason: null,
-        scoreSheetVersionId: 'SS-001',
-        allowedActions: ['REVISE_REREVIEW'],
-        basedOnVersion: { submissionId: 'SUB-REREVIEW-002', version: 2, status: 'SUBMITTED' },
-        initialSubmissionId: 'SUB-INITIAL-001',
-        initialReviewerId: 'reviewer-1',
-        initialReviewerName: null,
-        initialTotalScore: 79,
-        finalScore: 84,
-        finalConclusion: 'PASS'
+        readonly: true,
+        blocked: true,
+        blockedReason: 'CASE_ALREADY_CLOSED'
       }
     }));
-    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail({
-      submissionId: 'SUB-REREVIEW-002',
-      revisionNo: 2,
-      status: 'SUBMITTED',
-      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
-      comment: 'exception revise'
-    })));
-    casesService.reviseRereview.and.returnValue(of({ submissionId: 'SUB-REREVIEW-003', revisionNo: 3 }));
 
-    expect(component.mode).toBe('CLOSED_REVISION_EXCEPTION');
-    expect(fixture.nativeElement.querySelector('app-status-or-blocked-banner')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-testid="rereview-c16-placeholder-label"]')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('reviewer-1');
-
-    setInputValue('[data-testid="rereview-answer-input-0"]', 'Y');
-    setInputValue('[data-testid="rereview-comment-input"]', 'exception from page state');
-
-    getButtonByText('提交複審修正')?.click();
-    fixture.detectChanges();
-
-    expect(casesService.reviseRereview).toHaveBeenCalledWith('CASE-013', 'SUB-REREVIEW-002', {
-      answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
-      comment: 'exception from page state'
-    });
-    expect(fixture.nativeElement.textContent).toContain('已提交已結案例外複審修正。');
+    expect(component.mode).toBe('READONLY_BLOCKED');
+    expect(fixture.nativeElement.textContent).toContain('案件已結案，複審結果已固定。');
+    expect(fixture.nativeElement.querySelector('app-review-command-bar')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="rereview-c16-placeholder-label"]')).toBeNull();
   });
 
   it('covers READONLY_BLOCKED baseline and hides the command bar', () => {
