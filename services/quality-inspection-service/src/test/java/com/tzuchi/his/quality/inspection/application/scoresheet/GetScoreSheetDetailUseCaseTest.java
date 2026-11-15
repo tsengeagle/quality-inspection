@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.scoresheet;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
+import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.HospitalIdResolver;
@@ -52,6 +53,17 @@ class GetScoreSheetDetailUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H999"));
 
         assertThrows(AccessDeniedException.class, () -> useCase.execute(actor, "ss1"));
+    }
+
+    @Test
+    void execute_nonManager_unknownId_shouldBeDeniedBeforeLoading() {
+        // D-024：角色 → 載入 → 院區。無權的角色不應從錯誤代碼得知評分表是否存在
+        ActorContext actor = new ActorContext("u1", "Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
+
+        RoleDeniedException e = assertThrows(RoleDeniedException.class,
+                () -> new GetScoreSheetDetailUseCase(stubQueryPortEmpty(), projectId -> "H001").execute(actor, "nonexistent"));
+        assertEquals("ROLE_DENIED", e.getErrorCode());
     }
 
     @Test
