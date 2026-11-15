@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-15-gitattributes",
+  "decision": "none",
+  "reason": "新增 .gitattributes 定死換行：版本庫一律存 LF；簽出到工作目錄時也一律 LF，只有 .bat、.cmd 是 CRLF；二進位檔不轉換。沒有它的話，Windows 的 git 預設（core.autocrlf=true）會把所有文字檔簽出成 CRLF，包括 gradlew 與逐行比對的基線檔。版本庫裡的 780 個文字檔原本就都是 LF，git add --renormalize 沒有產生任何變更。law-selftest (windows) 加一步，檢查工作目錄裡只有 .bat、.cmd 是 CRLF。這是 Windows 支援（PR #17）留下的最後一項。",
+  "drafted_by": "claude-code",
+  "paths": [
+    ".gitattributes",
+    ".github/workflows/law-selftest.yml",
+    "law/"
+  ]
+}

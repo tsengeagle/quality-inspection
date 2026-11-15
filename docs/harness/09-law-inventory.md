@@ -22,7 +22,7 @@
 | `services/quality-inspection-service/src/test/resources/archunit_ignore_patterns.txt` | 不存在 | **已實測**：新增這個檔案就能讓 ArchUnit 忽略指定的違規。植入一個分層違規並加上這個檔案後，ARCH-01 不再報出；ARCH-04（import 檢查，不經過 ArchUnit）仍然擋下。ARCH-02、ARCH-03、ARCH-05 沒有第二道防線 |
 | `services/quality-inspection-service/src/test/resources/junit-platform.properties` | 不存在 | JUnit 的全域設定，可以改變測試的執行方式 |
 | `services/quality-inspection-service/buildSrc/` 與該目錄下其他 `*.gradle` | 不存在 | Gradle 會自動載入並執行 `buildSrc/`；`build.gradle` 也可以引用別的 gradle 檔 |
-| `.gitattributes` | 不存在 | 決定換行轉換，會影響基線檔的比對。Windows 支援會用到 |
+| `.gitattributes` | 2026-11-15 新增 | 決定換行轉換，會影響基線檔的比對。內容：版本庫與工作目錄一律 LF，只有 `.bat`、`.cmd` 是 CRLF |
 | `.github/actions/` | 不存在 | workflow 可以引用 repo 內的自訂 action |
 | `.claude/`（含將來的 `settings.json`） | 18 個檔案 | 指令與 skill 是給 AI 的指示；`settings.json` 可以設定 hook 與權限 |
 | `.github/java-upgrade/hooks/` | 2 個腳本 | AI 工具會執行的 hook 腳本 |

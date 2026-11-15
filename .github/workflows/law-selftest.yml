@@ -38,3 +38,14 @@ jobs:
         shell: bash
         run: |
           python -I harness-core/law_check.py --base HEAD --head HEAD
+      # .gitattributes 定死換行：Windows 的 runner 預設 core.autocrlf=true，
+      # 沒有它的話所有文字檔簽出後都會變成 CRLF
+      - name: Line endings in the working tree follow .gitattributes
+        shell: bash
+        run: |
+          git ls-files --eol | awk '$2 == "w/crlf"' | awk '{print $NF}' > crlf.txt
+          cat crlf.txt
+          if grep -qv '\.\(bat\|cmd\)$' crlf.txt; then
+            echo "工作目錄裡有 .bat、.cmd 以外的 CRLF 檔案"; exit 1
+          fi
+          grep -qx 'services/quality-inspection-service/gradlew.bat' crlf.txt || { echo "gradlew.bat 應該是 CRLF"; exit 1; }
