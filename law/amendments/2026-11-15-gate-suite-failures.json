@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-15-gate-suite-failures",
+  "decision": "none",
+  "reason": "修正測試閘門的漏洞：閘門只用 afterTest 收集有跑完的測試，測試套件本身的錯誤（測試用的 JVM 崩潰例如 OutOfMemoryError、@BeforeAll 失敗等）看不到；加上 ignoreFailures = true，這類錯誤會讓之後的測試沒有執行，閘門卻判定通過。2026-11-15 在 PR #35 審查時發現：一個會耗盡記憶體的測試讓 JVM 崩潰，完整執行只跑了 732 個測試方法（正常 735 個）仍是 BUILD SUCCESSFUL。修正：在 test 任務加 afterSuite，套件結果帶有例外時記錄下來，閘門判定未通過（有沒有篩選條件都一樣）。本機驗證：暫時加入會崩潰的測試時，完整執行與篩選執行都變成 BUILD FAILED 並列出套件層級的錯誤；移除後完整執行仍是 BUILD SUCCESSFUL（735 個測試方法、23 個已知失敗），沒有誤判。驗證用的測試沒有提交。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "services/quality-inspection-service/build.gradle",
+    "law/"
+  ]
+}
