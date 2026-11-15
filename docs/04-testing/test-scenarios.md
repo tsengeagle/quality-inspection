@@ -1929,7 +1929,7 @@ Domain / application specification；涉及資料出口者另含 API integration
 正式提交複審。
 
 ### Expected
-SUBMITTED，未固定、未 CLOSED；具資格但未結案；只有提交／完成事實，無 ReviewCaseClosed。提交後狀態技術表示 unknown。
+SUBMITTED，未固定、未 CLOSED；具資格但未結案；只有提交／完成事實，無 ReviewCaseClosed。提交後案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`（D-053）。
 
 ### Non-goals
 不新增 API、error code、資料欄位、CaseStatus 或未確認結案條件；初審固定授權依 DD-03；未知 binding 不由本測試定案。
@@ -2226,7 +2226,7 @@ A 分別以 S1 與各非法目標另行執行 Close Command。
 案件不 CLOSED，S2 及既有固定初審不變；不新增複審固定或成功結案事件。
 
 ### Expected
-由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。API binding、回應與錯誤代碼見 D-053，具體斷言在建構時補上；交易與併發技術機制仍 UNKNOWN（D-045）。
 
 ### Non-goals
 不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
@@ -2253,10 +2253,10 @@ Domain / Application / API / Persistence；本次僅設計，未執行程式測�
 CLOSED／CANCELLED 不得產生新的結案轉移、revision 或新提交；CLOSED 不得 reopen。
 
 ### Secondary Assertions
-既有分數、有效引用、固定事實、terminal 與時間不被覆寫，不產生新的成功事件。已成功 close 遺失回應的重放策略 UNKNOWN，此例不指定重試 HTTP 回應。
+既有分數、有效引用、固定事實、terminal 與時間不被覆寫，不產生新的成功事件。已成功 close 後再次結案回 `CASE_TERMINAL`，不視為成功（D-053 第 6 點）。
 
 ### Expected
-由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。API binding、回應與錯誤代碼見 D-053，具體斷言在建構時補上；交易與併發技術機制仍 UNKNOWN（D-045）。
 
 ### Non-goals
 不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
@@ -2301,7 +2301,7 @@ revision 先完成則舊版 close 拒絕、S2 保持有效且案件未 CLOSED；
 
 
 ### Expected
-由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。API binding、回應與錯誤代碼見 D-053，具體斷言在建構時補上；交易與併發技術機制仍 UNKNOWN（D-045）。
 
 ### Non-goals
 不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
@@ -2331,7 +2331,7 @@ A 另行 Close Command；分別在固定保存、案件／計分保存及成功�
 原固定初審輸入、發布版本權重及公式不變；可於重新查詢確認一致結果。失敗注入點與交易／事件技術 UNKNOWN，待技術契約確定後轉成可執行測試，不假稱已具備故障注入能力。
 
 ### Expected
-由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。API binding、回應與錯誤代碼見 D-053，具體斷言在建構時補上；交易與併發技術機制仍 UNKNOWN（D-045）。
 
 ### Non-goals
 不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。
@@ -2361,7 +2361,7 @@ A 結案前查詢，另行 Close Command 成功後查看 ack、詳情、列表�
 finalScore、preview、diff 等衍生資訊遵守 D-033；domain 原始分數及加權計算不因遮罩改寫。不以角色／入口切換繞過同案限制；多角色合成技術仍 UNKNOWN。
 
 ### Expected
-由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。精確 API binding、schema、error code 與技術機制 UNKNOWN，待定案後補具體斷言。
+由 application／domain guard 及一致性契約保護；拒絕不產生新的成功結案／固定或越權資料。API binding、回應與錯誤代碼見 D-053，具體斷言在建構時補上；交易與併發技術機制仍 UNKNOWN（D-045）。
 
 ### Non-goals
 不新增複審固定操作、管理者簽核、分數門檻、endpoint、enum 或 DB 設計；不決定重複 close 回應或 legacy 遷移。

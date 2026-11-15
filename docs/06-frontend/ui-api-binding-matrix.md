@@ -127,6 +127,6 @@ api_binding_projection_rules:
 
 以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
 
-現有 submit/revise 路徑保留；初審固定／複審正式結案的 binding unknown，不新增 endpoint。初審固定前不推進複審，複審 submit ack 不代表 CLOSED；正式結案限具資格原複審提交者且同時固定結果（D-031／032）。D-033 適用所有 query／command ack、history／report 及 cache，不得只在 template 隱藏初審或可反推分數。
+現有 submit/revise 路徑保留；初審固定的 binding unknown；複審正式結案的 binding 見 D-053（`POST /review-cases/{caseId}/rereview/submissions/{submissionId}/close`）。初審固定前不推進複審，複審 submit ack 不代表 CLOSED；正式結案限具資格原複審提交者且同時固定結果（D-031／032）。D-033 適用所有 query／command ack、history／report 及 cache，不得只在 template 隱藏初審或可反推分數。
 
 驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

@@ -138,7 +138,7 @@ action_policy_inputs:
 - hidden actions：非 rereviewer 或非 owner
 - disabled/blocked actions：結果已固定、CLOSED／CANCELLED 一律禁止 revision（D-032）
 - blocked reasons：stage mismatch / actor mismatch / terminal constraints
-- next-step hints：提交後不結案；具資格時由原提交者正式結案並固定，binding unknown；revision 後回歷程
+- next-step hints：提交後不結案；具資格時由原提交者正式結案並固定，binding 見 D-053；revision 後回歷程
 - data projection differences：本頁不設 metadata-only 主情境
 - route guard notes：CLOSED 僅 readonly／blocked，所有 revision 與新提交禁止
 - decision backwrite（O1-C）：[Superseded D-032] CLOSED 不提供例外修正入口

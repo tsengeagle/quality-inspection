@@ -633,7 +633,7 @@ READONLY_BLOCKED；禁止新提交、revision 與 reopen，不顯示例外修正
 
 ### 13.3 提交複審 response
 
-以 api-spec.md §12.3 為準：合法 SUBMITTED、不自動 CLOSED；不向複審醫師回傳可反推初審的 finalScore。提交後狀態表示與精確 response schema unknown，本輪不新增 enum。
+以 api-spec.md §12.3 為準：合法 SUBMITTED、不自動 CLOSED；不向複審醫師回傳可反推初審的 finalScore。提交後案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`，不新增 enum（D-053）；其餘精確 response schema unknown。
 
 ### 13.4 revision response
 

@@ -912,7 +912,7 @@ v1 建議：
 * 正式結案與固定尚未固定的複審結果須保持業務一致性；CLOSED 後不得寫任何 revision 或 reopen。CANCELLED terminal 不變。
 * finalScore 依固定初審結果、最新合法複審結果與已發布版本權重按 D-012／020 計算；固定不是改權重或改 snapshot。
 * read model／audit／export 向同案複審醫師輸出時，永久排除初審答案／分數／評語及可反推初審分數的衍生值（D-033）；不修改 domain 原始資料，也不改其他角色政策。
-* 固定的儲存表示、複審已提交未結案狀態表示、併發／交易設計、既有資料遷移為 unknown；本輪不把新增規則宣稱為已存在 DB 保證。
+* 複審已提交未結案時案件維持 `REREVIEW_IN_PROGRESS`、複審結果的固定以 `CLOSED` 表示，不新增欄位（D-053）；初審固定的儲存表示、併發／交易設計、既有資料遷移為 unknown；本輪不把新增規則宣稱為已存在 DB 保證。
 
 ## DD-03 固定持久化與併發保證
 
@@ -925,7 +925,7 @@ v1 建議：
 
 複審 SUBMITTED 與正式 CLOSED 須可區別；Close Command 只可引用執行當下合法有效 REREVIEW submission，保留既有 append-only／SUPERSEDED 鏈。成功結案須一致保存有效版本引用、尚未固定結果的固定事實、原公式計分及 CLOSED；既有固定初審輸入不可被更換。不得只由目前 assignment 或歷史提交推定結案資格。
 revision 先完成則舊版 close 不得成功；close 先完成則不能再寫 revision；保存或事件處理失敗不得留下部分成功結案／固定及成功事件。此為可觀察一致性要求，不宣稱現有 DB 已保證。
-欄位／table／constraint、鎖定／版本／交易與事件技術、提交後狀態表示、close 重試持久化、legacy 補正／遷移均 UNKNOWN；不得以 submittedAt／closedAt 或指派者補造未確認歷史。read model 與 audit 出口遵守 D-033，包括結案後的初審及衍生資訊遮罩。本次不改 DB、不執行 migration。
+複審提交後狀態表示與重複結案（`CASE_TERMINAL`，不寫入）已由 D-053 定案；欄位／table／constraint、鎖定／版本／交易與事件技術、legacy 補正／遷移均 UNKNOWN；不得以 submittedAt／closedAt 或指派者補造未確認歷史。read model 與 audit 出口遵守 D-033，包括結案後的初審及衍生資訊遮罩。本次不改 DB、不執行 migration。
 
 
 ## D-037 — updatedAt 契約
