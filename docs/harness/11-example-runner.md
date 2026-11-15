@@ -68,6 +68,11 @@
 
 `CreateReviewProject`、`UpdateReviewProjectDraft` 加上 `qualityThreshold`、`initialReviewWeight`、`rereviewWeight`。品質線在建立與更新時驗證（整數 1～10，否則 `VALIDATION_ERROR`）；權重只在發布時驗證。更新草稿整組取代：沒給的品質線變成 null，沒給的權重回到 0.50。
 
+自動審查後補上的兩項（同一個 PR）：
+
+- 已發布但尚未啟用的專案狀態仍是 `DRAFT`，原本只檢查狀態，已發布的版本仍可被更新；加上計分輸入後連品質線與權重都會被改掉。現在版本已發布就拒絕（`INVALID_STATE_TRANSITION`，RP-UPD-01）。
+- 權重可以輸入之後，發布要依 D-020 驗證（RP-PUB-03），否則 0.70 + 0.50 也會被發布。`validateWeightsForPublish` 原本存在但沒有被呼叫，丟的是會變成 500 的 `IllegalArgumentException`；改成 `PROJECT_VERSION_NOT_PUBLISHABLE`（422），同時少了 3 筆凍結的 ARCH-03 違規。權重在輸入時只檢查型別 `decimal(2)`（最多兩位小數、整數部分一位），讓草稿接受的值都存得進資料庫。
+
 順帶修掉 `CreateReviewProjectUseCase` 的 ARCH-02 違規：改用新的 `IdGenerator` 埠，不再直接呼叫 `UUID.randomUUID()`。改簽名會讓凍結基線裡的那一筆「換名字」，修掉違規才能只刪行。
 
 | 結果 | 範例 |

@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.domain.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import static org.junit.jupiter.api.Assertions.*;
@@ -60,7 +62,8 @@ class ProjectVersionTest {
                 new BigDecimal("80.00"),
                 new BigDecimal("0.6"),
                 new BigDecimal("0.6"));
-        assertThrows(IllegalArgumentException.class, pv::validateWeightsForPublish);
+        assertEquals("PROJECT_VERSION_NOT_PUBLISHABLE",
+                assertThrows(DomainRuleViolationException.class, pv::validateWeightsForPublish).getErrorCode());
     }
 
     @Test
@@ -69,7 +72,8 @@ class ProjectVersionTest {
                 new BigDecimal("80.00"),
                 BigDecimal.ZERO,
                 new BigDecimal("1.0"));
-        assertThrows(IllegalArgumentException.class, pv::validateWeightsForPublish);
+        assertEquals("PROJECT_VERSION_NOT_PUBLISHABLE",
+                assertThrows(DomainRuleViolationException.class, pv::validateWeightsForPublish).getErrorCode());
     }
 
     @Test

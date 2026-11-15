@@ -58,6 +58,8 @@ public class ReviewProject {
                 ? EnumSet.copyOf(medicalRecordTypes)
                 : EnumSet.noneOf(MedicalRecordType.class);
         validateQualityThreshold(qualityThreshold);
+        validateWeightFormat("initialReviewWeight", initialReviewWeight);
+        validateWeightFormat("rereviewWeight", rereviewWeight);
         this.status = ProjectStatus.DRAFT;
         // 權重沒給的是 0.50（D-020、RP-CRT-S4）；建立時不驗證權重，發布時才驗證（D-047、RP-PUB-03）
         this.currentVersion = new ProjectVersion(1, false, qualityThreshold, initialReviewWeight, rereviewWeight);
@@ -81,6 +83,20 @@ public class ReviewProject {
                                         BigDecimal rereviewWeight) {
         return new ReviewProject(projectId, hospitalId, name, description, medicalRecordTypes,
                 qualityThreshold, initialReviewWeight, rereviewWeight);
+    }
+
+    /**
+     * Weights have type decimal(2): at most two decimals and one integer digit, so that a draft can store
+     * any value it accepts. The D-020 rules (each in (0, 1], sum 1) are checked at publish, not here (D-047).
+     */
+    private static void validateWeightFormat(String field, BigDecimal weight) {
+        if (weight == null) {
+            return;
+        }
+        if (weight.stripTrailingZeros().scale() > 2 || weight.abs().compareTo(BigDecimal.TEN) >= 0) {
+            throw new DomainValidationException("VALIDATION_ERROR",
+                    field + " must have at most two decimals and one integer digit, got: " + weight.toPlainString());
+        }
     }
 
     /** D-046: the quality threshold is optional in a draft; when given it is an integer from 1 to 10. */
@@ -169,6 +185,8 @@ public class ReviewProject {
                     "Project name must not be blank");
         }
         validateQualityThreshold(qualityThreshold);
+        validateWeightFormat("initialReviewWeight", initialReviewWeight);
+        validateWeightFormat("rereviewWeight", rereviewWeight);
         this.currentVersion = new ProjectVersion(currentVersion.getVersionNumber(), currentVersion.isPublished(),
                 qualityThreshold, initialReviewWeight, rereviewWeight);
         this.name = name;
@@ -196,6 +214,8 @@ public class ReviewProject {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
                     "Current version is already published. Cannot re-publish without creating a new draft.");
         }
+        // RP-PUB-03: weights are free in a draft (D-047) and must satisfy D-020 to be published
+        this.currentVersion.validateWeightsForPublish();
         this.currentVersion = this.currentVersion.publish();
     }
 
