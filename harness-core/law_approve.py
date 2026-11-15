@@ -44,27 +44,13 @@ def find_amendment(repo, base, head, manifest_path):
     if text is None:
         raise law_check.NotEvaluated("base（%s）上沒有 %s" % (base, manifest_path))
     manifest = law_check.Manifest(text)
-    start = law_check.git(repo, "merge-base", base, head).stdout.decode().strip()
-    records, law_paths = [], []
-    for status, path in law_check.changed_files(repo, start, head):
-        if path.startswith(manifest.amendments_dir) and path.endswith(law_check.APPROVAL_SUFFIX):
-            continue
-        if path.startswith(manifest.amendments_dir) and path.endswith(".json"):
-            if status == "A":
-                records.append(path)
-            continue
-        law_class = manifest.classify(path)
-        if law_class is None:
-            continue
-        counts = law_check.line_counts(repo, start, head, path)
-        if law_class == "baseline" and status == "M" and counts is not None and counts[0] == 0:
-            continue
-        law_paths.append(path)
+    # 和判決程式用同一個函式認定修法內容
+    records, law_paths = law_check.amendment_content(repo, manifest, base, head)
     if len(records) != 1:
         raise law_check.NotEvaluated("要有且只有一筆新增的修法紀錄，找到 %d 筆" % len(records))
     record_id = records[0][len(manifest.amendments_dir):-len(".json")]
     digest = law_check.amendment_digest(repo, head, records[0], law_paths)
-    return records[0], record_id, sorted(law_paths), digest
+    return records[0], record_id, law_paths, digest
 
 
 def refuse_untrusted_copy(repo, base):
@@ -137,17 +123,18 @@ def main(argv=None):
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, name)
     with open(target, "w", encoding="utf-8", newline="\n") as f:
+        # reviewed_commit 不在簽章裡；判決程式會驗證它存在、在修改的歷史裡、內容就是簽的那一份
         json.dump({"amendment": record_id, "scheme": "ssh", "signer": args.signer, "digest": digest,
-                   "signature": signature}, f, ensure_ascii=False, indent=2)
+                   "reviewed_commit": head, "signature": signature}, f, ensure_ascii=False, indent=2)
         f.write("\n")
     destination = os.path.join(os.path.dirname(record_path), name)
     print("已寫入核准檔：%s" % target)
-    for line in next_steps(args.head, target, destination, record_id):
+    for line in next_steps(args.head, target, destination, record_id, head):
         print(line)
     return 0
 
 
-def next_steps(head, target, destination, record_id):
+def next_steps(head, target, destination, record_id, reviewed_commit):
     """簽完之後要執行的指令，填好實際的分支與檔名，一行一個指令。
 
     不用 && 串起來：串起來時前一個指令失敗（例如沒有東西可以 commit），後面的會被略過，畫面上卻不明顯。
@@ -161,7 +148,7 @@ def next_steps(head, target, destination, record_id):
         "  git pull",
         '  cp "%s" "%s"' % (target, destination),
         '  git add "%s"' % destination,
-        '  git commit -m "approve: %s"' % record_id,
+        '  git commit -m "approve: %s @ %s"' % (record_id, reviewed_commit[:12]),
         "  git push",
         "  git switch main",
         "",

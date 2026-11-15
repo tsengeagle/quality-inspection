@@ -209,7 +209,65 @@ def verify_ssh(approvers_text, signer, message, signature):
 VERIFIERS = {"ssh": verify_ssh}
 
 
-def check_approvals(repo, base, head, manifest, record_id, digest, approval_paths):
+COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+
+
+def amendment_content(repo, manifest, base, commit):
+    """一個 commit 相對於 base 的修法內容：(新增的修法紀錄清單, 需要修法的律法路徑清單)。
+
+    分類規則和 evaluate 相同：核准檔不算；只刪除行的基線修改免修法。
+    核准工具與 reviewed_commit 的驗證都用這個函式，三者對「修法內容」的認定一致。
+    """
+    start = git(repo, "merge-base", base, commit).stdout.decode().strip()
+    records, law_paths = [], []
+    for status, path in changed_files(repo, start, commit):
+        if path.startswith(manifest.amendments_dir) and path.endswith(APPROVAL_SUFFIX):
+            continue
+        if path.startswith(manifest.amendments_dir) and path.endswith(".json"):
+            if status == "A":
+                records.append(path)
+            continue
+        law_class = manifest.classify(path)
+        if law_class is None:
+            continue
+        counts = line_counts(repo, start, commit, path)
+        if law_class == "baseline" and status == "M" and counts is not None and counts[0] == 0:
+            continue
+        law_paths.append(path)
+    return records, sorted(law_paths)
+
+
+def reviewed_commit_problem(repo, manifest, base, head, reviewed, digest, record_path):
+    """核准檔的 reviewed_commit 有問題時回傳說明，沒問題回傳 None。
+
+    reviewed_commit 是核准者檢查與簽章時，修法分支最新的 commit。它不在簽章裡，
+    簽章只綁內容；但這裡驗證它確實存在、在這次修改的歷史裡，而且它的內容就是簽章簽的那一份。
+    所以這個欄位被改掉的話，只能改成另一個內容完全相同的 commit，不能用來偽造「看過什麼」。
+    """
+    if reviewed is None:
+        return "沒有 reviewed_commit（核准者檢查的是哪個 commit）。請用核准工具 0.3.0 以上重新核准"
+    if not isinstance(reviewed, str) or not COMMIT_PATTERN.match(reviewed):
+        return "reviewed_commit 必須是完整的 commit id（40 或 64 個小寫十六進位字元），實際是 %r" % (reviewed,)
+    # squash 與 rebase 合併會產生新的 commit，被核准的 commit 不會進入目標分支的歷史，
+    # 合併後的檢查因此失敗。修法 PR 一律用 merge commit 合併（APPROVING.md 第五節）。
+    hint = "。若這是合併後的檢查，修法 PR 可能是用 squash 或 rebase 合併的；修法 PR 必須用 merge commit 合併"
+    kind = git(repo, "cat-file", "-t", reviewed, check=False)
+    if kind.returncode != 0:
+        return "reviewed_commit %s 不存在%s" % (reviewed[:12], hint)
+    if kind.stdout.decode().strip() != "commit":
+        # 不能用 ^{commit}：它會把 tag 解開成 commit，tag 的 id 就能冒充 commit 的 id
+        return "reviewed_commit %s 不是 commit（是 %s）" % (reviewed[:12], kind.stdout.decode().strip())
+    if git(repo, "merge-base", "--is-ancestor", reviewed, head, check=False).returncode != 0:
+        return "reviewed_commit %s 不在這次修改的歷史裡%s" % (reviewed[:12], hint)
+    # 律法檔案的範圍要在 reviewed_commit 上重算，不能沿用 head 的：
+    # 否則一個多改了某個律法檔（後來又還原）的較早 commit，也會被當成「內容相同」
+    records, law_paths = amendment_content(repo, manifest, base, reviewed)
+    if records != [record_path] or amendment_digest(repo, reviewed, record_path, law_paths) != digest:
+        return "reviewed_commit %s 的內容不是簽章簽的那一份" % reviewed[:12]
+    return None
+
+
+def check_approvals(repo, base, head, manifest, record_id, digest, approval_paths, record_path=None):
     """回傳 (有效的核准者集合, 無效核准的說明清單)。核准者清單讀 base 上的版本。"""
     valid, problems = set(), []
     message = signed_message(digest)
@@ -237,10 +295,14 @@ def check_approvals(repo, base, head, manifest, record_id, digest, approval_path
             if approvers_text is None:
                 raise NotEvaluated("base 上沒有核准者清單 %s" % manifest.approvers[scheme])
             ok, detail = VERIFIERS[scheme](approvers_text, signer, message, signature)
-            if ok:
-                valid.add((scheme, signer))
-            else:
+            reviewed = reviewed_commit_problem(repo, manifest, base, head, approval.get("reviewed_commit"),
+                                               digest, record_path) if ok else None
+            if not ok:
                 problems.append("%s：簽章無效（%s）" % (path, detail))
+            elif reviewed:
+                problems.append("%s：%s" % (path, reviewed))
+            else:
+                valid.add((scheme, signer))
     return valid, problems
 
 
@@ -371,7 +433,8 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
         checks.append(("有 %d 個有效的核准簽章" % manifest.approvals_required, False, "修法紀錄不合格，無從核對"))
     else:
         mine = [p for p in added_approvals if p not in stray]
-        valid, problems = check_approvals(repo, base, head_sha, manifest, record_id, digest, mine)
+        valid, problems = check_approvals(repo, base, head_sha, manifest, record_id, digest, mine,
+                                          added_records[0])
         detail = "有效 %d 個" % len(valid)
         if problems:
             detail += "；" + "；".join(problems)
