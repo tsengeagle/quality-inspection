@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-15-promote-review-project",
+  "decision": "D-049",
+  "reason": "ReviewProject 的規格由 spec-draft/review-project/ 升格到 specs/review-project/（格式 v1），草稿移除。轉換內容：出處全部改成結構化寫法；依 D-047 修正 RP-CRT-S4（沒有輸入的權重才是 0.50）與 RP-CRT-S5（有輸入的權重等於輸入）；新增 RP-UPD-S3；補 13 個範例，讓原本沒有範例的 10 條規則只剩 RP-INV-04（由抽選的 use case 執行）；fixture draft_project 加上品質線，否則依 RP-PUB-04 發布相關範例都會被拒絕。依負責人 2026-11-15 的裁決 D-049：RP-PUB-01 的錯誤代碼是 INVALID_STATE_TRANSITION，RP-UPD-S3 沒給的權重回到 0.50，兩條都改為 decided。37 條規則全部 decided；spec-check 對 specs/ 擋下模式 0 個問題。OPEN-QUESTIONS.md 只留不指向規則的 Q-12 與三項未決事項。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/",
+    "spec-draft/",
+    "docs/01-requirements/decision-log.md",
+    "law/"
+  ]
+}

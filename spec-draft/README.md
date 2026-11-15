@@ -1,6 +1,7 @@
 # 結構化規格試作（草稿）
 
 - 狀態：**草稿，尚未經人工審核，不是 authority**。權威來源仍是 `docs/01-requirements` 到 `docs/04-testing`。
+- 2026-11-15：`ReviewProject` 已升格到 `specs/review-project/`，草稿已移除。正式的格式是 `specs/README.md` 的格式 v1；本文件只留作試作紀錄。
 - 建立日期：2026-11-11，由 Claude Code 依現有文件轉換。
 - 範圍：`ReviewProject` 的 5 支命令與 1 支查詢。
 - 目的：試出一個機器可讀、可驗證的規格格式，並找出現有文件補不出來的地方。

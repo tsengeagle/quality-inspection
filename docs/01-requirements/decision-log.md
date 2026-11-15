@@ -1795,3 +1795,26 @@ spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` �
 ### Mapping
 
 架構規則：ARCH-01、ARCH-04（分層依賴方向）、ARCH-05（`reporting` 只能依賴 `application.common`）。
+
+---
+
+## D-049 — 已發布版本再次發布的錯誤代碼；更新草稿時沒給的權重回到預設
+
+### Status
+
+`accepted`（2026-11-15，依使用者裁決 `specs/review-project/OPEN-QUESTIONS.md` Q-08、Q-15）
+
+### Decision
+
+1. 對目前版本已發布的專案再次發布，拒絕，錯誤代碼 `INVALID_STATE_TRANSITION`（衝突）。這是狀態問題，不是內容不足以發布；與已發布後更新草稿（D-040 第 4 點）一致。
+2. 更新草稿時，有給的權重等於輸入；沒給的權重回到預設 0.50（D-020）。權重不在更新時驗證，發布時才依 D-020 驗證。
+
+### Relationship / Evidence
+
+- 第 1 點補足 D-040 的 Pending「對已發布版本再次發布的錯誤代碼未定」。現行測試 `ReviewProjectApiTest.publishVersion_alreadyPublished_shouldReturn409` 預期的就是衝突，程式不需要改。
+- 第 2 點補足 D-047 第 4 點沒寫的情況。理由：結果只由這次的輸入決定，與建立時（沒給的權重是 0.50）一致，也符合 D-040 第 3 點「整組取代」的精神。選項「保留原值」會讓更新變成部分修改；選項「null」會讓每次更新都必須給權重，否則發布一定被拒絕。
+- 權重的輸入管道尚未實作（D-047），第 2 點目前沒有對應的程式。
+
+### Mapping
+
+`specs/review-project/`：`RP-PUB-01`、`RP-UPD-S3`。

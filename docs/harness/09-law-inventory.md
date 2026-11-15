@@ -45,7 +45,7 @@
 
 | 項目 | 現況 |
 |---|---|
-| `/specs/`、`spec-draft/` | 已在清冊裡（`spec` 類）。`/specs/` 目前是空的 |
+| `/specs/`、`spec-draft/` | 已在清冊裡（`spec` 類）。2026-11-15 ReviewProject 升格到 `/specs/review-project/`，生效前提第 2 項從此成立；測試是否就此列入清冊，另行裁決 |
 | 規格草案、`glossary.md`、`docs/02-ddd` 到 `docs/04-testing` | 不是律法。`CLAUDE.md` 把它們列為第 2 到第 6 順位的權威，但修改不需要修法紀錄 |
 | 測試程式（88 個檔案） | 不是律法，只有 `architecture/` 底下的規則與樣本是。改弱一個既有測試來讓它通過，目前沒有任何機制看得出來 |
 
