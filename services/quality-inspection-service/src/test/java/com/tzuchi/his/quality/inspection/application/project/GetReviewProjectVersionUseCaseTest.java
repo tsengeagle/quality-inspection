@@ -31,6 +31,7 @@ class GetReviewProjectVersionUseCaseTest {
     void execute_hospitalManager_ownHospital_shouldReturn() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         repository.save(project);
         ActorContext actor = new ActorContext("u1", "Manager",

@@ -222,8 +222,19 @@ public class ReviewProject {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
                     "Current version is already published. Cannot re-publish without creating a new draft.");
         }
+        // Checked in the order of specs/review-project: RP-PUB-02, RP-PUB-03, RP-PUB-04
+        if (this.boundScoreSheetId == null) {
+            // D-041: the score sheet must be bound before publishing (it used to be checked only at activation)
+            throw new DomainRuleViolationException("PROJECT_VERSION_NOT_PUBLISHABLE",
+                    "Cannot publish a version without a bound score sheet");
+        }
         // RP-PUB-03: weights are free in a draft (D-047) and must satisfy D-020 to be published
         this.currentVersion.validateWeightsForPublish();
+        if (this.currentVersion.getQualityThreshold() == null) {
+            // D-046: the quality threshold may be null in a draft, but is required to publish
+            throw new DomainRuleViolationException("PROJECT_VERSION_NOT_PUBLISHABLE",
+                    "Cannot publish a version without a quality threshold");
+        }
         this.currentVersion = this.currentVersion.publish();
     }
 

@@ -36,5 +36,4 @@ com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-proje
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_after_the_version_is_published
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_weight_change_after_the_version_is_published
 
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_without_a_bound_score_sheet
 

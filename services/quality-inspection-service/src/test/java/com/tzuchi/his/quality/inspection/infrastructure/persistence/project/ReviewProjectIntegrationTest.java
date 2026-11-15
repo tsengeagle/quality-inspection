@@ -22,6 +22,7 @@ class ReviewProjectIntegrationTest {
     void reconstitution_versionAndStatus_shouldBeCorrect() {
         ReviewProject project = ReviewProject.create("p-int-1", "h1", "Test Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.prepareDraftVersion();
         projectRepository.save(project);

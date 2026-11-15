@@ -37,6 +37,7 @@ class ActivateReviewProjectUseCaseTest {
     void execute_happyPath_shouldActivate() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         repository.save(project);
@@ -52,6 +53,7 @@ class ActivateReviewProjectUseCaseTest {
     void execute_shouldPublishEvent() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         repository.save(project);
@@ -66,9 +68,10 @@ class ActivateReviewProjectUseCaseTest {
 
     @Test
     void execute_noBoundScoreSheet_shouldThrow() {
-        ReviewProject project = ReviewProject.create("p1", "H001", "Test",
-                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
-        project.publishNewVersion();
+        // 已發布但未綁定只會出現在 D-041 生效前存的資料（現在發布前必須已綁定）
+        ReviewProject project = ReviewProject.reconstitute("p1", "H001", "Test", null, null,
+                EnumSet.of(MedicalRecordType.OUTPATIENT), ProjectStatus.DRAFT, 1, true,
+                null, null, null);
         repository.save(project);
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
@@ -103,6 +106,7 @@ class ActivateReviewProjectUseCaseTest {
     void execute_crossHospital_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         repository.save(project);

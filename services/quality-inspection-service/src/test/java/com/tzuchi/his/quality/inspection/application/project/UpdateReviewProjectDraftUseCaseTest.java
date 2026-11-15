@@ -89,6 +89,7 @@ class UpdateReviewProjectDraftUseCaseTest {
     void execute_activeProject_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();

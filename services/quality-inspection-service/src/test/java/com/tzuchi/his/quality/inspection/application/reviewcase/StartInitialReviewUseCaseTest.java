@@ -83,6 +83,7 @@ class StartInitialReviewUseCaseTest {
         ReviewProject project = ReviewProject.create(PROJECT_ID, HOSPITAL_ID, "Test Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         project.bindScoreSheet(SCORE_SHEET_ID);
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.activate();
         projectRepo.save(project);
@@ -178,6 +179,7 @@ class StartInitialReviewUseCaseTest {
         ReviewProject project = ReviewProject.create(PROJECT_ID, HOSPITAL_ID, "Test Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         project.bindScoreSheet(SCORE_SHEET_ID);
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.activate();
         projectRepo.save(project);

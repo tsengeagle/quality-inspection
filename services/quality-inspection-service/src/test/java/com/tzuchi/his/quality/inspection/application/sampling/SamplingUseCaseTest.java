@@ -471,6 +471,7 @@ class SamplingUseCaseTest {
     private ReviewProject createActiveProject(String projectId) {
         ReviewProject project = ReviewProject.create(projectId, "H001", "Test Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-test");
         project.activate();

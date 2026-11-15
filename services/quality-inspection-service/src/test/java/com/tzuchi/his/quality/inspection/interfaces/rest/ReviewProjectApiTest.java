@@ -118,6 +118,7 @@ class ReviewProjectApiTest {
     @Test
     void publishVersion_shouldReturn200() throws Exception {
         String projectId = createProjectAndGetId("Publish Test");
+        bindScoreSheet(projectId);
 
         mockMvc.perform(post(BASE + "/" + projectId + "/publish")
                         .header("api-key", hmToken))
@@ -134,6 +135,7 @@ class ReviewProjectApiTest {
     @Test
     void publishVersion_alreadyPublished_shouldReturn409() throws Exception {
         String projectId = createProjectAndGetId("Double Publish");
+        bindScoreSheet(projectId);
 
         mockMvc.perform(post(BASE + "/" + projectId + "/publish")
                         .header("api-key", hmToken))
@@ -198,17 +200,10 @@ class ReviewProjectApiTest {
     @Test
     void activate_shouldReturn200() throws Exception {
         String projectId = createProjectAndGetId("Activate Test");
+        bindScoreSheet(projectId);
 
         mockMvc.perform(post(BASE + "/" + projectId + "/publish")
                         .header("api-key", hmToken))
-                .andExpect(status().isOk());
-
-        BindScoreSheetRequest bindReq = new BindScoreSheetRequest();
-        bindReq.setScoreSheetId("ss-1");
-        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
-                        .header("api-key", hmToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(bindReq)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post(BASE + "/" + projectId + "/activate")
@@ -217,16 +212,34 @@ class ReviewProjectApiTest {
     }
 
     @Test
-    void activate_noBoundScoreSheet_shouldReturn422() throws Exception {
+    void publishVersion_noBoundScoreSheet_shouldReturn422() throws Exception {
+        // D-041、RP-PUB-02：綁定的檢查從啟用移到發布，未綁定就發布不了，也就到不了啟用
         String projectId = createProjectAndGetId("No SS");
 
         mockMvc.perform(post(BASE + "/" + projectId + "/publish")
                         .header("api-key", hmToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("PROJECT_VERSION_NOT_PUBLISHABLE"));
+    }
 
-        mockMvc.perform(post(BASE + "/" + projectId + "/activate")
+    @Test
+    void publishVersion_noQualityThreshold_shouldReturn422() throws Exception {
+        // D-046、RP-PUB-04
+        String body = "{\"name\":\"No threshold\",\"medicalRecordTypes\":[\"OUTPATIENT\"]}";
+        MvcResult result = mockMvc.perform(post(BASE)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String projectId = objectMapper.readTree(result.getResponse().getContentAsString())
+                .get("data").get("projectId").asText();
+        bindScoreSheet(projectId);
+
+        mockMvc.perform(post(BASE + "/" + projectId + "/publish")
                         .header("api-key", hmToken))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("PROJECT_VERSION_NOT_PUBLISHABLE"));
     }
 
     // --- DEACTIVATE ---
@@ -308,10 +321,22 @@ class ReviewProjectApiTest {
 
     // --- Helpers ---
 
+    private void bindScoreSheet(String projectId) throws Exception {
+        BindScoreSheetRequest bindReq = new BindScoreSheetRequest();
+        bindReq.setScoreSheetId("ss-1");
+        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bindReq)))
+                .andExpect(status().isOk());
+    }
+
     private String createProjectAndGetId(String name) throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
         req.setName(name);
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
+        // D-046: 發布時品質線必填
+        req.setQualityThreshold(new java.math.BigDecimal("5"));
 
         MvcResult result = mockMvc.perform(post(BASE)
                         .header("api-key", hmToken)
@@ -330,17 +355,10 @@ class ReviewProjectApiTest {
 
     private String createActiveProject() throws Exception {
         String projectId = createProjectAndGetId("Active Project");
+        bindScoreSheet(projectId);
 
         mockMvc.perform(post(BASE + "/" + projectId + "/publish")
                         .header("api-key", hmToken))
-                .andExpect(status().isOk());
-
-        BindScoreSheetRequest bindReq = new BindScoreSheetRequest();
-        bindReq.setScoreSheetId("ss-1");
-        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
-                        .header("api-key", hmToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(bindReq)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post(BASE + "/" + projectId + "/activate")
