@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-15-register-acceptance-runner",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:41d1f63809235802eba50fc1b5d0dcc5cf109f38a61704b46bbae35eb419eac1",
+  "reviewed_commit": "6a37f6714cf2786dd2df8547d10eabf5591138d1",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgLuJoBS\nUmRINtbaWNfjs7XqhmoldTfksBZR0x/OG7ILQAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBr+Mt0aQI86ecNYzUv5v3MEGk1R1Xu05h/h6HrXQn25S3kWXmX0wyU\n946iXZhDnnKAKSFtSKk64gmgDNn6hVwBAQAAAC4=\n-----END SSH SIGNATURE-----\n"
+}
