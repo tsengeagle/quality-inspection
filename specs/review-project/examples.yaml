@@ -10,6 +10,7 @@ actors:
   manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
   manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
   reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+  rereviewer_h1: { user: u-rr1, roles: [REREVIEWER],   hospital: H-01 }
 
 # 可重複使用的準備步驟。
 fixtures:
@@ -517,6 +518,28 @@ examples:
         expect: { result: SUCCESS, output: { status: ACTIVE } }
 
 # 這些規則目前沒有辦法用範例驗證，原因各自列出。
+  # ---------- D-051：REVIEWER／REREVIEWER 不能讀專案 ----------
+
+  - name: rejects_project_detail_for_a_reviewer
+    basis: [RP-G-01]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectDetail
+      as: reviewer_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_project_detail_for_a_rereviewer
+    basis: [RP-G-01]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectDetail
+      as: rereviewer_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
 not_covered:
   - rules: [emits]
     reason: >

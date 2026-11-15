@@ -1818,3 +1818,34 @@ spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` �
 ### Mapping
 
 `specs/review-project/`：`RP-PUB-01`、`RP-UPD-S3`。
+
+---
+
+## D-051 — REVIEWER／REREVIEWER 不能讀取專案與抽選批次
+
+### Status
+
+`accepted`（2026-11-15，依使用者裁決 `specs/review-project/OPEN-QUESTIONS.md` Q-12，採選項 A）
+
+### Decision
+
+`REVIEWER`、`REREVIEWER` 不能使用專案列表、專案詳情、抽選批次列表、抽選批次詳情，一律以 `ROLE_DENIED` 拒絕。他們審查所需的資訊從被指派的案件取得：案件詳情帶專案名稱，評分依據來自案件的 snapshot（D-011）。
+
+`api-spec.md` §7.7、§7.8、§9.5、§9.6 原本寫的「唯讀必要範圍」／「依必要範圍唯讀」改為明確不開放。
+
+### Relationship / Evidence
+
+- 補足 D-043 的 Pending（「唯讀必要範圍」未定，在定義前不開放）：維持不開放，並把它定為正式決定。
+- 與 `permission-matrix.md` §5 一致：這兩個角色的資料範圍是被指派給自己、或自己提交過的案件。
+- 理由：
+  - 目前沒有任何審查醫師的畫面需要這些介面。
+  - 專案詳情含品質線與權重；初審醫師若知道品質線，可能把分數打在品質線附近，影響是否進入複審（D-019）。這和 D-033 盲審要防止的問題同類。
+- 其他選項：
+  - 只開放自己案件所屬的專案、並限縮欄位：需要跨聚合的判斷與專用投影，目前沒有使用情境。
+  - 開放同院區全部：超出「只看自己的案件」的範圍。
+- 現行程式已經拒絕這兩個角色，不需要修改。
+- 日後若有審查醫師專用的專案總覽畫面，需要新的裁決。
+
+### Mapping
+
+`specs/review-project/`：`GetReviewProjectDetail` 的讀取角色（原 `actor.open` 指向 Q-12，已移除）。

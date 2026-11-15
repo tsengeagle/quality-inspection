@@ -15,6 +15,7 @@ sources:
   - { decision: D-046 }
   - { decision: D-047 }
   - { decision: D-049 }
+  - { decision: D-051 }
   - { doc: docs/02-ddd/application-service.md, section: "§5、§5.1" }
   - { doc: docs/02-ddd/domain-events.md, section: "§4.1–§4.4" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§7.1–§7.8" }
@@ -228,9 +229,7 @@ usecases:
     summary: 查詢單一專案與它目前的版本
     actor:
       roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
-      open:
-        - text: api-spec.md §7.7 寫 REVIEWER / REREVIEWER「僅限唯讀必要範圍」，沒有定義範圍
-          question: Q-12
+      # 讀取角色依 D-043；REVIEWER／REREVIEWER 不開放，依 RP-G-01 拒絕（D-051）
     input:
       - { name: projectId, type: id, required: true }
     guards: [RP-G-01, RP-G-02, RP-G-03]
