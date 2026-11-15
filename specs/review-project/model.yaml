@@ -141,8 +141,8 @@ invariants:
       - { example: EX-018 }
     status: decided
   - id: RP-INV-02
-    text: initialReviewWeight + rereviewWeight = 1.00，且兩者都大於 0、小於等於 1
-    source: [{ decision: D-020 }]
+    text: 已發布的版本，initialReviewWeight + rereviewWeight = 1.00，且兩者都大於 0、小於等於 1。草稿可以不符合，發布時由 RP-PUB-03 檢查
+    source: [{ decision: D-020 }, { decision: D-047 }]
     status: decided
   - id: RP-INV-03
     text: 版本發布後權重固定，不可修改

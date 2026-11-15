@@ -10,7 +10,7 @@
 
 | aggregate | 位置 | 狀態 |
 |---|---|---|
-| `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。37 條規則全部 `decided`；30 個範例，其中 17 個要等評分表的規格（`needs`）；`RP-INV-04` 由抽選的 use case 執行，沒有範例。待裁決的只剩 Q-12（不指向規則） |
+| `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。37 條規則全部 `decided`；30 個範例，其中 12 個要等評分表的規格（`needs`，含透過 fixture 間接需要的）；`RP-INV-04` 由抽選的 use case 執行，沒有範例。待裁決的只剩 Q-12（不指向規則） |
 
 尚未轉換的 aggregate 以 `docs/01-requirements` 到 `docs/04-testing` 為準。
 

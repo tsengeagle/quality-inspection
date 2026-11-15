@@ -131,7 +131,7 @@ usecases:
     success:
       state:
         - { id: RP-UPD-S1, text: name、description、medicalRecordTypes、qualityThreshold 被輸入整組取代（不是只改有給的欄位）, status: decided, source: [{ decision: D-040 }, { decision: D-046 }] }
-        - { id: RP-UPD-S2, text: status 與 currentVersion 不變, status: decided, source: [{ decision: D-040 }] }
+        - { id: RP-UPD-S2, text: status、currentVersion.versionNo、currentVersion.published 不變（版本內容依 RP-UPD-S1、RP-UPD-S3 改變）, status: decided, source: [{ decision: D-040 }] }
         - id: RP-UPD-S3
           text: 有輸入的權重等於輸入；沒有輸入的權重回到 0.50（權重在發布時才驗證，見 RP-PUB-03）
           status: decided
