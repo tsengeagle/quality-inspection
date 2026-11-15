@@ -378,6 +378,22 @@ class SamplingUseCaseTest {
     }
 
     @Test
+    void listBatches_admin_requestedHospitalNarrowsScope_nonAdminIgnoresIt() {
+        // D-047 第 1、2 點：SYSTEM_ADMIN 可以指定院區；其他角色的指定不採用
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(queryPort);
+        ActorContext admin = new ActorContext("u-adm", "Admin",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+
+        listUseCase.execute(admin, new SamplingBatchQueryCriteria(null, null, null, 0, 20).withHospitalId("H002"));
+        assertEquals("H002", queryPort.lastCriteria.getHospitalId());
+
+        listUseCase.execute(hospitalManagerActor,
+                new SamplingBatchQueryCriteria(null, null, null, 0, 20).withHospitalId("H002"));
+        assertEquals("H001", queryPort.lastCriteria.getHospitalId());
+    }
+
+    @Test
     void execute_wrongHospital_shouldThrowAccessDenied() {
         ReviewProject project = createActiveProject("p1");
         projectRepo.save(project);

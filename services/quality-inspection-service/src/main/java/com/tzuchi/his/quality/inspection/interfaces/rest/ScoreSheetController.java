@@ -71,8 +71,9 @@ public class ScoreSheetController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@CurrentActor ActorContext actor) {
-        List<ScoreSheetSummary> summaries = listUseCase.execute(actor);
+    public ResponseEntity<?> list(@CurrentActor ActorContext actor,
+                                  @RequestParam(required = false) String hospitalId) {
+        List<ScoreSheetSummary> summaries = listUseCase.execute(actor, hospitalId);
         List<ScoreSheetSummaryResponse> response = summaries.stream()
                 .map(this::toSummaryResponse)
                 .collect(Collectors.toList());

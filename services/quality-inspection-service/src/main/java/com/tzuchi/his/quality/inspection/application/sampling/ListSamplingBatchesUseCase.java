@@ -19,6 +19,6 @@ public class ListSamplingBatchesUseCase {
     public Page<SamplingBatchSummary> execute(ActorContext actor,
                                                SamplingBatchQueryCriteria criteria) {
         actor.requireAnyRole(DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
-        return queryPort.findBatches(criteria.withHospitalId(actor.readScopeHospitalId(null)));
+        return queryPort.findBatches(criteria.withHospitalId(actor.readScopeHospitalId(criteria.getHospitalId())));
     }
 }

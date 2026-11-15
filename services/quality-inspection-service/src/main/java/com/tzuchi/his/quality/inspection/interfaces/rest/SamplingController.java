@@ -80,6 +80,7 @@ public class SamplingController {
             @RequestParam(required = false) String projectId,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String executionMode,
+            @RequestParam(required = false) String hospitalId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         BatchStatus batchStatus = null;
@@ -99,7 +100,7 @@ public class SamplingController {
             }
         }
         SamplingBatchQueryCriteria criteria = new SamplingBatchQueryCriteria(
-                projectId, batchStatus, mode, page, size);
+                projectId, batchStatus, mode, page, size).withHospitalId(hospitalId);
         Page<SamplingBatchSummary> result = listUseCase.execute(actor, criteria);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }

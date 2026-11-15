@@ -107,8 +107,9 @@ public class ReviewProjectController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ReviewProjectResponse>>> listProjects(
-            @CurrentActor ActorContext actor) {
-        List<ReviewProjectSummary> summaries = listUseCase.execute(actor);
+            @CurrentActor ActorContext actor,
+            @RequestParam(required = false) String hospitalId) {
+        List<ReviewProjectSummary> summaries = listUseCase.execute(actor, hospitalId);
         List<ReviewProjectResponse> responses = summaries.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

@@ -35,6 +35,20 @@ class ScoreSheetApiTest {
 
     // --- Helper: create a project first (needed for HospitalIdResolver) ---
 
+    @Test
+    void listScoreSheets_systemAdminHospitalIdNarrows_managerHospitalIdIgnored() throws Exception {
+        // D-047 第 1、2 點
+        createScoreSheet(createProject());
+        String admin = TestTokenFactory.systemAdminToken();
+
+        mockMvc.perform(get(SS_BASE).header("api-key", admin).param("hospitalId", "H001"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+        mockMvc.perform(get(SS_BASE).header("api-key", admin).param("hospitalId", "H002"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(0)));
+        mockMvc.perform(get(SS_BASE).header("api-key", hmToken).param("hospitalId", "H002"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+    }
+
     private String createProject() throws Exception {
         String body = "{\"name\":\"Test Project\",\"medicalRecordTypes\":[\"OUTPATIENT\"]}";
         MvcResult result = mockMvc.perform(post(PROJECTS_BASE)
