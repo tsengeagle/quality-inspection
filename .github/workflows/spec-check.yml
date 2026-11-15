@@ -24,4 +24,4 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install PyYAML==6.0.3
       - name: spec-check
-        run: python harness-core/spec_lint.py --report-only spec-draft | tee -a "$GITHUB_STEP_SUMMARY"; exit "${PIPESTATUS[0]}"
+        run: python harness-core/spec_lint.py --design-docs docs/02-ddd --testing-docs docs/04-testing --report-only spec-draft | tee -a "$GITHUB_STEP_SUMMARY"; exit "${PIPESTATUS[0]}"

@@ -5,8 +5,13 @@
 判決是確定性的：只讀檔案，不執行任何規格裡的內容。
 
 用法：
-    python3 spec_lint.py [--repo .] [--specs specs] [--report-only DIR ...]
+    python3 spec_lint.py [--repo .] [--specs specs] [--manifest law/manifest.txt]
+                         [--design-docs DIR] [--testing-docs DIR] [--report-only DIR ...]
 
+    --manifest：律法清冊。決策紀錄的位置讀它的 @decision-log。
+    --design-docs：design_decision 出處要找的目錄（例如設計決策 DD-03 所在的目錄）。
+    --testing-docs：example、scenario 出處要找的目錄。
+        這兩個沒有設定時，用到對應出處的規則一律算問題，不會略過。
     --report-only：只列出問題、不讓結束代碼失敗的目錄，例如還在草稿階段的 spec-draft。
 
 結束代碼：0 通過；1 未通過；2 無法評估。無法評估不算通過。
@@ -28,9 +33,7 @@ RESULTS = {"SUCCESS", "REJECTED"}
 CATEGORIES = {"denied", "not_found", "invalid_input", "conflict", "rule_violation"}
 ID_PATTERN = re.compile(r"^[A-Z]{2,}-[A-Z0-9]+-[A-Z0-9]+$")
 SOURCE_KINDS = {"decision", "design_decision", "doc", "example", "scenario", "rule"}
-DECISION_LOG = "docs/01-requirements/decision-log.md"
-DESIGN_DIR = "docs/02-ddd"
-TESTING_DIR = "docs/04-testing"
+DEFAULT_MANIFEST = "law/manifest.txt"
 EXIT_PASS, EXIT_FAIL, EXIT_NOT_EVALUATED = 0, 1, 2
 
 
@@ -63,25 +66,42 @@ def heading_exists(text, key):
     return re.search(r"(?m)^#+\s*%s\b" % re.escape(key), text) is not None
 
 
-class Context:
-    """跨 aggregate 共用的資料：各種出處的來源文字、所有規則 id、禁用詞彙。"""
+def decision_log_path(repo, manifest_rel):
+    """從律法清冊讀 @decision-log。專案專屬的路徑一律來自清冊，不寫死在這裡。"""
+    manifest = os.path.join(repo, manifest_rel)
+    if not os.path.isfile(manifest):
+        raise NotEvaluated("找不到律法清冊 %s" % manifest_rel)
+    for line in read(manifest).splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[0] == "@decision-log":
+            return parts[1]
+    raise NotEvaluated("律法清冊 %s 沒有 @decision-log 指示" % manifest_rel)
 
-    def __init__(self, repo, specs_dir):
+
+class Context:
+    """跨 aggregate 共用的資料：各種出處的來源文字、禁用詞彙。"""
+
+    def __init__(self, repo, specs_dir, manifest_rel, design_rel, testing_rel):
         self.repo = repo
-        log = os.path.join(repo, DECISION_LOG)
-        self.decision_log = read(log) if os.path.isfile(log) else ""
-        self.design_text = read_dir_text(os.path.join(repo, DESIGN_DIR))
-        self.testing_text = read_dir_text(os.path.join(repo, TESTING_DIR))
+        log_rel = decision_log_path(repo, manifest_rel)
+        log = os.path.join(repo, log_rel)
+        if not os.path.isfile(log):
+            raise NotEvaluated("找不到決策紀錄 %s（清冊的 @decision-log）" % log_rel)
+        self.decision_log = read(log)
+        # None 代表專案沒有設定：用到該類出處的規則會被列為問題
+        self.design_text = read_dir_text(os.path.join(repo, design_rel)) if design_rel else None
+        self.testing_text = read_dir_text(os.path.join(repo, testing_rel)) if testing_rel else None
         self.forbidden = []
         vocab = os.path.join(specs_dir, "forbidden-vocabulary.txt")
-        if os.path.isfile(vocab):
-            for number, line in enumerate(read(vocab).splitlines(), 1):
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    try:
-                        self.forbidden.append(re.compile(line, re.IGNORECASE))
-                    except re.error as error:
-                        raise NotEvaluated("forbidden-vocabulary.txt 第 %d 行不是合法的正規表示式：%s" % (number, error))
+        if not os.path.isfile(vocab):
+            raise NotEvaluated("找不到 %s；沒有它，實作詞彙的檢查等於沒做" % os.path.relpath(vocab, repo))
+        for number, line in enumerate(read(vocab).splitlines(), 1):
+            line = line.strip()
+            if line and not line.startswith("#"):
+                try:
+                    self.forbidden.append(re.compile(line, re.IGNORECASE))
+                except re.error as error:
+                    raise NotEvaluated("forbidden-vocabulary.txt 第 %d 行不是合法的正規表示式：%s" % (number, error))
 
 
 class Aggregate:
@@ -90,6 +110,8 @@ class Aggregate:
         self.errors, self.notes = [], []
         self.docs = {}
         self.rules = {}          # id -> (檔案, 規則)
+        self.needs_outcome = set()
+        self.covered = set()
         self.usecases = {}
         self.error_codes = set()
         self.guards = set()
@@ -97,6 +119,25 @@ class Aggregate:
 
     def error(self, where, message):
         self.errors.append("%s：%s" % (where, message))
+
+    def as_list(self, where, value):
+        """None 視為空清單；其他非清單的值記成問題，回傳空清單。"""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            self.error(where, "必須是清單，實際是 %r" % (value,))
+            return []
+        return value
+
+    def names(self, where, value):
+        """字串清單（needs、basis 之類）。非字串的項目記成問題並略過。"""
+        out = []
+        for item in self.as_list(where, value):
+            if isinstance(item, str):
+                out.append(item)
+            else:
+                self.error(where, "每一項必須是字串，實際是 %r" % (item,))
+        return out
 
     # ---------- 讀檔 ----------
 
@@ -128,13 +169,18 @@ class Aggregate:
     def collect_rules(self, name, node, trail):
         if isinstance(node, dict):
             rule_id = node.get("id")
-            if isinstance(rule_id, str):
+            if "id" in node and not isinstance(rule_id, str):
+                self.error("%s %s" % (name, ".".join(trail) or "最上層"), "id 必須是字串，實際是 %r" % (rule_id,))
+            elif isinstance(rule_id, str):
                 where = "%s %s" % (name, rule_id)
                 if not ID_PATTERN.match(rule_id):
                     self.error(where, "id 的格式必須是 <前綴>-<分組>-<序號>，例如 RP-PUB-03")
                 if rule_id in self.rules:
                     self.error(where, "id 重複")
                 self.rules[rule_id] = (name, node)
+                # 前置檢查與 use case 的條件規則必須有結果；不變量與成功狀態的結果是隱含的
+                if trail[:1] == ["guards"] or trail[-1:] == ["rules"]:
+                    self.needs_outcome.add(rule_id)
             for key, value in node.items():
                 self.collect_rules(name, value, trail + [key])
         elif isinstance(node, list):
@@ -159,15 +205,20 @@ class Aggregate:
         else:
             self.error(where, "status 必須是 decided 或 proposed，實際是 %r" % (status,))
         outcome = rule.get("outcome")
-        if outcome is not None:
-            if not isinstance(outcome, dict) or outcome.get("result") not in RESULTS:
-                self.error(where, "outcome.result 必須是 SUCCESS 或 REJECTED")
-            elif outcome.get("result") == "REJECTED":
-                code = outcome.get("code")
-                if not code:
-                    self.error(where, "REJECTED 必須帶 code")
-                elif code not in self.error_codes:
-                    self.error(where, "code %s 沒有定義在 error_codes" % code)
+        if outcome is None:
+            if rule_id in self.needs_outcome:
+                self.error(where, "前置檢查與 use case 的規則必須有 outcome")
+        elif not isinstance(outcome, dict) or not isinstance(outcome.get("result"), str) \
+                or outcome["result"] not in RESULTS:
+            self.error(where, "outcome.result 必須是 SUCCESS 或 REJECTED")
+        elif outcome["result"] == "REJECTED":
+            code = outcome.get("code")
+            if not code:
+                self.error(where, "REJECTED 必須帶 code")
+            elif not isinstance(code, str):
+                self.error(where, "code 必須是字串，實際是 %r" % (code,))
+            elif code not in self.error_codes:
+                self.error(where, "code %s 沒有定義在 error_codes" % code)
 
     def check_sources(self, where, sources, all_ids):
         if not isinstance(sources, list):
@@ -182,10 +233,16 @@ class Aggregate:
             if kind == "decision":
                 ok = bool(re.match(r"^D-\d+$", value)) and heading_exists(self.ctx.decision_log, value)
             elif kind == "design_decision":
+                if self.ctx.design_text is None:
+                    self.error(where, "沒有設定 --design-docs，無法核對 design_decision：%s" % value)
+                    continue
                 ok = bool(re.match(r"^DD-\d+$", value)) and heading_exists(self.ctx.design_text, value)
             elif kind == "doc":
                 ok = os.path.isfile(os.path.join(self.ctx.repo, value))
             elif kind in ("example", "scenario"):
+                if self.ctx.testing_text is None:
+                    self.error(where, "沒有設定 --testing-docs，無法核對 %s：%s" % (kind, value))
+                    continue
                 ok = re.search(r"\b%s\b" % re.escape(value), self.ctx.testing_text) is not None
             else:
                 ok = value in all_ids
@@ -198,25 +255,25 @@ class Aggregate:
         doc = self.docs.get("usecases.yaml")
         if not doc:
             return
-        for entry in doc.get("error_codes") or []:
-            if not isinstance(entry, dict) or not entry.get("code"):
-                self.error("usecases.yaml error_codes", "每一項必須有 code")
+        for entry in self.as_list("usecases.yaml error_codes", doc.get("error_codes")):
+            if not isinstance(entry, dict) or not isinstance(entry.get("code"), str) or not entry["code"]:
+                self.error("usecases.yaml error_codes", "每一項必須有字串的 code")
                 continue
             if entry.get("category") not in CATEGORIES:
                 self.error("usecases.yaml error_codes %s" % entry["code"],
                            "category 必須是 %s 其中一種" % "、".join(sorted(CATEGORIES)))
             self.error_codes.add(entry["code"])
-        for guard in doc.get("guards") or []:
-            if isinstance(guard, dict) and guard.get("id"):
+        for guard in self.as_list("usecases.yaml guards", doc.get("guards")):
+            if isinstance(guard, dict) and isinstance(guard.get("id"), str):
                 self.guards.add(guard["id"])
-        for usecase in doc.get("usecases") or []:
-            if not isinstance(usecase, dict) or not usecase.get("name"):
-                self.error("usecases.yaml", "每支 use case 必須有 name")
+        for usecase in self.as_list("usecases.yaml usecases", doc.get("usecases")):
+            if not isinstance(usecase, dict) or not isinstance(usecase.get("name"), str) or not usecase["name"]:
+                self.error("usecases.yaml", "每支 use case 必須有字串的 name")
                 continue
             name = usecase["name"]
             self.usecases[name] = usecase
-            for guard in usecase.get("guards") or []:
-                if guard not in self.guards:
+            for guard in self.as_list("usecases.yaml %s guards" % name, usecase.get("guards")):
+                if not isinstance(guard, str) or guard not in self.guards:
                     self.error("usecases.yaml %s" % name, "guards 引用了不存在的 %s" % guard)
 
     # ---------- 範例 ----------
@@ -225,29 +282,41 @@ class Aggregate:
         doc = self.docs.get("examples.yaml")
         if not doc:
             return set()
-        fixtures = doc.get("fixtures") or {}
+        fixtures = doc.get("fixtures")
+        if fixtures is None:
+            fixtures = {}
+        elif not isinstance(fixtures, dict):
+            self.error("examples.yaml fixtures", "必須是以名稱為鍵的對應表，實際是 %r" % (fixtures,))
+            fixtures = {}
         covered = set()
 
         def check_steps(where, steps, needs):
-            for step in steps or []:
+            for step in self.as_list(where, steps):
                 if not isinstance(step, dict):
+                    self.error(where, "每個步驟必須是對應表，實際是 %r" % (step,))
                     continue
-                if "use" in step and step["use"] not in fixtures:
-                    self.error(where, "use 引用了不存在的 fixture %s" % step["use"])
+                if "use" in step and (not isinstance(step["use"], str) or step["use"] not in fixtures):
+                    self.error(where, "use 引用了不存在的 fixture %s" % (step["use"],))
                 run = step.get("run")
-                if run and run not in self.usecases and run not in needs:
+                if run is not None and not isinstance(run, str):
+                    self.error(where, "run 必須是 use case 名稱，實際是 %r" % (run,))
+                elif run and run not in self.usecases and run not in needs:
                     self.error(where, "執行的 %s 不在 usecases.yaml，也沒有列在 needs" % run)
 
         for fname, fixture in fixtures.items():
-            if isinstance(fixture, dict):
-                check_steps("examples.yaml fixture %s" % fname, fixture.get("steps"), set(fixture.get("needs") or []))
-        for example in doc.get("examples") or []:
+            fwhere = "examples.yaml fixture %s" % fname
+            if not isinstance(fixture, dict):
+                self.error(fwhere, "必須是對應表")
+                continue
+            check_steps(fwhere, fixture.get("steps"), set(self.names(fwhere + " needs", fixture.get("needs"))))
+        for example in self.as_list("examples.yaml examples", doc.get("examples")):
             if not isinstance(example, dict):
+                self.error("examples.yaml examples", "每個範例必須是對應表，實際是 %r" % (example,))
                 continue
             name = example.get("name", "?")
             where = "examples.yaml %s" % name
-            needs = set(example.get("needs") or [])
-            basis = example.get("basis") or []
+            needs = set(self.names(where + " needs", example.get("needs")))
+            basis = self.names(where + " basis", example.get("basis"))
             if not basis:
                 self.error(where, "沒有 basis")
             for rule_id in basis:
@@ -257,11 +326,10 @@ class Aggregate:
             pending = [r for r in basis if r in proposed]
             if pending:
                 self.notes.append("%s：basis 含 proposed 規則 %s，還不能當驗收依據" % (where, "、".join(pending)))
-            steps = list(example.get("given") or [])
             when = example.get("when")
-            steps += [when] if isinstance(when, dict) else list(when or [])
-            steps += list(example.get("observe") or [])
-            check_steps(where, steps, needs)
+            check_steps(where + " given", example.get("given"), needs)
+            check_steps(where + " when", [when] if isinstance(when, dict) else when, needs)
+            check_steps(where + " observe", example.get("observe"), needs)
         return covered
 
     # ---------- 實作詞彙 ----------
@@ -283,15 +351,13 @@ class Aggregate:
             walk(name, doc, [])
 
 
-def lint(repo, specs_dir_rel, report_only):
+def lint(repo, specs_dir_rel, report_only, manifest_rel=DEFAULT_MANIFEST, design_rel=None, testing_rel=None):
     if yaml is None:
         raise NotEvaluated("需要 PyYAML（pip install PyYAML）")
     specs_dir = os.path.join(repo, specs_dir_rel)
     if not os.path.isdir(specs_dir):
         raise NotEvaluated("找不到規格目錄 %s" % specs_dir_rel)
-    ctx = Context(repo, specs_dir)
-    if not ctx.decision_log:
-        raise NotEvaluated("找不到 %s" % DECISION_LOG)
+    ctx = Context(repo, specs_dir, manifest_rel, design_rel, testing_rel)
     targets = [(os.path.join(specs_dir, d), "%s/%s" % (specs_dir_rel, d), False)
                for d in sorted(os.listdir(specs_dir)) if os.path.isdir(os.path.join(specs_dir, d))]
     for rel in report_only:
@@ -321,16 +387,27 @@ def lint(repo, specs_dir_rel, report_only):
     for agg in aggregates:
         if not agg.lenient:
             strict_ids |= set(agg.rules)
+    proposed_all = {r for agg in aggregates for r, (_, rule) in agg.rules.items() if rule.get("status") == "proposed"}
+    proposed_strict = {r for r in proposed_all if r in strict_ids}
+    for agg in aggregates:
+        known_ids = all_ids if agg.lenient else strict_ids
+        try:
+            agg.check_usecases()
+            for rule_id, (name, rule) in sorted(agg.rules.items()):
+                agg.check_rule(rule_id, name, rule, known_ids)
+            agg.covered = agg.check_examples(known_ids, proposed_all if agg.lenient else proposed_strict)
+            agg.check_vocabulary()
+        except (TypeError, AttributeError, KeyError, ValueError) as error:
+            # 保險：結構不合法到上面的檢查沒預料到時，記成問題而不是讓整個檢查中止。
+            # 擋下的規格因此未通過；只列出的草稿不會讓 CI 失敗。
+            agg.error("結構", "內容的型別不合法，這個 aggregate 的檢查沒有做完（%s: %s）" % (type(error).__name__, error))
+    # 涵蓋：擋下的規則只算擋下的範例；草稿的規則算所有範例
+    covered_strict = {r for agg in aggregates if not agg.lenient for r in agg.covered}
+    covered_all = {r for agg in aggregates for r in agg.covered}
     report, failed = [], False
     strict_count = 0
     for agg in aggregates:
-        agg.check_usecases()
-        proposed = {r for r, (_, rule) in agg.rules.items() if rule.get("status") == "proposed"}
-        known_ids = all_ids if agg.lenient else strict_ids
-        for rule_id, (name, rule) in sorted(agg.rules.items()):
-            agg.check_rule(rule_id, name, rule, known_ids)
-        covered = agg.check_examples(known_ids, proposed)
-        agg.check_vocabulary()
+        covered = covered_all if agg.lenient else covered_strict
         uncovered = sorted(r for r in agg.rules if r not in covered)
         if uncovered:
             agg.notes.append("沒有任何範例涵蓋的規則（%d）：%s" % (len(uncovered), "、".join(uncovered)))
@@ -356,10 +433,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="規格格式檢查")
     parser.add_argument("--repo", default=".")
     parser.add_argument("--specs", default="specs", help="規格目錄（預設 specs）")
+    parser.add_argument("--manifest", default=DEFAULT_MANIFEST, help="律法清冊（預設 %s）" % DEFAULT_MANIFEST)
+    parser.add_argument("--design-docs", help="design_decision 出處要找的目錄")
+    parser.add_argument("--testing-docs", help="example、scenario 出處要找的目錄")
     parser.add_argument("--report-only", nargs="*", default=[], help="只列出問題、不讓檢查失敗的目錄")
     args = parser.parse_args(argv)
     try:
-        passed, report = lint(args.repo, args.specs, args.report_only)
+        passed, report = lint(args.repo, args.specs, args.report_only,
+                              args.manifest, args.design_docs, args.testing_docs)
     except NotEvaluated as error:
         print("規格檢查：無法評估 — %s" % error)
         return EXIT_NOT_EVALUATED

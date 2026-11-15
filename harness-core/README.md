@@ -49,6 +49,19 @@ GitLab CI 的範本尚未實作。
 
 實際的例子見所在專案的 `law/manifest.txt` 與 `law/README.md`。
 
+## 規格檢查要的設定
+
+`spec_lint.py` 不寫死任何專案路徑：
+
+| 設定 | 來源 |
+|---|---|
+| 裁決紀錄 | 清冊的 `@decision-log`（`--manifest` 指定清冊，預設 `law/manifest.txt`） |
+| 設計決策（`design_decision` 出處）所在的目錄 | `--design-docs` |
+| 驗收範例與情境（`example`、`scenario` 出處）所在的目錄 | `--testing-docs` |
+| 禁用的實作詞彙 | 規格目錄裡的 `forbidden-vocabulary.txt`，缺少時判定無法評估 |
+
+沒有設定 `--design-docs` 或 `--testing-docs` 時，用到該類出處的規則一律算問題，不會略過。
+
 ## 核准簽章
 
 清冊加上下列指示之後，修法 PR 除了結構檢查，還要有核准者的簽章才會通過：
