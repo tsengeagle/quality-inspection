@@ -262,6 +262,10 @@ public class ReviewCase {
         this.status = CaseStatus.REREVIEW_IN_PROGRESS;
     }
 
+    /**
+     * 複審提交：依 D-012／D-020 計算並保存 finalScore。
+     * 不結案、不固定，案件維持 REREVIEW_IN_PROGRESS（D-032、D-053 第 4 點）；結案由 {@link #closeAfterRereview()} 另行執行。
+     */
     public void completeRereview(BigDecimal rereviewScore,
                                   BigDecimal initialWeight,
                                   BigDecimal rereviewWeight) {
@@ -275,7 +279,21 @@ public class ReviewCase {
         this.finalScore = this.initialReviewScore.multiply(initialWeight)
                 .add(rereviewScore.multiply(rereviewWeight))
                 .setScale(2, java.math.RoundingMode.HALF_UP);
-        this.closedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 複審的獨立結案（D-034、D-053）。CLOSED 即代表複審結果已固定，不另設欄位（D-053 第 3 點）。
+     * 結案目標是否為目前有效的已提交複審結果、操作者是否為提交者，由 application 層在呼叫前檢查。
+     * 已結案或已取消回 CASE_TERMINAL（D-053 第 6 點）。結案時間由呼叫端傳入（ARCH-02）。
+     */
+    public void closeAfterRereview(LocalDateTime closedAt) {
+        Objects.requireNonNull(closedAt, "closedAt must not be null");
+        requireNotTerminal();
+        if (this.status != CaseStatus.REREVIEW_IN_PROGRESS) {
+            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+                    "Can only close after rereview in REREVIEW_IN_PROGRESS. Current: " + this.status);
+        }
+        this.closedAt = closedAt;
         this.status = CaseStatus.CLOSED;
     }
 

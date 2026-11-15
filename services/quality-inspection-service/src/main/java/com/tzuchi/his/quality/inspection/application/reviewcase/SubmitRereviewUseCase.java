@@ -123,7 +123,7 @@ public class SubmitRereviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("ReviewProject", reviewCase.getProjectId()));
         ProjectVersion version = project.getCurrentVersion();
 
-        // Complete rereview with weighted final score
+        // 計算並保存加權 finalScore；不結案（D-032、D-053 第 4 點），結案由 CloseRereviewUseCase 另行執行
         reviewCase.completeRereview(
                 result.getTotalScore(),
                 version.getInitialReviewWeight(),
@@ -140,7 +140,6 @@ public class SubmitRereviewUseCase {
                 submission.getSubmissionId(),
                 submission.getStatus().name(),
                 cmd.getCaseId(),
-                reviewCase.getStatus().name(),
-                reviewCase.getFinalScore());
+                reviewCase.getStatus().name());
     }
 }

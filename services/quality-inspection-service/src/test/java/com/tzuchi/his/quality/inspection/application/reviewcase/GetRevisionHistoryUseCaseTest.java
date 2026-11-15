@@ -121,7 +121,7 @@ class GetRevisionHistoryUseCaseTest {
             if (!phase.equals("progress")) own.submit();
             submissionRepo.save(own);
         }
-        if (phase.equals("closed")) rc.completeRereview(new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        if (phase.equals("closed")) { rc.completeRereview(new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")); rc.closeAfterRereview(LocalDateTime.now()); }
         RevisionHistoryView result = useCase.execute(rereviewer(), CASE_ID);
         assertNull(result.getEntries().get(0).getTotalScore());
         assertNull(result.getEntries().get(0).getComment());

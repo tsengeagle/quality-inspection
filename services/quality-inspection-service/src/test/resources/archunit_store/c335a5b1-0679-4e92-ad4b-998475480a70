@@ -14,7 +14,6 @@ Method <com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.assignRer
 Method <com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.assignReviewer(java.lang.String, java.time.LocalDateTime)> calls method <java.time.LocalDateTime.now()> in (ReviewCase.java:124)
 Method <com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.cancel(java.lang.String)> calls method <java.time.LocalDateTime.now()> in (ReviewCase.java:146)
 Method <com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.closeWithoutRereview()> calls method <java.time.LocalDateTime.now()> in (ReviewCase.java:206)
-Method <com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.completeRereview(java.math.BigDecimal, java.math.BigDecimal, java.math.BigDecimal)> calls method <java.time.LocalDateTime.now()> in (ReviewCase.java:278)
 Method <com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.reassignRereviewer(java.lang.String, java.time.LocalDateTime)> calls method <java.time.LocalDateTime.now()> in (ReviewCase.java:244)
 Method <com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.reassignReviewer(java.lang.String, java.time.LocalDateTime)> calls method <java.time.LocalDateTime.now()> in (ReviewCase.java:135)
 Method <com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission.createInitialDraft(java.lang.String, java.lang.String, java.lang.String, java.lang.String)> calls method <java.time.LocalDateTime.now()> in (ReviewSubmission.java:61)
