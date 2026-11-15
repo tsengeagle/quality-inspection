@@ -53,7 +53,7 @@ class ListReviewProjectsUseCaseTest {
 
     @Test
     void execute_noValidRole_shouldThrow() {
-        // REVIEWER／REREVIEWER 的唯讀範圍未定義（Q-12），在定義前不開放
+        // D-051：REVIEWER／REREVIEWER 不能讀取專案
         ActorContext actor = new ActorContext("u1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
@@ -64,7 +64,7 @@ class ListReviewProjectsUseCaseTest {
     @ParameterizedTest
     @EnumSource(value = DomainRole.class, names = {"REVIEWER", "REREVIEWER"})
     void execute_reviewerRoles_areDenied(DomainRole role) {
-        // D-043：REVIEWER／REREVIEWER 在定義前不開放
+        // D-051：REVIEWER／REREVIEWER 不能讀取專案
         queryPort.summaries.add(summary("p1", "H001"));
         ActorContext actor = new ActorContext("u1", role.name(), EnumSet.of(role), Optional.of("H001"));
 

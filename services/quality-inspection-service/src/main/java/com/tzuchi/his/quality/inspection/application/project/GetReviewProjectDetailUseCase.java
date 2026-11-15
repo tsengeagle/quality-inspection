@@ -19,7 +19,7 @@ public class GetReviewProjectDetailUseCase {
     }
 
     public ReviewProjectSummary execute(ActorContext actor, String projectId) {
-        // D-043: SYSTEM_ADMIN, HOSPITAL_MANAGER and AUDITOR may read. REVIEWER / REREVIEWER are undecided (Q-12).
+        // D-043: SYSTEM_ADMIN, HOSPITAL_MANAGER and AUDITOR may read. REVIEWER / REREVIEWER may not (D-051).
         actor.requireAnyRole(DomainRole.SYSTEM_ADMIN, DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR);
         ReviewProjectSummary summary = queryPort.findSummaryById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",

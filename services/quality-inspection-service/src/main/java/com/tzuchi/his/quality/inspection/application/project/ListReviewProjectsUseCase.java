@@ -24,7 +24,7 @@ public class ListReviewProjectsUseCase {
      *                   其他角色一律是自己的院區，這個參數不採用（D-042、D-047 第 2 點）。
      */
     public List<ReviewProjectSummary> execute(ActorContext actor, String hospitalId) {
-        // api-spec.md §7.7。REVIEWER／REREVIEWER 的唯讀範圍未定義（Q-12），在定義前不開放
+        // api-spec.md §7.7。REVIEWER／REREVIEWER 不能讀取專案（D-051）
         actor.requireAnyRole(DomainRole.SYSTEM_ADMIN, DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR);
         String scope = actor.readScopeHospitalId(hospitalId);
         return scope == null ? queryPort.findAll() : queryPort.findByHospitalId(scope);
