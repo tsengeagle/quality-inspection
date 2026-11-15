@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-15-q12-reviewer-read-scope",
+  "decision": "D-051",
+  "reason": "依負責人 2026-11-15 對 Q-12 的裁決（選項 A）新增 D-051：REVIEWER／REREVIEWER 不能讀取專案列表、專案詳情、抽選批次列表、抽選批次詳情，審查所需資訊從被指派的案件取得。api-spec.md §7.7、§9.5、§9.6 的「唯讀必要範圍」改為明確不開放（§7.8 沿用 §7.7）。specs/review-project：GetReviewProjectDetail 移除指向 Q-12 的 actor.open，sources 補 D-051；OPEN-QUESTIONS.md 刪除 Q-12；新增 2 個範例（rejects_project_detail_for_a_reviewer、rejects_project_detail_for_a_rereviewer），本機執行通過。specs/README.md 的現況同步。現行程式已經拒絕這兩個角色，不需要修改程式。 合併 main（#28、#33）時解掉 decision-log.md 的衝突，D-050、D-051、D-052 依編號排列；並依 D-052 的約定，在 docs/harness/07-github-settings.md 的例外紀錄補上驗證結果：#28 以備援金鑰簽章，law-check 與合併後的 law-check (post-merge) 都通過。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/",
+    "docs/01-requirements/decision-log.md",
+    "law/"
+  ]
+}

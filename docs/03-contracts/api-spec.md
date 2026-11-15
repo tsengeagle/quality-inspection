@@ -376,7 +376,7 @@ Accept: application/json
 * `SYSTEM_ADMIN`
 * `HOSPITAL_MANAGER`
 * `AUDITOR`
-* `REVIEWER` / `REREVIEWER` 僅限唯讀必要範圍
+* `REVIEWER` / `REREVIEWER` 不開放（D-051）
 
 #### Query Params
 
@@ -709,7 +709,7 @@ Accept: application/json
 * `HOSPITAL_MANAGER`
 * `AUDITOR`
 * `SYSTEM_ADMIN` 僅 metadata
-* 其他角色唯讀必要範圍
+* `REVIEWER` / `REREVIEWER` 不開放（D-051）
 
 #### Query Params
 
@@ -732,7 +732,7 @@ Accept: application/json
 * `SYSTEM_ADMIN`：metadata only
 * `HOSPITAL_MANAGER`
 * `AUDITOR`：授權範圍內
-* 其他角色依必要範圍唯讀
+* `REVIEWER` / `REREVIEWER` 不開放（D-051）
 
 ---
 

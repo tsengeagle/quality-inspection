@@ -55,7 +55,7 @@ Legend: `Y` 可進入、`R` 僅唯讀/有限視角、`N` 不可進入
 | Page | SYSTEM_ADMIN | HOSPITAL_MANAGER | REVIEWER | REREVIEWER | AUDITOR |
 |---|---:|---:|---:|---:|---:|
 | UI-006 抽選執行頁 | N | Y | N | N | N |
-| UI-007 抽選批次列表頁 | R (metadata) | Y | R | R | Y |
+| UI-007 抽選批次列表頁 | R (metadata) | Y | N（D-051） | N（D-051） | Y |
 | UI-009 案件列表頁 | R (metadata) | Y | Y | Y | Y |
 | UI-010 案件詳情頁 | R (metadata) | Y | Y (合法範圍) | Y (合法範圍) | Y |
 | UI-011 案件分派頁 | N | Y | N | N | N |

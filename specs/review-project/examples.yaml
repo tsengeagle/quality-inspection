@@ -10,6 +10,7 @@ actors:
   manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
   manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
   reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+  rereviewer_h1: { user: u-rr1, roles: [REREVIEWER],   hospital: H-01 }
 
 # 可重複使用的準備步驟。
 fixtures:
@@ -517,6 +518,38 @@ examples:
         expect: { result: SUCCESS, output: { status: ACTIVE } }
 
 # 這些規則目前沒有辦法用範例驗證，原因各自列出。
+  # ---------- D-051：REVIEWER／REREVIEWER 不能讀專案 ----------
+  #
+  # 用途：讓 D-051「不開放」有可執行的驗證，而不只是文件上的一句話。
+  # - 能抓到的是實作端放寬：程式的角色檢查若開放這兩個角色，這兩個範例會變紅。
+  # - 抓不到的是只改規格：執行器不讀 actor.roles，只執行程式並比對 then。只把角色加進
+  #   actor.roles 而不改程式，這兩個範例仍然通過；那種修改要靠修法審查發現（規格與範例會互相矛盾）。
+  # - 2026-11-15 加入時程式已經拒絕這兩個角色，所以一加入就通過，不在已知失敗清單上。
+  # - 只涵蓋專案詳情。其餘三支不在 specs/review-project 的範圍內，由實作端的測試涵蓋（PR #32）：
+  #   專案列表、抽選批次列表與詳情都有 REVIEWER、REREVIEWER 被拒的參數化測試
+  #   （ListReviewProjectsUseCaseTest、SamplingUseCaseTest；詳情包含存在與不存在的批次）。
+  # - 日後若重新裁決、開放某個範圍，要同時修改或刪除這兩個範例。
+
+  - name: rejects_project_detail_for_a_reviewer
+    basis: [RP-G-01]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectDetail
+      as: reviewer_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_project_detail_for_a_rereviewer
+    basis: [RP-G-01]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectDetail
+      as: rereviewer_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
 not_covered:
   - rules: [emits]
     reason: >
