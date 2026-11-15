@@ -1,0 +1,26 @@
+# 換行規則。這個檔案是律法（law/manifest.txt），修改需要修法紀錄與簽章。
+#
+# 版本庫裡一律存 LF；簽出到工作目錄時，除了 Windows 的批次檔之外也一律是 LF，
+# 不隨各人電腦上的 core.autocrlf 設定而變。理由：
+# - 凍結基線、已知失敗清單、律法清冊是逐行比對的文字檔，換行不能因人而異。
+# - gradlew 這類 shell 腳本在 Windows 上被轉成 CRLF 之後，從 Git Bash 或 WSL 執行會失敗。
+# 判決程式算內容雜湊時讀的是版本庫裡的內容，不受工作目錄的換行影響。
+
+* text=auto eol=lf
+
+# Windows 的批次檔要用 CRLF，cmd 對 LF 的處理不可靠（例如 goto 與標籤）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二進位檔，不做任何轉換
+*.jar   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.zip   binary
+*.woff  binary
+*.woff2 binary
