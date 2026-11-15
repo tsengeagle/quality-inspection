@@ -19,6 +19,7 @@
 | `law_check.py` | 判決程式。只用 Python 標準函式庫與 git |
 | `law_approve.py` | 核准工具。核准者在自己的電腦上執行，對修法的內容雜湊簽章 |
 | `APPROVING.md` | 核准者指引：準備實體金鑰、登記公鑰、每次怎麼核准 |
+| `spec_lint.py` | 規格格式的檢查程式（格式見所在專案的 `specs/README.md`）。需要 PyYAML |
 | `tests/` | 判決程式與核准工具的測試 |
 | `ci/github/law-check.yml` | GitHub Actions 的 workflow 範本 |
 | `VERSION` | 版本號 |
