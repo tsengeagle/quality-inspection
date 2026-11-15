@@ -12,6 +12,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.Submission
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.DraftContent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
@@ -90,6 +91,19 @@ public class SaveInitialReviewDraftUseCase {
         if (submission.getStatus() != SubmissionStatus.DRAFT) {
             throw new DomainStateConflictException("SUBMISSION_NOT_DRAFT",
                     "Submission must be DRAFT");
+        }
+
+        // D-038、D-044：原有檢查都通過之後，業務內容沒有變更就拒絕，不寫入、不發事件
+        List<AnswerItem> incoming = answers == null ? Collections.emptyList() : answers.stream()
+                .filter(Objects::nonNull)
+                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                .collect(Collectors.toList());
+        List<AnswerItem> current = submission.getAnswerSet().stream()
+                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                .collect(Collectors.toList());
+        // 初審的分數由系統依答案計算，不是輸入，所以只比答案與評語
+        if (new DraftContent(incoming, null, comment).sameAs(new DraftContent(current, null, submission.getComment()))) {
+            throw new DomainStateConflictException("NO_CHANGES", "Draft content is unchanged");
         }
 
         // If no answers, update with empty + zero

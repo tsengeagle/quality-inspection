@@ -217,6 +217,40 @@ describe('InitialReviewPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('初審草稿已保存。');
   });
 
+  it('shows already up to date when the initial draft has no changes (D-044)', () => {
+    render(buildDetail({
+      status: 'INITIAL_REVIEW_IN_PROGRESS',
+      initialReviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_INITIAL_REVIEW_DRAFT', 'SUBMIT_INITIAL_REVIEW'],
+        currentSubmission: { submissionId: 'SUB-DRAFT-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-DRAFT-001', version: 1, status: 'DRAFT' }
+      }
+    }));
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
+    casesService.saveInitialReviewDraft.and.returnValue(of({ noChanges: true }));
+
+    setInputValue('[data-testid="initial-review-answer-input-0"]', 'N');
+    setInputValue('[data-testid="initial-review-comment-input"]', 'page state draft comment');
+
+    getButtonByText('保存草稿')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.getSubmissionDetail).toHaveBeenCalledWith('SUB-DRAFT-001');
+    expect(casesService.saveInitialReviewDraft).toHaveBeenCalledWith('CASE-012', {
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'page state draft comment'
+    });
+    expect(fixture.nativeElement.textContent).toContain('草稿已是最新，沒有需要保存的變更。');
+    expect(fixture.nativeElement.textContent).not.toContain('初審草稿已保存。');
+  });
+
   it('submits initial review after persisting page form state into draft payload', () => {
     render(buildDetail({
       status: 'INITIAL_REVIEW_IN_PROGRESS',
@@ -235,6 +269,47 @@ describe('InitialReviewPageComponent', () => {
     }));
     casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
     casesService.saveInitialReviewDraft.and.returnValue(of({ submissionId: 'SUB-DRAFT-001', status: 'DRAFT', stage: 'INITIAL', totalScore: 5 }));
+    casesService.submitInitialReview.and.returnValue(of({
+      submissionId: 'SUB-DRAFT-001',
+      caseId: 'CASE-012',
+      caseStatus: 'PENDING_REREVIEW',
+      status: 'SUBMITTED',
+      totalScore: 90,
+      rereviewRequired: true
+    }));
+
+    setInputValue('[data-testid="initial-review-answer-input-0"]', 'N');
+    setInputValue('[data-testid="initial-review-comment-input"]', 'submit from page state');
+
+    getButtonByText('提交初審')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.saveInitialReviewDraft).toHaveBeenCalledWith('CASE-012', {
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'submit from page state'
+    });
+    expect(casesService.submitInitialReview).toHaveBeenCalledWith('CASE-012');
+    expect(fixture.nativeElement.textContent).toContain('初審已提交，案件已送往複審。');
+  });
+
+  it('still submits when the draft saved before submit has no changes (D-044)', () => {
+    render(buildDetail({
+      status: 'INITIAL_REVIEW_IN_PROGRESS',
+      initialReviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_INITIAL_REVIEW_DRAFT', 'SUBMIT_INITIAL_REVIEW'],
+        currentSubmission: { submissionId: 'SUB-DRAFT-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-DRAFT-001', version: 1, status: 'DRAFT' }
+      }
+    }));
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
+    casesService.saveInitialReviewDraft.and.returnValue(of({ noChanges: true }));
     casesService.submitInitialReview.and.returnValue(of({
       submissionId: 'SUB-DRAFT-001',
       caseId: 'CASE-012',

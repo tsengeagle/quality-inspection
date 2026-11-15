@@ -249,7 +249,7 @@ export class InitialReviewPageComponent implements OnInit {
 
     this.executeCommand(
       this.casesService.saveInitialReviewDraft(this.caseId, this.buildInitialPayloadFromState()),
-      () => '初審草稿已保存。'
+      result => result.noChanges ? '草稿已是最新，沒有需要保存的變更。' : '初審草稿已保存。'
     );
   }
 

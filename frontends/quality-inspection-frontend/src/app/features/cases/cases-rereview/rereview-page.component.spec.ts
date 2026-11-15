@@ -244,6 +244,48 @@ describe('RereviewPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('複審草稿已保存。');
   });
 
+  it('shows already up to date when the rereview draft has no changes (D-044)', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        closedRevisionException: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_REREVIEW_DRAFT', 'SUBMIT_REREVIEW'],
+        currentSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+        initialTotalScore: 79,
+        finalConclusion: 'PENDING_FINAL_DECISION'
+      }
+    }));
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
+    casesService.saveRereviewDraft.and.returnValue(of({ noChanges: true }));
+
+    setInputValue('[data-testid="rereview-answer-input-0"]', 'N');
+    setInputValue('[data-testid="rereview-comment-input"]', 'draft from page state');
+    setInputValue('[data-testid="rereview-total-score-input"]', '91');
+
+    getButtonByText('保存複審草稿')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.saveRereviewDraft).toHaveBeenCalledWith('CASE-013', {
+      submissionId: 'SUB-REREVIEW-001',
+      answers: [{ itemId: 'ITEM-1', answerValue: 'N' }],
+      comment: 'draft from page state',
+      totalScore: 91
+    });
+    expect(fixture.nativeElement.textContent).toContain('草稿已是最新，沒有需要保存的變更。');
+    expect(fixture.nativeElement.textContent).not.toContain('複審草稿已保存。');
+  });
+
   it('submits rereview with page form state while leaving totalScore out of submit payload', () => {
     render(buildDetail({
       status: 'REREVIEW_IN_PROGRESS',

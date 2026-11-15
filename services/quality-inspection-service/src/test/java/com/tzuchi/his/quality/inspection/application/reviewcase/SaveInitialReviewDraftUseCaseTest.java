@@ -182,11 +182,26 @@ class SaveInitialReviewDraftUseCaseTest {
         seedReviewCase();
         seedDraftSubmission();
 
-        SaveDraftResult result = useCase.execute(reviewer(), CASE_ID, Collections.emptyList(), null);
+        // 評語有變更，才不會被判為無變更（D-038）；本測試驗證的是空白答案得 0 分
+        SaveDraftResult result = useCase.execute(reviewer(), CASE_ID, Collections.emptyList(), "cleared");
 
         assertEquals(BigDecimal.ZERO, result.getTotalScore());
         assertEquals("DRAFT", result.getStatus());
         assertEquals("INITIAL", result.getStage());
+    }
+
+    @Test
+    void execute_unchangedBlankDraft_isRejectedWithNoChanges() {
+        // D-038、D-044：空白草稿再存一次空白答案（評語 null 與空字串視為相同），不寫入、不發事件
+        seedPublishedScoreSheet();
+        seedReviewCase();
+        seedDraftSubmission();
+
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> useCase.execute(reviewer(), CASE_ID, Collections.emptyList(), ""));
+
+        assertEquals("NO_CHANGES", e.getErrorCode());
+        assertTrue(eventPublisher.events.isEmpty());
     }
 
     @Test
