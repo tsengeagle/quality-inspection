@@ -103,5 +103,14 @@ class DraftContentTest {
         assertTrue(draft(List.of(raw("Q1", "true"), scored("Q1", "true", "1")), null, "c")
                 .sameAs(draft(List.of(scored("Q1", "true", "1"), raw("Q1", "true")), null, "c")));
     }
+
+    @Test
+    void extremeScalesDoNotOverflow() {
+        // BigDecimal("100e2147483647") 建得起來，但 stripTrailingZeros() 會讓 scale 溢位（Copilot 審查）
+        DraftContent a = draft(List.of(raw("Q1", "100e2147483647"), raw("Q1", "1")), null, "c");
+        DraftContent b = draft(List.of(raw("Q1", "1"), raw("Q1", "100e2147483647")), null, "c");
+        assertTrue(a.sameAs(b));
+        assertFalse(a.sameAs(draft(List.of(raw("Q1", "1"), raw("Q1", "1e2147483647")), null, "c")));
+    }
 }
 

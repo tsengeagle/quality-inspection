@@ -33,9 +33,11 @@ public final class DraftContent {
                 }
             }
         }
-        // 排序鍵要涵蓋逐筆比較的所有欄位（題目 id、答案值、分數），否則同一題目的多筆答案換個順序就會被誤判為有變更
+        // 排序要涵蓋逐筆比較的所有欄位（題目 id、答案值、分數），否則同一題目的多筆答案換個順序就會被誤判為有變更。
+        // 數字一律用 compareTo 排序，不轉成字串：toPlainString() 會展開大指數（記憶體耗盡），
+        // stripTrailingZeros() 遇到極端的 scale 會溢位（ArithmeticException）。
         list.sort(Comparator.comparing((Answer a) -> text(a.itemId))
-                .thenComparing(a -> a.sortKey)
+                .thenComparing(Answer::compareValue)
                 .thenComparing(a -> a.derivedScore, Comparator.nullsFirst(BigDecimal::compareTo)));
         this.answers = Collections.unmodifiableList(list);
         this.totalScore = totalScore;
@@ -93,19 +95,25 @@ public final class DraftContent {
         private final String itemId;
         private final String value;
         private final BigDecimal derivedScore;
-        /**
-         * 同一題目 id 內的排序鍵：數字依數值正規化，讓 "20" 與 "20.0" 排在同一位置。
-         * 用 stripTrailingZeros().toString()（科學記號），不能用 toPlainString()：
-         * 後者會把 1e999999999 展開成十億個字元，一個小請求就能耗盡記憶體。
-         */
-        private final String sortKey;
+        /** 答案值是數字時的數值；不是數字時為 null。 */
+        private final BigDecimal numeric;
 
         private Answer(String itemId, String value, BigDecimal derivedScore) {
             this.itemId = itemId;
             this.value = value;
             this.derivedScore = derivedScore;
-            BigDecimal n = number(value);
-            this.sortKey = n != null ? "n:" + n.stripTrailingZeros().toString() : "t:" + text(value);
+            this.numeric = number(value);
+        }
+
+        /** 同一題目 id 內的答案值順序：數字排在文字前面；數字依數值（"20" 與 "20.0" 相等），文字依字串。 */
+        private int compareValue(Answer other) {
+            if (numeric != null && other.numeric != null) {
+                return numeric.compareTo(other.numeric);
+            }
+            if (numeric != null || other.numeric != null) {
+                return numeric != null ? -1 : 1;
+            }
+            return text(value).compareTo(text(other.value));
         }
 
         private boolean sameAs(Answer other) {
