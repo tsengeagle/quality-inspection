@@ -399,7 +399,8 @@ law/allowed_signers    gate
         self.assertEqual("git switch fix-rule", steps[0])
         self.assertEqual("git pull", steps[1])
         self.assertTrue(steps[2].startswith("cp ") and "2026-01-01-change.owner.approval.json" in steps[2], steps)
-        self.assertIn('git commit -m "approve: 2026-01-01-change"', steps)
+        head = self.git("rev-parse", "HEAD").strip()
+        self.assertIn('git commit -m "approve: 2026-01-01-change @ %s"' % head[:12], steps)
         self.assertEqual("git switch main", steps[-1])
         self.assertNotIn("&&", result.stdout)
 
@@ -477,6 +478,81 @@ law/allowed_signers    gate
         passed, report = self.verdict()
         self.assertFalse(passed, report)
         self.assertIn("簽的是另一份內容", report)
+
+    # --- reviewed_commit：核准者檢查的是哪個 commit ---
+
+    APPROVAL = "law/amendments/2026-01-01-change.owner.approval.json"
+
+    def edit_approval(self, **fields):
+        path = os.path.join(self.repo, self.APPROVAL)
+        with open(path, encoding="utf-8") as f:
+            approval = json.load(f)
+        for key, value in fields.items():
+            if value is None:
+                approval.pop(key, None)
+            else:
+                approval[key] = value
+        self.write({self.APPROVAL: json.dumps(approval, ensure_ascii=False, indent=2) + "\n"})
+        return self.commit("edit approval")
+
+    def test_approval_records_the_commit_that_was_reviewed(self):
+        reviewed = self.amend()
+        self.approve()
+        with open(os.path.join(self.repo, self.APPROVAL), encoding="utf-8") as f:
+            self.assertEqual(reviewed, json.load(f)["reviewed_commit"])
+
+    def test_approval_without_reviewed_commit_fails(self):
+        self.amend()
+        self.approve()
+        self.edit_approval(reviewed_commit=None)
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("沒有 reviewed_commit", report)
+
+    def test_malformed_or_unknown_reviewed_commit_fails(self):
+        self.amend()
+        self.approve()
+        for value, message in (("abc123", "必須是完整的 commit id"), (["x"], "必須是完整的 commit id"),
+                               ("0" * 40, "不存在")):
+            with self.subTest(value=value):
+                self.edit_approval(reviewed_commit=value)
+                passed, report = self.verdict()
+                self.assertFalse(passed, report)
+                self.assertIn(message, report)
+
+    def test_reviewed_commit_outside_the_change_history_fails(self):
+        # 另一條分支上有內容完全相同的 commit：內容對得上，但它不是這次修改的一部分
+        self.amend()
+        self.approve()
+        self.git("checkout", "-q", "-b", "side", self.base)
+        path, content = record()
+        self.write({"rules/Rule.java": "class Rule { boolean strict = false; }\n", path: content})
+        side = self.commit("same amendment on another branch")
+        self.git("checkout", "-q", "change")
+        self.edit_approval(reviewed_commit=side)
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("不在這次修改的歷史裡", report)
+
+    def test_reviewed_commit_with_other_content_fails(self):
+        # 改成歷史裡、但內容不同的 commit（base 還沒有這次的修法）
+        self.amend()
+        self.approve()
+        self.edit_approval(reviewed_commit=self.base)
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("的內容不是簽章簽的那一份", report)
+
+    def test_change_reverted_after_approval_keeps_it_valid(self):
+        # 核准之後改了律法又改回來：最後的內容就是核准者看過、簽過的那一份
+        self.amend()
+        self.approve()
+        self.write({"rules/Rule.java": "class Rule { boolean strict = true; }\n"})
+        self.commit("change after approval")
+        self.write({"rules/Rule.java": "class Rule { boolean strict = false; }\n"})
+        self.commit("revert it")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
 
     def test_signature_made_for_another_purpose_fails(self):
         # 同一把金鑰、同一段內容，但簽章的用途標記不是 law-amendment

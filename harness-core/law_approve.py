@@ -137,17 +137,18 @@ def main(argv=None):
     os.makedirs(out_dir, exist_ok=True)
     target = os.path.join(out_dir, name)
     with open(target, "w", encoding="utf-8", newline="\n") as f:
+        # reviewed_commit 不在簽章裡；判決程式會驗證它存在、在修改的歷史裡、內容就是簽的那一份
         json.dump({"amendment": record_id, "scheme": "ssh", "signer": args.signer, "digest": digest,
-                   "signature": signature}, f, ensure_ascii=False, indent=2)
+                   "reviewed_commit": head, "signature": signature}, f, ensure_ascii=False, indent=2)
         f.write("\n")
     destination = os.path.join(os.path.dirname(record_path), name)
     print("已寫入核准檔：%s" % target)
-    for line in next_steps(args.head, target, destination, record_id):
+    for line in next_steps(args.head, target, destination, record_id, head):
         print(line)
     return 0
 
 
-def next_steps(head, target, destination, record_id):
+def next_steps(head, target, destination, record_id, reviewed_commit):
     """簽完之後要執行的指令，填好實際的分支與檔名，一行一個指令。
 
     不用 && 串起來：串起來時前一個指令失敗（例如沒有東西可以 commit），後面的會被略過，畫面上卻不明顯。
@@ -161,7 +162,7 @@ def next_steps(head, target, destination, record_id):
         "  git pull",
         '  cp "%s" "%s"' % (target, destination),
         '  git add "%s"' % destination,
-        '  git commit -m "approve: %s"' % record_id,
+        '  git commit -m "approve: %s @ %s"' % (record_id, reviewed_commit[:12]),
         "  git push",
         "  git switch main",
         "",

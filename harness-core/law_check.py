@@ -209,7 +209,30 @@ def verify_ssh(approvers_text, signer, message, signature):
 VERIFIERS = {"ssh": verify_ssh}
 
 
-def check_approvals(repo, base, head, manifest, record_id, digest, approval_paths):
+COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?$")
+
+
+def reviewed_commit_problem(repo, head, reviewed, digest, record_path, law_paths):
+    """核准檔的 reviewed_commit 有問題時回傳說明，沒問題回傳 None。
+
+    reviewed_commit 是核准者檢查與簽章時，修法分支最新的 commit。它不在簽章裡，
+    簽章只綁內容；但這裡驗證它確實存在、在這次修改的歷史裡，而且它的內容就是簽章簽的那一份。
+    所以這個欄位被改掉的話，只能改成另一個內容完全相同的 commit，不能用來偽造「看過什麼」。
+    """
+    if reviewed is None:
+        return "沒有 reviewed_commit（核准者檢查的是哪個 commit）。請用核准工具 0.3.0 以上重新核准"
+    if not isinstance(reviewed, str) or not COMMIT_PATTERN.match(reviewed):
+        return "reviewed_commit 必須是完整的 commit id（40 或 64 個小寫十六進位字元），實際是 %r" % (reviewed,)
+    if git(repo, "cat-file", "-e", reviewed + "^{commit}", check=False).returncode != 0:
+        return "reviewed_commit %s 不存在" % reviewed[:12]
+    if git(repo, "merge-base", "--is-ancestor", reviewed, head, check=False).returncode != 0:
+        return "reviewed_commit %s 不在這次修改的歷史裡" % reviewed[:12]
+    if amendment_digest(repo, reviewed, record_path, law_paths) != digest:
+        return "reviewed_commit %s 的內容不是簽章簽的那一份" % reviewed[:12]
+    return None
+
+
+def check_approvals(repo, base, head, manifest, record_id, digest, approval_paths, record_path=None, law_paths=()):
     """回傳 (有效的核准者集合, 無效核准的說明清單)。核准者清單讀 base 上的版本。"""
     valid, problems = set(), []
     message = signed_message(digest)
@@ -237,10 +260,14 @@ def check_approvals(repo, base, head, manifest, record_id, digest, approval_path
             if approvers_text is None:
                 raise NotEvaluated("base 上沒有核准者清單 %s" % manifest.approvers[scheme])
             ok, detail = VERIFIERS[scheme](approvers_text, signer, message, signature)
-            if ok:
-                valid.add((scheme, signer))
-            else:
+            reviewed = reviewed_commit_problem(repo, head, approval.get("reviewed_commit"), digest,
+                                               record_path, law_paths) if ok else None
+            if not ok:
                 problems.append("%s：簽章無效（%s）" % (path, detail))
+            elif reviewed:
+                problems.append("%s：%s" % (path, reviewed))
+            else:
+                valid.add((scheme, signer))
     return valid, problems
 
 
@@ -371,7 +398,8 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
         checks.append(("有 %d 個有效的核准簽章" % manifest.approvals_required, False, "修法紀錄不合格，無從核對"))
     else:
         mine = [p for p in added_approvals if p not in stray]
-        valid, problems = check_approvals(repo, base, head_sha, manifest, record_id, digest, mine)
+        valid, problems = check_approvals(repo, base, head_sha, manifest, record_id, digest, mine,
+                                          added_records[0], [p for p, _, _ in needs_amendment])
         detail = "有效 %d 個" % len(valid)
         if problems:
             detail += "；" + "；".join(problems)
