@@ -44,27 +44,13 @@ def find_amendment(repo, base, head, manifest_path):
     if text is None:
         raise law_check.NotEvaluated("base（%s）上沒有 %s" % (base, manifest_path))
     manifest = law_check.Manifest(text)
-    start = law_check.git(repo, "merge-base", base, head).stdout.decode().strip()
-    records, law_paths = [], []
-    for status, path in law_check.changed_files(repo, start, head):
-        if path.startswith(manifest.amendments_dir) and path.endswith(law_check.APPROVAL_SUFFIX):
-            continue
-        if path.startswith(manifest.amendments_dir) and path.endswith(".json"):
-            if status == "A":
-                records.append(path)
-            continue
-        law_class = manifest.classify(path)
-        if law_class is None:
-            continue
-        counts = law_check.line_counts(repo, start, head, path)
-        if law_class == "baseline" and status == "M" and counts is not None and counts[0] == 0:
-            continue
-        law_paths.append(path)
+    # 和判決程式用同一個函式認定修法內容
+    records, law_paths = law_check.amendment_content(repo, manifest, base, head)
     if len(records) != 1:
         raise law_check.NotEvaluated("要有且只有一筆新增的修法紀錄，找到 %d 筆" % len(records))
     record_id = records[0][len(manifest.amendments_dir):-len(".json")]
     digest = law_check.amendment_digest(repo, head, records[0], law_paths)
-    return records[0], record_id, sorted(law_paths), digest
+    return records[0], record_id, law_paths, digest
 
 
 def refuse_untrusted_copy(repo, base):

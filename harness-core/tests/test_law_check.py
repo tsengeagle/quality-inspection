@@ -543,6 +543,31 @@ law/allowed_signers    gate
         self.assertFalse(passed, report)
         self.assertIn("的內容不是簽章簽的那一份", report)
 
+    def test_earlier_commit_that_also_changed_a_reverted_law_file_fails(self):
+        # 較早的 commit 多改了另一個律法檔（後來還原）。它和簽的內容不同，不能冒充被核准的 commit
+        path, content = record()
+        self.write({"rules/Rule.java": "class Rule { boolean strict = false; }\n",
+                    "rules/Other.java": "class Other { int x = 2; }\n", path: content})
+        earlier = self.commit("amend two law files")
+        self.write({"rules/Other.java": None})
+        self.commit("revert the second law file")
+        self.approve()
+        self.edit_approval(reviewed_commit=earlier)
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("的內容不是簽章簽的那一份", report)
+
+    def test_tag_id_is_not_accepted_as_reviewed_commit(self):
+        reviewed = self.amend()
+        self.approve()
+        self.git("tag", "-a", "-m", "points at the reviewed commit", "reviewed-tag", reviewed)
+        tag_id = self.git("rev-parse", "reviewed-tag").strip()
+        self.assertNotEqual(reviewed, tag_id)
+        self.edit_approval(reviewed_commit=tag_id)
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("不是 commit（是 tag）", report)
+
     def test_merge_commit_keeps_the_approval_valid_after_merging(self):
         # 合併後的檢查：base 到 merge commit。被核准的 commit 在 merge commit 的歷史裡
         self.amend()
