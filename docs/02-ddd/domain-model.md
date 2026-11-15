@@ -635,7 +635,7 @@ BatchStatus:
 * `completeInitialReview(...)` 的語意是初審提交完成，不自動固定、進複審或結案；固定後才依 D-019 保留的閾值分支推進。固定僅限目前有效初審結果的合法提交醫師（DD-03）；method 與狀態表示 UNKNOWN。
 * `assignRereviewer(...)`／`startRereview()` 與複審提交均須以已固定初審結果為基礎。
 * `completeRereview(...)` 僅表示複審提交完成及計分，不再導致 CLOSED。
-* 合法複審提交且無其他既有阻擋條件即具資格；正式結案由目前有效合法複審結果的提交醫師另行執行 Close Command（D-034），同時固定尚未固定的複審結果。獨立結案 method 與狀態表示 unknown。
+* 合法複審提交且無其他既有阻擋條件即具資格；正式結案由目前有效合法複審結果的提交醫師另行執行 Close Command（D-034），同時固定尚未固定的複審結果。提交後案件維持 `REREVIEW_IN_PROGRESS`，`CLOSED` 即代表複審結果已固定；API 與錯誤代碼見 D-053。domain method 名稱 unknown。
 * `closeWithoutRereview(...)` 僅適用已固定初審且不需複審，由院方管理者觸發。
 * ReviewCase 保護流程與有效結果關聯；ReviewSubmission 維持獨立 aggregate，保護提交、append-only 與固定後不可修訂。application service 協調同一業務操作的結果一致性，不直接定義規則。
 * 閾值判斷使用固定初審結果，複審 revision 不改變該輸入；finalScore 使用 D-012／020 原公式、原版本權重，默認各 0.5。

@@ -1914,3 +1914,48 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 ### Mapping
 
 `law/allowed_signers`、`law/amendments/2026-11-15-backup-approval-key.json`、`docs/harness/07-github-settings.md` 的例外紀錄。
+
+---
+
+## D-053 — 複審結案命令的 API、固定的表示方式與錯誤代碼
+
+### Status
+
+`accepted`（2026-11-15，依使用者裁決，第 1～8 點全部採建議）
+
+### Decision
+
+補足 D-032、D-034 列為 UNKNOWN 的技術契約：
+
+1. **API**：`POST /review-cases/{caseId}/rereview/submissions/{submissionId}/close`，不需要請求內容。路徑上的 `submissionId` 是要結案的有效複審結果（D-034 第 4 點：明確辨識結案目標，不得偷偷改用新版）。
+2. **回應**：`{ caseId, caseStatus: "CLOSED", submissionId }`。不回傳 `finalScore` 或任何可反推初審分數的資訊（D-033）。
+3. **固定的表示方式**：案件變成 `CLOSED`，就代表複審結果已固定，不另外新增欄位。有效版本是結案當下案件的 `latestRereviewSubmissionId`；結案時間記在既有的 `closedAt`，操作者記在稽核事件。`CLOSED` 之後本來就禁止所有 revision、新提交與 reopen（D-032），固定的效果由此達成。
+4. **提交後、結案前的狀態**：案件維持 `REREVIEW_IN_PROGRESS`，最新的複審提交為 `SUBMITTED`。不新增案件狀態（D-032）。`finalScore` 在提交與 revision 時依 D-012／D-020 計算並保存，只是不回傳給複審醫師。
+5. **錯誤代碼**：全部沿用既有代碼，不新增。檢查順序依 D-024：角色 → 載入 → 院區 → 領域規則。
+
+   | 情況 | 代碼 |
+   |---|---|
+   | 不是 `REREVIEWER` | `ROLE_DENIED` |
+   | 案件或提交不存在 | 既有的資源不存在代碼 |
+   | 院區不符 | `HOSPITAL_SCOPE_MISMATCH` |
+   | 案件已是 `CLOSED` 或 `CANCELLED` | `CASE_TERMINAL` |
+   | 案件不在 `REREVIEW_IN_PROGRESS` | `CASE_NOT_REREVIEW_IN_PROGRESS` |
+   | 結案目標不屬於本案、不是複審階段，或不是目前有效版本（已被取代、過期） | `CONFLICT` |
+   | 結案目標仍是草稿 | `SUBMISSION_NOT_SUBMITTED` |
+   | 操作者不是這份有效結果的提交者 | `NOT_SUBMISSION_OWNER` |
+
+6. **重複結案**：已 `CLOSED` 的案件再次結案，回 `CASE_TERMINAL`，不視為成功。前端收到時重新整理畫面。
+7. **結案與 revision**：依路徑上的 `submissionId` 檢查是否仍是目前有效版本。revision 已先完成，舊版的結案就回 `CONFLICT`；結案已先完成，revision 依既有規則以 `CASE_TERMINAL` 拒絕。兩者真正同時發生的競爭，要靠 D-045 的樂觀鎖才能完全擋住；D-045 的落地仍被擋住（正式資料庫與 migration 工具未定），這是已知的剩餘風險。
+8. **前端**：複審頁在「最新的複審提交為 `SUBMITTED`，且登入者是它的提交者」時顯示「結案」按鈕；結案成功後顯示已結案，畫面不顯示 `finalScore`。
+
+### Relationship / Evidence
+
+- 補足 D-032（複審已提交未結案的狀態表示、獨立結案 binding、固定的持久化）與 D-034（Contract Boundary 列出的 binding、schema、錯誤代碼、重複 close 回應）的 UNKNOWN。D-032、D-034 的業務規則不變。
+- 第 2 點與 D-033 一致。現行的複審提交回應會把 `finalScore` 回給複審醫師，違反 D-033；`RereviewApiTest#fullRereviewFlow` 還預期這個欄位存在。這兩處在實作時一併修正，不需要另外裁決。
+- 第 3 點不新增欄位，因此不受 D-045「正式資料庫與 migration 工具未定前不得新增欄位」限制。
+- 第 5 點的代碼都是現有複審提交與複審 revision 已在使用的代碼。
+- 不在本決策範圍：初審的「固定」（D-031、DD-03）在程式裡同樣尚未實作，另案處理。
+
+### Mapping
+
+`docs/03-contracts/api-spec.md` 的「D-034 複審獨立 Close Command 對齊」；`docs/02-ddd/state-machine.md` 的複審提交與結案轉移；已知失敗清單上的 `SubmitRereviewUseCaseTest#execute_submitMustNotCloseCase_D032`、`RereviewApiTest#fullRereviewFlow`。

@@ -1160,7 +1160,7 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * 提交成功形成 SUBMITTED 複審結果，不自動固定或 CLOSED。
 * 合法提交且無其他既有阻擋條件即具結案資格；資格不等於已結案。原複審提交者另行決定正式結案時間。
 * 系統仍依 D-012／020 計算 finalScore；回應複審醫師時不得回傳可反推初審分數的 finalScore、preview 或等價衍生資訊。
-* 本節撤銷原 `caseStatus: CLOSED` 與向複審醫師回傳 finalScore 的成功範例。複審已提交未結案的狀態表示／精確 response schema 為 unknown，本輪不捏造 enum／DTO。
+* 本節撤銷原 `caseStatus: CLOSED` 與向複審醫師回傳 finalScore 的成功範例。複審已提交未結案時，案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`，不新增 enum（D-053）；回應不得含 `finalScore`（D-033）。其餘精確 response schema 仍為 unknown，本輪不捏造 DTO。
 
 ## 12.4 修正已提交複審
 
@@ -1478,10 +1478,10 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 | 進入／開始複審 | 初審已固定；閾值與 manager 手工派發規則不變 |
 | 無需複審的正式結案 | 初審已固定，由院方管理者操作；未固定拒絕 |
 | 複審 revision | 合法原提交者，已提交且未固定、未 CLOSED／CANCELLED；append-only，重算加權分數 |
-| 複審正式結案 | 目前有效合法複審結果的提交醫師另行 Close Command；既有角色／scope／ownership 與資格成立；同時固定；獨立 binding UNKNOWN（D-034） |
+| 複審正式結案 | 目前有效合法複審結果的提交醫師另行 Close Command；既有角色／scope／ownership 與資格成立；同時固定；binding、回應與錯誤代碼見「D-034 複審獨立 Close Command 對齊」一節（D-053） |
 | 固定後／CLOSED revision 或 CLOSED reopen | 拒絕，不寫新 revision／成功事件 |
 
-新的拒絕條件之精確 HTTP／error code mapping unknown，保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
+複審正式結案的拒絕條件與錯誤代碼已由 D-053 定案（見「D-034 複審獨立 Close Command 對齊」一節）；其餘新的拒絕條件（例如初審固定）之精確 HTTP／error code mapping 仍為 unknown，保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
 複審醫師任何階段不得取得初審答案／分數／評語，亦不得從 command ack、list/detail、revision history/compare、audit、report/export、前端 cache 取得可反推值。finalScore 數值仍在 domain 依原公式計算；所有廣義 FULL view／共用回應範例都須先套用 D-033 角色限制。精確衍生欄位清單與多角色 policy 合成 unknown。
 
 ## DD-03 初審固定的語意契約（binding UNKNOWN）
@@ -1516,7 +1516,46 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 | 失敗 | 不留下部分固定／CLOSED／成功事件；拒絕回應亦不得洩漏初審資訊 |
 | 永久盲審 | submit／revision／close ack、錯誤、查詢、歷程、報表／匯出及快取均適用 D-033；CLOSED 不解除，finalScore 等可反推資訊不得向同案複審醫師提供 |
 
-沿用正式 base path 與 api-key／actor context baseline。精確 binding、schema、版本 token、錯誤細碼／新增拒絕條件的 HTTP mapping、重複 close／網路重試回應、多角色授權合成與 consumer 相容性方案均 UNKNOWN；既有通用 role／scope 與 conflict 契約不因此重新定義。不得以 UNKNOWN 放出受限資料或重複推進 CLOSED。
+沿用正式 base path 與 api-key／actor context baseline。以下 binding 依 D-053：
+
+### `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/close`
+
+#### 權限
+
+* `REREVIEWER`，且為該有效複審結果的提交者
+
+#### Request
+
+不需要請求內容。路徑上的 `submissionId` 是要結案的有效複審結果。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "caseId": "C-001",
+    "caseStatus": "CLOSED",
+    "submissionId": "SUB-RR-002"
+  }
+}
+```
+
+不回傳 `finalScore` 或任何可反推初審分數的資訊（D-033）。
+
+#### Error（沿用既有代碼，依 D-024 的檢查順序）
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `ROLE_DENIED` | 403 | 不是 `REREVIEWER` |
+| `HOSPITAL_SCOPE_MISMATCH` | 403 | 院區不符 |
+| `CASE_TERMINAL` | 409 | 案件已是 `CLOSED` 或 `CANCELLED`（含重複結案） |
+| `CASE_NOT_REREVIEW_IN_PROGRESS` | 409 | 案件不在複審中 |
+| `CONFLICT` | 409 | 結案目標不屬於本案、不是複審階段，或不是目前有效版本 |
+| `SUBMISSION_NOT_SUBMITTED` | 409 | 結案目標仍是草稿 |
+| `NOT_SUBMISSION_OWNER` | 403 | 不是這份有效結果的提交者 |
+
+結案成功時，案件 `CLOSED` 即代表複審結果已固定，不另設欄位；有效版本為結案當下的 `latestRereviewSubmissionId`。複審提交與複審 revision 的回應同樣不得含 `finalScore`（D-033）。結案與 revision 同時發生的競爭，在 D-045 的樂觀鎖落地前是已知的剩餘風險。版本 token、多角色授權合成與 consumer 相容性方案仍為 UNKNOWN；既有通用 role／scope 與 conflict 契約不因此重新定義。
 
 
 ## D-035 歷史身份 Fail-closed 讀取契約

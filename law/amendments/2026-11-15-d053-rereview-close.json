@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-15-d053-rereview-close",
+  "decision": "D-053",
+  "reason": "依負責人 2026-11-15 的裁決新增 D-053（第 1～8 點全部採建議），補足 D-032、D-034 列為 UNKNOWN 的複審結案技術契約：API 為 POST /review-cases/{caseId}/rereview/submissions/{submissionId}/close；回應不含 finalScore（D-033）；案件 CLOSED 即代表複審結果已固定，不新增欄位（不受 D-045 限制）；提交後維持 REREVIEW_IN_PROGRESS；錯誤代碼全部沿用既有代碼；重複結案回 CASE_TERMINAL；結案與 revision 以 submissionId 檢查有效版本，真正同時競爭在 D-045 落地前是已知剩餘風險；前端複審頁顯示結案按鈕。文件同步：api-spec.md 的 D-034 段落補上 binding、回應與錯誤代碼，§12.3、§19 改引用 D-053；state-machine.md 的複審提交與結案轉移改為明確狀態並畫進狀態圖；docs/02～06 其他把複審提交後狀態、結案 binding、錯誤代碼、重複結案回應列為 UNKNOWN 的段落改為引用 D-053（初審固定與交易／併發技術仍為 UNKNOWN）。另記錄既有的 D-033 違規（複審提交回應含 finalScore，RereviewApiTest 也預期它），於實作時一併修正。本 PR 只改文件，程式修改另開建構 PR。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/"
+  ]
+}

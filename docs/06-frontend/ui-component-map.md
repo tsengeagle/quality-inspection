@@ -560,6 +560,6 @@ classification_layers:
 
 以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
 
-C02／C03／C16／C22 不再呈現 CLOSED 例外修正；歷程區只導向仍合法的未固定 revision（D-031／032）。初審固定與複審正式結案 binding unknown，不新增按鈕權限或 capability 欄位。所有 summary／score／compare 元件套用 D-033：同案複審醫師不得從 response／cache 取得初審內容或可反推分數，其他角色政策維持。
+C02／C03／C16／C22 不再呈現 CLOSED 例外修正；歷程區只導向仍合法的未固定 revision（D-031／032）。初審固定 binding unknown，不新增按鈕權限或 capability 欄位；複審正式結案的按鈕依 D-053 第 8 點（最新複審提交為 `SUBMITTED` 且登入者是提交者時顯示）。所有 summary／score／compare 元件套用 D-033：同案複審醫師不得從 response／cache 取得初審內容或可反推分數，其他角色政策維持。
 
 驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

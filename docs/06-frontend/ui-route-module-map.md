@@ -170,6 +170,6 @@ query_state_policy:
 
 以下映射以 Decision Log D-031～D-033、state-machine 與 permission-matrix 為 authority。
 
-路由／guard 不得把複審已提交視為 CLOSED 或允許 CLOSED revision。初審已固定才可進複審；未固定合法結果的原提交者才可修訂（D-031／032）。資料 resolver 遵守 D-033 永久盲審，不能以 FULL 或合法 route entry 放行初審內容／可反推分數。初審固定角色依 DD-03；正式結案 binding UNKNOWN，不新增 route／API。
+路由／guard 不得把複審已提交視為 CLOSED 或允許 CLOSED revision。初審已固定才可進複審；未固定合法結果的原提交者才可修訂（D-031／032）。資料 resolver 遵守 D-033 永久盲審，不能以 FULL 或合法 route entry 放行初審內容／可反推分數。初審固定角色依 DD-03；複審正式結案的 API binding 見 D-053，在複審頁以按鈕執行（D-053 第 8 點），不新增 route。
 
 驗證追溯 EX-041～052／TS-DA-001～012；狀態、儲存與新操作表示未知處不由 frontend 自行定案。

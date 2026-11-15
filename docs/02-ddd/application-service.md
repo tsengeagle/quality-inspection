@@ -233,7 +233,7 @@
 - 呼叫 `ReviewCase.completeRereview(...)`
 - 最終分數按 D-012／020，以固定初審結果及本次複審結果加權計算
 - 初審必須已固定；合法提交且無其他既有阻擋條件即具結案資格，但不自動進入 CLOSED
-- 原複審提交者另行正式結案，同時固定尚未固定的複審結果；binding unknown
+- 原複審提交者另行正式結案，同時固定尚未固定的複審結果；binding 見 D-053（`POST /review-cases/{caseId}/rereview/submissions/{submissionId}/close`）
 
 ---
 
@@ -454,7 +454,7 @@ application service 可透過下列 adapter 協作：
 
 初審固定為獨立業務操作，僅目前有效初審結果的合法提交醫師可執行（DD-03），use case 技術名稱 UNKNOWN；不得把 submit 當固定。application service 協調有效初審 submission 與 Case guard，固定後才依 D-019 分支自動進複審，或允許 manager 手工派複審／不需複審時結案。
 複審正式結案為提交後獨立 Close Command（D-034）：驗證角色、hospital scope、原複審提交者身份、合法有效提交及既有阻擋條件，交由 ReviewCase 執行結案規則，同時固定尚未固定的複審結果。沒有合法提交、actor 不符、已取消等拒絕不得寫成功事件。
-所有 revision 保留 D-004 append-only 與 D-005 Case 主狀態不變；固定後拒絕。正式結案的技術名稱／binding unknown，不新增 API。
+所有 revision 保留 D-004 append-only 與 D-005 Case 主狀態不變；固定後拒絕。複審正式結案的 binding 見 D-053；use case 技術名稱 unknown。
 
 ## DD-03 固定協調契約
 
@@ -466,7 +466,7 @@ application service 可透過下列 adapter 協作：
 
 Close Command 與 submit 分開接受業務意圖，不因提交成功自行呼叫 close。從可信 actor context 驗證既有 REREVIEWER、hospital scope 與目前有效合法複審結果的提交責任；不得相信 client 自報身份或僅查 assignment／歷史提交。
 執行時重新驗證固定初審、case／stage、合法 SUBMITTED、有效版本與既有阻擋條件；過期目標不得自動換新版。協調固定尚未固定的複審結果、依固定初審及既有發布版本權重計分、有效引用、CLOSED 與成功事件的一致性。close／revision 競爭與保存／事件失敗不得留下部分成功。無需複審的 manager 結案沿用獨立路徑，不形成複審 manager 簽核。
-成功、拒絕與後續查詢均維持 D-033，不能在 close ack 或錯誤內容暴露初審或可反推值。use case 技術名稱、binding、版本 token、交易／鎖定／事件技術與重試策略 UNKNOWN。
+成功、拒絕與後續查詢均維持 D-033，不能在 close ack 或錯誤內容暴露初審或可反推值。binding 與重試回應見 D-053（重複結案回 `CASE_TERMINAL`）；use case 技術名稱、版本 token、交易／鎖定／事件技術 UNKNOWN（並行競爭依 D-045）。
 
 
 ## D-035 歷史身份 Fail-closed 讀取契約
