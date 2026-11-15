@@ -1837,6 +1837,7 @@ spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` �
 
 - 補足 D-043 的 Pending（「唯讀必要範圍」未定，在定義前不開放）：維持不開放，並把它定為正式決定。
 - 與 `permission-matrix.md` §5 一致：這兩個角色的資料範圍是被指派給自己、或自己提交過的案件。
+- `permission-matrix.md` §4 的 UI-007 抽選批次列表頁原本給這兩個角色 `R`，與本決策衝突，改為 `N`。前端路由（`sampling-routing.module.ts`）與後端本來就不允許這兩個角色，所以只有文件過時。
 - 理由：
   - 目前沒有任何審查醫師的畫面需要這些介面。
   - 專案詳情含品質線與權重；初審醫師若知道品質線，可能把分數打在品質線附近，影響是否進入複審（D-019）。這和 D-033 盲審要防止的問題同類。
