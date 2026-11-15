@@ -2,7 +2,6 @@ package com.tzuchi.his.quality.inspection.application.project;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectQueryPort;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectSummary;
 import org.springframework.stereotype.Service;
@@ -20,14 +19,14 @@ public class ListReviewProjectsUseCase {
         this.queryPort = queryPort;
     }
 
-    public List<ReviewProjectSummary> execute(ActorContext actor) {
-        if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
-            return queryPort.findAll();
-        }
-        if (actor.hasRole(DomainRole.HOSPITAL_MANAGER)) {
-            String hospitalId = actor.requireHospitalId();
-            return queryPort.findByHospitalId(hospitalId);
-        }
-        throw new RoleDeniedException("Insufficient role to list review projects");
+    /**
+     * @param hospitalId 只有 SYSTEM_ADMIN 會採用，用來縮小範圍；不給就是全部（D-047 第 1 點）。
+     *                   其他角色一律是自己的院區，這個參數不採用（D-042、D-047 第 2 點）。
+     */
+    public List<ReviewProjectSummary> execute(ActorContext actor, String hospitalId) {
+        // api-spec.md §7.7。REVIEWER／REREVIEWER 的唯讀範圍未定義（Q-12），在定義前不開放
+        actor.requireAnyRole(DomainRole.SYSTEM_ADMIN, DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR);
+        String scope = actor.readScopeHospitalId(hospitalId);
+        return scope == null ? queryPort.findAll() : queryPort.findByHospitalId(scope);
     }
 }

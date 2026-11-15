@@ -17,11 +17,15 @@ public class ListScoreSheetSummariesUseCase {
         this.queryPort = queryPort;
     }
 
-    public List<ScoreSheetSummary> execute(ActorContext actor) {
-        if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
-            return queryPort.findAll();
+    /**
+     * @param hospitalId 只有 SYSTEM_ADMIN 會採用，用來縮小範圍；不給就是全部（D-047 第 1 點）。
+     *                   其他角色一律是自己的院區，這個參數不採用（D-042、D-047 第 2 點）。
+     */
+    public List<ScoreSheetSummary> execute(ActorContext actor, String hospitalId) {
+        if (!actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
+            actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         }
-        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
-        return queryPort.findByHospitalId(actor.requireHospitalId());
+        String scope = actor.readScopeHospitalId(hospitalId);
+        return scope == null ? queryPort.findAll() : queryPort.findByHospitalId(scope);
     }
 }

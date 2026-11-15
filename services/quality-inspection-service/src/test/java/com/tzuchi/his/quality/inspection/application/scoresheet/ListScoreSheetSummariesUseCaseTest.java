@@ -24,7 +24,7 @@ class ListScoreSheetSummariesUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        List<ScoreSheetSummary> result = useCase.execute(actor);
+        List<ScoreSheetSummary> result = useCase.execute(actor, null);
 
         assertEquals(1, result.size());
         assertEquals("ss1", result.get(0).getScoreSheetId());
@@ -37,7 +37,7 @@ class ListScoreSheetSummariesUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        List<ScoreSheetSummary> result = useCase.execute(actor);
+        List<ScoreSheetSummary> result = useCase.execute(actor, null);
 
         assertEquals(2, result.size());
     }
@@ -49,7 +49,46 @@ class ListScoreSheetSummariesUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, null));
+    }
+
+    @Test
+    void execute_sa_withHospitalId_shouldNarrowToThatHospital() {
+        // D-047 第 1 點
+        RecordingPort port = new RecordingPort();
+        ListScoreSheetSummariesUseCase useCase = new ListScoreSheetSummariesUseCase(port);
+        ActorContext actor = new ActorContext("u1", "Admin",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+
+        useCase.execute(actor, "H002");
+
+        assertEquals("H002", port.requestedHospital);
+        assertFalse(port.allRequested);
+    }
+
+    @Test
+    void execute_hm_requestedHospitalIsIgnored() {
+        // D-047 第 2 點
+        RecordingPort port = new RecordingPort();
+        ListScoreSheetSummariesUseCase useCase = new ListScoreSheetSummariesUseCase(port);
+        ActorContext actor = new ActorContext("u1", "Manager",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        useCase.execute(actor, "H002");
+
+        assertEquals("H001", port.requestedHospital);
+        assertFalse(port.allRequested);
+    }
+
+    private static class RecordingPort implements ScoreSheetQueryPort {
+        String requestedHospital;
+        boolean allRequested;
+        @Override
+        public List<ScoreSheetSummary> findByHospitalId(String hospitalId) { requestedHospital = hospitalId; return List.of(); }
+        @Override
+        public List<ScoreSheetSummary> findAll() { allRequested = true; return List.of(); }
+        @Override
+        public Optional<ScoreSheetSummary> findSummaryById(String id) { return Optional.empty(); }
     }
 
     private ScoreSheetQueryPort stubQueryPort(List<ScoreSheetSummary> byHospital,

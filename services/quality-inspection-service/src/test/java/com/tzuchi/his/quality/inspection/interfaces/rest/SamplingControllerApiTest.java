@@ -202,6 +202,24 @@ class SamplingControllerApiTest {
     }
 
     @Test
+    void listBatches_systemAdminHospitalIdNarrows_managerHospitalIdIgnored() throws Exception {
+        // D-047 第 1、2 點
+        String projectId = createAndActivateProject("Scope Test");
+        mockMvc.perform(post("/review-projects/" + projectId + "/sampling/execute")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isCreated());
+        String admin = TestTokenFactory.systemAdminToken();
+
+        mockMvc.perform(get("/sampling-batches").header("api-key", admin).param("hospitalId", "H001"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
+        mockMvc.perform(get("/sampling-batches").header("api-key", admin).param("hospitalId", "H002"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(0));
+        mockMvc.perform(get("/sampling-batches")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()).param("hospitalId", "H002"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalElements").value(1));
+    }
+
+    @Test
     void listBatches_invalidStatus_shouldReturn400() throws Exception {
         mockMvc.perform(get("/sampling-batches")
                         .header("api-key", TestTokenFactory.hospitalManagerToken())
