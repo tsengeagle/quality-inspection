@@ -110,9 +110,12 @@ class ReviewProjectTest {
 
     @Test
     void create_withBlankName_shouldThrow() {
-        assertThrows(DomainRuleViolationException.class,
+        // D-040: 名稱空白是輸入格式問題，VALIDATION_ERROR（原本是 INVALID_PROJECT_NAME，不在規格的代碼表）
+        com.tzuchi.his.quality.inspection.domain.common.DomainValidationException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.DomainValidationException.class,
                 () -> ReviewProject.create("p1", "h1", "  ",
                         null, EnumSet.of(MedicalRecordType.OUTPATIENT)));
+        assertEquals("VALIDATION_ERROR", e.getErrorCode());
     }
 
     // --- New B1a tests ---

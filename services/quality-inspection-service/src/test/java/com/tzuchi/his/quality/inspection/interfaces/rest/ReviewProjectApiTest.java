@@ -77,6 +77,19 @@ class ReviewProjectApiTest {
     }
 
     @Test
+    void createProject_withoutMedicalRecordTypes_shouldReturn400ValidationError() throws Exception {
+        // D-040: 病歷類型至少一個；沒給或空集合都是 400 VALIDATION_ERROR
+        for (String body : new String[] {"{\"name\":\"門診\",\"medicalRecordTypes\":[]}", "{\"name\":\"門診\"}"}) {
+            mockMvc.perform(post(BASE)
+                            .header("api-key", hmToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        }
+    }
+
+    @Test
     void createProject_nullName_shouldReturn400() throws Exception {
         String body = "{\"medicalRecordTypes\":[\"OUTPATIENT\"]}";
 
