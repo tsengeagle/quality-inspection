@@ -25,6 +25,8 @@ public final class ExampleRunner {
 
     private static final Pattern WHOLE_VARIABLE = Pattern.compile("^\\$\\{([A-Za-z0-9_]+)}$");
     private static final Pattern VARIABLE = Pattern.compile("\\$\\{([A-Za-z0-9_]+)}");
+    /** 範例名稱是測試的身分（已知失敗清單逐行比對），只能用不會被改寫的字元。 */
+    private static final Pattern EXAMPLE_NAME = Pattern.compile("^[A-Za-z0-9_.-]+$");
 
     private final Map<String, Object> actors;
     private final Map<String, Object> fixtures;
@@ -46,6 +48,9 @@ public final class ExampleRunner {
             Object name = example.get("name");
             if (!(name instanceof String) || examples.containsKey(name)) {
                 throw new RunnerProblem("範例必須有不重複的 name：" + name);
+            }
+            if (!EXAMPLE_NAME.matcher((String) name).matches()) {
+                throw new RunnerProblem("範例名稱只能用英數字與 _ . -（它是已知失敗清單裡的身分）：" + name);
             }
             examples.put((String) name, example);
         }
@@ -127,8 +132,10 @@ public final class ExampleRunner {
             String where = "observe[" + i + "] " + step.get("run");
             checkResult(where, expect, observed);
             if (expect.containsKey("output")) {
-                compareOutput(where, map(expect.get("output"), where + " 的 expect.output"),
-                        invoker.properties(observed.getValue()));
+                @SuppressWarnings("unchecked")
+                Map<String, Object> expectedOutput = (Map<String, Object>) substitute(
+                        map(expect.get("output"), where + " 的 expect.output"), vars);
+                compareOutput(where, expectedOutput, invoker.properties(observed.getValue()));
             }
         }
     }
@@ -289,24 +296,12 @@ public final class ExampleRunner {
             if (!(actual instanceof Collection)) {
                 return false;
             }
-            List<Object> remaining = new ArrayList<>((Collection<?>) actual);
-            if (remaining.size() != ((List<?>) expected).size()) {
+            List<?> want = (List<?>) expected;
+            List<Object> have = new ArrayList<>((Collection<?>) actual);
+            if (want.size() != have.size()) {
                 return false;
             }
-            for (Object item : (List<?>) expected) {
-                boolean found = false;
-                for (int i = 0; i < remaining.size(); i++) {
-                    if (same(item, remaining.get(i))) {
-                        remaining.remove(i);
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    return false;
-                }
-            }
-            return true;
+            return matchesOneToOne(want, have);
         }
         if (expected instanceof Map) {
             if (!(actual instanceof Map)) {
@@ -329,6 +324,35 @@ public final class ExampleRunner {
             return Objects.equals(expected, actual);
         }
         return String.valueOf(expected).equals(actual instanceof Enum ? ((Enum<?>) actual).name() : String.valueOf(actual));
+    }
+
+    /**
+     * 預期與實際的元素一對一配對，不看順序。用增廣路徑（可以改選先前的配對），
+     * 所以部分比對的物件不會因為順序而誤判；元素數量是範例的規模，不需要更快的演算法。
+     */
+    private static boolean matchesOneToOne(List<?> want, List<Object> have) {
+        int[] owner = new int[have.size()];
+        java.util.Arrays.fill(owner, -1);
+        for (int w = 0; w < want.size(); w++) {
+            if (!augment(w, want, have, owner, new boolean[have.size()])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean augment(int w, List<?> want, List<Object> have, int[] owner, boolean[] visited) {
+        for (int h = 0; h < have.size(); h++) {
+            if (visited[h] || !same(want.get(w), have.get(h))) {
+                continue;
+            }
+            visited[h] = true;
+            if (owner[h] < 0 || augment(owner[h], want, have, owner, visited)) {
+                owner[h] = w;
+                return true;
+            }
+        }
+        return false;
     }
 
     private static BigDecimal decimal(Object value) {

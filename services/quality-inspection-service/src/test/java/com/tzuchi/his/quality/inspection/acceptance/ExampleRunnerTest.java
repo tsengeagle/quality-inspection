@@ -364,6 +364,25 @@ class ExampleRunnerTest {
                 "  - { name: e, when: { run: GetThing, as: owner, input: {} }, then: { result: SUCCESS } }"));
     }
 
+    @Test
+    void exampleNamesMustBeIdentifiers() {
+        RunnerProblem problem = assertThrows(RunnerProblem.class, () -> runner(
+                "  - { name: check result, when: { run: GetThing, as: owner, input: {} }, then: { result: SUCCESS } }"));
+        assertTrue(problem.getMessage().contains("範例名稱只能用"), problem.getMessage());
+    }
+
+    @Test
+    void savedVariablesAreSubstitutedInExpectedOutput() {
+        ExampleRunner r = runner(
+                "  - name: e",
+                "    given: [{ use: thing }]",
+                "    when: { run: GetThing, as: owner, input: { id: \"${t}\" } }",
+                "    then: { result: SUCCESS }",
+                "    observe:",
+                "      - { run: GetThing, as: owner, input: { id: \"${t}\" }, expect: { result: SUCCESS, output: { id: \"${t}\" } } }");
+        assertDoesNotThrow(() -> r.run("e"));
+    }
+
     // --- 值的比較 ---
 
     @Test
@@ -378,6 +397,17 @@ class ExampleRunnerTest {
         assertFalse(ExampleRunner.same(null, "x"));
         assertFalse(ExampleRunner.same(true, "true"));
         assertFalse(ExampleRunner.same("1", "1.0"));
+        // 部分比對的物件：較寬的預期不能搶走較窄的預期唯一能配的元素，兩種順序結果要相同
+        Map<String, Object> a = new LinkedHashMap<>();
+        a.put("k", 1);
+        a.put("name", "a");
+        Map<String, Object> b = new LinkedHashMap<>();
+        b.put("k", 1);
+        b.put("name", "b");
+        List<Object> want = Arrays.asList(Collections.singletonMap("k", 1), a);
+        assertTrue(ExampleRunner.same(want, Arrays.asList(a, b)));
+        assertTrue(ExampleRunner.same(want, Arrays.asList(b, a)));
+        assertFalse(ExampleRunner.same(Arrays.asList(a, a), Arrays.asList(a, b)));
         List<Object> nested = Collections.singletonList(Collections.singletonMap("k", 1));
         assertTrue(ExampleRunner.same(nested, Collections.singletonList(Collections.singletonMap("k", 1L))));
     }

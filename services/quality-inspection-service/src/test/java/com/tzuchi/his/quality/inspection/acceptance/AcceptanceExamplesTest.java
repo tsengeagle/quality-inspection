@@ -73,6 +73,9 @@ class AcceptanceExamplesTest {
                 })));
             }
         }
+        if (tests.isEmpty()) {
+            throw new AssertionError("在 " + specs + " 的 examples.yaml 裡找不到任何範例；驗收範例沒有被評估");
+        }
         return tests.stream();
     }
 

@@ -57,12 +57,18 @@ tasks.named('test') {
     def executed = new TreeSet<String>()
     def failed = new TreeMap<String, Integer>()   // 方法 -> 失敗的呼叫次數
     def skipped = new TreeSet<String>()
+    def badNames = new TreeSet<String>()           // 含空白的動態測試名稱
 
     afterTest { desc, result ->
         // 動態測試（@TestFactory，例如驗收範例）的名稱是「方法()[序號]」，序號會隨範例增減而變，
         // 所以改用顯示名稱當身分，一個範例一筆。參數化測試的每次呼叫則歸到同一個方法。
+        // 顯示名稱不做任何改寫：改寫會讓兩個不同的範例變成同一筆（例如空白換成底線）。
+        // 清單一行一個身分、以空白分隔次數，所以含空白的顯示名稱直接判為閘門錯誤。
         def dynamic = desc.name ==~ /^[^(\s]+\(\)\[\d+\]$/
-        def method = dynamic ? desc.displayName.replaceAll(/\s+/, '_') : desc.name.replaceAll(/[(\[].*$/, '')
+        if (dynamic && desc.displayName =~ /\s/) {
+            badNames << "${desc.className}#${desc.displayName}".toString()
+        }
+        def method = dynamic ? desc.displayName : desc.name.replaceAll(/[(\[].*$/, '')
         def id = "${desc.className}#${method}".toString()
         executed << id
         if (result.resultType == TestResult.ResultType.FAILURE) {
@@ -98,6 +104,9 @@ tasks.named('test') {
                 (fullRun ? '' : '；本次有篩選條件，只核對有執行的測試'))
 
         def problems = []
+        if (badNames) {
+            problems << "動態測試的名稱不能有空白，否則無法在清單裡唯一識別（${badNames.size()}）：\n  " + badNames.join('\n  ')
+        }
         if (fullRun && executed.isEmpty()) {
             problems << '沒有執行任何測試'
         }
