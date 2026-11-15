@@ -58,6 +58,15 @@ tasks.named('test') {
     def failed = new TreeMap<String, Integer>()   // 方法 -> 失敗的呼叫次數
     def skipped = new TreeSet<String>()
     def badNames = new TreeSet<String>()           // 含空白的動態測試名稱
+    def suiteErrors = new TreeSet<String>()        // 測試套件本身的錯誤（不是其中某個測試失敗）
+
+    // 測試用的 JVM 崩潰（例如 OutOfMemoryError）、@BeforeAll 失敗等，屬於套件層級的錯誤，afterTest 看不到，
+    // 之後的測試也不會執行。只核對 afterTest 的結果，閘門會把「沒有評估完」當成通過。
+    afterSuite { desc, result ->
+        if (!result.exceptions.isEmpty()) {
+            suiteErrors << "${desc.displayName}：${result.exceptions.collect { it.toString() }.join('；')}".toString()
+        }
+    }
 
     afterTest { desc, result ->
         // 動態測試（@TestFactory，例如驗收範例）的名稱是「方法()[序號]」，序號會隨範例增減而變，
@@ -106,6 +115,9 @@ tasks.named('test') {
         def problems = []
         if (badNames) {
             problems << "動態測試的名稱不能有空白，否則無法在清單裡唯一識別（${badNames.size()}）：\n  " + badNames.join('\n  ')
+        }
+        if (suiteErrors) {
+            problems << "測試套件層級的錯誤，其後的測試可能沒有執行，閘門無法完整評估（${suiteErrors.size()}）：\n  " + suiteErrors.join('\n  ')
         }
         if (fullRun && executed.isEmpty()) {
             problems << '沒有執行任何測試'
