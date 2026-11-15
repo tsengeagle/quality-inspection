@@ -7,3 +7,9 @@
 # tsengeagle：YubiKey 5C NFC 上的 FIDO2 金鑰，每次簽章都要實體觸碰。2026-11-14 登記。
 # 指紋 SHA256:/5Zgv/f2kxOT1oKUwWjZe18Dd8hoB2R9lWYeFlfvgos
 tsengeagle namespaces="law-amendment" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIC7iaAUlJkSDbW2ljX47O16oZqJXU35LAWUdMfzhuyC0AAAAEXNzaDpsYXctYW1lbmRtZW50 law-amendment tsengeagle
+#
+# tsengeagle 備援：同一支 YubiKey 5C NFC 上的 resident FIDO2 金鑰（application=ssh:law-amendment-2，
+# verify-required：簽章要觸碰並輸入 PIN）。把手存在金鑰裡，換電腦時用 `ssh-keygen -K` 取回。
+# 解決的是「換電腦、把手檔留在舊電腦」，不是「金鑰遺失」：兩把在同一支實體金鑰上。2026-11-15 登記。
+# 指紋 SHA256:8hyCboa8G5+Kuzbg/2XELz5LKqawGnhaUOZULqHPpHI
+tsengeagle namespaces="law-amendment" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIIYoV/0atwtqsnAnFYcdC5FU3ksOzBLbR808Io0utdXWAAAAE3NzaDpsYXctYW1lbmRtZW50LTI= law-amendment tsengeagle backup
