@@ -1,0 +1,7 @@
+{
+  "id": "2026-11-15-register-acceptance-runner",
+  "decision": "none",
+  "reason": "把驗收範例執行器的目錄 services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/ 登記為閘門類的律法路徑，為下一步「加入第 4 期的執行器」做準備。判決程式讀的是 base 分支上的清冊，路徑必須先登記並合併，加入執行器的 PR 才不會被判成修法夾帶程式修改，執行器的檔案也才會算進內容雜湊、被核准者簽到。做法同 2026-11-14-register-harness-core。目錄目前不存在。設計由負責人 2026-11-15 裁決：命名慣例加反射、放在 Java 測試端、沿用已知失敗清單、分三個 PR。",
+  "drafted_by": "claude-code",
+  "paths": ["law/"]
+}
