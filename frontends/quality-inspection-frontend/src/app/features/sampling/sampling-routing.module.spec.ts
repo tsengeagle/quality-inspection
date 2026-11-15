@@ -6,9 +6,11 @@ describe('sampling route policy rollout', () => {
     const executeRoute = samplingRoutes.find(route => route.path === ':projectId');
 
     expect(batchListRoute?.data).toEqual({
+      accessPage: 'UI_007_BATCH_LIST',
       roles: ['HOSPITAL_MANAGER', 'AUDITOR', 'SYSTEM_ADMIN']
     });
     expect(executeRoute?.data).toEqual({
+      accessPage: 'UI_006_SAMPLING_EXECUTE',
       roles: ['HOSPITAL_MANAGER'],
       requiresHospitalScope: true
     });
