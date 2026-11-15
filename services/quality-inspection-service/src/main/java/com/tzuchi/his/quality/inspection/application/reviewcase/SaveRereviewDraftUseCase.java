@@ -7,6 +7,8 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.command.SaveRere
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.DraftContent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
 
 @Service
 public class SaveRereviewDraftUseCase {
@@ -69,10 +72,16 @@ public class SaveRereviewDraftUseCase {
                     "Submission is not the current rereview result");
         }
 
-        submission.updateDraft(
-                cmd.getAnswers() != null ? cmd.getAnswers() : Collections.emptyList(),
-                cmd.getTotalScore() != null ? cmd.getTotalScore() : BigDecimal.ZERO,
-                cmd.getComment());
+        List<AnswerItem> answers = cmd.getAnswers() != null ? cmd.getAnswers() : Collections.emptyList();
+        BigDecimal totalScore = cmd.getTotalScore() != null ? cmd.getTotalScore() : BigDecimal.ZERO;
+        // D-038、D-044：原有檢查都通過之後，業務內容沒有變更就拒絕，不寫入
+        // 複審草稿的分數由請求帶入，屬於業務內容，一併比較
+        if (new DraftContent(answers, totalScore, cmd.getComment())
+                .sameAs(new DraftContent(submission.getAnswerSet(), submission.getTotalScore(), submission.getComment()))) {
+            throw new DomainStateConflictException("NO_CHANGES", "Draft content is unchanged");
+        }
+
+        submission.updateDraft(answers, totalScore, cmd.getComment());
         submissionRepository.save(submission);
         return new SaveDraftResult(
                 submission.getSubmissionId(),

@@ -755,4 +755,38 @@ describe('CasesService', () => {
       { caseId: 'CASE-011' }
     ]);
   });
+
+  // D-038、D-044：草稿沒有變更時，後端回 409 NO_CHANGES；前端視為「已是最新」，不當成錯誤
+  it('treats 409 NO_CHANGES on draft save as already up to date', () => {
+    const results: unknown[] = [];
+    const errors: unknown[] = [];
+
+    service.saveInitialReviewDraft('CASE-012', { answers: [], comment: 'same' })
+      .subscribe({ next: r => results.push(r), error: e => errors.push(e) });
+    service.saveRereviewDraft('CASE-013', { submissionId: 'SUB-REREVIEW-001', answers: [], comment: 'same' })
+      .subscribe({ next: r => results.push(r), error: e => errors.push(e) });
+
+    const noChanges = { success: false, error: { code: 'NO_CHANGES', message: 'Draft content is unchanged' } };
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-012/initial-review/draft`)
+      .flush(noChanges, { status: 409, statusText: 'Conflict' });
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-013/rereview/draft`)
+      .flush(noChanges, { status: 409, statusText: 'Conflict' });
+
+    expect(errors).toEqual([]);
+    expect(results).toEqual([{ noChanges: true }, { noChanges: true }]);
+  });
+
+  it('keeps other draft save conflicts as errors', () => {
+    const results: unknown[] = [];
+    const errors: unknown[] = [];
+
+    service.saveInitialReviewDraft('CASE-012', { answers: [], comment: 'x' })
+      .subscribe({ next: r => results.push(r), error: e => errors.push(e) });
+
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-012/initial-review/draft`)
+      .flush({ success: false, error: { code: 'SUBMISSION_NOT_DRAFT', message: 'x' } }, { status: 409, statusText: 'Conflict' });
+
+    expect(results).toEqual([]);
+    expect(errors.length).toBe(1);
+  });
 });

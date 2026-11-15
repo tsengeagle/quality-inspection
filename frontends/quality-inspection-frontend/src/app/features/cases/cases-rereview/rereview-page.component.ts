@@ -287,7 +287,7 @@ export class RereviewPageComponent implements OnInit {
 
     this.executeCommand(
       this.casesService.saveRereviewDraft(this.caseId, this.buildRereviewDraftPayloadFromState(submissionId)),
-      () => '複審草稿已保存。'
+      result => result.noChanges ? '草稿已是最新，沒有需要保存的變更。' : '複審草稿已保存。'
     );
   }
 

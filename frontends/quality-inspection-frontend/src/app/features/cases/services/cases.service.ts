@@ -1,6 +1,6 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, forkJoin, map } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, throwError } from 'rxjs';
 
 import { environment } from '@env/environment';
 
@@ -434,6 +434,8 @@ export interface CommandResultViewModel {
   oldSubmissionId?: string;
   newSubmissionId?: string;
   rereviewRequired?: boolean;
+  /** 草稿內容沒有變更，後端未寫入（D-038 的 409 NO_CHANGES）；前端視為「已是最新」（D-044 第 5 點） */
+  noChanges?: boolean;
 }
 
 /** 案件詳情 */
@@ -576,7 +578,8 @@ export class CasesService {
 
   saveInitialReviewDraft(caseId: string, payload: InitialReviewDraftPayload): Observable<CommandResultViewModel> {
     return this.http.post<ApiResponse<SaveDraftResponseDto>>(`${this.baseUrl}/${caseId}/initial-review/draft`, payload).pipe(
-      map(response => this.mapSaveDraftResponse(response.data))
+      map(response => this.mapSaveDraftResponse(response.data)),
+      catchError(error => this.treatNoChangesAsUpToDate(error))
     );
   }
 
@@ -610,7 +613,8 @@ export class CasesService {
 
   saveRereviewDraft(caseId: string, payload: RereviewDraftPayload): Observable<CommandResultViewModel> {
     return this.http.post<ApiResponse<SaveDraftResponseDto>>(`${this.baseUrl}/${caseId}/rereview/draft`, payload).pipe(
-      map(response => this.mapSaveDraftResponse(response.data))
+      map(response => this.mapSaveDraftResponse(response.data)),
+      catchError(error => this.treatNoChangesAsUpToDate(error))
     );
   }
 
@@ -749,6 +753,17 @@ export class CasesService {
       submittedAt: item.submittedAt,
       maskedFields: item.maskedFields ?? []
     };
+  }
+
+  /**
+   * D-038：草稿沒有變更時，後端回 409 與錯誤代碼 NO_CHANGES，且沒有寫入。
+   * D-044 第 5 點：前端視為「已是最新」，不顯示錯誤。其他錯誤照常拋出。
+   */
+  private treatNoChangesAsUpToDate(error: unknown): Observable<CommandResultViewModel> {
+    if (error instanceof HttpErrorResponse && error.status === 409 && error.error?.error?.code === 'NO_CHANGES') {
+      return of({ noChanges: true });
+    }
+    return throwError(() => error);
   }
 
   private mapSaveDraftResponse(item: SaveDraftResponseDto): CommandResultViewModel {
