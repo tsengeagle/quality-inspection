@@ -217,15 +217,15 @@ class ReviewProjectTest {
     }
 
     @Test
-    void activate_withoutBoundScoreSheet_shouldThrow() {
-        // 發布前必須已綁定（D-041），所以「已發布但未綁定」只會出現在這條規則之前存的資料；啟用時的檢查保護那些資料
+    void activate_doesNotCheckTheScoreSheetBinding() {
+        // D-041：綁定在發布時檢查，「啟用不再另外檢查綁定」。已發布但未綁定只會出現在這條規則之前存的資料
         ReviewProject project = ReviewProject.reconstitute("p1", "h1", "Test", null, null,
                 EnumSet.of(MedicalRecordType.OUTPATIENT), ProjectStatus.DRAFT, 1, true,
                 null, null, null);
 
-        DomainRuleViolationException ex = assertThrows(DomainRuleViolationException.class,
-                project::activate);
-        assertEquals("SCORE_SHEET_NOT_BOUND", ex.getErrorCode());
+        project.activate();
+
+        assertEquals(ProjectStatus.ACTIVE, project.getStatus());
     }
 
     @Test

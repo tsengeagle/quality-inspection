@@ -67,8 +67,8 @@ class ActivateReviewProjectUseCaseTest {
     }
 
     @Test
-    void execute_noBoundScoreSheet_shouldThrow() {
-        // 已發布但未綁定只會出現在 D-041 生效前存的資料（現在發布前必須已綁定）
+    void execute_doesNotCheckTheScoreSheetBinding() {
+        // D-041：「啟用不再另外檢查綁定」。已發布但未綁定只會出現在 D-041 生效前存的資料
         ReviewProject project = ReviewProject.reconstitute("p1", "H001", "Test", null, null,
                 EnumSet.of(MedicalRecordType.OUTPATIENT), ProjectStatus.DRAFT, 1, true,
                 null, null, null);
@@ -76,8 +76,9 @@ class ActivateReviewProjectUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        assertThrows(DomainRuleViolationException.class,
-                () -> useCase.execute(actor, "p1"));
+        useCase.execute(actor, "p1");
+
+        assertEquals(ProjectStatus.ACTIVE, repository.store.get("p1").getStatus());
     }
 
     @Test

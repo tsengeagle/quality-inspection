@@ -18,7 +18,8 @@ import java.util.*;
  * - An unpublished project cannot execute sampling.
  * - A published version is immutable.
  * - Version publication creates a new immutable snapshot.
- * - Activation requires a published version AND a bound score sheet.
+ * - Publishing requires a bound score sheet and a quality threshold (D-041, D-046);
+ *   activation requires a published version only.
  * - DEACTIVATED is terminal — no re-activation.
  */
 public class ReviewProject {
@@ -161,10 +162,7 @@ public class ReviewProject {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
                     "Cannot activate project without a published version");
         }
-        if (this.boundScoreSheetId == null) {
-            throw new DomainRuleViolationException("SCORE_SHEET_NOT_BOUND",
-                    "Cannot activate project without a bound score sheet");
-        }
+        // D-041: the score sheet binding is checked at publish; activation no longer checks it
         this.status = ProjectStatus.ACTIVE;
     }
 
