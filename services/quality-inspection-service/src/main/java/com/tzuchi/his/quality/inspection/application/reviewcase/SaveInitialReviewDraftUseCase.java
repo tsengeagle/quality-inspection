@@ -93,21 +93,9 @@ public class SaveInitialReviewDraftUseCase {
                     "Submission must be DRAFT");
         }
 
-        // D-038、D-044：原有檢查都通過之後，業務內容沒有變更就拒絕，不寫入、不發事件
-        List<AnswerItem> incoming = answers == null ? Collections.emptyList() : answers.stream()
-                .filter(Objects::nonNull)
-                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                .collect(Collectors.toList());
-        List<AnswerItem> current = submission.getAnswerSet().stream()
-                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                .collect(Collectors.toList());
-        // 初審的分數由系統依答案計算，不是輸入，所以只比答案與評語
-        if (new DraftContent(incoming, null, comment).sameAs(new DraftContent(current, null, submission.getComment()))) {
-            throw new DomainStateConflictException("NO_CHANGES", "Draft content is unchanged");
-        }
-
         // If no answers, update with empty + zero
         if (answers == null || answers.isEmpty()) {
+            rejectIfUnchanged(Collections.emptyList(), comment, submission);
             submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment);
             submissionRepository.save(submission);
 
@@ -137,6 +125,9 @@ public class SaveInitialReviewDraftUseCase {
         // Calculate scores
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
+        // 計分時會丟掉評分表沒有的題目，存下的也是過濾後的答案；所以用計分後的答案比較
+        rejectIfUnchanged(result.getScoredAnswers(), comment, submission);
+
         // Update draft
         submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment);
         submissionRepository.save(submission);
@@ -151,5 +142,22 @@ public class SaveInitialReviewDraftUseCase {
                 submission.getStatus().name(),
                 submission.getStage().name(),
                 result.getTotalScore());
+    }
+
+    /**
+     * D-038、D-044：原有檢查都通過之後，業務內容沒有變更就拒絕，不寫入、不發事件。
+     * 初審的分數由系統依答案計算，不是輸入，所以只比答案（題目 id 與答案值）與評語。
+     */
+    private static void rejectIfUnchanged(List<AnswerItem> incoming, String comment, ReviewSubmission submission) {
+        if (new DraftContent(raw(incoming), null, comment)
+                .sameAs(new DraftContent(raw(submission.getAnswerSet()), null, submission.getComment()))) {
+            throw new DomainStateConflictException("NO_CHANGES", "Draft content is unchanged");
+        }
+    }
+
+    private static List<AnswerItem> raw(List<AnswerItem> answers) {
+        return answers.stream()
+                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                .collect(Collectors.toList());
     }
 }

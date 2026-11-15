@@ -90,7 +90,11 @@ public final class DraftContent {
         private final String itemId;
         private final String value;
         private final BigDecimal derivedScore;
-        /** 同一題目 id 內的排序鍵：數字依數值正規化，讓 "20" 與 "20.0" 排在同一位置。 */
+        /**
+         * 同一題目 id 內的排序鍵：數字依數值正規化，讓 "20" 與 "20.0" 排在同一位置。
+         * 用 stripTrailingZeros().toString()（科學記號），不能用 toPlainString()：
+         * 後者會把 1e999999999 展開成十億個字元，一個小請求就能耗盡記憶體。
+         */
         private final String sortKey;
 
         private Answer(String itemId, String value, BigDecimal derivedScore) {
@@ -98,7 +102,7 @@ public final class DraftContent {
             this.value = value;
             this.derivedScore = derivedScore;
             BigDecimal n = number(value);
-            this.sortKey = n != null ? "n:" + n.stripTrailingZeros().toPlainString() : "t:" + text(value);
+            this.sortKey = n != null ? "n:" + n.stripTrailingZeros().toString() : "t:" + text(value);
         }
 
         private boolean sameAs(Answer other) {

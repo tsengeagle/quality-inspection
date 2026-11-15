@@ -81,4 +81,15 @@ class DraftContentTest {
         assertTrue(a.sameAs(draft(List.of(raw("Q1", "2"), raw("Q1", "1")), null, "c")));
         assertFalse(a.sameAs(draft(List.of(raw("Q1", "1"), raw("Q1", "1")), null, "c")));
     }
+
+    @Test
+    void hugeExponentsAreComparedWithoutExpandingThem() {
+        // 不能把 1e999999999 這類數字展開成十億個字元（Codex 審查：記憶體耗盡）
+        DraftContent a = draft(List.of(raw("Q1", "1e999999999"), raw("Q1", "2")), null, "c");
+        DraftContent b = draft(List.of(raw("Q1", "2"), raw("Q1", "10e999999998")), null, "c");
+        assertTimeoutPreemptively(java.time.Duration.ofSeconds(2), () -> assertTrue(a.sameAs(b)));
+        assertTimeoutPreemptively(java.time.Duration.ofSeconds(2),
+                () -> assertFalse(a.sameAs(draft(List.of(raw("Q1", "2"), raw("Q1", "1e999999998")), null, "c"))));
+    }
 }
+

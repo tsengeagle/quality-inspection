@@ -191,6 +191,23 @@ class SaveInitialReviewDraftUseCaseTest {
     }
 
     @Test
+    void execute_resendingAPayloadWithAnUnknownItem_isRejectedWithNoChanges() {
+        // 計分時會丟掉評分表沒有的題目，存下的答案不含它；比較要用同樣過濾後的答案（Codex 審查）
+        seedPublishedScoreSheet();
+        seedReviewCase();
+        seedDraftSubmission();
+        List<AnswerInput> payload = List.of(new AnswerInput("Q001", "true"), new AnswerInput("NOT-IN-SHEET", "x"));
+        useCase.execute(reviewer(), CASE_ID, payload, "c");
+        int eventsAfterFirstSave = eventPublisher.events.size();
+
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> useCase.execute(reviewer(), CASE_ID, payload, "c"));
+
+        assertEquals("NO_CHANGES", e.getErrorCode());
+        assertEquals(eventsAfterFirstSave, eventPublisher.events.size());
+    }
+
+    @Test
     void execute_unchangedBlankDraft_isRejectedWithNoChanges() {
         // D-038、D-044：空白草稿再存一次空白答案（評語 null 與空字串視為相同），不寫入、不發事件
         seedPublishedScoreSheet();
