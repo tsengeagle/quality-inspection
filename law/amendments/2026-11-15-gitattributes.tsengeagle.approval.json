@@ -1,0 +1,7 @@
+{
+  "amendment": "2026-11-15-gitattributes",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:46e22d3370c06aebbe313f114d0e5f0bbcdb2636ed6ca664ba790793c070cf84",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgLuJoBS\nUmRINtbaWNfjs7XqhmoldTfksBZR0x/OG7ILQAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEAbbs/0zeW1TXj8isaa4dQdn+PLixvGgXfFK5ajVSZnJaURXRSWvwLx\nz5oLszXUsJhPMndtqfckS6BZ6XsO6q4OAQAAABY=\n-----END SSH SIGNATURE-----\n"
+}
