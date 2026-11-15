@@ -69,56 +69,97 @@ tsengeagle namespaces="law-amendment" sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1
 
 ## 四、每次核准修法
 
-**核准工具一定要從 `main` 執行，不要簽出修法的分支再執行。** 修法的 PR 可以改到核准工具本身；
-被改過的版本可以顯示一個雜湊，卻讓金鑰簽另一個。所以整個流程中，工作目錄都停在 `main`，
-工具只透過 git 讀取修法分支的內容，不執行其中任何檔案。工作目錄停在修法的分支上時，工具會拒絕執行。
+整個流程分三段：**簽之前確認、簽章、推上核准檔**。下面的指令可以整段照抄，只有第 0 步要填一個值。
 
-1. 讓工作目錄停在最新的 `main`，並取得修法的分支：
+### 0. 填入修法的分支名稱
 
-   ```bash
-   git switch main
-   git pull
-   git fetch origin
-   ```
+在 PR 頁面標題下方可以看到分支名稱（`... wants to merge ... from <分支名稱>`）。
 
-2. **看過修改。** 簽章代表你同意這些內容。這個指令只顯示差異，不會執行分支上的任何東西：
+```bash
+BRANCH=<修法的分支名稱>          # bash / zsh
+```
 
-   ```bash
-   git diff origin/main...origin/<修法的分支>
-   ```
+```powershell
+$BRANCH = "<修法的分支名稱>"      # PowerShell
+```
 
-   PR 上 `law-check` 的報告也會列出動到哪些律法檔案，以及內容雜湊。
+下面的指令都用這個變數。PowerShell 把 `$BRANCH` 照寫即可；`python3` 換成 `python`。
 
-3. 簽章（插著金鑰，過程中要碰一下）：
+### 1. 簽之前確認（全部打勾才往下）
 
-   ```bash
-   python3 -I harness-core/law_approve.py --head origin/<修法的分支> --signer <核准者名稱> --key ~/.ssh/law_amendment_sk
-   ```
+- [ ] PR 上**除了 `law-check` 以外的檢查都是綠的**。還在跑或有紅的，先不要簽：之後若要修，內容雜湊會變，簽章就作廢。
+- [ ] PR 上**自動審查（Codex、Copilot）的意見都處理完了**，沒有未解決的討論串。理由同上。
+- [ ] 打開 PR 上 `law-check` 的報告（Checks → law-check），記下「內容雜湊」那一行。下面叫它**報告的雜湊**。
 
-   工具會印出核准的是哪個 commit、動到哪些律法檔案、內容雜湊，然後呼叫 `ssh-keygen` 簽章。
-   **核對它印出的內容雜湊和 PR 上 `law-check` 報告裡的相同**，再碰金鑰。
-   核准檔會寫到 `.git/law-approvals/`，檔名是 `<修法紀錄的 id>.<核准者名稱>.approval.json`。
+### 2. 簽章
 
-4. 把核准檔放進修法的分支並推送。工具會印出確切的指令，形式如下：
+**核准工具一定要從 `main` 執行，不要簽出修法的分支再執行。** 修法的 PR 可以改到核准工具本身；被改過的版本可以顯示一個雜湊，卻讓金鑰簽另一個。工具只透過 git 讀取修法分支的內容，不執行其中任何檔案；工作目錄停在修法的分支上時，工具會拒絕執行。
 
-   ```bash
-   git switch <修法的分支>
-   cp .git/law-approvals/<核准檔> law/amendments/
-   git add law/amendments/ && git commit -m "approve: <修法紀錄的 id>" && git push
-   git switch main
-   ```
+```bash
+git switch main
+git pull
+git fetch origin
+```
 
-   這一步簽出了修法的分支，但沒有執行它的任何程式。
+**`git fetch origin` 不能省。** 省了的話，你簽到的是電腦上舊的分支內容，不是 PR 上最新的。
 
-5. PR 上的 `law-check` 重跑，報告會出現「核准者：<你的名稱>（ssh）」。
+看過修改（簽章代表你同意這些內容；這個指令只顯示差異，不執行任何東西）：
+
+```bash
+git diff origin/main...origin/$BRANCH
+```
+
+簽章（插著金鑰）：
+
+```bash
+python3 -I harness-core/law_approve.py --head origin/$BRANCH --signer <核准者名稱> --key ~/.ssh/law_amendment_sk
+```
+
+工具會先印出修法紀錄、動到的律法檔案、**內容雜湊**、核准的 commit，然後等你碰金鑰。
+
+- [ ] **碰金鑰之前**，核對工具印出的內容雜湊和**報告的雜湊**完全相同。
+- [ ] 核准的 commit 和 PR 上最新的 commit 相同（PR 的 Commits 分頁，比對前 7 碼）。
+
+不同就**不要碰金鑰**，按 Ctrl+C 中止。通常是第 2 步的 `git fetch origin` 沒有做，或 PR 在你確認之後又有新的推送。
+
+### 3. 推上核准檔
+
+工具簽完會印出填好分支與檔名的指令，形式如下。**直接複製工具印出的那幾行，不要自己打檔名**：`.git/law-approvals/` 裡會累積以前的核准檔，自己打很容易複製到別次的。
+
+```bash
+git switch <修法的分支>
+git pull
+cp "<.git/law-approvals/ 裡這次的核准檔>" "law/amendments/<同一個檔名>"
+git add "law/amendments/<同一個檔名>"
+git commit -m "approve: <修法紀錄的 id>"
+git push
+git switch main
+```
+
+一行一行執行，每一行都確認沒有錯誤再執行下一行。這一步簽出了修法的分支，但沒有執行它的任何程式。
+
+### 4. 確認
+
+PR 上的 `law-check` 會自動重跑。通過時報告會出現「核准者：<你的名稱>（ssh）」。
+
+### 常見問題
+
+| 看到什麼 | 原因 | 怎麼做 |
+|---|---|---|
+| `git commit` 顯示 `nothing to commit` | 複製的核准檔和分支上已有的一模一樣，通常是複製到以前的核准檔 | 用工具印出的 `cp` 那一行重新複製 |
+| `git push` 顯示 `rejected`、`non-fast-forward` | 本機的修法分支比 PR 舊 | `git pull` 之後再 `git push`。核准檔是新增的檔案，不會衝突 |
+| 報告寫「簽的是另一份內容」 | 簽完之後律法又被改過，或簽到的是舊的內容 | 回到第 1 步重簽。同一位核准者重簽會覆蓋 `.git/law-approvals/` 裡的檔案，推上去也是取代 PR 上的那一份 |
+| 工具印出的雜湊和報告的不同 | 沒有 `git fetch origin`，或 PR 又有新的推送 | 先不要碰金鑰。重做第 2 步；仍然不同就等 PR 上新的 `law-check` 跑完再核對 |
+| 工具說「工作目錄停在修法的分支上」 | 從修法的分支執行了工具 | `git switch main` 再執行 |
+| 碰了金鑰仍顯示 `invalid format` 或簽章失敗 | 常見是 FIDO2 PIN 輸入錯誤 | 用 `ykman fido info` 看剩餘嘗試次數，確認 PIN 後重試 |
 
 ## 五、要知道的事
 
-- **簽的是內容。** 簽完之後，修法紀錄或任何一個律法檔案再改一個字，簽章就失效，要回到第四節重簽。PR 上的報告會寫「簽的是另一份內容」。
+- **簽的是內容。** 簽完之後，修法紀錄或任何一個律法檔案再改一個字，簽章就失效，要回到第四節重簽。PR 上的報告會寫「簽的是另一份內容」。這就是第四節第 1 步要先等檢查與審查都結束的原因。
 - **加上核准檔不會讓簽章失效。** 內容雜湊不包含核准檔。
 - **只把基線縮短的修改不需要核准**，也不會讓已有的簽章失效。
 - **核准者清單讀的是合併目標分支上的版本。** PR 自己把別的金鑰加進清單，不會讓那把金鑰的簽章生效。
-- **機制只能保證「有人用那把金鑰同意」，不能保證「有人看懂了」。** 第四節的第 2 步不能省。
+- **機制只能保證「有人用那把金鑰同意」，不能保證「有人看懂了」。** 第四節第 2 步的 `git diff` 不能省。
 - **`python3 -I` 是隔離模式**：不讀環境變數與使用者目錄裡的 Python 設定，避免被動手腳。
 
 ## 六、金鑰遺失或更換

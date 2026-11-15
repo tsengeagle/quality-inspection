@@ -1,0 +1,27 @@
+name: spec-check
+
+# 規格格式的檢查（格式 v1，見 specs/README.md）。
+# specs/ 底下的 aggregate 有問題就失敗；spec-draft/ 只列出問題，不讓檢查失敗。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  spec-check:
+    name: spec-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install PyYAML==6.0.3
+      - name: spec-check
+        run: python harness-core/spec_lint.py --design-docs docs/02-ddd --testing-docs docs/04-testing --report-only spec-draft | tee -a "$GITHUB_STEP_SUMMARY"; exit "${PIPESTATUS[0]}"

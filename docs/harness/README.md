@@ -34,6 +34,7 @@
 | `07-github-settings.md` | GitHub 端要手動做的設定（main 的保護規則、必要檢查）與驗收方式 |
 | `08-legislation-design.md` | 修法機制的設計草稿：律法清冊、修法紀錄、簽章核准、CI 判決規則；涵蓋 GitHub 與 GitLab、多種 AI 工具。待審，尚未實作 |
 | `09-law-inventory.md` | 律法清冊的盤點：方法、缺口、裁決（測試與規格延後列入）、未裁決的項目 |
+| `10-spec-format.md` | 規格格式 v1 的決定與理由；對 ReviewProject 草稿的試跑結果 |
 | `references/` | 原文的本機副本。**受著作權保護，已列入 `.gitignore`，不進 repo** |
 
 `01` 與 `06` 依原文撰寫。`02` 至 `04` 中標明「論文」的段落出自原文，其餘是討論中的建議。兩者衝突時以原文為準。

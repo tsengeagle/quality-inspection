@@ -142,11 +142,31 @@ def main(argv=None):
         f.write("\n")
     destination = os.path.join(os.path.dirname(record_path), name)
     print("已寫入核准檔：%s" % target)
-    print("接著把它放進修法的分支並推送：")
-    print("  git switch <修法的分支>")
-    print("  cp %s %s" % (target, destination))
-    print("  git add %s && git commit -m 'approve: %s' && git push" % (destination, record_id))
+    for line in next_steps(args.head, target, destination, record_id):
+        print(line)
     return 0
+
+
+def next_steps(head, target, destination, record_id):
+    """簽完之後要執行的指令，填好實際的分支與檔名，一行一個指令。
+
+    不用 && 串起來：串起來時前一個指令失敗（例如沒有東西可以 commit），後面的會被略過，畫面上卻不明顯。
+    """
+    branch = head[len("origin/"):] if head.startswith("origin/") else "<修法的分支>"
+    return [
+        "",
+        "接著把核准檔放進修法的分支並推送。請一行一行複製執行，每一行都確認沒有錯誤再執行下一行：",
+        "",
+        "  git switch %s" % branch,
+        "  git pull",
+        '  cp "%s" "%s"' % (target, destination),
+        '  git add "%s"' % destination,
+        '  git commit -m "approve: %s"' % record_id,
+        "  git push",
+        "  git switch main",
+        "",
+        "git commit 若顯示 nothing to commit，代表複製的核准檔和分支上的一模一樣，通常是複製錯了檔案。",
+    ]
 
 
 if __name__ == "__main__":

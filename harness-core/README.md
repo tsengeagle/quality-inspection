@@ -19,6 +19,7 @@
 | `law_check.py` | 判決程式。只用 Python 標準函式庫與 git |
 | `law_approve.py` | 核准工具。核准者在自己的電腦上執行，對修法的內容雜湊簽章 |
 | `APPROVING.md` | 核准者指引：準備實體金鑰、登記公鑰、每次怎麼核准 |
+| `spec_lint.py` | 規格格式的檢查程式（格式見所在專案的 `specs/README.md`）。需要 PyYAML |
 | `tests/` | 判決程式與核准工具的測試 |
 | `ci/github/law-check.yml` | GitHub Actions 的 workflow 範本 |
 | `VERSION` | 版本號 |
@@ -47,6 +48,19 @@ GitLab CI 的範本尚未實作。
 - **清冊必須把 `harness-core/`（或安裝後的位置）、CI 設定、清冊自己列為律法。** 否則 PR 可以直接改掉它們。
 
 實際的例子見所在專案的 `law/manifest.txt` 與 `law/README.md`。
+
+## 規格檢查要的設定
+
+`spec_lint.py` 不寫死任何專案路徑：
+
+| 設定 | 來源 |
+|---|---|
+| 裁決紀錄 | 清冊的 `@decision-log`（`--manifest` 指定清冊，預設 `law/manifest.txt`） |
+| 設計決策（`design_decision` 出處）所在的目錄 | `--design-docs` |
+| 驗收範例與情境（`example`、`scenario` 出處）所在的目錄 | `--testing-docs` |
+| 禁用的實作詞彙 | 規格目錄裡的 `forbidden-vocabulary.txt`，缺少時判定無法評估 |
+
+沒有設定 `--design-docs` 或 `--testing-docs` 時，用到該類出處的規則一律算問題，不會略過。
 
 ## 核准簽章
 
