@@ -1,0 +1,183 @@
+# 格式說明見 ../../specs/README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+# 草稿：spec-check 以「只列出」模式檢查，不擋 CI。升格條件見 docs/harness/03-harness-plan.md 第二節。
+spec_version: 1
+kind: aggregate
+name: ScoreSheetDefinition
+term: 評分表              # glossary.md「評分表 [ScoreSheetDefinition]」
+
+sources:
+  - { doc: docs/01-requirements/glossary.md, section: "評分表、評分表版本、題目、章節" }
+  - { decision: D-011 }
+  - { decision: D-014 }
+  - { decision: D-015 }
+  - { decision: D-041 }
+  - { doc: docs/02-ddd/domain-model.md, section: "§3.2、§5.2、§7.1" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§8.1–§8.4" }
+  - { doc: docs/03-contracts/persistence-model.md, section: "§5.4–§5.7、§8.4" }
+
+identity:
+  name: scoreSheetId
+  type: id
+  assigned_by: system      # api-spec.md §8.1 的回應帶 scoreSheetId；請求不帶
+
+attributes:
+  - name: projectId
+    type: ref ReviewProject
+    required: true
+    mutable: false
+    source: [{ decision: D-015 }, { doc: docs/03-contracts/api-spec.md, section: "§8.1" }]
+    note: 評分表屬於一個專案；院區範圍取自這個專案的 hospitalId（見 usecases.yaml 的 SS-G-04）
+  - name: currentVersion
+    type: ScoreSheetVersion
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+
+entities:
+  - name: ScoreSheetVersion
+    term: 評分表版本
+    attributes:
+      - name: scoreSheetVersionId
+        type: id
+        assigned_by: system
+        status: proposed
+        question: Q-16
+        note: D-041 規定專案綁定的是這個 id；現行程式沒有這個 id
+      - name: versionNo
+        type: int
+        initial: 1
+        source: [{ doc: docs/03-contracts/persistence-model.md, section: "§5.5、§8.4" }]
+      - name: status
+        type: enum ScoreSheetStatus
+        initial: DRAFT
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+      - name: sections
+        type: list<Section>      # 型別詞彙沒有 list，見 OPEN-QUESTIONS.md「格式」
+        initial: []              # D-015：建立時是空白草稿
+        source: [{ decision: D-015 }, { doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+
+  - name: Section
+    term: 章節
+    attributes:
+      - name: sectionId
+        type: text
+        required: true
+        assigned_by: input       # persistence-model.md §5.6：由前端或 domain 指定
+        source: [{ doc: docs/03-contracts/persistence-model.md, section: "§5.6" }]
+      - name: title
+        type: text
+        required: true
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+      - name: items
+        type: list<ScoreItem>
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+
+  - name: ScoreItem
+    term: 題目
+    attributes:
+      - name: itemId
+        type: text
+        required: true
+        assigned_by: input
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+      - name: code
+        type: text
+        required: true
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+      - name: title
+        type: text
+        required: true
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+      - name: scoreType
+        type: enum ScoreType
+        required: true
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+      - name: maxScore
+        type: decimal(2)          # persistence-model.md §5.7 的 max_score 是兩位小數
+        required: true
+        source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }, { doc: docs/03-contracts/persistence-model.md, section: "§5.7" }]
+      - name: weight
+        type: decimal(4)          # persistence-model.md §5.7 的 weight 是四位小數
+        initial: "1"
+        status: proposed
+        question: Q-19
+        note: 沒有輸入時是 1 只見於程式；文件沒有寫
+      - name: requiredRule
+        type: enum RequiredRule
+        required: true
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2" }]
+      - name: conditionExpression
+        type: text
+        required: false           # 只有 requiredRule = CONDITIONAL 時有值，見 SS-INV-06
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2" }]
+
+# 文件列出、但本次不處理的屬性與行為。
+deferred_attributes:
+  - visibilityRule            # D-014：延後至 B3/B4
+  - name                      # api-spec.md §8.2 的請求範例與 persistence-model.md §5.4 有評分表名稱，領域模型沒有；見 Q-20
+  - displayOrder              # api-spec.md §8.2 與 persistence-model.md §5.6、§5.7 有，領域模型沒有；見 Q-20
+  - checksum                  # persistence-model.md §5.5；發布時的 snapshot（D-011），屬於抽選與提交的規格
+deferred_behaviors:
+  - freezeVersion             # domain-model.md §5.2 與 domain-events.md §4.7；FROZEN 狀態未定義
+  - snapshotForSubmission     # domain-model.md §5.2；屬於提交的規格
+  - 建立新的草稿版本           # SS-INV-01 說發布後只能以新版本演進；見 Q-16
+
+enums:
+  - name: ScoreSheetStatus
+    values: [DRAFT, PUBLISHED]
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+    note: 領域模型只寫型別名稱；兩個值取自程式與 domain-events.md §4.5、§4.6。FROZEN 見 deferred_behaviors
+  - name: ScoreType
+    values: [FIXED, RANGE, BOOLEAN]
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2" }]
+    note: 三種計分方式的意義（例如 BOOLEAN 的 maxScore）沒有定義，屬於計分的規格
+  - name: RequiredRule
+    values: [ALWAYS_REQUIRED, OPTIONAL, CONDITIONAL]
+    source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2" }, { doc: docs/03-contracts/persistence-model.md, section: "§5.7" }]
+
+transitions:
+  - id: SS-T-01
+    from: DRAFT
+    by: PublishScoreSheetVersion
+    to: PUBLISHED
+    status: decided
+    source:
+      - { doc: docs/02-ddd/domain-model.md, section: "§5.2" }
+      - { doc: docs/02-ddd/domain-events.md, section: "§4.6" }
+
+# 版本發布後不能回到草稿；新版本見 Q-16。
+terminal_states: [PUBLISHED]
+
+invariants:
+  - id: SS-INV-01
+    text: 已發布的版本內容不可修改；要調整必須建立新版本
+    status: decided
+    source:
+      - { doc: docs/02-ddd/domain-model.md, section: "§5.2 Domain Invariants" }
+      - { doc: docs/01-requirements/glossary.md, section: "評分表版本" }
+      - { doc: docs/02-ddd/application-service.md, section: "§5.1" }
+      - { doc: docs/03-contracts/api-spec.md, section: "§8.2 限制" }
+    note: 領域模型寫「已發布且已被採用」；api-spec.md §8.2 與 application-service.md §5.1 寫已發布（未發布才可更新）。本規格採後者，與程式一致
+  - id: SS-INV-02
+    text: 同一版本內 itemId 不重複（跨章節）
+    status: decided
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2 Domain Invariants" }]
+  - id: SS-INV-03
+    text: 同一版本內 code 不重複（跨章節）
+    status: decided
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2 Domain Invariants" }]
+  - id: SS-INV-04
+    text: 題目的 maxScore 不為負
+    status: decided
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.2 Domain Invariants" }]
+  - id: SS-INV-05
+    text: 同一版本內 sectionId 不重複
+    status: decided
+    source:
+      - { doc: docs/03-contracts/persistence-model.md, section: "§5.6 約束" }
+      - { doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }
+  - id: SS-INV-06
+    text: requiredRule = CONDITIONAL 時 conditionExpression 必須有值；其他 requiredRule 時 conditionExpression 沒有值
+    status: decided
+    source:
+      - { doc: docs/03-contracts/api-spec.md, section: "§8.2 欄位說明" }
+      - { doc: docs/03-contracts/persistence-model.md, section: "§5.7 備註" }
+      - { doc: docs/02-ddd/domain-model.md, section: "§5.2：必填規則必須可計算" }
