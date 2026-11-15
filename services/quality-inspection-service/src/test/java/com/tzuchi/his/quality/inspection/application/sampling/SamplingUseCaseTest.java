@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.sampling;
 
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
@@ -288,6 +290,39 @@ class SamplingUseCaseTest {
         assertThrows(RoleDeniedException.class,
                 () -> listUseCase.execute(reviewerActor,
                         new SamplingBatchQueryCriteria(null, null, null, 0, 20)));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = DomainRole.class, names = {"REVIEWER", "REREVIEWER"})
+    void listBatches_reviewerRoles_areDenied(DomainRole role) {
+        // api-spec.md §9.5 列出的角色是 HOSPITAL_MANAGER、AUDITOR、SYSTEM_ADMIN
+        ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(new InMemoryBatchQueryPort());
+        ActorContext actor = new ActorContext("u1", role.name(), EnumSet.of(role), Optional.of("H001"));
+
+        RoleDeniedException e = assertThrows(RoleDeniedException.class,
+                () -> listUseCase.execute(actor, new SamplingBatchQueryCriteria(null, null, null, 0, 20)));
+        assertEquals("ROLE_DENIED", e.getErrorCode());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = DomainRole.class, names = {"REVIEWER", "REREVIEWER"})
+    void getDetail_reviewerRoles_areDeniedBeforeLoading(DomainRole role) {
+        // api-spec.md §9.6 列出的角色是 SYSTEM_ADMIN、HOSPITAL_MANAGER、AUDITOR。
+        // 存在與不存在的批次都回 ROLE_DENIED（D-024：先檢查角色再載入）
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        queryPort.details.put("b1", new SamplingBatchDetailView(
+                "b1", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+                10, 8, 2, 5, null, null, Instant.now(), Instant.now(),
+                new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
+                List.of()));
+        projectRepo.save(createActiveProject("p1"));
+        GetSamplingBatchDetailUseCase detailUseCase = new GetSamplingBatchDetailUseCase(queryPort, projectRepo);
+        ActorContext actor = new ActorContext("u1", role.name(), EnumSet.of(role), Optional.of("H001"));
+
+        assertEquals("ROLE_DENIED",
+                assertThrows(RoleDeniedException.class, () -> detailUseCase.execute(actor, "b1")).getErrorCode());
+        assertEquals("ROLE_DENIED",
+                assertThrows(RoleDeniedException.class, () -> detailUseCase.execute(actor, "nonexistent")).getErrorCode());
     }
 
     @Test

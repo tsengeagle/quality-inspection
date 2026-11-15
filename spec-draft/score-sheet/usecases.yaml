@@ -1,0 +1,338 @@
+# 格式說明見 ../../specs/README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+# 草稿：spec-check 以「只列出」模式檢查，不擋 CI。
+spec_version: 1
+kind: usecases
+aggregate: ScoreSheetDefinition
+
+sources:
+  - { decision: D-010 }
+  - { decision: D-014 }
+  - { decision: D-015 }
+  - { decision: D-023 }
+  - { decision: D-024 }
+  - { decision: D-041 }
+  - { decision: D-042 }
+  - { decision: D-047 }
+  - { decision: D-050 }
+  - { doc: docs/02-ddd/application-service.md, section: "§5、§5.1" }
+  - { doc: docs/02-ddd/domain-events.md, section: "§4.5–§4.7" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§8.1–§8.4" }
+
+# 分類給實作端決定對外的狀態碼用；規格本身不寫 HTTP。
+error_codes:
+  - { code: ROLE_DENIED,                 category: denied,         source: [{ decision: D-023 }] }
+  - { code: HOSPITAL_SCOPE_MISMATCH,     category: denied,         source: [{ decision: D-024 }] }
+  - { code: PROJECT_NOT_FOUND,           category: not_found,      source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.1 Error" }] }
+  - { code: SCORE_SHEET_NOT_FOUND,       category: not_found,      source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }] }
+  - { code: VALIDATION_ERROR,            category: invalid_input,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: INVALID_STATE_TRANSITION,    category: conflict,       source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: SCORE_SHEET_NOT_PUBLISHABLE, category: rule_violation, source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  # api-spec.md §8.2 列為 422；程式丟的是 409 類的例外（見 OPEN-QUESTIONS.md「程式現況」）
+  - { code: DUPLICATE_SECTION_ID,        category: rule_violation, source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }] }
+  - { code: DUPLICATE_ITEM_ID,           category: rule_violation, source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }] }
+  - { code: DUPLICATE_ITEM_CODE,         category: rule_violation, source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }] }
+  # 以下兩個原本只見於程式，D-050 第 3 點定案
+  - { code: SECTION_NOT_FOUND,           category: rule_violation, status: decided, source: [{ decision: D-050 }] }
+  - { code: ITEM_NOT_FOUND,              category: rule_violation, status: decided, source: [{ decision: D-050 }] }
+
+# 多支 use case 共用的前置檢查。use case 用 guards 依序引用。
+# 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
+guards:
+  - id: SS-G-01
+    when: 操作者不具備這支 use case 的 actor.roles 中任何一個角色
+    outcome: { result: REJECTED, code: ROLE_DENIED }
+    source: [{ decision: D-023 }, { doc: docs/03-contracts/api-spec.md, section: "§8" }]
+    status: decided
+  - id: SS-G-02
+    when: scoreSheetId 找不到對應的評分表
+    outcome: { result: REJECTED, code: SCORE_SHEET_NOT_FOUND }
+    source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }]
+    status: decided
+  - id: SS-G-03
+    when: projectId 找不到對應的專案
+    outcome: { result: REJECTED, code: PROJECT_NOT_FOUND }
+    source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.1 Error" }]
+    status: decided
+  - id: SS-G-04
+    when: 操作者的院區與評分表所屬專案（建立時是輸入的專案）的 hospitalId 不同
+    outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+    source: [{ decision: D-024 }, { decision: D-042 }]
+    status: decided
+
+# 輸入的結構。型別詞彙沒有物件與 list，見 OPEN-QUESTIONS.md「格式」。
+input_types:
+  ItemInput:
+    - { name: itemId,              type: text,               required: true }
+    - { name: code,                type: text,               required: true }
+    - { name: title,               type: text,               required: true }
+    - { name: scoreType,           type: enum ScoreType,     required: true }
+    - { name: maxScore,            type: decimal(2),         required: true }
+    - { name: weight,              type: decimal(4),         required: false }
+    - { name: requiredRule,        type: enum RequiredRule,  required: true }
+    - { name: conditionExpression, type: text,               required: false }
+  SectionInput:
+    - { name: sectionId, type: text,            required: true }
+    - { name: title,     type: text,            required: true }
+    - { name: items,     type: list<ItemInput>, required: false }
+  SectionTitleInput:
+    - { name: sectionId, type: text, required: true }
+    - { name: title,     type: text, required: true }
+  ItemToSectionInput:            # ItemInput 加上要放進哪個章節
+    - { name: targetSectionId,     type: text,               required: true }
+    - { name: itemId,              type: text,               required: true }
+    - { name: code,                type: text,               required: true }
+    - { name: title,               type: text,               required: true }
+    - { name: scoreType,           type: enum ScoreType,     required: true }
+    - { name: maxScore,            type: decimal(2),         required: true }
+    - { name: weight,              type: decimal(4),         required: false }
+    - { name: requiredRule,        type: enum RequiredRule,  required: true }
+    - { name: conditionExpression, type: text,               required: false }
+
+usecases:
+
+  - name: CreateScoreSheetDraft
+    kind: command
+    summary: 為專案建立空白的評分表草稿（之後用 UpdateScoreSheetDraft 填內容）
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [SS-G-01, SS-G-03, SS-G-04]
+    rules:
+      - id: SS-CRT-01
+        when: 專案的 status 不是 DRAFT（ACTIVE 或 DEACTIVATED）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-CRT-02
+        when: 這個專案已經有其他評分表
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-050 }]
+    success:
+      output:
+        - { name: scoreSheetId, type: id }
+      state:
+        - { id: SS-CRT-S1, text: currentVersion.status = DRAFT、versionNo = 1、沒有章節, status: decided, source: [{ decision: D-015 }, { doc: docs/03-contracts/persistence-model.md, section: "§5.5" }] }
+        - { id: SS-CRT-S2, text: projectId 等於輸入, status: decided, source: [{ decision: D-015 }] }
+      emits:
+        - { event: ScoreSheetDraftCreated, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.5" }] }
+
+  - name: UpdateScoreSheetDraft
+    kind: command
+    summary: 以六個相位的命令修改評分表草稿的章節與題目
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: scoreSheetId,     type: id,                         required: true }
+      - { name: removeSectionIds, type: set<text>,                  required: false }
+      - { name: removeItemIds,    type: set<text>,                  required: false }
+      - { name: updateSections,   type: list<SectionTitleInput>,    required: false }
+      - { name: updateItems,      type: list<ItemInput>,            required: false }
+      - { name: addSections,      type: list<SectionInput>,         required: false }
+      - { name: addItems,         type: list<ItemToSectionInput>,   required: false }
+    input_note: 六相位命令（D-015、D-050 第 5 點）
+    guards: [SS-G-01, SS-G-02, SS-G-04]
+    # SS-UPD-01 在任何相位之前檢查。其餘規則在各相位執行時檢查（相位順序見 SS-UPD-S1）；
+    # 每個相位內依下列順序：先驗證該操作的輸入（SS-UPD-04～08），再查找章節或題目（SS-UPD-02、03），
+    # 最後檢查重複（SS-UPD-09～11）。第一個違反的規則決定結果；被拒絕時整個命令沒有任何改變。
+    rules:
+      - id: SS-UPD-01
+        when: currentVersion.status = PUBLISHED
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-UPD-04
+        when: 題目的 itemId、code、title 為 null 或空白，或 scoreType、maxScore、requiredRule 為 null；或章節的 sectionId 為 null 或空白
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-UPD-05
+        when: 新增或改名的章節 title 為 null 或空白
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-UPD-06
+        when: 題目的 maxScore 小於 0
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-050 }, { rule: SS-INV-04 }]
+      - id: SS-UPD-07
+        when: 題目的 requiredRule = CONDITIONAL，但 conditionExpression 為 null 或空白
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-050 }, { rule: SS-INV-06 }]
+      - id: SS-UPD-08
+        when: 題目的 requiredRule 不是 CONDITIONAL，但 conditionExpression 有值
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-050 }, { rule: SS-INV-06 }]
+      - id: SS-UPD-02
+        when: removeSectionIds、updateSections 或 addItems.targetSectionId 指向不存在的章節（以前面相位做完後的內容判斷）
+        outcome: { result: REJECTED, code: SECTION_NOT_FOUND }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-UPD-03
+        when: removeItemIds 或 updateItems 指向不存在的題目（以前面相位做完後的內容判斷）
+        outcome: { result: REJECTED, code: ITEM_NOT_FOUND }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-UPD-09
+        when: 新增的章節 sectionId 與版本內既有的章節相同
+        outcome: { result: REJECTED, code: DUPLICATE_SECTION_ID }
+        status: decided
+        source: [{ rule: SS-INV-05 }, { doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }]
+      - id: SS-UPD-10
+        when: 修改後版本內有兩個題目的 itemId 相同
+        outcome: { result: REJECTED, code: DUPLICATE_ITEM_ID }
+        status: decided
+        source: [{ rule: SS-INV-02 }, { doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }]
+      - id: SS-UPD-11
+        when: 修改後版本內有兩個題目的 code 相同
+        outcome: { result: REJECTED, code: DUPLICATE_ITEM_CODE }
+        status: decided
+        source: [{ rule: SS-INV-03 }, { doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }]
+      - id: SS-UPD-12
+        when: 六個相位都沒有內容
+        outcome: { result: SUCCESS, no_change: true }
+        status: decided
+        source: [{ decision: D-050 }]
+    success:
+      state:
+        - id: SS-UPD-S1
+          text: 相位依序執行：刪除章節 → 刪除題目 → 章節改名 → 修改題目 → 新增章節（含題目） → 新增題目到既有章節；後面的相位看得到前面相位的結果
+          status: decided
+          source: [{ decision: D-050 }]
+        - id: SS-UPD-S2
+          text: currentVersion.status = DRAFT、versionNo 不變
+          status: decided
+          source: [{ decision: D-015 }, { doc: docs/02-ddd/application-service.md, section: "§5.1" }]
+        - id: SS-UPD-S3
+          text: 新增或修改的題目沒有輸入 weight 時，weight = 1
+          status: decided
+          source: [{ decision: D-050 }]
+        - id: SS-UPD-S4
+          text: updateItems 以輸入整筆取代題目的所有欄位（不是只改有給的欄位）；題目留在原本的章節
+          status: decided
+          source: [{ decision: D-050 }]
+      emits:
+        - { event: ScoreSheetDraftUpdated, status: decided, source: [{ decision: D-050 }] }
+
+  - name: PublishScoreSheetVersion
+    kind: command
+    summary: 把評分表草稿發布為正式版本
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: scoreSheetId, type: id, required: true }
+    guards: [SS-G-01, SS-G-02, SS-G-04]
+    rules:
+      - id: SS-PUB-01
+        when: currentVersion.status = PUBLISHED
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-PUB-02
+        when: 版本內沒有任何題目（沒有章節，或每個章節都沒有題目）
+        outcome: { result: REJECTED, code: SCORE_SHEET_NOT_PUBLISHABLE }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-PUB-03
+        when: 有題目，但其中某個章節沒有題目
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-050 }]
+    success:
+      output:
+        - { name: scoreSheetVersionId, type: id, status: decided, source: [{ decision: D-050 }] }
+      state:
+        - id: SS-PUB-S1
+          text: currentVersion.status = PUBLISHED；versionNo 不變
+          status: decided
+          source: [{ rule: SS-T-01 }, { doc: docs/02-ddd/domain-events.md, section: "§4.6" }]
+        - id: SS-PUB-S2
+          text: 回傳的 scoreSheetVersionId 可用於把這個版本綁定到專案（D-041）
+          status: decided
+          source: [{ decision: D-050 }]
+      emits:
+        - { event: ScoreSheetVersionPublished, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.6" }] }
+
+  - name: GetScoreSheetDetail
+    kind: query
+    summary: 查詢單一評分表的摘要
+    actor:
+      roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
+    input:
+      - { name: scoreSheetId, type: id, required: true }
+    guards: [SS-G-01, SS-G-02, SS-G-04]
+    guard_exceptions:
+      - { guard: SS-G-04, text: SYSTEM_ADMIN 不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    output:
+      status: decided
+      source: [{ decision: D-050 }]
+      fields:
+        - { name: scoreSheetId, type: id }
+        - { name: projectId,    type: ref ReviewProject }
+        - { name: status,       type: enum ScoreSheetStatus }
+        - { name: versionNo,    type: int }
+        - { name: sectionCount, type: int }
+        - { name: itemCount,    type: int }
+
+  - name: GetScoreSheetSections
+    kind: query
+    summary: 查詢評分表目前版本的章節與題目
+    actor:
+      roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
+    input:
+      - { name: scoreSheetId, type: id, required: true }
+    guards: [SS-G-01, SS-G-02, SS-G-04]
+    guard_exceptions:
+      - { guard: SS-G-04, text: SYSTEM_ADMIN 不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    output:
+      status: decided
+      source: [{ decision: D-050 }]
+      fields:
+        - { name: scoreSheetId, type: id }
+        - { name: sections,     type: list<Section>, note: 每個章節含 sectionId、title、items；題目含 model.yaml ScoreItem 的全部欄位 }
+
+  - name: GetScoreSheetVersion
+    kind: query
+    summary: 查詢評分表目前版本的版本號與是否已發布
+    actor:
+      roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
+    input:
+      - { name: scoreSheetId, type: id, required: true }
+    guards: [SS-G-01, SS-G-02, SS-G-04]
+    guard_exceptions:
+      - { guard: SS-G-04, text: SYSTEM_ADMIN 不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    output:
+      status: decided
+      source: [{ decision: D-050 }]
+      fields:
+        - { name: versionNo, type: int }
+        - { name: published, type: boolean }
+        - { name: scoreSheetVersionId, type: id, note: 已發布時是發布產生的 id，未發布時是 null；讓發布的回應遺失後仍能綁定（D-050 第 1 點） }
+
+  - name: ListScoreSheetSummaries
+    kind: query
+    summary: 列出評分表摘要
+    actor:
+      roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
+    input:
+      - { name: hospitalId, type: ref Hospital, required: false, status: decided, source: [{ decision: D-047 }], note: 只有 SYSTEM_ADMIN 可用來縮小範圍 }
+    guards: [SS-G-01]
+    rules:
+      - id: SS-LST-01
+        when: 操作者不是 SYSTEM_ADMIN
+        outcome: { result: SUCCESS }
+        text: 只列出操作者院區的專案底下的評分表；輸入的 hospitalId 不採用
+        status: decided
+        source: [{ decision: D-042 }, { decision: D-047 }]
+      - id: SS-LST-02
+        when: 操作者是 SYSTEM_ADMIN
+        outcome: { result: SUCCESS }
+        text: 有輸入 hospitalId 時只列出該院區的評分表；沒有輸入時列出全部
+        status: decided
+        source: [{ decision: D-047 }]
+    output:
+      status: decided
+      source: [{ decision: D-050 }]
+      fields:
+        - { name: items, type: list<ScoreSheetSummary>, note: 每一項的欄位與 GetScoreSheetDetail 的輸出相同 }

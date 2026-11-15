@@ -1,0 +1,705 @@
+# 格式說明見 ../../specs/README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+# 草稿：spec-check 以「只列出」模式檢查；執行器只執行 specs/ 底下的範例，不執行草稿。
+#
+# 建立評分表要先有專案，所以每個範例都需要 specs/review-project 的 CreateReviewProject（needs）。
+spec_version: 1
+kind: examples
+aggregate: ScoreSheetDefinition
+
+actors:
+  manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
+  manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
+  reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+  admin:       { user: u-a1, roles: [SYSTEM_ADMIN],     hospital: H-09 }
+
+fixtures:
+  project_h1:
+    needs: [CreateReviewProject]
+    steps:
+      - run: CreateReviewProject
+        as: manager_h1
+        input: { name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5 }
+        save: { p: projectId }
+
+  draft_sheet:
+    needs: [CreateReviewProject]
+    steps:
+      - use: project_h1
+      - run: CreateScoreSheetDraft
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { s: scoreSheetId }
+
+  # 一個章節 S1、一個題目 I1。
+  filled_sheet:
+    needs: [CreateReviewProject]
+    steps:
+      - use: draft_sheet
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", weight: "1", requiredRule: ALWAYS_REQUIRED }
+
+  published_sheet:
+    needs: [CreateReviewProject]
+    steps:
+      - use: filled_sheet
+      - run: PublishScoreSheetVersion
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        save: { sv: scoreSheetVersionId }
+
+examples:
+
+  # ---------- CreateScoreSheetDraft ----------
+
+  - name: creates_a_blank_draft
+    basis: [SS-CRT-S1, SS-CRT-S2]
+    needs: [CreateReviewProject]
+    given:
+      - use: project_h1
+    when:
+      run: CreateScoreSheetDraft
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { s: scoreSheetId }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetScoreSheetDetail
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { scoreSheetId: "${s}", projectId: "${p}", status: DRAFT, versionNo: 1, sectionCount: 0, itemCount: 0 }
+
+  - name: rejects_create_by_a_non_manager
+    basis: [SS-G-01]
+    needs: [CreateReviewProject]
+    given:
+      - use: project_h1
+    when:
+      run: CreateScoreSheetDraft
+      as: reviewer_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_create_for_an_unknown_project
+    basis: [SS-G-03]
+    when:
+      run: CreateScoreSheetDraft
+      as: manager_h1
+      input: { projectId: "no-such-project" }
+    then: { result: REJECTED, code: PROJECT_NOT_FOUND }
+
+  - name: rejects_create_for_another_hospitals_project
+    basis: [SS-G-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: project_h1
+    when:
+      run: CreateScoreSheetDraft
+      as: manager_h2
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: creates_a_draft_for_an_active_project
+    basis: [SS-CRT-01]
+    # 啟用專案要先綁定已發布的評分表版本並發布專案版本（RP-PUB-02、RP-ACT-03）
+    needs: [CreateReviewProject, BindScoreSheetToProject, PublishReviewProjectVersion, ActivateReviewProject]
+    given:
+      - use: published_sheet
+      - run: BindScoreSheetToProject
+        as: manager_h1
+        input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+      - run: PublishReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+      - run: ActivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+    when:
+      run: CreateScoreSheetDraft
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+
+  - name: creates_a_second_draft_for_the_same_project
+    basis: [SS-CRT-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: draft_sheet
+    when:
+      run: CreateScoreSheetDraft
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { s2: scoreSheetId }
+    then: { result: SUCCESS }
+    observe:
+      - run: ListScoreSheetSummaries
+        as: manager_h1
+        expect:
+          result: SUCCESS
+          output:
+            items:
+              - { scoreSheetId: "${s}",  projectId: "${p}" }
+              - { scoreSheetId: "${s2}", projectId: "${p}" }
+
+  # ---------- UpdateScoreSheetDraft ----------
+
+  - name: adds_a_section_with_an_item
+    basis: [SS-UPD-S2, SS-UPD-S3]
+    needs: [CreateReviewProject]
+    given:
+      - use: draft_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addSections:
+          - sectionId: S1
+            title: "完整性"
+            items:
+              - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", requiredRule: ALWAYS_REQUIRED }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetScoreSheetSections
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output:
+            sections:
+              - sectionId: S1
+                title: "完整性"
+                items:
+                  - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", weight: "1", requiredRule: ALWAYS_REQUIRED, conditionExpression: null }
+      - run: GetScoreSheetDetail
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { status: DRAFT, versionNo: 1, sectionCount: 1, itemCount: 1 }
+
+  - name: removal_runs_before_addition
+    basis: [SS-UPD-S1]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        removeItemIds: [I1]
+        addItems:
+          - { targetSectionId: S1, itemId: I1, code: record-complete, title: "病歷完整性（新）", scoreType: FIXED, maxScore: "10", requiredRule: OPTIONAL }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetScoreSheetSections
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output:
+            sections:
+              - sectionId: S1
+                items:
+                  - { itemId: I1, title: "病歷完整性（新）", maxScore: "10", requiredRule: OPTIONAL }
+
+  - name: updates_an_item_as_a_whole
+    basis: [SS-UPD-S4, SS-UPD-S3]
+    needs: [CreateReviewProject]
+    given:
+      - use: draft_sheet
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", weight: "2", requiredRule: CONDITIONAL, conditionExpression: "inpatient" }
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        updateItems:
+          - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: RANGE, maxScore: "20", requiredRule: ALWAYS_REQUIRED }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetScoreSheetSections
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output:
+            sections:
+              - sectionId: S1
+                items:
+                  - { itemId: I1, scoreType: RANGE, weight: "1", requiredRule: ALWAYS_REQUIRED, conditionExpression: null }
+
+  - name: accepts_an_empty_update
+    basis: [SS-UPD-12]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input: { scoreSheetId: "${s}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetScoreSheetDetail
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { sectionCount: 1, itemCount: 1 }
+
+  - name: rejects_update_of_an_unknown_score_sheet
+    basis: [SS-G-02]
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input: { scoreSheetId: "no-such-sheet", removeSectionIds: [S1] }
+    then: { result: REJECTED, code: SCORE_SHEET_NOT_FOUND }
+
+  - name: rejects_update_by_another_hospital
+    basis: [SS-G-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h2
+      input: { scoreSheetId: "${s}", removeSectionIds: [S1] }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_update_of_a_published_version
+    basis: [SS-UPD-01, SS-INV-01]
+    needs: [CreateReviewProject]
+    given:
+      - use: published_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input: { scoreSheetId: "${s}", removeSectionIds: [S1] }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    observe:
+      - run: GetScoreSheetDetail
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { status: PUBLISHED, sectionCount: 1, itemCount: 1 }
+
+  - name: rejects_removing_an_unknown_section
+    basis: [SS-UPD-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input: { scoreSheetId: "${s}", removeSectionIds: [S9] }
+    then: { result: REJECTED, code: SECTION_NOT_FOUND }
+
+  - name: rejects_updating_an_unknown_item
+    basis: [SS-UPD-03]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        updateItems:
+          - { itemId: I9, code: other, title: "其他", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: ITEM_NOT_FOUND }
+
+  - name: validates_an_identifier_before_looking_it_up
+    basis: [SS-UPD-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        updateSections:
+          - { sectionId: " ", title: "完整性" }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_an_item_without_a_code
+    basis: [SS-UPD-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addItems:
+          - { targetSectionId: S1, itemId: I2, code: " ", title: "簽章", scoreType: BOOLEAN, maxScore: "5", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_blank_section_title
+    basis: [SS-UPD-05]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        updateSections:
+          - { sectionId: S1, title: "" }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_negative_max_score
+    basis: [SS-UPD-06, SS-INV-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addItems:
+          - { targetSectionId: S1, itemId: I2, code: signature, title: "簽章", scoreType: FIXED, maxScore: "-1", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_conditional_without_an_expression
+    basis: [SS-UPD-07, SS-INV-06]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addItems:
+          - { targetSectionId: S1, itemId: I2, code: signature, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: CONDITIONAL }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_an_expression_without_conditional
+    basis: [SS-UPD-08, SS-INV-06]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addItems:
+          - { targetSectionId: S1, itemId: I2, code: signature, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL, conditionExpression: "inpatient" }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_duplicate_section_id
+    basis: [SS-UPD-09, SS-INV-05]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addSections:
+          - { sectionId: S1, title: "重複" }
+    then: { result: REJECTED, code: DUPLICATE_SECTION_ID }
+
+  - name: rejects_a_duplicate_item_id_across_sections
+    basis: [SS-UPD-10, SS-INV-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addSections:
+          - sectionId: S2
+            title: "正確性"
+            items:
+              - { itemId: I1, code: diagnosis-correct, title: "診斷正確", scoreType: FIXED, maxScore: "10", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: DUPLICATE_ITEM_ID }
+    observe:
+      # 被拒絕時整個命令沒有任何改變
+      - run: GetScoreSheetDetail
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { sectionCount: 1, itemCount: 1 }
+
+  - name: rejects_a_duplicate_item_code_across_sections
+    basis: [SS-UPD-11, SS-INV-03]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addSections:
+          - sectionId: S2
+            title: "正確性"
+            items:
+              - { itemId: I2, code: record-complete, title: "診斷正確", scoreType: FIXED, maxScore: "10", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: DUPLICATE_ITEM_CODE }
+
+  - name: rejects_a_duplicate_item_id_within_a_section
+    basis: [SS-UPD-10, SS-INV-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addItems:
+          - { targetSectionId: S1, itemId: I1, code: signature, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: DUPLICATE_ITEM_ID }
+
+  - name: rejects_changing_a_code_to_one_in_the_same_section
+    basis: [SS-UPD-11, SS-INV-03]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addItems:
+            - { targetSectionId: S1, itemId: I2, code: signature, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        updateItems:
+          - { itemId: I2, code: record-complete, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: DUPLICATE_ITEM_CODE }
+    observe:
+      - run: GetScoreSheetSections
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output:
+            sections:
+              - sectionId: S1
+                items:
+                  - { itemId: I1, code: record-complete }
+                  - { itemId: I2, code: signature }
+
+  # ---------- PublishScoreSheetVersion ----------
+
+  - name: publishes_a_version_with_items
+    basis: [SS-PUB-S1, SS-PUB-S2, SS-T-01]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: PublishScoreSheetVersion
+      as: manager_h1
+      input: { scoreSheetId: "${s}" }
+      save: { sv: scoreSheetVersionId }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetScoreSheetVersion
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { versionNo: 1, published: true, scoreSheetVersionId: "${sv}" }
+      - run: GetScoreSheetDetail
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { status: PUBLISHED }
+
+  - name: publishes_when_one_section_is_empty
+    basis: [SS-PUB-03]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - { sectionId: S2, title: "正確性" }
+    when:
+      run: PublishScoreSheetVersion
+      as: manager_h1
+      input: { scoreSheetId: "${s}" }
+    then: { result: SUCCESS }
+
+  - name: rejects_publishing_a_blank_draft
+    basis: [SS-PUB-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: draft_sheet
+    when:
+      run: PublishScoreSheetVersion
+      as: manager_h1
+      input: { scoreSheetId: "${s}" }
+    then: { result: REJECTED, code: SCORE_SHEET_NOT_PUBLISHABLE }
+
+  - name: rejects_publishing_sections_without_items
+    basis: [SS-PUB-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: draft_sheet
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - { sectionId: S1, title: "完整性" }
+    when:
+      run: PublishScoreSheetVersion
+      as: manager_h1
+      input: { scoreSheetId: "${s}" }
+    then: { result: REJECTED, code: SCORE_SHEET_NOT_PUBLISHABLE }
+    observe:
+      - run: GetScoreSheetVersion
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output: { published: false, scoreSheetVersionId: null }
+
+  - name: rejects_publishing_twice
+    basis: [SS-PUB-01]
+    needs: [CreateReviewProject]
+    given:
+      - use: published_sheet
+    when:
+      run: PublishScoreSheetVersion
+      as: manager_h1
+      input: { scoreSheetId: "${s}" }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+
+  - name: rejects_publish_by_a_non_manager
+    basis: [SS-G-01]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: PublishScoreSheetVersion
+      as: reviewer_h1
+      input: { scoreSheetId: "${s}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  # ---------- 查詢 ----------
+
+  - name: system_admin_reads_any_hospital
+    basis: [SS-G-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: GetScoreSheetDetail
+      as: admin
+      input: { scoreSheetId: "${s}" }
+    then: { result: SUCCESS }
+
+  - name: rejects_detail_from_another_hospital
+    basis: [SS-G-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: GetScoreSheetDetail
+      as: manager_h2
+      input: { scoreSheetId: "${s}" }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: list_shows_only_the_own_hospital
+    basis: [SS-LST-01]
+    needs: [CreateReviewProject]
+    given:
+      - use: draft_sheet
+      - run: CreateReviewProject
+        as: manager_h2
+        input: { name: "住院品質審查", medicalRecordTypes: [INPATIENT], qualityThreshold: 5 }
+        save: { p2: projectId }
+      - run: CreateScoreSheetDraft
+        as: manager_h2
+        input: { projectId: "${p2}" }
+        save: { s2: scoreSheetId }
+    when:
+      run: ListScoreSheetSummaries
+      as: manager_h2
+      input: { hospitalId: H-01 }
+    then: { result: SUCCESS }
+    observe:
+      - run: ListScoreSheetSummaries
+        as: manager_h2
+        input: { hospitalId: H-01 }
+        expect:
+          result: SUCCESS
+          output:
+            items:
+              - { scoreSheetId: "${s2}" }
+
+  - name: system_admin_lists_one_hospital_or_all
+    basis: [SS-LST-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: draft_sheet
+      - run: CreateReviewProject
+        as: manager_h2
+        input: { name: "住院品質審查", medicalRecordTypes: [INPATIENT], qualityThreshold: 5 }
+        save: { p2: projectId }
+      - run: CreateScoreSheetDraft
+        as: manager_h2
+        input: { projectId: "${p2}" }
+        save: { s2: scoreSheetId }
+    when:
+      run: ListScoreSheetSummaries
+      as: admin
+    then: { result: SUCCESS }
+    observe:
+      - run: ListScoreSheetSummaries
+        as: admin
+        expect:
+          result: SUCCESS
+          output:
+            items:
+              - { scoreSheetId: "${s}" }
+              - { scoreSheetId: "${s2}" }
+      - run: ListScoreSheetSummaries
+        as: admin
+        input: { hospitalId: H-02 }
+        expect:
+          result: SUCCESS
+          output:
+            items:
+              - { scoreSheetId: "${s2}" }
+
+not_covered:
+  - { item: emits, reason: "事件不由範例驗證（執行器把 emits 列在 not_covered）" }
+  - { item: "發布時的 snapshot 與 checksum（D-011）", reason: "屬於抽選與提交的規格" }

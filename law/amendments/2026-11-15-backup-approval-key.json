@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-15-backup-approval-key",
+  "decision": "D-052",
+  "reason": "在 law/allowed_signers 為核准者 tsengeagle 登記第二把公鑰：同一支 YubiKey 上的 resident FIDO2 金鑰（application=ssh:law-amendment-2，verify-required），指紋 SHA256:8hyCboa8G5+Kuzbg/2XELz5LKqawGnhaUOZULqHPpHI，公鑰由負責人本人於 2026-11-15 在新電腦上產生並提供。起因：原本那把是非 resident 金鑰，把手檔只在舊電腦上，換電腦後無法簽章（新電腦 ssh-keygen -K 取回的指紋與登記的不符）。resident 金鑰的把手存在實體金鑰裡，換電腦可用 ssh-keygen -K 取回。限制：兩把在同一支實體金鑰上，防換電腦、不防金鑰遺失，第二支實體金鑰仍未登記（docs/harness/03-harness-plan.md 同步）。驗章用 ssh-keygen -Y verify -I <核准者>，同一名稱的任一把公鑰簽章都會被接受；有效核准以（方案、核准者）計數，同一人兩把仍只算一個核准。依 D-052，本筆修法不附核准簽章，由負責人逐行審查後在 law-check 紅燈下破例合併（原本的金鑰的把手檔在暫時拿不到的舊電腦上，且沒有備份）；例外記在 docs/harness/07-github-settings.md 的例外紀錄。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "law/",
+    "docs/01-requirements/decision-log.md"
+  ]
+}

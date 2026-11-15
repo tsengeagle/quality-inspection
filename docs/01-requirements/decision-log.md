@@ -1821,6 +1821,37 @@ spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` �
 
 ---
 
+## D-050 — 評分表的版本、建立、更新、發布與查詢
+
+### Status
+
+`accepted`（2026-11-15，依使用者裁決 `spec-draft/score-sheet/OPEN-QUESTIONS.md` Q-16～Q-23，全部採建議；Q-23 的兩個錯誤代碼另行選定）
+
+### Decision
+
+1. **版本的識別（Q-16）。** 評分表版本有自己的 `scoreSheetVersionId`，發布時產生並回傳，版本查詢也回傳（未發布時為 null）；專案綁定的就是這個 id（D-041）。本次只有第一版，「建立新的草稿版本」未定。
+2. **建立草稿（Q-17）。** 不檢查專案狀態；同一專案可以有多份評分表，被採用的是專案綁定的那個版本。
+3. **錯誤代碼（Q-18）。** 更新已發布的版本、再次發布：`INVALID_STATE_TRANSITION`（衝突）。指向不存在的章節、題目：`SECTION_NOT_FOUND`、`ITEM_NOT_FOUND`（規則違反；評分表本身存在，不用「找不到」類）。重複的章節、題目 id、題目代碼依 api-spec §8.2：`DUPLICATE_SECTION_ID`、`DUPLICATE_ITEM_ID`、`DUPLICATE_ITEM_CODE`（規則違反）。
+4. **欄位驗證（Q-19）。** 必填欄位為 null 或空白、章節標題空白、`maxScore` 小於 0、`CONDITIONAL` 沒有 `conditionExpression`、非 `CONDITIONAL` 卻有 `conditionExpression`：一律 `VALIDATION_ERROR`。題目沒有輸入 `weight` 時是 1；`weight` 的數值範圍本次不限制，由計分的規格處理。
+5. **更新命令（Q-20）。** 採 D-015 的六相位命令，依序：刪除章節 → 刪除題目 → 章節改名 → 修改題目 → 新增章節（含題目）→ 新增題目到既有章節，後面的相位看得到前面的結果。每個相位內先驗證該操作的輸入（第 4 點），再查找章節或題目，最後檢查重複。修改題目是整筆取代。六個相位都空時成功、沒有改變（D-038 的 `NO_CHANGES` 只適用提交草稿）。更新成功發出 `ScoreSheetDraftUpdated`。評分表名稱與 `displayOrder` 本次不納入；順序以清單順序表示。
+6. **發布條件（Q-21）。** 版本內沒有任何題目時拒絕，`SCORE_SHEET_NOT_PUBLISHABLE`；有題目時容許空章節。
+7. **查詢（Q-22）。** 詳情、章節、版本、列表四支查詢的讀取角色為 `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR`，院區範圍依 D-042、D-047。D-010 的「完整評分內容」指提交的分數與答案，不包括評分表的題目定義，所以 `SYSTEM_ADMIN` 可以讀章節與題目。`REVIEWER`／`REREVIEWER` 不開放（審查時用案件的 snapshot）。章節查詢回傳 `{ scoreSheetId, sections }`，列表回傳 `{ items }`。
+8. **綁定（Q-23）。** `BindScoreSheetToProject` 屬於 `ReviewProject`，在評分表規格升格時一起加進 `specs/review-project/`。檢查依序：角色 → 專案存在 → 院區 → 專案目前版本未發布（否則 `INVALID_STATE_TRANSITION`）→ 評分表版本存在且屬於這個專案（否則 `SCORE_SHEET_NOT_FOUND`，不透露其他專案的版本是否存在）→ 評分表版本已發布（否則 `INVALID_STATE_TRANSITION`）。成功時專案目前版本的評分表版本參照等於輸入，重新綁定會取代。
+
+### Relationship / Evidence
+
+- 第 1 點落實 D-041，與 D-011、`persistence-model.md` §5.5 一致。第 8 點補足 D-041 的 Pending（綁定時版本是否要存在且已發布）。
+- 第 2 點取代 `api-spec.md` §8.1 的 `PROJECT_NOT_ACTIVE`：要求專案已啟用會卡死（專案發布前必須已綁定，RP-PUB-02；啟用前必須已發布，RP-ACT-03）。
+- 第 3 點的 `INVALID_STATE_TRANSITION` 與 RP-UPD-01、D-049 第 1 點一致，取代 api-spec §8.2 的 `ALREADY_PUBLISHED`。
+- 第 5 點以 D-015 為準，修正 api-spec §8.2 的整份取代範例。
+- 現行程式與本決策的差異（沒有版本 id、欄位驗證回 500、重複章節的代碼、`AUDITOR` 被拒、綁定不檢查評分表等）列在規格草稿的「程式現況」，尚未修改。
+
+### Mapping
+
+`spec-draft/score-sheet/`：`SS-CRT-01`、`SS-CRT-02`、`SS-UPD-01～12`、`SS-UPD-S1`、`SS-UPD-S3`、`SS-UPD-S4`、`SS-PUB-01～03`、`SS-PUB-S2`、四支查詢的角色與輸出。第 8 點在升格時對應到 `specs/review-project/` 的綁定規則。
+
+---
+
 ## D-051 — REVIEWER／REREVIEWER 不能讀取專案與抽選批次
 
 ### Status
@@ -1850,3 +1881,36 @@ spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` �
 ### Mapping
 
 `specs/review-project/`：`GetReviewProjectDetail` 的讀取角色（原 `actor.open` 指向 Q-12，已移除）。
+
+---
+
+## D-052 — 登記備援核准金鑰的修法（PR #33）以人工審查取代簽章，破例合併
+
+### Status
+
+`accepted`（2026-11-15，依負責人明確指示「#33 破例合併」）
+
+### Decision
+
+PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰（resident FIDO2 金鑰，指紋 `SHA256:8hyCboa8G5+Kuzbg/2XELz5LKqawGnhaUOZULqHPpHI`）。這個 PR 不附核准簽章，`law-check` 在紅燈下合併，由負責人的人工審查取代簽章。
+
+破例只限這一次，條件是：
+
+1. 原本登記的金鑰沒有遺失。它是非 resident 金鑰，把手檔只在負責人暫時拿不到的舊電腦上，而且沒有任何備份可以還原。
+2. 新公鑰由負責人本人在新電腦產生。指紋由負責人親自核對，並以 `ssh-keygen -K` 從實體金鑰取回、確認相同。
+3. 這次修法只新增負責人自己的金鑰，不刪除、不修改任何既有的金鑰，也不改動判決程式與清冊。
+4. 合併前由負責人逐行審查 PR 的差異。
+
+之後的所有修法恢復簽章，第一筆就是 PR #28。
+
+### Relationship / Evidence
+
+- 這是 2026-11-14「不留繞過權限」裁決（`docs/harness/07-github-settings.md` 第一節）的例外。它也不屬於同一文件第四節的 SOP：那個 SOP 只適用於檢查本身壞掉。所以這次的依據是本裁決，不是 SOP。
+- 性質和 2026-11-14 第一次登記金鑰（修法紀錄 `2026-11-14-enable-signed-approval`）相同：沒有可用的簽章，由負責人親自核對公鑰。差別是這次原本的金鑰仍然存在。
+- GitHub 免費帳號的私有 repo 不會強制執行分支保護，所以紅燈下合併在技術上可行。防線是事後偵測：合併後 `main` 上的 `law-check (post-merge)` 會判定未通過，這是預期中的，記在 `07-github-settings.md` 的例外紀錄。
+- 已知的風險：同一個人連續幾天拿不到舊電腦，就可能想再破例一次。為避免這種情況，條件 1 寫死為「原本的金鑰仍然存在、只是暫時拿不到、而且沒有備份」。日後若再發生，這筆裁決不能直接援用，要另外裁決。
+- 備援金鑰和原本的金鑰在同一支實體金鑰上：它防的是換電腦，不防金鑰遺失。第二支實體金鑰仍然沒有登記。
+
+### Mapping
+
+`law/allowed_signers`、`law/amendments/2026-11-15-backup-approval-key.json`、`docs/harness/07-github-settings.md` 的例外紀錄。
