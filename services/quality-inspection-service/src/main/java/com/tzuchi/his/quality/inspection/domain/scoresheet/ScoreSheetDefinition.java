@@ -188,6 +188,13 @@ public class ScoreSheetDefinition {
                                 update.getTitle(), update.getScoreType(), update.getMaxScore(),
                                 update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
                         validateCrossSectionUniqueness(tempItem, section);
+                        // 同一章節的其他題目也不能有相同代碼（題目本身被取代，不算重複）
+                        for (int j = 0; j < section.getItems().size(); j++) {
+                            if (j != i && section.getItems().get(j).getCode().equals(update.getCode())) {
+                                throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
+                                        "Duplicate item code in section: " + update.getCode());
+                            }
+                        }
                     }
                     ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
                             update.getTitle(), update.getScoreType(), update.getMaxScore(),

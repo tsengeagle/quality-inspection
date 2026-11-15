@@ -24,12 +24,16 @@ public class GetScoreSheetVersionUseCase {
     }
 
     public ScoreSheetVersionInfo execute(ActorContext actor, String scoreSheetId) {
+        // D-024：角色 → 載入 → 院區
+        boolean systemAdmin = actor.hasRole(DomainRole.SYSTEM_ADMIN);
+        if (!systemAdmin) {
+            actor.requireRole(DomainRole.HOSPITAL_MANAGER);
+        }
         ScoreSheetDefinition scoreSheet = repository.findById(scoreSheetId)
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheet not found: " + scoreSheetId));
 
-        if (!actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
-            actor.requireRole(DomainRole.HOSPITAL_MANAGER);
+        if (!systemAdmin) {
             String hospitalId = hospitalIdResolver.resolveByProjectId(scoreSheet.getProjectId());
             actor.requireHospitalScope(hospitalId);
         }
