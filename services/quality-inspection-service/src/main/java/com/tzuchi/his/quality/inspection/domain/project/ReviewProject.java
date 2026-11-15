@@ -161,6 +161,8 @@ public class ReviewProject {
                             BigDecimal qualityThreshold, BigDecimal initialReviewWeight,
                             BigDecimal rereviewWeight) {
         requireStatusDraft();
+        // 已發布但尚未啟用時狀態仍是 DRAFT，版本內容仍不可改（D-040 第 4 點、RP-UPD-01）
+        requireDraft();
         Objects.requireNonNull(name, "name must not be null");
         if (name.isBlank()) {
             throw new DomainRuleViolationException("INVALID_PROJECT_NAME",

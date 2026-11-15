@@ -82,6 +82,25 @@ class ReviewProjectScoringInputTest {
     }
 
     @Test
+    void updateOfAPublishedVersionIsRejectedAndKeepsItsScoringInputs() {
+        // 已發布但尚未啟用時狀態仍是 DRAFT；版本內容（含品質線與權重）仍不可改（RP-UPD-01、RP-INV-01、RP-INV-03）
+        ReviewProject p = create(d("5"), d("0.70"), d("0.30"));
+        p.publishNewVersion();
+        assertEquals(ProjectStatus.DRAFT, p.getStatus());
+
+        com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException.class,
+                () -> p.updateDraft("改名", null, OUTPATIENT, null, null, null));
+        assertEquals("INVALID_STATE_TRANSITION", e.getErrorCode());
+        ProjectVersion v = p.getCurrentVersion();
+        assertTrue(v.isPublished());
+        assertEquals(0, d("5").compareTo(v.getQualityThreshold()));
+        assertEquals(0, d("0.70").compareTo(v.getInitialReviewWeight()));
+        assertEquals(0, d("0.30").compareTo(v.getRereviewWeight()));
+        assertEquals("門診品質審查", p.getName());
+    }
+
+    @Test
     void updateRejectsAnOutOfRangeThresholdAndChangesNothing() {
         ReviewProject p = create(d("5"), null, null);
         DomainValidationException e = assertThrows(DomainValidationException.class,
