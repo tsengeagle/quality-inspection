@@ -1,40 +1,15 @@
-# ScoreSheetDefinition 規格草稿：裁決紀錄與升格待辦
+# ScoreSheetDefinition：裁決紀錄、程式現況與未決事項
 
-- 狀態：**草稿，不是 authority**。權威來源仍是 `docs/01-requirements` 到 `docs/04-testing`。
-- 建立日期：2026-11-15，由 Claude Code 依現有文件與程式轉換。
-- 範圍：評分表的 3 支命令（建立、更新、發布）與 4 支查詢。綁定（`BindScoreSheetToProject`）屬於 `ReviewProject`，見「升格時一起處理」。
 - 2026-11-15：Q-16～Q-23 全部裁決，寫在 `decision-log.md` D-050。所有規則都是 `decided`，目前沒有待裁決的題目。草稿時期的題目原文、選項與建議見本檔的 git 歷史。
-
-## 升格時一起處理
-
-升格（`spec-draft/score-sheet/` → `specs/score-sheet/`）的修法 PR 要同時做下列幾件事：
-
-1. **把綁定加進 `specs/review-project/usecases.yaml`**（D-050 第 8 點）。合約如下，規則 id 在升格時編號：
-
-   | 檢查（依序） | 結果 |
-   |---|---|
-   | 角色不是 `HOSPITAL_MANAGER` | `ROLE_DENIED`（RP-G-01） |
-   | 專案不存在 | `PROJECT_NOT_FOUND`（RP-G-02） |
-   | 院區不符 | `HOSPITAL_SCOPE_MISMATCH`（RP-G-03） |
-   | 專案目前的版本已發布 | `INVALID_STATE_TRANSITION` |
-   | 評分表版本不存在，或屬於另一個專案 | `SCORE_SHEET_NOT_FOUND` |
-   | 評分表版本尚未發布 | `INVALID_STATE_TRANSITION` |
-   | 成功 | 專案目前版本的 `scoreSheetVersionRef` = 輸入；重新綁定會取代 |
-
-2. **更新 `specs/review-project/examples.yaml` 的 `bound_project` fixture**：`CreateScoreSheetDraft` 的輸入是 `{ projectId }`，發布前要先用 `UpdateScoreSheetDraft` 加至少一個題目（`SS-PUB-02`）。拿掉 `input_pending`。
-3. **在 `specs/README.md` 第五節補上格式缺口**（見下節）。
-4. **已知失敗清單**：升格後執行器會執行這些範例，與程式不一致的範例要加進 `known-test-failures.txt`（見「程式現況」）。
-
-## 格式
-
-本草稿用到格式 v1 沒有定義的寫法：
-
-| 寫法 | 用在 | 意思 |
-|---|---|---|
-| `list<T>` | 章節、題目、更新命令的各相位 | 有順序、可重複的清單。範例比對時執行器不比順序（第四節「執行」） |
-| `input_types` | `usecases.yaml` | 輸入裡的物件結構，用名稱引用 |
+- 2026-11-15：由 `spec-draft/score-sheet/` 升格到 `specs/score-sheet/`。升格時一併完成：
+  1. 綁定（`BindScoreSheetToProject`，D-050 第 8 點）加進 `specs/review-project/usecases.yaml`，規則 `RP-BND-01`～`RP-BND-03`、`RP-BND-S1`、`RP-BND-S2`，範例 6 個。
+  2. `specs/review-project/examples.yaml` 的 `bound_project` 改用評分表的 use case 準備（先加一個題目再發布，`SS-PUB-02`），拿掉 `input_pending`。
+  3. `specs/README.md` 第五節補上 `list<T>` 與 `input_types`。
+  4. 與程式不一致的範例加進 `known-test-failures.txt`。
 
 ## 程式現況（給建構 PR 參考，不是規格）
+
+下列差異讓範例未通過，列在已知失敗清單。建構 PR 修正後，從清單刪除變綠的範例。
 
 | 項目 | 規格 | 程式 |
 |---|---|---|

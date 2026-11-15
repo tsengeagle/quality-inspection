@@ -1,5 +1,4 @@
-# 格式說明見 ../../specs/README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-# 草稿：spec-check 以「只列出」模式檢查；執行器只執行 specs/ 底下的範例，不執行草稿。
+# 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
 #
 # 建立評分表要先有專案，所以每個範例都需要 specs/review-project 的 CreateReviewProject（needs）。
 spec_version: 1

@@ -1,5 +1,4 @@
-# 格式說明見 ../../specs/README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-# 草稿：spec-check 以「只列出」模式檢查，不擋 CI。
+# 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
 spec_version: 1
 kind: usecases
 aggregate: ScoreSheetDefinition

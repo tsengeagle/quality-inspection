@@ -7,7 +7,7 @@
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
 
-# D-037、D-038 尚未實作（updatedAt 契約、NO_CHANGES）
+# D-037 尚未實作（updatedAt 契約）：要在案件新增欄位，被 D-045 擋住（正式資料庫與 migration 工具未定）
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#caseOnlyChangeMustUpdateTime
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#changedDraftMustUpdateCaseTime x2
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#newCaseMustInitializeTime
@@ -16,7 +16,9 @@ com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegr
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#revisionMustUpdateCaseTime
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#submitMustUpdateCaseTime
 
-# 驗收範例（第 4 期）：needs 未滿足，要等評分表的規格（CreateScoreSheetDraft、PublishScoreSheetVersion、BindScoreSheetToProject）
+# 驗收範例（第 4 期）：評分表規格已升格（specs/score-sheet/），程式尚未照規格修改（見 specs/score-sheet/OPEN-QUESTIONS.md「程式現況」）。
+# 共同原因：UpdateScoreSheetDraft 的輸入是一個命令物件，規格是六個具名輸入；BindScoreSheetToProject 綁定 scoreSheetId，規格是 scoreSheetVersionId；
+# 發布不回傳 scoreSheetVersionId；查詢沒有 versionNo、列表回清單不回物件。由後續的建構 PR 逐一修正並刪除。
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activates_a_published_project
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activating_an_active_project_changes_nothing
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/deactivates_an_active_project
@@ -29,5 +31,43 @@ com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-proje
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_without_a_quality_threshold
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_after_the_version_is_published
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_weight_change_after_the_version_is_published
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/binding_a_published_score_sheet_allows_publishing
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_after_the_version_is_published
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_by_a_non_manager
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_of_an_unknown_score_sheet_version
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_of_another_projects_score_sheet_version
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_to_another_hospitals_project
 
-
+# 評分表的驗收範例（specs/score-sheet/），原因同上
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/accepts_an_empty_update
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/adds_a_section_with_an_item
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/creates_a_blank_draft
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/creates_a_draft_for_an_active_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/creates_a_second_draft_for_the_same_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/list_shows_only_the_own_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/publishes_a_version_with_items
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/publishes_when_one_section_is_empty
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_a_blank_section_title
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_a_duplicate_item_code_across_sections
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_a_duplicate_item_id_across_sections
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_a_duplicate_item_id_within_a_section
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_a_duplicate_section_id
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_a_negative_max_score
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_an_expression_without_conditional
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_an_item_without_a_code
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_changing_a_code_to_one_in_the_same_section
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_conditional_without_an_expression
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_detail_from_another_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_publish_by_a_non_manager
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_publishing_sections_without_items
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_publishing_twice
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_removing_an_unknown_section
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_update_by_another_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_update_of_a_published_version
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_update_of_an_unknown_score_sheet
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_updating_an_unknown_item
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/removal_runs_before_addition
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/system_admin_lists_one_hospital_or_all
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/system_admin_reads_any_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/updates_an_item_as_a_whole
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/validates_an_identifier_before_looking_it_up

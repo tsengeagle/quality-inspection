@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-15-score-sheet-promotion",
+  "decision": "D-050",
+  "reason": "依負責人 2026-11-15 的指示，把評分表（ScoreSheetDefinition）規格由 spec-draft/score-sheet/ 升格到 specs/score-sheet/（38 條規則全部 decided，36 個範例），並完成 OPEN-QUESTIONS 列的升格待辦：(1) 依 D-050 第 8 點把綁定（BindScoreSheetToProject）加進 specs/review-project/usecases.yaml，規則 RP-BND-01～03、RP-BND-S1、S2，錯誤代碼 SCORE_SHEET_NOT_FOUND，範例 6 個；RP-BND-03（評分表版本未發布）範例拿不到未發布的版本 id，列在 not_covered。(2) review-project 的 bound_project fixture 改用評分表的 use case 準備（建立草稿、加一個題目、發布），拿掉 input_pending。(3) specs/README.md 第一節加評分表、第五節補 list<T> 與 input_types。(4) 已知失敗清單新增 38 行（評分表 32 個、綁定 6 個範例）：程式尚未照規格修改（UpdateScoreSheetDraft 的輸入是命令物件、綁定用 scoreSheetId、發布不回傳 scoreSheetVersionId、查詢欄位名與輸出形狀不同），由後續的建構 PR 修正並刪除；原有 12 行 review-project 範例仍未通過，原因由 needs 未滿足改為同一組程式差異，註解一併更新。另把 D-037 區塊過時的註解（D-038 已於 PR #35 實作）改正。本機驗證：spec_lint 兩個 aggregate 擋下模式問題 0 個；./gradlew cleanTest check 通過（測試方法 811 個、失敗 57 個，與清單 57 行相同）。本 PR 只改律法與文件。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/",
+    "spec-draft/",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/"
+  ]
+}
