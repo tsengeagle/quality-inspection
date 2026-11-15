@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-15-score-sheet-draft",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:1d4ce5428da20c8e871e0c3647b0354b738917fe134993736dd9f53e42fee9bb",
+  "reviewed_commit": "f2883d49eb835e058a0179d5da8385a69de38583",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFkAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAghihX/R\nq3C2qycCcVhx0LkVTeSw7MEttHzTwijS611dYAAAATc3NoOmxhdy1hbWVuZG1lbnQtMgAA\nAA1sYXctYW1lbmRtZW50AAAAAAAAAAZzaGE1MTIAAABnAAAAGnNrLXNzaC1lZDI1NTE5QG\n9wZW5zc2guY29tAAAAQE5DDPEgQGAixINpymEaZO9f9subVyUlylZ/d+6aNgYDwX7wUK82\n7VRjJZ2SlH7Cecdo//4hnbj8w/HnyaFfxgUFAAAABw==\n-----END SSH SIGNATURE-----\n"
+}
