@@ -51,6 +51,32 @@ class ReviewProjectApiTest {
     }
 
     @Test
+    void createProject_withScoringInputs_shouldReturn201() throws Exception {
+        String body = "{\"name\":\"門診\",\"medicalRecordTypes\":[\"OUTPATIENT\"],"
+                + "\"qualityThreshold\":7,\"initialReviewWeight\":0.7,\"rereviewWeight\":0.3}";
+
+        mockMvc.perform(post(BASE)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void createProject_qualityThresholdOutOfRange_shouldReturn400ValidationError() throws Exception {
+        // D-046: 品質線是 1 到 10 的整數，超出範圍或不是整數回 400 VALIDATION_ERROR
+        for (String threshold : new String[] {"11", "0", "5.5"}) {
+            String body = "{\"name\":\"門診\",\"medicalRecordTypes\":[\"OUTPATIENT\"],\"qualityThreshold\":" + threshold + "}";
+            mockMvc.perform(post(BASE)
+                            .header("api-key", hmToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        }
+    }
+
+    @Test
     void createProject_nullName_shouldReturn400() throws Exception {
         String body = "{\"medicalRecordTypes\":[\"OUTPATIENT\"]}";
 

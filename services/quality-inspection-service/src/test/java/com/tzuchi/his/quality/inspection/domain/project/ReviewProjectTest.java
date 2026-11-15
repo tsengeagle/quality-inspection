@@ -139,7 +139,7 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
 
         project.updateDraft("New Name", "New Desc",
-                EnumSet.of(MedicalRecordType.INPATIENT));
+                EnumSet.of(MedicalRecordType.INPATIENT), null, null, null);
 
         assertEquals("New Name", project.getName());
         assertEquals("New Desc", project.getDescription());
@@ -156,7 +156,7 @@ class ReviewProjectTest {
         project.activate();
 
         DomainStateConflictException ex = assertThrows(DomainStateConflictException.class,
-                () -> project.updateDraft("X", null, EnumSet.of(MedicalRecordType.OUTPATIENT)));
+                () -> project.updateDraft("X", null, EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null));
         assertEquals("INVALID_STATE_TRANSITION", ex.getErrorCode());
     }
 

@@ -11,6 +11,7 @@ import com.tzuchi.his.quality.inspection.domain.project.event.ReviewProjectDraft
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Set;
 
 @Service
@@ -27,13 +28,16 @@ public class UpdateReviewProjectDraftUseCase {
     }
 
     public void execute(ActorContext actor, String projectId, String name,
-                        String description, Set<MedicalRecordType> medicalRecordTypes) {
+                        String description, Set<MedicalRecordType> medicalRecordTypes,
+                        BigDecimal qualityThreshold, BigDecimal initialReviewWeight,
+                        BigDecimal rereviewWeight) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = repository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
                         "Project not found: " + projectId));
         actor.requireHospitalScope(project.getHospitalId());
-        project.updateDraft(name, description, medicalRecordTypes);
+        project.updateDraft(name, description, medicalRecordTypes,
+                qualityThreshold, initialReviewWeight, rereviewWeight);
         repository.save(project);
         eventPublisher.publish(new ReviewProjectDraftUpdatedEvent(this, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId()));
