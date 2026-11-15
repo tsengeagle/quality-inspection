@@ -52,6 +52,8 @@ services/quality-inspection-service/gradlew.bat         gate
 services/quality-inspection-service/gradle.properties   gate
 services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/   gate
 services/quality-inspection-service/src/test/resources/archunit.properties                          gate
+# 驗收範例的執行器（第 4 期）：把 specs/ 的 examples.yaml 當成驗收測試執行。改弱它就能讓規格的紅燈消失
+services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/     gate
 
 # 閘門：會改變測試或架構規則怎麼執行的設定檔。
 # 其中幾個現在不存在；列進來是因為只要有人新增，閘門的行為就會改變（2026-11-14 盤點）。
