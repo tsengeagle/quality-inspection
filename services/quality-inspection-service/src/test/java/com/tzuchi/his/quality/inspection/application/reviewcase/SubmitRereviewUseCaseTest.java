@@ -129,7 +129,8 @@ class SubmitRereviewUseCaseTest {
         assertNotNull(result.getSubmissionId());
         assertEquals("SUBMITTED", result.getStatus());
         assertEquals(CASE_ID, result.getCaseId());
-        assertEquals(0, new BigDecimal("53.75").compareTo(result.getFinalScore()));
+        // D-032／D-053 第 4 點：提交後案件維持 REREVIEW_IN_PROGRESS
+        assertEquals("REREVIEW_IN_PROGRESS", result.getCaseStatus());
 
         ReviewCase saved = caseRepo.findById(CASE_ID).orElseThrow();
         assertNotNull(saved.getFinalScore());
@@ -142,6 +143,11 @@ class SubmitRereviewUseCaseTest {
         ReviewSubmission sub = submissionRepo.findById(SUBMISSION_ID).orElseThrow();
         assertEquals(SubmissionStatus.SUBMITTED, sub.getStatus());
         assertTrue(eventPublisher.events.size() >= 1);
+    }
+
+    @Test
+    void result_mustNotExposeFinalScore_D033() {
+        assertThrows(NoSuchMethodException.class, () -> SubmitRereviewResult.class.getMethod("getFinalScore"));
     }
 
     @Test
@@ -243,7 +249,7 @@ class SubmitRereviewUseCaseTest {
             reviewCase.setLatestRereviewSubmissionId(newer.getSubmissionId());
         }
         if (scenario.equals("missingPointer")) reviewCase.setLatestRereviewSubmissionId(null);
-        if (scenario.equals("closed")) reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5"));
+        if (scenario.equals("closed")) { reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5")); reviewCase.closeAfterRereview(LocalDateTime.now()); }
         if (scenario.equals("cancelled")) reviewCase.cancel("cancelled");
         caseRepo.save(reviewCase);
         List<Object> beforeCase = caseState(reviewCase);

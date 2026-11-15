@@ -203,7 +203,7 @@ class ReviewCaseRereviewTest {
     // --- completeRereview tests ---
 
     @Test
-    void completeRereview_happyPath_shouldCloseWithWeightedScore() {
+    void completeRereview_happyPath_shouldComputeWeightedScoreWithoutClosing_D032() {
         ReviewCase rc = caseAtRereviewInProgress();
         // initialReviewScore = 90 (from caseAtPendingRereview)
         // rereviewScore = 70, weights = 0.5/0.5 → finalScore = 80.00
@@ -211,9 +211,10 @@ class ReviewCaseRereviewTest {
                 new BigDecimal("70"),
                 new BigDecimal("0.5"),
                 new BigDecimal("0.5"));
-        assertEquals(CaseStatus.CLOSED, rc.getStatus());
+        // D-032／D-053 第 4 點：提交後維持 REREVIEW_IN_PROGRESS，不結案
+        assertEquals(CaseStatus.REREVIEW_IN_PROGRESS, rc.getStatus());
         assertEquals(0, new BigDecimal("80.00").compareTo(rc.getFinalScore()));
-        assertNotNull(rc.getClosedAt());
+        assertNull(rc.getClosedAt());
     }
 
     @Test
@@ -235,12 +236,47 @@ class ReviewCaseRereviewTest {
                 () -> rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5")));
     }
 
+    // --- closeAfterRereview tests (D-034／D-053) ---
+
+    private static final LocalDateTime CLOSED_AT = LocalDateTime.of(2026, 11, 15, 10, 0);
+
+    @Test
+    void closeAfterRereview_fromRereviewInProgress_shouldCloseAndKeepScore() {
+        ReviewCase rc = caseAtRereviewInProgress();
+        rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        rc.closeAfterRereview(CLOSED_AT);
+        assertEquals(CaseStatus.CLOSED, rc.getStatus());
+        assertEquals(CLOSED_AT, rc.getClosedAt());
+        assertEquals(0, new BigDecimal("80.00").compareTo(rc.getFinalScore()));
+    }
+
+    @Test
+    void closeAfterRereview_alreadyClosed_shouldRejectWithCaseTerminal_D053() {
+        ReviewCase rc = caseAtRereviewInProgress();
+        rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        rc.closeAfterRereview(CLOSED_AT);
+        LocalDateTime closedAt = rc.getClosedAt();
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class, () -> rc.closeAfterRereview(CLOSED_AT.plusMinutes(5)));
+        assertEquals("CASE_TERMINAL", e.getErrorCode());
+        assertEquals(closedAt, rc.getClosedAt());
+    }
+
+    @Test
+    void closeAfterRereview_notInRereview_shouldReject() {
+        ReviewCase rc = caseAtPendingRereview();
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class, () -> rc.closeAfterRereview(CLOSED_AT.plusMinutes(5)));
+        assertEquals("CASE_NOT_REREVIEW_IN_PROGRESS", e.getErrorCode());
+        assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
+        assertNull(rc.getClosedAt());
+    }
+
     // --- updateFinalScoreForRereview tests (rereview revision) ---
 
     @Test
     void updateFinalScoreForRereview_closedCase_shouldRejectWithoutChangingScore() {
         ReviewCase rc = caseAtRereviewInProgress();
         rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        rc.closeAfterRereview(CLOSED_AT);
         BigDecimal beforeScore = rc.getFinalScore();
         LocalDateTime beforeClosedAt = rc.getClosedAt();
         assertThrows(DomainStateConflictException.class, () -> rc.updateFinalScoreForRereview(

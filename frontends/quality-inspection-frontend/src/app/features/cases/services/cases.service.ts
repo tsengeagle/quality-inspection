@@ -214,12 +214,19 @@ interface SubmitInitialReviewResponseDto {
   rereviewRequired: boolean;
 }
 
+/** 不含 finalScore：回應複審醫師時不得回傳可反推初審分數的資訊（D-033、D-053）。 */
 interface SubmitRereviewResponseDto {
   submissionId: string;
   status: string;
   caseId: string;
   caseStatus: string;
-  finalScore?: number | null;
+}
+
+/** 複審結案的回應（D-053 第 2 點）。 */
+interface CloseRereviewResponseDto {
+  caseId: string;
+  caseStatus: string;
+  submissionId: string;
 }
 
 interface RevisionResultResponseDto {
@@ -624,8 +631,21 @@ export class CasesService {
         submissionId: response.data.submissionId,
         caseId: response.data.caseId,
         caseStatus: response.data.caseStatus,
-        status: response.data.status,
-        finalScore: response.data.finalScore
+        status: response.data.status
+      }))
+    );
+  }
+
+  /** 複審的獨立結案（D-034、D-053）。submissionId 是要結案的有效複審結果；不需要請求內容。 */
+  closeRereview(caseId: string, submissionId: string): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<CloseRereviewResponseDto>>(
+      `${this.baseUrl}/${caseId}/rereview/submissions/${submissionId}/close`,
+      {}
+    ).pipe(
+      map(response => ({
+        caseId: response.data.caseId,
+        caseStatus: response.data.caseStatus,
+        submissionId: response.data.submissionId
       }))
     );
   }

@@ -51,6 +51,7 @@ public class ReviewCaseController {
     private final SaveRereviewDraftUseCase saveRereviewDraftUseCase;
     private final SubmitRereviewUseCase submitRereviewUseCase;
     private final ReviseRereviewUseCase reviseRereviewUseCase;
+    private final CloseRereviewUseCase closeRereviewUseCase;
     private final GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase;
     private final ListReviewCasesUseCase listReviewCasesUseCase;
     private final GetReviewCaseDetailUseCase getReviewCaseDetailUseCase;
@@ -76,6 +77,7 @@ public class ReviewCaseController {
                                  SaveRereviewDraftUseCase saveRereviewDraftUseCase,
                                  SubmitRereviewUseCase submitRereviewUseCase,
                                  ReviseRereviewUseCase reviseRereviewUseCase,
+                                 CloseRereviewUseCase closeRereviewUseCase,
                                  GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase,
                                  ListReviewCasesUseCase listReviewCasesUseCase,
                                  GetReviewCaseDetailUseCase getReviewCaseDetailUseCase,
@@ -100,6 +102,7 @@ public class ReviewCaseController {
         this.saveRereviewDraftUseCase = saveRereviewDraftUseCase;
         this.submitRereviewUseCase = submitRereviewUseCase;
         this.reviseRereviewUseCase = reviseRereviewUseCase;
+        this.closeRereviewUseCase = closeRereviewUseCase;
         this.getRereviewRevisionHistoryUseCase = getRereviewRevisionHistoryUseCase;
         this.listReviewCasesUseCase = listReviewCasesUseCase;
         this.getReviewCaseDetailUseCase = getReviewCaseDetailUseCase;
@@ -393,8 +396,21 @@ public class ReviewCaseController {
         SubmitRereviewResult result = submitRereviewUseCase.execute(actor, cmd);
         return ResponseEntity.ok(ApiResponse.ok(new SubmitRereviewResponse(
                 result.getSubmissionId(), result.getStatus(),
-                result.getCaseId(), result.getCaseStatus(),
-                result.getFinalScore())));
+                result.getCaseId(), result.getCaseStatus())));
+    }
+
+    /** 複審的獨立結案（D-034、D-053）：不需要請求內容，路徑上的 submissionId 是要結案的有效複審結果。 */
+    @PostMapping("/{caseId}/rereview/submissions/{submissionId}/close")
+    public ResponseEntity<ApiResponse<CloseRereviewResponse>> closeRereview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @PathVariable String submissionId) {
+        CloseRereviewCommand cmd = new CloseRereviewCommand();
+        cmd.setCaseId(caseId);
+        cmd.setSubmissionId(submissionId);
+        CloseRereviewResult result = closeRereviewUseCase.execute(actor, cmd);
+        return ResponseEntity.ok(ApiResponse.ok(new CloseRereviewResponse(
+                result.getCaseId(), result.getCaseStatus(), result.getSubmissionId())));
     }
 
     @PostMapping("/{caseId}/rereview/submissions/{submissionId}/revise")

@@ -240,7 +240,7 @@ class ReviseRereviewUseCaseTest {
             reviewCase.setLatestRereviewSubmissionId(newer.getSubmissionId());
         }
         if (scenario.equals("missingPointer")) reviewCase.setLatestRereviewSubmissionId(null);
-        if (scenario.equals("closed")) reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5"));
+        if (scenario.equals("closed")) { reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5")); reviewCase.closeAfterRereview(LocalDateTime.now()); }
         if (scenario.equals("cancelled")) reviewCase.cancel("cancelled");
         caseRepo.save(reviewCase);
         List<Object> beforeCase = caseState(reviewCase);

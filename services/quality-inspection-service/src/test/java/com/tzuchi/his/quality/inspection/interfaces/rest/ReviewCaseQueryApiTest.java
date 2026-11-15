@@ -149,7 +149,7 @@ class ReviewCaseQueryApiTest {
             }
 
             @Test
-            void getCaseDetail_returnsClosedRereviewExceptionContextForRereviewer() throws Exception {
+            void getCaseDetail_closedCaseIsReadonlyForRereviewer_D032() throws Exception {
             ReviewCaseEntity e = new ReviewCaseEntity();
             e.setCaseId("c1");
             e.setBatchId("b1");
@@ -177,14 +177,15 @@ class ReviewCaseQueryApiTest {
             mockMvc.perform(get("/review-cases/c1")
                     .header("api-key", rereviewerToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.rereviewContext.pageMode").value("REVISION_EXCEPTION_CLOSED"))
-                .andExpect(jsonPath("$.data.rereviewContext.closedRevisionException").value(true))
+                .andExpect(jsonPath("$.data.rereviewContext.pageMode").value("READONLY_BLOCKED"))
+                .andExpect(jsonPath("$.data.rereviewContext.closedRevisionException").value(false))
+                .andExpect(jsonPath("$.data.rereviewContext.blockedReason").value("CASE_ALREADY_CLOSED"))
                 .andExpect(jsonPath("$.data.rereviewContext.basedOnVersion.submissionId").value("sub-rereview-1"))
                 .andExpect(jsonPath("$.data.rereviewContext.initialSubmissionId").value("sub-init-1"))
                 .andExpect(jsonPath("$.data.rereviewContext.initialReviewerId").value("reviewer-1"))
                 .andExpect(jsonPath("$.data.rereviewContext.finalScore").isEmpty())
                 .andExpect(jsonPath("$.data.rereviewContext.finalConclusion").isEmpty())
-                .andExpect(jsonPath("$.data.rereviewContext.allowedActions[0]").value("REVISE_REREVIEW"));
+                .andExpect(jsonPath("$.data.rereviewContext.allowedActions").isEmpty());
             }
 
     @Test

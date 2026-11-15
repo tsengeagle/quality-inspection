@@ -295,8 +295,9 @@ class RereviewApiTest {
                 .andExpect(jsonPath("$.data.submissionId").isString())
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"))
                 .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
-                .andExpect(jsonPath("$.data.caseStatus").isString())
-                .andExpect(jsonPath("$.data.finalScore").isNumber());
+                // D-032／D-053 第 4 點：提交後不結案；D-033：不回傳 finalScore
+                .andExpect(jsonPath("$.data.caseStatus").value("REREVIEW_IN_PROGRESS"))
+                .andExpect(jsonPath("$.data.finalScore").doesNotExist());
 
         // Refresh submissionId (now points to the submitted revision)
         String submittedSubmissionId = submissionId;
@@ -306,7 +307,7 @@ class RereviewApiTest {
                 "{\"itemId\":\"Q001\",\"answerValue\":\"true\"}," +
                 "{\"itemId\":\"Q002\",\"answerValue\":\"20\"}" +
                 "],\"comment\":\"revised comment\"}";
-        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submissions/" + submittedSubmissionId + "/revise")
+        String reviseResponse = mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submissions/" + submittedSubmissionId + "/revise")
                         .header("api-key", rereviewerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(reviseBody))
@@ -315,9 +316,45 @@ class RereviewApiTest {
                 .andExpect(jsonPath("$.data.newSubmissionId").isString())
                 .andExpect(jsonPath("$.data.oldSubmissionId").isString())
                 .andExpect(jsonPath("$.data.stage").value("REREVIEW"))
-                .andExpect(jsonPath("$.data.caseId").value(CASE_ID));
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
+                .andReturn().getResponse().getContentAsString();
+        String revisedSubmissionId = com.jayway.jsonpath.JsonPath.read(reviseResponse, "$.data.newSubmissionId");
 
-        // Step 7: Get rereview revisions
+        // Step 7: 指向已被取代的舊版結案 → 409 CONFLICT（D-053 第 7 點）
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submissions/" + submittedSubmissionId + "/close")
+                        .header("api-key", rereviewerToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CONFLICT"));
+
+        // Step 8: 以目前有效版本結案（D-053 第 1、2 點）
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submissions/" + revisedSubmissionId + "/close")
+                        .header("api-key", rereviewerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
+                .andExpect(jsonPath("$.data.caseStatus").value("CLOSED"))
+                .andExpect(jsonPath("$.data.submissionId").value(revisedSubmissionId))
+                .andExpect(jsonPath("$.data.finalScore").doesNotExist());
+        ReviewCaseEntity closed = caseJpa.findById(CASE_ID).orElseThrow();
+        if (closed.getStatus() != CaseStatus.CLOSED || closed.getClosedAt() == null) {
+            throw new AssertionError("Case should be CLOSED with closedAt after close command");
+        }
+
+        // Step 9: 重複結案 → 409 CASE_TERMINAL（D-053 第 6 點）
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submissions/" + revisedSubmissionId + "/close")
+                        .header("api-key", rereviewerToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CASE_TERMINAL"));
+
+        // Step 10: 結案後 revision → 409 CASE_TERMINAL（D-032）
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/rereview/submissions/" + revisedSubmissionId + "/revise")
+                        .header("api-key", rereviewerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(reviseBody))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CASE_TERMINAL"));
+
+        // Step 11: Get rereview revisions
         mockMvc.perform(get(BASE + "/" + CASE_ID + "/rereview-revisions")
                         .header("api-key", hmToken))
                 .andExpect(status().isOk())

@@ -6,7 +6,7 @@
 </app-case-summary-header>
 
 <app-status-or-blocked-banner
-	*ngIf="showExceptionBanner || showBlockedBanner"
+	*ngIf="showBlockedBanner"
 	[tone]="bannerTone"
 	[message]="bannerMessage">
 </app-status-or-blocked-banner>
@@ -40,10 +40,6 @@
 		<h2>C19 最終結論摘要</h2>
 		<p>{{ context.finalDecisionSummary }}</p>
 	</section>
-
-	<div *ngIf="showExceptionBanner" class="closed-exception-command-label" data-testid="rereview-c16-placeholder-label">
-		C16 placeholder label：例外修正（已結案）
-	</div>
 
 	<section class="rereview-form-placeholder" data-testid="rereview-form-placeholder">
 		<h2>複審表單</h2>

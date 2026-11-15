@@ -75,7 +75,7 @@ class GetReviewCaseDetailUseCaseTest {
         }
 
         @Test
-        void assignedRereviewer_shouldReceiveClosedRevisionExceptionBootstrapContext() {
+        void assignedRereviewer_closedCase_shouldBeReadonlyWithoutRevision_D032() {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
             "c1", "p1", "b1", "H001", "CLOSED",
             "reviewer-1", "rereviewer-1", "OUTPATIENT", "SK-1",
@@ -97,8 +97,10 @@ class GetReviewCaseDetailUseCaseTest {
         ReviewCaseDetailView result = useCase.execute(actor, "c1");
 
         assertNotNull(result.getRereviewContext());
-        assertEquals("REVISION_EXCEPTION_CLOSED", result.getRereviewContext().getPageMode());
-        assertTrue(result.getRereviewContext().isClosedRevisionException());
+        // D-032：CLOSED 之後沒有例外修正；結案後頁面唯讀（D-053 第 8 點）
+        assertEquals("READONLY_BLOCKED", result.getRereviewContext().getPageMode());
+        assertFalse(result.getRereviewContext().isClosedRevisionException());
+        assertEquals("CASE_ALREADY_CLOSED", result.getRereviewContext().getBlockedReason());
         assertEquals("sub-rereview-1",
             result.getRereviewContext().getBasedOnVersion().getSubmissionId());
         assertEquals("sub-init-1", result.getRereviewContext().getInitialSubmissionId());
@@ -107,7 +109,36 @@ class GetReviewCaseDetailUseCaseTest {
         assertNull(result.getRereviewContext().getInitialTotalScore());
         assertNull(result.getInitialReviewScore());
         assertNull(result.getFinalScore());
-        assertEquals(List.of("REVISE_REREVIEW"), result.getRereviewContext().getAllowedActions());
+        assertEquals(List.of(), result.getRereviewContext().getAllowedActions());
+        }
+
+        @Test
+        void submitter_submittedNotClosed_shouldAllowReviseAndClose_D053() {
+        ReviewCaseDetailView detail = new ReviewCaseDetailView(
+            "c1", "p1", "b1", "H001", "REREVIEW_IN_PROGRESS",
+            "reviewer-1", "rereviewer-1", "OUTPATIENT", "SK-1",
+            BigDecimal.valueOf(82), BigDecimal.valueOf(85), null,
+            null, null, null, null, null,
+            "sub-init-1", "ss-rereview-v1",
+            List.of(
+                new SubmissionSummaryItem(
+                    "sub-init-1", "INITIAL", "reviewer-1", 1,
+                    "SUBMITTED", BigDecimal.valueOf(82), null),
+                new SubmissionSummaryItem(
+                    "sub-rereview-1", "REREVIEW", "rereviewer-1", 1,
+                    "SUBMITTED", BigDecimal.valueOf(88), null)),
+            "sub-rereview-1", null, null, false, null, null);
+        queryPort.setDetail("c1", detail);
+        ActorContext actor = new ActorContext(
+            "rereviewer-1", "ReReviewer", EnumSet.of(DomainRole.REREVIEWER), Optional.of("H001"));
+
+        ReviewCaseDetailView result = useCase.execute(actor, "c1");
+
+        assertEquals("REVISION", result.getRereviewContext().getPageMode());
+        assertEquals(List.of("REVISE_REREVIEW", "CLOSE_REREVIEW"), result.getRereviewContext().getAllowedActions());
+        assertEquals("sub-rereview-1", result.getRereviewContext().getBasedOnVersion().getSubmissionId());
+        assertNull(result.getRereviewContext().getFinalScore());
+        assertNull(result.getFinalScore());
         }
 
     static class InMemoryQueryPort implements ReviewCaseQueryPort {

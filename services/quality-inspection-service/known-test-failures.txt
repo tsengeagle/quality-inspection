@@ -16,10 +16,6 @@ com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegr
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#revisionMustUpdateCaseTime
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#submitMustUpdateCaseTime
 
-# D-032 尚未實作（複審提交不結案）
-com.tzuchi.his.quality.inspection.application.reviewcase.SubmitRereviewUseCaseTest#execute_submitMustNotCloseCase_D032
-com.tzuchi.his.quality.inspection.interfaces.rest.RereviewApiTest#fullRereviewFlow
-
 # 驗收範例（第 4 期）：needs 未滿足，要等評分表的規格（CreateScoreSheetDraft、PublishScoreSheetVersion、BindScoreSheetToProject）
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activates_a_published_project
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activating_an_active_project_changes_nothing
