@@ -5,6 +5,7 @@ describe('cases route policy rollout', () => {
     const assignmentRoute = casesRoutes.find(route => route.path === ':caseId/assign');
 
     expect(assignmentRoute?.data).toEqual({
+      accessPage: 'UI_011_CASE_ASSIGNMENT',
       roles: ['HOSPITAL_MANAGER'],
       requiresHospitalScope: true
     });
