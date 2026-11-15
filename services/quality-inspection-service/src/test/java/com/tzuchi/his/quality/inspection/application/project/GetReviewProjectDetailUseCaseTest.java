@@ -71,7 +71,7 @@ class GetReviewProjectDetailUseCaseTest {
 
     @Test
     void execute_noValidRole_shouldThrow() {
-        // REVIEWER 的讀取範圍未裁決（Q-12），目前不在可讀的角色裡
+        // D-051：REVIEWER 不能讀取專案詳情
         ActorContext actor = new ActorContext("u1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
@@ -83,7 +83,7 @@ class GetReviewProjectDetailUseCaseTest {
     @ParameterizedTest
     @EnumSource(value = DomainRole.class, names = {"REVIEWER", "REREVIEWER"})
     void execute_reviewerRoles_areDenied(DomainRole role) {
-        // D-043：讀取角色是 SYSTEM_ADMIN、HOSPITAL_MANAGER、AUDITOR；REVIEWER／REREVIEWER 在定義前不開放
+        // D-043：讀取角色是 SYSTEM_ADMIN、HOSPITAL_MANAGER、AUDITOR；D-051：REVIEWER／REREVIEWER 不開放
         queryPort.summaries.put("p1", summary("p1", "H001"));
         ActorContext actor = new ActorContext("u1", role.name(), EnumSet.of(role), Optional.of("H001"));
 
