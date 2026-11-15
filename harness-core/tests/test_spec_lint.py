@@ -203,6 +203,19 @@ class SpecLintTest(unittest.TestCase):
         self.examples["examples"][0]["needs"] = ["BindScoreSheet"]
         self.assertTrue(self.run_lint()[0])
 
+    def test_observation_steps_are_checked_like_other_steps(self):
+        self.examples["examples"][0]["observe"] = [
+            {"run": "GetSampleDetial", "as": "m", "input": {}, "expect": {"result": "SUCCESS"}}]
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("GetSampleDetial", report)
+        self.examples["examples"][0]["needs"] = ["GetSampleDetial"]
+        self.assertTrue(self.run_lint()[0])
+
+    def test_unknown_fixture_in_an_observation_step_fails(self):
+        self.examples["examples"][0]["observe"] = [{"use": "no_such_fixture"}]
+        self.assertFalse(self.run_lint()[0])
+
     def test_unknown_fixture_fails(self):
         self.examples["examples"][1]["given"][0] = {"use": "no_such_fixture"}
         self.assertFalse(self.run_lint()[0])
@@ -235,6 +248,32 @@ class SpecLintTest(unittest.TestCase):
         self.assertTrue(passed, report)
         self.assertIn("spec-draft/sample（只列出）", report)
         self.assertIn("[問題]", report)
+
+    def write_draft_rule(self, rule_id="DR-INV-01", source=None):
+        draft = {"spec_version": 1, "kind": "aggregate", "name": "Draft",
+                 "invariants": [{"id": rule_id, "text": "草稿規則", "status": "decided",
+                                 "source": source or [{"decision": "D-001"}]}]}
+        self.write("spec-draft/other/model.yaml", yaml.safe_dump(draft, allow_unicode=True, sort_keys=False))
+
+    def test_strict_spec_cannot_cite_a_draft_only_rule(self):
+        self.write_draft_rule()
+        self.rule("SM-ACT-01")["source"].append({"rule": "DR-INV-01"})
+        passed, report = self.run_lint(report_only=["spec-draft"])
+        self.assertFalse(passed, report)
+        self.assertIn("source 指向不存在的 rule：DR-INV-01", report)
+
+    def test_strict_example_cannot_use_a_draft_only_rule_as_basis(self):
+        self.write_draft_rule()
+        self.examples["examples"][0]["basis"].append("DR-INV-01")
+        passed, report = self.run_lint(report_only=["spec-draft"])
+        self.assertFalse(passed, report)
+        self.assertIn("basis 引用了不存在的規則 DR-INV-01", report)
+
+    def test_draft_may_cite_a_strict_rule(self):
+        self.write_draft_rule(source=[{"rule": "SM-INV-01"}])
+        passed, report = self.run_lint(report_only=["spec-draft"])
+        self.assertTrue(passed, report)
+        self.assertNotIn("指向不存在的 rule", report)
 
     def test_duplicate_ids_across_aggregates_fail(self):
         self.run_lint(folder="specs/one")

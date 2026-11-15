@@ -260,6 +260,7 @@ class Aggregate:
             steps = list(example.get("given") or [])
             when = example.get("when")
             steps += [when] if isinstance(when, dict) else list(when or [])
+            steps += list(example.get("observe") or [])
             check_steps(where, steps, needs)
         return covered
 
@@ -314,14 +315,21 @@ def lint(repo, specs_dir_rel, report_only):
         for rule_id in sorted(dupes):
             agg.error(rule_id, "id 與另一個 aggregate 重複")
         all_ids |= set(agg.rules)
+    # 擋下的規格只能引用擋下的規格裡的規則；草稿可以引用兩者。
+    # 否則正式規格可以指向一條只存在於草稿、而且草稿本身有錯也不會擋的規則。
+    strict_ids = set()
+    for agg in aggregates:
+        if not agg.lenient:
+            strict_ids |= set(agg.rules)
     report, failed = [], False
     strict_count = 0
     for agg in aggregates:
         agg.check_usecases()
         proposed = {r for r, (_, rule) in agg.rules.items() if rule.get("status") == "proposed"}
+        known_ids = all_ids if agg.lenient else strict_ids
         for rule_id, (name, rule) in sorted(agg.rules.items()):
-            agg.check_rule(rule_id, name, rule, all_ids)
-        covered = agg.check_examples(all_ids, proposed)
+            agg.check_rule(rule_id, name, rule, known_ids)
+        covered = agg.check_examples(known_ids, proposed)
         agg.check_vocabulary()
         uncovered = sorted(r for r in agg.rules if r not in covered)
         if uncovered:

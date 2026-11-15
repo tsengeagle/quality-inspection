@@ -49,6 +49,8 @@ specs/
    | `{ example: EX-018 }`、`{ scenario: TS-PV-001 }` | `docs/04-testing/` 的範例與情境 | 該代號出現在 `docs/04-testing/` |
    | `{ rule: RP-INV-01 }` | 另一條規則 | 該 id 存在 |
 
+   `specs/` 裡的規格只能引用 `specs/` 裡的規則；`--report-only` 的草稿可以引用兩者。
+
 4. **每條規則只有一個結果。** `outcome.result` 是 `SUCCESS` 或 `REJECTED`。`REJECTED` 必須帶 `code`，而且 `code` 要定義在同一份 `usecases.yaml` 的 `error_codes`。不允許「A 或 B」。
 5. **規則的順序就是檢查的順序。** use case 的 `guards` 依序列出前置檢查的 id，順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
 6. **不出現實作詞彙。** 類別名、方法名、框架型別、HTTP 路徑、狀態碼、資料表名都不行。禁用的寫法列在 `forbidden-vocabulary.txt`，檢查程式逐一比對規格裡的所有值（YAML 註解不檢查）。
@@ -58,8 +60,8 @@ specs/
 ## 四、範例
 
 1. **範例只透過 use case。** `given` 用其他 use case 準備資料，`when` 執行一支 use case，`then` 寫結果；要觀察狀態就用查詢 use case，不讀資料表。
-2. **`basis` 列出這個範例驗證哪些規則**，必須是存在的 id。只要其中一條是 `proposed`，這個範例就還不能當驗收依據。
-3. **用到還沒納入規格的 use case，要列在 `needs`。** 檢查程式會比對：步驟裡執行的 use case 若不在 `usecases.yaml`，就必須在 `needs` 裡。
+2. **`basis` 列出這個範例驗證哪些規則**，必須是存在的 id（`specs/` 的範例只能引用 `specs/` 的規則）。只要其中一條是 `proposed`，這個範例就還不能當驗收依據。
+3. **用到還沒納入規格的 use case，要列在 `needs`。** 檢查程式會比對：`given`、`when`、`observe` 裡執行的 use case 若不在 `usecases.yaml`，就必須在 `needs` 裡。
 4. **跳過不算通過。** 執行器（第 4 期）遇到 `needs` 未滿足或 `input_pending` 的範例會跳過，並把它算成未通過。
 5. **`fixtures` 是可重用的準備步驟**，用 `use: <名稱>` 引用，名稱必須存在。
 

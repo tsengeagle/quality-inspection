@@ -42,6 +42,13 @@
 
 另外列出：10 條規則沒有範例涵蓋；1 個範例的 `basis` 含 `proposed` 規則（RP-PUB-01）。
 
+### Codex 審查後的修正（PR #19）
+
+| 發現 | 原本的行為 | 修正 | 新的測試 |
+|---|---|---|---|
+| 正式規格可以引用只存在於草稿的規則 | `--report-only` 的草稿規則也算進可引用的 id，正式規格的 `source` 或範例的 `basis` 指向草稿規則仍然通過 | 擋下的規格只用擋下的規格的 id 核對；草稿仍可引用兩者 | 3 個 |
+| `observe` 的步驟沒有檢查 | 只檢查 `given` 與 `when`；拼錯或沒列在 `needs` 的查詢會通過 | `observe` 和其他步驟一樣核對 use case 與 fixture | 2 個 |
+
 ## 五、還沒做的
 
 - 移除 `openspec/`。牽涉 `.claude/commands/opsx/` 與 `.claude/skills/openspec-*`，它們是律法，而 `openspec/` 本身不是；同一個修法 PR 不能夾帶非律法的修改，所以要分兩個 PR。
