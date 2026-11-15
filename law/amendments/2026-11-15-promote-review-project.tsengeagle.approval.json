@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-15-promote-review-project",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:70347f95933bdf478260356ac8eb0bd93f882ef110c781fe96350d69d2eec7b1",
+  "reviewed_commit": "1b8b929971ce8c3eb31b2cc4a50963cbc953fa42",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgLuJoBS\nUmRINtbaWNfjs7XqhmoldTfksBZR0x/OG7ILQAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBJw0CeSqxe8DeJNi9ZZF5KVsLETPLXlUpjtg74Lz23HNf1fKmi8EYU\nr8rUTKGCLZeAzgSxtAm/H11kkTd/uYMEAQAAACw=\n-----END SSH SIGNATURE-----\n"
+}
