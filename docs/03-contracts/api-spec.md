@@ -1516,7 +1516,46 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 | 失敗 | 不留下部分固定／CLOSED／成功事件；拒絕回應亦不得洩漏初審資訊 |
 | 永久盲審 | submit／revision／close ack、錯誤、查詢、歷程、報表／匯出及快取均適用 D-033；CLOSED 不解除，finalScore 等可反推資訊不得向同案複審醫師提供 |
 
-沿用正式 base path 與 api-key／actor context baseline。精確 binding、schema、版本 token、錯誤細碼／新增拒絕條件的 HTTP mapping、重複 close／網路重試回應、多角色授權合成與 consumer 相容性方案均 UNKNOWN；既有通用 role／scope 與 conflict 契約不因此重新定義。不得以 UNKNOWN 放出受限資料或重複推進 CLOSED。
+沿用正式 base path 與 api-key／actor context baseline。以下 binding 依 D-053：
+
+### `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/close`
+
+#### 權限
+
+* `REREVIEWER`，且為該有效複審結果的提交者
+
+#### Request
+
+不需要請求內容。路徑上的 `submissionId` 是要結案的有效複審結果。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "caseId": "C-001",
+    "caseStatus": "CLOSED",
+    "submissionId": "SUB-RR-002"
+  }
+}
+```
+
+不回傳 `finalScore` 或任何可反推初審分數的資訊（D-033）。
+
+#### Error（沿用既有代碼，依 D-024 的檢查順序）
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `ROLE_DENIED` | 403 | 不是 `REREVIEWER` |
+| `HOSPITAL_SCOPE_MISMATCH` | 403 | 院區不符 |
+| `CASE_TERMINAL` | 409 | 案件已是 `CLOSED` 或 `CANCELLED`（含重複結案） |
+| `CASE_NOT_REREVIEW_IN_PROGRESS` | 409 | 案件不在複審中 |
+| `CONFLICT` | 409 | 結案目標不屬於本案、不是複審階段，或不是目前有效版本 |
+| `SUBMISSION_NOT_SUBMITTED` | 409 | 結案目標仍是草稿 |
+| `NOT_SUBMISSION_OWNER` | 403 | 不是這份有效結果的提交者 |
+
+結案成功時，案件 `CLOSED` 即代表複審結果已固定，不另設欄位；有效版本為結案當下的 `latestRereviewSubmissionId`。複審提交與複審 revision 的回應同樣不得含 `finalScore`（D-033）。結案與 revision 同時發生的競爭，在 D-045 的樂觀鎖落地前是已知的剩餘風險。版本 token、多角色授權合成與 consumer 相容性方案仍為 UNKNOWN；既有通用 role／scope 與 conflict 契約不因此重新定義。
 
 
 ## D-035 歷史身份 Fail-closed 讀取契約

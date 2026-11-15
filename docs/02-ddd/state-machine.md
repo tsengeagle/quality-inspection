@@ -68,8 +68,8 @@ ReviewCaseStatus:
 | INITIAL_REVIEW_COMPLETED | managerCloseCase | CLOSED | D-031：初審已固定且不需複審，manager 手工結案 |
 | PENDING_REREVIEW | startRereview | REREVIEW_IN_PROGRESS | 僅 assigned rereviewer |
 | PENDING_REREVIEW | cancel | CANCELLED | 未結案 |
-| REREVIEW_IN_PROGRESS | submitRereview | 未結案（狀態表示 unknown） | D-032：合法提交且無其他既有阻擋條件即具資格；不自動固定／結案 |
-| 複審已提交、尚未結案（非新增 enum） | 合法有效複審結果提交醫師另行 Close Command | CLOSED | D-032／034：執行時重驗資格與有效版本，同時固定尚未固定的複審結果 |
+| REREVIEW_IN_PROGRESS | submitRereview | REREVIEW_IN_PROGRESS（最新複審提交為 SUBMITTED） | D-032：合法提交且無其他既有阻擋條件即具資格；不自動固定／結案；不新增 enum（D-053） |
+| REREVIEW_IN_PROGRESS（最新複審提交為 SUBMITTED） | 合法有效複審結果提交醫師另行 Close Command | CLOSED | D-032／034：執行時重驗資格與有效版本，同時固定尚未固定的複審結果；CLOSED 即代表已固定（D-053） |
 
 ### 3.3 Terminal / Blocked Notes
 
@@ -120,7 +120,7 @@ stateDiagram-v2
   PENDING_REREVIEW --> REREVIEW_IN_PROGRESS: startRereview
   PENDING_REREVIEW --> CANCELLED: cancel
 
-  %% submitRereview 不轉 CLOSED；提交後狀態表示 unknown，不在本輪新增 enum
+  %% submitRereview 不轉 CLOSED；提交後維持 REREVIEW_IN_PROGRESS，不新增 enum（D-053）
   %% 原複審提交者具資格時正式結案並固定結果，才進 CLOSED
 
   CLOSED --> [*]
