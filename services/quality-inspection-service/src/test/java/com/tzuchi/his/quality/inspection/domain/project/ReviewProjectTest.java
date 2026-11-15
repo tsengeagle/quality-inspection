@@ -29,6 +29,8 @@ class ReviewProjectTest {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.INPATIENT));
 
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
+
         project.publishNewVersion();
 
         assertTrue(project.getCurrentVersion().isPublished());
@@ -39,6 +41,7 @@ class ReviewProjectTest {
     void publishNewVersion_alreadyPublished_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.INPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
 
         assertThrows(DomainStateConflictException.class, project::publishNewVersion);
@@ -48,6 +51,7 @@ class ReviewProjectTest {
     void activate_withPublishedVersion_shouldSucceed() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
 
@@ -68,6 +72,7 @@ class ReviewProjectTest {
     void deactivate_activeProject_shouldSucceed() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();
@@ -91,6 +96,7 @@ class ReviewProjectTest {
     void updateName_publishedVersion_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
 
         assertThrows(DomainStateConflictException.class, () -> project.updateName("New"));
@@ -100,6 +106,7 @@ class ReviewProjectTest {
     void prepareDraftVersion_afterPublish_shouldCreateNextDraft() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
 
         project.prepareDraftVersion();
@@ -154,6 +161,7 @@ class ReviewProjectTest {
     void updateDraft_activeStatus_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();
@@ -177,6 +185,7 @@ class ReviewProjectTest {
     void bindScoreSheet_activeStatus_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();
@@ -198,6 +207,7 @@ class ReviewProjectTest {
     void activate_withBoundScoreSheet_shouldSucceed() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
 
@@ -207,20 +217,22 @@ class ReviewProjectTest {
     }
 
     @Test
-    void activate_withoutBoundScoreSheet_shouldThrow() {
-        ReviewProject project = ReviewProject.create("p1", "h1", "Test",
-                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
-        project.publishNewVersion();
+    void activate_doesNotCheckTheScoreSheetBinding() {
+        // D-041：綁定在發布時檢查，「啟用不再另外檢查綁定」。已發布但未綁定只會出現在這條規則之前存的資料
+        ReviewProject project = ReviewProject.reconstitute("p1", "h1", "Test", null, null,
+                EnumSet.of(MedicalRecordType.OUTPATIENT), ProjectStatus.DRAFT, 1, true,
+                null, null, null);
 
-        DomainRuleViolationException ex = assertThrows(DomainRuleViolationException.class,
-                project::activate);
-        assertEquals("SCORE_SHEET_NOT_BOUND", ex.getErrorCode());
+        project.activate();
+
+        assertEquals(ProjectStatus.ACTIVE, project.getStatus());
     }
 
     @Test
     void activate_fromDeactivated_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();
@@ -235,6 +247,7 @@ class ReviewProjectTest {
     void activate_alreadyActive_shouldBeIdempotent() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();
@@ -248,6 +261,7 @@ class ReviewProjectTest {
     void deactivate_activeProject_shouldBecomeDeactivated() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();
@@ -271,6 +285,7 @@ class ReviewProjectTest {
     void deactivate_alreadyDeactivated_shouldBeIdempotent() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         project.activate();

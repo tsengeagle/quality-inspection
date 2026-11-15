@@ -37,6 +37,7 @@ class ActivateReviewProjectUseCaseTest {
     void execute_happyPath_shouldActivate() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         repository.save(project);
@@ -52,6 +53,7 @@ class ActivateReviewProjectUseCaseTest {
     void execute_shouldPublishEvent() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         repository.save(project);
@@ -65,16 +67,18 @@ class ActivateReviewProjectUseCaseTest {
     }
 
     @Test
-    void execute_noBoundScoreSheet_shouldThrow() {
-        ReviewProject project = ReviewProject.create("p1", "H001", "Test",
-                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
-        project.publishNewVersion();
+    void execute_doesNotCheckTheScoreSheetBinding() {
+        // D-041：「啟用不再另外檢查綁定」。已發布但未綁定只會出現在 D-041 生效前存的資料
+        ReviewProject project = ReviewProject.reconstitute("p1", "H001", "Test", null, null,
+                EnumSet.of(MedicalRecordType.OUTPATIENT), ProjectStatus.DRAFT, 1, true,
+                null, null, null);
         repository.save(project);
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        assertThrows(DomainRuleViolationException.class,
-                () -> useCase.execute(actor, "p1"));
+        useCase.execute(actor, "p1");
+
+        assertEquals(ProjectStatus.ACTIVE, repository.store.get("p1").getStatus());
     }
 
     @Test
@@ -103,6 +107,7 @@ class ActivateReviewProjectUseCaseTest {
     void execute_crossHospital_shouldThrow() {
         ReviewProject project = ReviewProject.create("p1", "H001", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.bindScoreSheet("ss-1");
         repository.save(project);

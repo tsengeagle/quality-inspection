@@ -90,6 +90,7 @@ class ReviewProjectScoringInputTest {
     void publishRejectsWeightsThatBreakD020(String pair) {
         String[] w = pair.split(",");
         ReviewProject p = create(d("5"), d(w[0]), d(w[1]));
+        p.bindScoreSheet("ss-1");
         com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException e = assertThrows(
                 com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException.class, p::publishNewVersion);
         assertEquals("PROJECT_VERSION_NOT_PUBLISHABLE", e.getErrorCode());
@@ -99,6 +100,7 @@ class ReviewProjectScoringInputTest {
     @Test
     void publishAcceptsWeightsThatSumToOne() {
         ReviewProject p = create(d("5"), d("0.70"), d("0.30"));
+        p.bindScoreSheet("ss-1");
         p.publishNewVersion();
         assertTrue(p.getCurrentVersion().isPublished());
     }
@@ -121,6 +123,7 @@ class ReviewProjectScoringInputTest {
     void updateOfAPublishedVersionIsRejectedAndKeepsItsScoringInputs() {
         // 已發布但尚未啟用時狀態仍是 DRAFT；版本內容（含品質線與權重）仍不可改（RP-UPD-01、RP-INV-01、RP-INV-03）
         ReviewProject p = create(d("5"), d("0.70"), d("0.30"));
+        p.bindScoreSheet("ss-1");
         p.publishNewVersion();
         assertEquals(ProjectStatus.DRAFT, p.getStatus());
 

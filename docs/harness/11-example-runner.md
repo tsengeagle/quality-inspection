@@ -112,6 +112,20 @@ ReviewProject 30 個範例目前：13 個通過、5 個等建構 PR、12 個等�
 
 ReviewProject 30 個範例目前：17 個通過、1 個等建構 PR（`rejects_publish_without_a_bound_score_sheet`，2-4）、12 個等評分表的規格。
 
+### 2-4：發布的前置檢查（D-041、D-046）
+
+發布前依規格的順序檢查：已綁定評分表（RP-PUB-02）、權重符合 D-020（RP-PUB-03，2-1 已做）、品質線不是 null（RP-PUB-04），不符合一律 `PROJECT_VERSION_NOT_PUBLISHABLE`（422）。綁定的檢查原本只在啟用時做，現在移到發布，啟用不再檢查綁定（D-041：「啟用不再另外檢查綁定」）。PR #27 的第一版保留了啟用時的檢查，與 D-041 相反，合併前已拿掉。RP-PUB-04 沒有可執行的範例（被評分表規格的 `needs` 擋住），執行器看不到這個落差，一併補上。
+
+約 30 處既有測試是「沒綁定、沒有品質線就發布」，改用新的測試輔助 `PublishableProjects.prepare`（綁定並補品質線，權重不變）；HTTP 測試改成建立時帶品質線、發布前先綁定。兩個原本測「已發布但未綁定時不能啟用」的測試，改成依 D-041 驗證啟用**不**檢查綁定；它們用 `reconstitute` 建出舊資料的狀態，因為正常操作已經做不出這種狀態。
+
+綁定的對象（評分表本體或版本，D-041）不在這一批：`BindScoreSheetToProject` 還沒有規格。
+
+| 結果 | 範例 |
+|---|---|
+| 變綠（1） | `rejects_publish_without_a_bound_score_sheet` |
+
+ReviewProject 30 個範例目前：18 個通過、12 個等評分表的規格（`needs`）。不需要評分表的範例已全部通過。
+
 ## 六、還沒做的
 
 - 「沒有範例涵蓋的規則」與「`basis` 含 `proposed` 規則」從只列出改為擋下。

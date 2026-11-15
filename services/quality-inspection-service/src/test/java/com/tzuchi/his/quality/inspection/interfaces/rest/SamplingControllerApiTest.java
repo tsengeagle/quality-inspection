@@ -286,6 +286,7 @@ class SamplingControllerApiTest {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
         req.setName(name);
         req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
+        req.setQualityThreshold(new java.math.BigDecimal("5"));
 
         MvcResult result = mockMvc.perform(post("/review-projects")
                         .header("api-key", TestTokenFactory.hospitalManagerToken())
@@ -298,6 +299,13 @@ class SamplingControllerApiTest {
                 result.getResponse().getContentAsString())
                 .get("data").get("projectId").asText();
 
+        // 發布前必須已綁定評分表（D-041、RP-PUB-02）
+        com.tzuchi.his.quality.inspection.domain.project.ReviewProject unbound =
+                projectRepository.findById(projectId)
+                        .orElseThrow(() -> new AssertionError("Project not found: " + projectId));
+        unbound.bindScoreSheet("ss-test");
+        projectRepository.save(unbound);
+
         mockMvc.perform(post("/review-projects/" + projectId + "/publish")
                         .header("api-key", TestTokenFactory.hospitalManagerToken()))
                 .andExpect(status().isOk());
@@ -306,7 +314,6 @@ class SamplingControllerApiTest {
         com.tzuchi.his.quality.inspection.domain.project.ReviewProject project =
                 projectRepository.findById(projectId)
                         .orElseThrow(() -> new AssertionError("Project not found: " + projectId));
-        project.bindScoreSheet("ss-test");
         project.activate();
         projectRepository.save(project);
 
