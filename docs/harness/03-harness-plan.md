@@ -166,7 +166,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 1. 把 `check`、`law-check`、`law-selftest` 設為必要檢查。沒有這一步，簽章機制只有「看得見」，沒有「擋得住」。
 2. 登記備援金鑰。
-3. 盤點律法清冊：CI 實際會執行到哪些檔案，有沒有漏列的。`gradlew` 曾經漏列。
+3. 盤點律法清冊：已盤點（`09-law-inventory.md`），缺口尚未補進清冊。2026-11-14 裁決：測試與規格要列為律法，但要等 `/specs` 格式完整、問題側規格穩定之後才生效。
 4. 把 `harness-core/` 拆成獨立的 repo，接著做 2-3（GitLab）。
 5. 第 4 期：讓驗收範例可以執行。
 

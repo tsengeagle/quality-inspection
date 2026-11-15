@@ -53,6 +53,18 @@ services/quality-inspection-service/gradle.properties   gate
 services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/   gate
 services/quality-inspection-service/src/test/resources/archunit.properties                          gate
 
+# 閘門：會改變測試或架構規則怎麼執行的設定檔。
+# 其中幾個現在不存在；列進來是因為只要有人新增，閘門的行為就會改變（2026-11-14 盤點）。
+# archunit_ignore_patterns.txt 能讓 ArchUnit 忽略指定的違規，已實測。
+services/quality-inspection-service/src/test/resources/archunit_ignore_patterns.txt   gate
+services/quality-inspection-service/src/test/resources/junit-platform.properties      gate
+services/quality-inspection-service/src/test/resources/application-test.yml           gate
+services/quality-inspection-service/buildSrc/           gate
+services/quality-inspection-service/*.gradle            gate
+.gitattributes                          gate
+.github/actions/                        gate
+.github/java-upgrade/hooks/             gate
+
 # 凍結基線
 services/quality-inspection-service/known-test-failures.txt                         baseline
 services/quality-inspection-service/src/test/resources/archunit_store/              baseline
@@ -66,3 +78,6 @@ CLAUDE.md                               tradition
 .github/instructions/                   tradition
 .ai/                                    tradition
 .kiro/steering/                         tradition
+.claude/                                tradition
+.github/prompts/                        tradition
+frontend-ui.instructions.md             tradition

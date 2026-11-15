@@ -1,0 +1,7 @@
+{
+  "amendment": "2026-11-14-windows-support",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:c92f2c7698bfffeb6ba5dbabf4cf44ed05cb53a860f97fa6b128cd05b9a02fb8",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgLuJoBS\nUmRINtbaWNfjs7XqhmoldTfksBZR0x/OG7ILQAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBiEYmyuRk8XAI0UdMtp6QHGG5FeB3jS+vMU4tO9xp2SD01yB3k4QOf\nM9kCc8ALskhdk2t5Yx4bhYmNCuSjYT4PAQAAAA8=\n-----END SSH SIGNATURE-----\n"
+}
