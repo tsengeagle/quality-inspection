@@ -102,6 +102,8 @@ def sign_ssh(key, digest):
 
 
 def main(argv=None):
+    # 要在 argparse 之前：--help 與參數錯誤的訊息是在解析時印出的
+    law_check.use_utf8_output()
     parser = argparse.ArgumentParser(description="核准一次修法")
     parser.add_argument("--signer", required=True, help="核准者名稱，要和核准者清單裡的名稱相同")
     parser.add_argument("--key", required=True, help="SSH 私鑰或實體金鑰把手檔的路徑")
@@ -110,7 +112,6 @@ def main(argv=None):
     parser.add_argument("--repo", default=".", help="git 工作目錄（預設：目前目錄）")
     parser.add_argument("--manifest", default=law_check.DEFAULT_MANIFEST_PATH)
     args = parser.parse_args(argv)
-    law_check.use_utf8_output()
     if not re.match(r"^[A-Za-z0-9._@+-]+$", args.signer):
         print("無法核准：核准者名稱只能用英數字與 . _ @ + -", file=sys.stderr)
         return 2

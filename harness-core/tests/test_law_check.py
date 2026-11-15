@@ -287,6 +287,17 @@ class LawCheckTest(RepoCase):
         self.assertEqual(2, run())                                   # 預設位置找不到清冊：無法評估
         self.assertEqual(1, run("--manifest", "governance.txt"))     # 指定位置後照常判決
 
+    def test_help_and_usage_errors_print_on_a_non_utf8_console(self):
+        # Windows 的主控台常見 cp1252 之類的編碼；--help 與參數錯誤都在 argparse 裡印出中文
+        env = dict(os.environ, PYTHONIOENCODING="cp1252")
+        for name in ("law_check.py", "law_approve.py"):
+            script = os.path.join(HERE, "..", name)
+            for args, expected in ((["--help"], 0), ([], 2)):
+                with self.subTest(script=name, args=args):
+                    result = subprocess.run([sys.executable, script, *args], capture_output=True, env=env)
+                    self.assertEqual(expected, result.returncode, result.stderr.decode("utf-8", "replace"))
+                    self.assertNotIn(b"UnicodeEncodeError", result.stderr)
+
     # --- 路徑樣式 ---
 
     def test_glob_matching(self):
