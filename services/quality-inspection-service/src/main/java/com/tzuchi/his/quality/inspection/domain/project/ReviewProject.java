@@ -45,11 +45,8 @@ public class ReviewProject {
                           BigDecimal rereviewWeight) {
         Objects.requireNonNull(projectId, "projectId must not be null");
         Objects.requireNonNull(hospitalId, "hospitalId must not be null");
-        Objects.requireNonNull(name, "name must not be null");
-        if (name.isBlank()) {
-            throw new DomainRuleViolationException("INVALID_PROJECT_NAME",
-                    "Project name must not be blank");
-        }
+        validateName(name);
+        validateMedicalRecordTypes(medicalRecordTypes);
         this.projectId = projectId;
         this.hospitalId = hospitalId;
         this.name = name;
@@ -83,6 +80,20 @@ public class ReviewProject {
                                         BigDecimal rereviewWeight) {
         return new ReviewProject(projectId, hospitalId, name, description, medicalRecordTypes,
                 qualityThreshold, initialReviewWeight, rereviewWeight);
+    }
+
+    /** D-040: the name is required and must not be blank (null or blank is an invalid input). */
+    private static void validateName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "Project name must not be null or blank");
+        }
+    }
+
+    /** D-040: at least one medical record type. */
+    private static void validateMedicalRecordTypes(Set<MedicalRecordType> types) {
+        if (types == null || types.isEmpty()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "At least one medical record type is required");
+        }
     }
 
     /**
@@ -179,11 +190,8 @@ public class ReviewProject {
         requireStatusDraft();
         // 已發布但尚未啟用時狀態仍是 DRAFT，版本內容仍不可改（D-040 第 4 點、RP-UPD-01）
         requireDraft();
-        Objects.requireNonNull(name, "name must not be null");
-        if (name.isBlank()) {
-            throw new DomainRuleViolationException("INVALID_PROJECT_NAME",
-                    "Project name must not be blank");
-        }
+        validateName(name);
+        validateMedicalRecordTypes(types);
         validateQualityThreshold(qualityThreshold);
         validateWeightFormat("initialReviewWeight", initialReviewWeight);
         validateWeightFormat("rereviewWeight", rereviewWeight);
@@ -233,11 +241,7 @@ public class ReviewProject {
 
     public void updateName(String name) {
         requireDraft();
-        Objects.requireNonNull(name, "name must not be null");
-        if (name.isBlank()) {
-            throw new DomainRuleViolationException("INVALID_PROJECT_NAME",
-                    "Project name must not be blank");
-        }
+        validateName(name);
         this.name = name;
     }
 

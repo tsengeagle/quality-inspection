@@ -102,6 +102,16 @@
 
 ReviewProject 30 個範例目前：13 個通過、5 個等建構 PR、12 個等評分表的規格。
 
+### 2-3：名稱與病歷類型的輸入檢查（D-040）
+
+名稱為 null 或空白、病歷類型為 null 或空集合，建立與更新草稿一律回 `VALIDATION_ERROR`（400）。原本名稱空白回 `INVALID_PROJECT_NAME`（422，不在規格的代碼表），名稱為 null 是 `NullPointerException`（500），空集合則被接受。從持久層重建（`reconstitute`）不做這些檢查，舊資料照樣讀得回來。
+
+| 結果 | 範例 |
+|---|---|
+| 變綠（4） | `rejects_create_with_a_blank_name`、`rejects_create_without_any_medical_record_type`、`rejects_update_with_a_blank_name`、`rejects_update_without_any_medical_record_type` |
+
+ReviewProject 30 個範例目前：17 個通過、1 個等建構 PR（`rejects_publish_without_a_bound_score_sheet`，2-4）、12 個等評分表的規格。
+
 ## 六、還沒做的
 
 - 「沒有範例涵蓋的規則」與「`basis` 含 `proposed` 規則」從只列出改為擋下。

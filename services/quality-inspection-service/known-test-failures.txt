@@ -37,11 +37,4 @@ com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-proje
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_weight_change_after_the_version_is_published
 
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_without_a_bound_score_sheet
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_with_a_blank_name
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_without_any_medical_record_type
 
-# 驗收範例：程式與規格的其他落差（原因見各行上方）
-#   then：預期 REJECTED VALIDATION_ERROR，實際 REJECTED INVALID_PROJECT_NAME
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_with_a_blank_name
-#   then：預期 REJECTED VALIDATION_ERROR，實際 SUCCESS
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_without_any_medical_record_type
