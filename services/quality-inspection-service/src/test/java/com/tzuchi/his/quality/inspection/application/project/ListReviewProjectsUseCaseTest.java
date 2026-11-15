@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.project;
 
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.ParameterizedTest;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
@@ -57,6 +59,17 @@ class ListReviewProjectsUseCaseTest {
 
         assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(actor, null));
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = DomainRole.class, names = {"REVIEWER", "REREVIEWER"})
+    void execute_reviewerRoles_areDenied(DomainRole role) {
+        // D-043：REVIEWER／REREVIEWER 在定義前不開放
+        queryPort.summaries.add(summary("p1", "H001"));
+        ActorContext actor = new ActorContext("u1", role.name(), EnumSet.of(role), Optional.of("H001"));
+
+        RoleDeniedException e = assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, null));
+        assertEquals("ROLE_DENIED", e.getErrorCode());
     }
 
     @Test
