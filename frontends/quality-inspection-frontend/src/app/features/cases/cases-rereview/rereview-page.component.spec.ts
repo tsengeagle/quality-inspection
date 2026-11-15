@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { of } from 'rxjs';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
 
 import { CaseSummaryHeaderComponent } from '../components/case-summary-header/case-summary-header.component';
 import { ModeIndicatorStripComponent } from '../components/mode-indicator-strip/mode-indicator-strip.component';
@@ -403,6 +404,36 @@ describe('RereviewPageComponent', () => {
     expect(getButtonByText('結案')?.disabled).toBeTrue();
     getButtonByText('結案')?.click();
     expect(casesService.closeRereview).not.toHaveBeenCalled();
+  });
+
+  it('disables closing while the revision form has unsaved changes', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: revisionContext(['REVISE_REREVIEW', 'CLOSE_REREVIEW'])
+    }));
+
+    setInputValue('[data-testid="rereview-comment-input"]', 'edited but not submitted');
+
+    expect(getButtonByText('結案')?.disabled).toBeTrue();
+    getButtonByText('結案')?.click();
+    expect(casesService.closeRereview).not.toHaveBeenCalled();
+  });
+
+  it('reloads the case when closing returns CASE_TERMINAL (D-053 point 6)', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: revisionContext(['REVISE_REREVIEW', 'CLOSE_REREVIEW'])
+    }));
+    casesService.closeRereview.and.returnValue(throwError(() => new HttpErrorResponse({
+      status: 409,
+      error: { success: false, error: { code: 'CASE_TERMINAL', message: 'Case is in terminal status' } }
+    })));
+
+    getButtonByText('結案')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.getCaseDetail).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.textContent).toContain('案件已結案或已取消，畫面已重新整理。');
   });
 
   it('shows a closed case as read-only without any revision entry (D-032)', () => {

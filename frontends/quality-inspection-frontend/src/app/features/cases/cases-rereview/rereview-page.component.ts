@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { finalize, Observable, switchMap } from 'rxjs';
@@ -221,7 +222,10 @@ export class RereviewPageComponent implements OnInit {
     }
 
     if (this.mode === 'REVISION') {
-      return !this.hasAllowedAction('CLOSE_REREVIEW') || !this.resolveRereviewRevisionBaseSubmissionId();
+      // 表單有尚未提交的修改時不能結案：結案會固定舊版，修改會在重新載入後遺失
+      return this.formStateDirty
+        || !this.hasAllowedAction('CLOSE_REREVIEW')
+        || !this.resolveRereviewRevisionBaseSubmissionId();
     }
 
     if (this.mode !== 'EDIT_DRAFT') {
@@ -493,7 +497,13 @@ export class RereviewPageComponent implements OnInit {
         this.setCommandFeedback(successMessage(result), 'info');
         this.reloadCaseDetail();
       },
-      error: () => {
+      error: error => {
+        // 案件已結案或已取消（例如另一個分頁已結案、或重送已成功的結案）：重新整理，讓畫面變成唯讀（D-053 第 6 點）
+        if (error instanceof HttpErrorResponse && error.status === 409 && error.error?.error?.code === 'CASE_TERMINAL') {
+          this.setCommandFeedback('案件已結案或已取消，畫面已重新整理。', 'blocked');
+          this.reloadCaseDetail();
+          return;
+        }
         this.setCommandFeedback('複審 command 執行失敗，limited wiring 僅提供最小錯誤提示。', 'blocked');
       }
     });
