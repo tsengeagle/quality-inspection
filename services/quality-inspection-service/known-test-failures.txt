@@ -21,3 +21,41 @@ com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegr
 # D-032 尚未實作（複審提交不結案）
 com.tzuchi.his.quality.inspection.application.reviewcase.SubmitRereviewUseCaseTest#execute_submitMustNotCloseCase_D032
 com.tzuchi.his.quality.inspection.interfaces.rest.RereviewApiTest#fullRereviewFlow
+
+# 驗收範例（第 4 期）：needs 未滿足，要等評分表的規格（CreateScoreSheetDraft、PublishScoreSheetVersion、BindScoreSheetToProject）
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activates_a_published_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activating_an_active_project_changes_nothing
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/deactivates_an_active_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/deactivating_a_deactivated_project_changes_nothing
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/publishes_the_draft_version
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/reactivates_a_deactivated_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_of_an_already_published_version
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_when_a_weight_is_zero
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_when_weights_do_not_sum_to_one
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_without_a_quality_threshold
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_after_the_version_is_published
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_weight_change_after_the_version_is_published
+
+# 驗收範例：CreateReviewProject 還沒有品質線與權重的輸入（D-046、D-047）。
+# fixture draft_project 也帶品質線，所以用到它的範例都停在這一步
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/creates_a_project_with_given_scoring_inputs
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_activate_before_any_version_is_published
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_with_a_fractional_quality_threshold
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_with_a_quality_threshold_above_ten
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_with_a_quality_threshold_below_one
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_deactivate_of_a_draft_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_without_a_bound_score_sheet
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_from_another_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_with_a_blank_name
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_with_a_quality_threshold_out_of_range
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_without_any_medical_record_type
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/update_resets_weights_that_are_not_given
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/updates_a_draft_project
+
+# 驗收範例：程式與規格的其他落差（原因見各行上方）
+#   observe[0] GetReviewProjectDetail：輸出沒有欄位 medicalRecordTypes；輸出沒有欄位 versionNo；輸出沒有欄位 versionPublished；輸出沒有欄位 initialReviewWeight；輸出沒有欄位 rereviewWeight
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/creates_a_draft_project
+#   then：預期 REJECTED VALIDATION_ERROR，實際 REJECTED INVALID_PROJECT_NAME
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_with_a_blank_name
+#   then：預期 REJECTED VALIDATION_ERROR，實際 SUCCESS
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_without_any_medical_record_type

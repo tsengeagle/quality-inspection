@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-15-example-runner",
+  "decision": "none",
+  "reason": "第 4 期：驗收範例的執行器。依負責人 2026-11-15 的裁決：命名慣例加反射（規格的 X 對應 XUseCase.execute，輸入依參數名稱、輸出依屬性名稱，不維護對照表）；放在 Java 測試端，每個範例一個 JUnit 動態測試，各自在交易裡執行後還原；初始的紅燈沿用已知失敗清單，一個範例一行。新增執行器目錄 acceptance/（已由 2026-11-15-register-acceptance-runner，PR #22，登記為 gate）。build.gradle：加 -parameters；已知失敗清單的閘門對動態測試改用顯示名稱當身分（否則 28 個範例會合併成一筆 x28，換成另外 28 個失敗也不會被發現）；specs/ 宣告為測試輸入。known-test-failures.txt 新增 28 個 ReviewProject 範例：12 個 needs 未滿足（評分表規格），13 個輸入名稱對不上（D-046、D-047 的輸入未實作），3 個其他落差。specs/README.md 第四節寫明執行語意。設計與驗證見 docs/harness/11-example-runner.md。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "services/quality-inspection-service/build.gradle",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/",
+    "specs/",
+    "law/"
+  ]
+}

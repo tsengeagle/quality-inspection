@@ -12,6 +12,9 @@ sourceCompatibility = '11'
 // 中文字串（包含架構規則的描述，它是凍結基線的索引鍵）會被讀錯。
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    // 驗收範例的執行器依參數名稱把規格的輸入對到 use case 的 execute 參數（不維護對照表），
+    // 所以位元組碼要保留參數名稱。
+    options.compilerArgs << '-parameters'
 }
 
 repositories {
@@ -47,6 +50,8 @@ tasks.named('test') {
     // ARCH-04 直接讀原始碼。不宣告的話，位元組碼沒變的修改（例如多一個 import）不會讓 test 重跑。
     inputs.dir('src/main/java').withPropertyName('arch04MainSources')
     inputs.dir('src/test/java').withPropertyName('arch04SampleSources')
+    // 驗收範例（第 4 期）讀 repo 根目錄的規格。不宣告的話，只改規格不會讓 test 重跑。
+    inputs.dir('../../specs').withPropertyName('acceptanceSpecs')
     ignoreFailures = true
 
     def executed = new TreeSet<String>()
@@ -54,8 +59,11 @@ tasks.named('test') {
     def skipped = new TreeSet<String>()
 
     afterTest { desc, result ->
-        // 參數化測試的每次呼叫歸到同一個方法
-        def id = "${desc.className}#${desc.name.replaceAll(/[(\[].*$/, '')}".toString()
+        // 動態測試（@TestFactory，例如驗收範例）的名稱是「方法()[序號]」，序號會隨範例增減而變，
+        // 所以改用顯示名稱當身分，一個範例一筆。參數化測試的每次呼叫則歸到同一個方法。
+        def dynamic = desc.name ==~ /^[^(\s]+\(\)\[\d+\]$/
+        def method = dynamic ? desc.displayName.replaceAll(/\s+/, '_') : desc.name.replaceAll(/[(\[].*$/, '')
+        def id = "${desc.className}#${method}".toString()
         executed << id
         if (result.resultType == TestResult.ResultType.FAILURE) {
             failed[id] = (failed[id] ?: 0) + 1
