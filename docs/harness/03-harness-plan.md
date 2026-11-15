@@ -176,7 +176,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 |---|---|
 | 合併 PR #6、PR #7 | 完成（2026-11-14）。PR #7 當時合併進了 `harness/p1-gate` 而不是 `main`，由 PR #8 補進；PR #9 是三項修正 |
 | GitHub 設定：把 `check`、`law-check`、`law-selftest` 設為必要檢查，不留繞過權限，禁止 force push | 2026-11-14 已裁決，要手動做。步驟在 `07-github-settings.md` 第一節；檢查本身壞掉時的處置在第四節 |
-| `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 格式 v1 已定（2026-11-15，`specs/README.md`，決定見 `10-spec-format.md`），由 `spec-check` 機械檢查。ReviewProject 尚未升格 |
+| `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 格式 v1 已定（2026-11-15，`specs/README.md`，決定見 `10-spec-format.md`），由 `spec-check` 機械檢查。ReviewProject 2026-11-15 升格到 `specs/review-project/`（裁決 D-049） |
 | `reporting` 搬進 `application` 的查詢側（D-048） | 未動工 |
 | 測試分級：本機跑快的，CI 跑全套 | P7，未排期 |
 | 一組不交給建構者的獨立測試 | 未排期 |

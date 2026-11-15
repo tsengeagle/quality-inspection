@@ -1,0 +1,253 @@
+# 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+spec_version: 1
+kind: usecases
+aggregate: ReviewProject
+
+sources:
+  - { decision: D-020 }
+  - { decision: D-023 }
+  - { decision: D-024 }
+  - { decision: D-039 }
+  - { decision: D-040 }
+  - { decision: D-041 }
+  - { decision: D-042 }
+  - { decision: D-043 }
+  - { decision: D-046 }
+  - { decision: D-047 }
+  - { decision: D-049 }
+  - { doc: docs/02-ddd/application-service.md, section: "§5、§5.1" }
+  - { doc: docs/02-ddd/domain-events.md, section: "§4.1–§4.4" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§7.1–§7.8" }
+  - { example: EX-018 }
+  - { scenario: TS-PV-001 }
+  - { scenario: TS-PV-002 }
+  - { scenario: TS-PV-003 }
+  - { scenario: TS-PV-004 }
+
+# 分類給實作端決定對外的狀態碼用；規格本身不寫 HTTP。
+error_codes:
+  - { code: ROLE_DENIED,                     category: denied,         source: [{ decision: D-023 }] }
+  - { code: HOSPITAL_SCOPE_MISMATCH,         category: denied,         source: [{ decision: D-024 }] }
+  - { code: PROJECT_NOT_FOUND,               category: not_found,      source: [{ doc: docs/03-contracts/api-spec.md }] }
+  - { code: VALIDATION_ERROR,                category: invalid_input,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: INVALID_STATE_TRANSITION,        category: conflict,       source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: PROJECT_VERSION_NOT_PUBLISHABLE, category: rule_violation, source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+
+# 多支 use case 共用的前置檢查。use case 用 guards 依序引用。
+# 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
+guards:
+  - id: RP-G-01
+    when: 操作者不具備這支 use case 的 actor.roles 中任何一個角色
+    outcome: { result: REJECTED, code: ROLE_DENIED }
+    source: [{ decision: D-023 }, { doc: docs/03-contracts/api-spec.md, section: "§7" }]
+    status: decided
+  - id: RP-G-02
+    when: projectId 找不到對應的專案
+    outcome: { result: REJECTED, code: PROJECT_NOT_FOUND }
+    source: [{ doc: docs/03-contracts/api-spec.md, note: "錯誤代碼存在；哪些 use case 適用未逐一寫明" }]
+    status: decided
+  - id: RP-G-03
+    when: 操作者的院區與專案的 hospitalId 不同
+    outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+    source: [{ decision: D-042 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }]
+    status: decided
+
+usecases:
+
+  - name: CreateReviewProject
+    kind: command
+    summary: 建立審查專案草稿
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: name,               type: text,                        required: true }
+      - { name: description,        type: text,                        required: false, status: decided, source: [{ decision: D-040 }] }
+      - { name: medicalRecordTypes, type: "set<enum MedicalRecordType>", required: true }
+      - { name: qualityThreshold,   type: int,                         required: false, status: decided, source: [{ decision: D-046 }] }
+      - { name: initialReviewWeight, type: decimal(2),                 required: false, status: decided, source: [{ decision: D-047 }] }
+      - { name: rereviewWeight,     type: decimal(2),                  required: false, status: decided, source: [{ decision: D-047 }] }
+    guards: [RP-G-01]
+    rules:
+      - id: RP-CRT-01
+        when: name 為 null 或空白
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-040 }]
+        status: decided
+      - id: RP-CRT-03
+        when: qualityThreshold 有給，但不是 1 到 10 的整數
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-046 }]
+        status: decided
+      - id: RP-CRT-02
+        when: medicalRecordTypes 為空集合
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-040 }]
+        status: decided
+    success:
+      output:
+        - { name: projectId, type: id }
+      state:
+        - { id: RP-CRT-S1, text: status = DRAFT, source: [{ scenario: TS-PV-001 }], status: decided }
+        - { id: RP-CRT-S2, text: hospitalId = 操作者的院區（不由輸入指定）, status: decided, source: [{ decision: D-040 }] }
+        - { id: RP-CRT-S3, text: currentVersion.versionNo = 1 且 published = false, status: decided, source: [{ decision: D-040 }] }
+        - { id: RP-CRT-S4, text: 沒有輸入的權重是 0.50, source: [{ decision: D-020 }, { decision: D-047 }], status: decided }
+        - { id: RP-CRT-S5, text: name、description、medicalRecordTypes、qualityThreshold 與有輸入的權重等於輸入（權重在發布時才驗證，見 RP-PUB-03）, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§7.1" }, { decision: D-046 }, { decision: D-047 }] }
+      emits:
+        - { event: ReviewProjectCreated, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.1" }], status: decided }
+
+  - name: UpdateReviewProjectDraft
+    kind: command
+    summary: 更新尚未發布的專案草稿
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId,          type: id,                          required: true }
+      - { name: name,               type: text,                        required: true }
+      - { name: description,        type: text,                        required: false, status: decided, source: [{ decision: D-040 }] }
+      - { name: medicalRecordTypes, type: "set<enum MedicalRecordType>", required: true }
+      - { name: qualityThreshold,   type: int,                         required: false, status: decided, source: [{ decision: D-046 }] }
+      - { name: initialReviewWeight, type: decimal(2),                 required: false, status: decided, source: [{ decision: D-047 }] }
+      - { name: rereviewWeight,     type: decimal(2),                  required: false, status: decided, source: [{ decision: D-047 }] }
+    guards: [RP-G-01, RP-G-02, RP-G-03]
+    rules:
+      - id: RP-UPD-01
+        when: currentVersion.published = true
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        source: [{ decision: D-040 }, { example: EX-018 }, { rule: RP-INV-01 }]
+        status: decided
+      - id: RP-UPD-02
+        when: name 為 null 或空白
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-040 }]
+        status: decided
+      - id: RP-UPD-04
+        when: qualityThreshold 有給，但不是 1 到 10 的整數
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-046 }]
+        status: decided
+      - id: RP-UPD-03
+        when: medicalRecordTypes 為空集合
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-040 }]
+        status: decided
+    success:
+      state:
+        - { id: RP-UPD-S1, text: name、description、medicalRecordTypes、qualityThreshold 被輸入整組取代（不是只改有給的欄位）, status: decided, source: [{ decision: D-040 }, { decision: D-046 }] }
+        - { id: RP-UPD-S2, text: status 與 currentVersion 不變, status: decided, source: [{ decision: D-040 }] }
+        - id: RP-UPD-S3
+          text: 有輸入的權重等於輸入；沒有輸入的權重回到 0.50（權重在發布時才驗證，見 RP-PUB-03）
+          status: decided
+          source: [{ decision: D-047 }, { decision: D-049 }]
+      emits:
+        - { event: ReviewProjectDraftUpdated, status: decided, source: [{ decision: D-040 }] }
+
+  - name: PublishReviewProjectVersion
+    kind: command
+    summary: 把目前的草稿版本發布為正式版本
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [RP-G-01, RP-G-02, RP-G-03]
+    rules:
+      - id: RP-PUB-01
+        when: currentVersion.published = true
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        source: [{ decision: D-040 }, { decision: D-049 }]
+        status: decided
+      - id: RP-PUB-02
+        when: 專案尚未綁定評分表版本
+        outcome: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+        source: [{ decision: D-041 }, { scenario: TS-PV-003 }]
+        status: decided
+      - id: RP-PUB-03
+        when: 權重不符合 RP-INV-02
+        outcome: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+        source: [{ decision: D-020 }, { decision: D-040 }]
+        status: decided
+      - id: RP-PUB-04
+        when: currentVersion.qualityThreshold 為 null
+        outcome: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+        source: [{ decision: D-046 }]
+        status: decided
+    success:
+      state:
+        - { id: RP-PUB-S1, text: currentVersion.published = true, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.4" }] }
+        - { id: RP-PUB-S2, text: versionNo 不變；status 不變, status: decided, source: [{ decision: D-040 }] }
+      emits:
+        - { event: ReviewProjectVersionPublished, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.4" }], status: decided }
+
+  - name: ActivateReviewProject
+    kind: command
+    summary: 啟用專案，使它可以用於正式抽選
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [RP-G-01, RP-G-02, RP-G-03]
+    rules:
+      - id: RP-ACT-01
+        when: status = ACTIVE
+        outcome: { result: SUCCESS, no_change: true }
+        source: [{ decision: D-039 }]
+        status: decided
+      # RP-ACT-02（停用後不可再啟用）已依 D-039 廢止，id 不再使用。
+      - id: RP-ACT-03
+        when: currentVersion.published = false
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        source: [{ decision: D-039 }]
+        status: decided
+    success:
+      state:
+        - { id: RP-ACT-S1, text: status = ACTIVE, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.2" }], status: decided }
+      emits:
+        - { event: ReviewProjectActivated, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.2" }], status: decided }
+
+  - name: DeactivateReviewProject
+    kind: command
+    summary: 停用專案，不再供新的抽選批次使用
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [RP-G-01, RP-G-02, RP-G-03]
+    rules:
+      - id: RP-DEA-01
+        when: status = DEACTIVATED
+        outcome: { result: SUCCESS, no_change: true }
+        source: [{ decision: D-039 }]
+        status: decided
+      - id: RP-DEA-02
+        when: status = DRAFT
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        source: [{ decision: D-039 }]
+        status: decided
+    success:
+      state:
+        - { id: RP-DEA-S1, text: status = DEACTIVATED, source: [{ decision: D-039 }], status: decided }
+      emits:
+        - { event: ReviewProjectDeactivated, source: [{ doc: docs/02-ddd/domain-events.md, section: "§4.3" }], status: decided }
+
+  - name: GetReviewProjectDetail
+    kind: query
+    summary: 查詢單一專案與它目前的版本
+    actor:
+      roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
+      open:
+        - text: api-spec.md §7.7 寫 REVIEWER / REREVIEWER「僅限唯讀必要範圍」，沒有定義範圍
+          question: Q-12
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [RP-G-01, RP-G-02, RP-G-03]
+    guard_exceptions:
+      - { guard: RP-G-03, text: SYSTEM_ADMIN 不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    output:
+      status: decided
+      source: [{ decision: D-043 }]
+      fields:
+        - { name: projectId,          type: id }
+        - { name: hospitalId,         type: ref Hospital }
+        - { name: name,               type: text }
+        - { name: description,        type: text }
+        - { name: medicalRecordTypes, type: "set<enum MedicalRecordType>" }
+        - { name: status,             type: enum ProjectStatus }
+        - { name: versionNo,          type: int }
+        - { name: versionPublished,   type: boolean }
+        - { name: qualityThreshold,   type: int }
+        - { name: initialReviewWeight, type: decimal(2) }
+        - { name: rereviewWeight,     type: decimal(2) }

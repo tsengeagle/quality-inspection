@@ -68,4 +68,4 @@ Copilot 審的是 `cfd848a`，7 點中 2 點與上表重複，其餘 5 點：
 
 - 移除 `openspec/`。牽涉 `.claude/commands/opsx/` 與 `.claude/skills/openspec-*`，它們是律法，而 `openspec/` 本身不是；同一個修法 PR 不能夾帶非律法的修改，所以要分兩個 PR。
 - 第三節規則 8（架構詞彙只用 `glossary.md` 有定義的詞）還沒有機械檢查。
-- ReviewProject 的升格：改寫出處、補範例、裁決 RP-PUB-01，以及負責人逐條讀過。
+- ReviewProject 已升格（2026-11-15）：出處改成結構化、補了 13 個範例、RP-PUB-01 與 RP-UPD-S3 依 D-049 裁決。升格條件第 3 項「負責人逐條讀過」由升格 PR 的核准簽章承擔。

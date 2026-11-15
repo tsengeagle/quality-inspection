@@ -1,8 +1,8 @@
-# 草稿，尚未經人工審核。格式說明見 ../README.md
+# 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
 #
 # 每個範例的 basis 指向 usecases.yaml 或 model.yaml 的規則 id。
 # basis 裡只要有一條規則是 proposed，這個範例就還不能當驗收依據。
-spec_version: 0.1-draft
+spec_version: 1
 kind: examples
 aggregate: ReviewProject
 
@@ -13,11 +13,12 @@ actors:
 
 # 可重複使用的準備步驟。
 fixtures:
+  # 有品質線，綁定評分表後就可以發布（RP-PUB-04）。
   draft_project:
     steps:
       - run: CreateReviewProject
         as: manager_h1
-        input: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT] }
+        input: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5 }
         save: { p: projectId }
 
   bound_project:
@@ -99,6 +100,54 @@ examples:
       input: { name: "   ", medicalRecordTypes: [OUTPATIENT] }
     then: { result: REJECTED, code: VALIDATION_ERROR }
 
+  - name: creates_a_project_with_given_scoring_inputs
+    basis: [RP-CRT-S4, RP-CRT-S5]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "住院品質審查", medicalRecordTypes: [INPATIENT], qualityThreshold: 7, initialReviewWeight: "0.70" }
+      save: { p: projectId }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect:
+          result: SUCCESS
+          output: { qualityThreshold: 7, initialReviewWeight: "0.70", rereviewWeight: "0.50" }
+
+  - name: rejects_create_without_any_medical_record_type
+    basis: [RP-CRT-02]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "門診品質審查", medicalRecordTypes: [] }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_create_with_a_quality_threshold_above_ten
+    basis: [RP-CRT-03]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 11 }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_create_with_a_quality_threshold_below_one
+    basis: [RP-CRT-03]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 0 }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_create_with_a_fractional_quality_threshold
+    basis: [RP-CRT-03]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5.5 }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
   # ---------- UpdateReviewProjectDraft ----------
 
   - name: updates_a_draft_project
@@ -120,6 +169,7 @@ examples:
             name: "住院品質審查"
             description: "修訂"
             medicalRecordTypes: [INPATIENT, EMERGENCY]
+            qualityThreshold: null
             status: DRAFT
             versionNo: 1
             versionPublished: false
@@ -138,6 +188,54 @@ examples:
         as: manager_h1
         input: { projectId: "${p}" }
         expect: { result: SUCCESS, output: { name: "門診品質審查" } }
+
+  - name: rejects_update_without_any_medical_record_type
+    basis: [RP-UPD-03]
+    given:
+      - use: draft_project
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [] }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { medicalRecordTypes: [OUTPATIENT] } }
+
+  - name: rejects_update_with_a_quality_threshold_out_of_range
+    basis: [RP-UPD-04]
+    given:
+      - use: draft_project
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 11 }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { qualityThreshold: 5 } }
+
+  - name: update_resets_weights_that_are_not_given
+    basis: [RP-UPD-S3]
+    given:
+      - use: draft_project
+      - run: UpdateReviewProjectDraft
+        as: manager_h1
+        input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], initialReviewWeight: "0.70", rereviewWeight: "0.30" }
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], rereviewWeight: "0.40" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { initialReviewWeight: "0.50", rereviewWeight: "0.40" } }
 
   - name: rejects_update_from_another_hospital
     basis: [RP-G-03]
@@ -213,6 +311,75 @@ examples:
         input: { projectId: "${p}" }
         expect: { result: SUCCESS, output: { status: DRAFT, versionNo: 1, versionPublished: true } }
 
+  - name: rejects_publish_when_weights_do_not_sum_to_one
+    basis: [RP-PUB-03, RP-INV-02]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: bound_project
+      - run: UpdateReviewProjectDraft
+        as: manager_h1
+        input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5, initialReviewWeight: "0.60", rereviewWeight: "0.30" }
+    when:
+      run: PublishReviewProjectVersion
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { versionPublished: false } }
+
+  # 相加為 1.00，但 initialReviewWeight 不大於 0。
+  - name: rejects_publish_when_a_weight_is_zero
+    basis: [RP-PUB-03, RP-INV-02]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: bound_project
+      - run: UpdateReviewProjectDraft
+        as: manager_h1
+        input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5, initialReviewWeight: "0.00", rereviewWeight: "1.00" }
+    when:
+      run: PublishReviewProjectVersion
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+
+  - name: rejects_publish_without_a_quality_threshold
+    basis: [RP-PUB-04]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: bound_project
+      - run: UpdateReviewProjectDraft
+        as: manager_h1
+        input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [OUTPATIENT] }
+    when:
+      run: PublishReviewProjectVersion
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { versionPublished: false } }
+
+  - name: rejects_weight_change_after_the_version_is_published
+    basis: [RP-INV-03, RP-UPD-01]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: published_project
+    when:
+      run: UpdateReviewProjectDraft
+      as: manager_h1
+      input: { projectId: "${p}", name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5, initialReviewWeight: "0.70", rereviewWeight: "0.30" }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { initialReviewWeight: "0.50", rereviewWeight: "0.50" } }
+
   - name: rejects_publish_of_an_already_published_version
     basis: [RP-PUB-01]
     needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
@@ -222,7 +389,12 @@ examples:
       run: PublishReviewProjectVersion
       as: manager_h1
       input: { projectId: "${p}" }
-    then: { result: REJECTED, code: PROJECT_VERSION_NOT_PUBLISHABLE }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: DRAFT, versionNo: 1, versionPublished: true } }
 
   # ---------- ActivateReviewProject ----------
 
@@ -306,6 +478,25 @@ examples:
         input: { projectId: "${p}" }
         expect: { result: SUCCESS, output: { status: DEACTIVATED } }
 
+  - name: deactivating_a_deactivated_project_changes_nothing
+    basis: [RP-DEA-01]
+    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    given:
+      - use: active_project
+      - run: DeactivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+    when:
+      run: DeactivateReviewProject
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { status: DEACTIVATED } }
+
   - name: reactivates_a_deactivated_project
     basis: [RP-T-03, RP-ACT-S1]
     needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
@@ -327,12 +518,6 @@ examples:
 
 # 這些規則目前沒有辦法用範例驗證，原因各自列出。
 not_covered:
-  - rules: [RP-PUB-03, RP-INV-02, RP-INV-03]
-    reason: 權重的輸入已定（D-047），範例尚未補
-  - rules: [RP-DEA-01]
-    reason: Q-04 已裁決（D-039），範例尚未補；寫法與 activating_an_active_project_changes_nothing 相同
-  - rules: [RP-CRT-02, RP-UPD-03, RP-CRT-03, RP-UPD-04, RP-PUB-04]
-    reason: D-040、D-046 新增的規則，範例尚未補。既有的 published_project fixture 沒有給品質線，補上之前依 RP-PUB-04 會被拒絕
   - rules: [emits]
     reason: >
       範圍內沒有查詢看得到 event。要驗證 event，得透過稽核軌跡的查詢（不在本次範圍），

@@ -1,14 +1,23 @@
-# 草稿，尚未經人工審核。格式說明見 ../README.md
-spec_version: 0.1-draft
+# 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+spec_version: 1
 kind: aggregate
 name: ReviewProject
 term: 審查專案            # glossary.md「審查專案 [ReviewProject]」
 
 sources:
-  - docs/01-requirements/0_品質審查系統規格草案.md §7.1, §8.1, §9.3
-  - docs/01-requirements/glossary.md（審查專案、專案版本）
-  - docs/01-requirements/decision-log.md D-011, D-019, D-020, D-031
-  - docs/02-ddd/domain-model.md §5.1
+  - { doc: docs/01-requirements/0_品質審查系統規格草案.md, section: "§7.1、§8.1、§9.3" }
+  - { doc: docs/01-requirements/glossary.md, section: "審查專案、專案版本" }
+  - { decision: D-011 }
+  - { decision: D-019 }
+  - { decision: D-020 }
+  - { decision: D-031 }
+  - { decision: D-039 }
+  - { decision: D-040 }
+  - { decision: D-041 }
+  - { decision: D-046 }
+  - { decision: D-047 }
+  - { decision: D-049 }
+  - { doc: docs/02-ddd/domain-model.md, section: "§5.1" }
 
 identity:
   name: projectId
@@ -21,29 +30,29 @@ attributes:
     external: true          # 院區主檔由外部系統提供
     required: true
     mutable: false
-    source: domain-model.md §5.1
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.1" }]
   - name: name
     type: text
     required: true
-    source: 規格草案 §8.1
+    source: [{ doc: docs/01-requirements/0_品質審查系統規格草案.md, section: "§8.1" }]
   - name: description
     type: text
     required: false
     status: decided
-    source: decision-log.md D-040
+    source: [{ decision: D-040 }]
   - name: medicalRecordTypes
     type: set<enum MedicalRecordType>
     required: true
-    source: domain-model.md §5.1
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.1" }]
     note: 至少一個（decision-log.md D-040）
   - name: status
     type: enum ProjectStatus
     initial: DRAFT
-    source: decision-log.md D-039
+    source: [{ decision: D-039 }]
     status: decided
   - name: currentVersion
     type: ProjectVersion
-    source: domain-model.md §5.1
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.1" }]
 
 entities:
   - name: ProjectVersion
@@ -53,31 +62,31 @@ entities:
         type: int
         initial: 1
         status: decided
-        source: decision-log.md D-040
+        source: [{ decision: D-040 }]
       - name: published
         type: boolean
         initial: false
         status: decided
-        source: decision-log.md D-040
+        source: [{ decision: D-040 }]
       - name: scoreSheetVersionRef
         type: ref ScoreSheetVersion
         required: false       # 發布前必須已綁定，見 RP-PUB-02
         status: decided
-        source: decision-log.md D-041
+        source: [{ decision: D-041 }]
       - name: qualityThreshold
         type: int
         range: [1, 10]        # 暫定
         required: false       # 草稿可為 null；發布時必填，見 RP-PUB-04
-        source: decision-log.md D-046
+        source: [{ decision: D-046 }]
         status: decided
       - name: initialReviewWeight
         type: decimal(2)
         initial: "0.50"
-        source: decision-log.md D-020
+        source: [{ decision: D-020 }]
       - name: rereviewWeight
         type: decimal(2)
         initial: "0.50"
-        source: decision-log.md D-020
+        source: [{ decision: D-020 }]
 
 # domain-model.md §5.1 列出、但本次試作不處理的屬性。
 # 這些屬性的規則在文件裡只有名稱，沒有內容。
@@ -94,11 +103,11 @@ deferred_attributes:
 enums:
   - name: MedicalRecordType
     values: [OUTPATIENT, INPATIENT, EMERGENCY]
-    source: domain-model.md §5.1
+    source: [{ doc: docs/02-ddd/domain-model.md, section: "§5.1" }]
   - name: ProjectStatus
     values: [DRAFT, ACTIVE, DEACTIVATED]
     status: decided
-    source: decision-log.md D-039
+    source: [{ decision: D-039 }]
 
 transitions:
   - id: RP-T-01
@@ -106,19 +115,19 @@ transitions:
     by: ActivateReviewProject
     to: ACTIVE
     status: decided
-    source: decision-log.md D-039
+    source: [{ decision: D-039 }]
   - id: RP-T-02
     from: ACTIVE
     by: DeactivateReviewProject
     to: DEACTIVATED
     status: decided
-    source: decision-log.md D-039
+    source: [{ decision: D-039 }]
   - id: RP-T-03
     from: DEACTIVATED
     by: ActivateReviewProject
     to: ACTIVE
     status: decided
-    source: decision-log.md D-039
+    source: [{ decision: D-039 }]
 
 # 沒有終點狀態：停用後可以再啟用（D-039）。
 terminal_states: []
@@ -127,22 +136,22 @@ invariants:
   - id: RP-INV-01
     text: 已發布的專案版本內容不可修改；要調整必須建立新版本
     source:
-      - glossary.md「專案版本」
-      - domain-model.md §5.1 Domain Invariants
-      - specification-by-example.md EX-018
+      - { doc: docs/01-requirements/glossary.md, section: "專案版本" }
+      - { doc: docs/02-ddd/domain-model.md, section: "§5.1 Domain Invariants" }
+      - { example: EX-018 }
     status: decided
   - id: RP-INV-02
     text: initialReviewWeight + rereviewWeight = 1.00，且兩者都大於 0、小於等於 1
-    source: decision-log.md D-020
+    source: [{ decision: D-020 }]
     status: decided
   - id: RP-INV-03
     text: 版本發布後權重固定，不可修改
-    source: decision-log.md D-020
+    source: [{ decision: D-020 }]
     status: decided
   - id: RP-INV-04
     text: 未啟用的專案不得執行抽選
     source:
-      - domain-model.md §5.1 Domain Invariants
-      - permission-matrix.md §6（executeSampling 的 Key Guard）
+      - { doc: docs/02-ddd/domain-model.md, section: "§5.1 Domain Invariants" }
+      - { doc: docs/02-ddd/permission-matrix.md, section: "§6", note: "executeSampling 的 Key Guard" }
     status: decided
     enforced_by: 抽選的 use case（不在本次範圍）
