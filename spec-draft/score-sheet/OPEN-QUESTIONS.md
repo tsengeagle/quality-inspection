@@ -41,7 +41,9 @@
 | 版本 id | 發布回傳 `scoreSheetVersionId`（D-050 第 1 點） | 沒有 |
 | 更新的輸入 | 六個具名輸入 | 一個命令物件；執行器依參數名稱綁定，要改成六個參數 |
 | 重複章節 | `DUPLICATE_SECTION_ID` | `INVALID_STATE_TRANSITION` |
-| 重複題目 id、代碼 | 分類 `rule_violation` | 409 類的例外 |
+| 重複題目 id、代碼：跨章節 | 分類 `rule_violation` | 409 類的例外 |
+| 重複題目 id、代碼：同章節新增 | `DUPLICATE_ITEM_ID`、`DUPLICATE_ITEM_CODE` | 章節自己的檢查丟程式錯誤（500） |
+| 重複題目代碼：同章節修改 | `DUPLICATE_ITEM_CODE`（SS-INV-03） | **不檢查**：唯一性檢查排除了題目所在的章節，取代時也不檢查，會存下重複的代碼。不只是錯誤分類，唯一性檢查本身要補 |
 | 欄位驗證（D-050 第 4 點） | `VALIDATION_ERROR` | 程式錯誤（500）；非 CONDITIONAL 帶 conditionExpression 被接受 |
 | `GetScoreSheetDetail` 的檢查順序 | 角色 → 載入 → 院區（D-024） | 先載入再檢查角色：不存在的 id 對無權角色回 `SCORE_SHEET_NOT_FOUND` 而不是 `ROLE_DENIED` |
 | 讀取角色（D-050 第 7 點） | `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR` | 拒絕 `AUDITOR`；章節查詢只允許 `HOSPITAL_MANAGER` |

@@ -452,6 +452,52 @@ examples:
               - { itemId: I2, code: record-complete, title: "診斷正確", scoreType: FIXED, maxScore: "10", requiredRule: OPTIONAL }
     then: { result: REJECTED, code: DUPLICATE_ITEM_CODE }
 
+  - name: rejects_a_duplicate_item_id_within_a_section
+    basis: [SS-UPD-10, SS-INV-02]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        addItems:
+          - { targetSectionId: S1, itemId: I1, code: signature, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: DUPLICATE_ITEM_ID }
+
+  - name: rejects_changing_a_code_to_one_in_the_same_section
+    basis: [SS-UPD-11, SS-INV-03]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addItems:
+            - { targetSectionId: S1, itemId: I2, code: signature, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        updateItems:
+          - { itemId: I2, code: record-complete, title: "簽章", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
+    then: { result: REJECTED, code: DUPLICATE_ITEM_CODE }
+    observe:
+      - run: GetScoreSheetSections
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect:
+          result: SUCCESS
+          output:
+            sections:
+              - sectionId: S1
+                items:
+                  - { itemId: I1, code: record-complete }
+                  - { itemId: I2, code: signature }
+
   # ---------- PublishScoreSheetVersion ----------
 
   - name: publishes_a_version_with_items
