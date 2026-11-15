@@ -120,8 +120,8 @@ stateDiagram-v2
   PENDING_REREVIEW --> REREVIEW_IN_PROGRESS: startRereview
   PENDING_REREVIEW --> CANCELLED: cancel
 
-  %% submitRereview 不轉 CLOSED；提交後維持 REREVIEW_IN_PROGRESS，不新增 enum（D-053）
-  %% 原複審提交者具資格時正式結案並固定結果，才進 CLOSED
+  REREVIEW_IN_PROGRESS --> REREVIEW_IN_PROGRESS: submitRereview（不自動結案，D-053）
+  REREVIEW_IN_PROGRESS --> CLOSED: 有效複審結果的提交醫師 Close Command（D-034／D-053）
 
   CLOSED --> [*]
   CANCELLED --> [*]
@@ -246,13 +246,13 @@ stateDiagram-v2
 1. [Resolved D-031] 不需複審時僅 manager 在初審固定後手工結案；DD-03 已確認固定僅限目前有效初審結果的合法提交醫師。
 2. `RETURNED` 後是否必須 reassign reviewer 才能 reopen（目前僅記為 guard note）。
 3. sampling retry 的完整 state / error taxonomy 尚未在 DDD 層完整定稿（本版僅最小必要）。
-4. [Superseded D-032] CLOSED 複審 revision 例外撤銷。複審已提交未結案的狀態表示 unknown；不得新增 enum 或假裝仍是草稿。
+4. [Superseded D-032] CLOSED 複審 revision 例外撤銷。[Resolved D-053] 複審已提交未結案時，案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`；不新增 enum。
 
 ## 8) 固定與流程 guard（D-031～D-033）
 
 固定為業務事實，不預設 CaseStatus／SubmissionStatus。初審提交後保持初審完成，未固定不得自動／手工進複審或由 manager 結案；固定後禁止初審 revision。閾值 >、≤、null 分支不變。DD-03：固定僅限目前有效初審結果的合法提交醫師，須驗證有效版本及既有 scope／ownership guard。
-複審提交建立合法結果與結案資格，不 CLOSED；原複審提交者可在未固定、未結案、未取消時 revision。正式結案須具資格且 actor 合法，同時固定複審結果。CLOSED 禁止所有 revision／reopen。未知的提交後狀態表示不影響上述 guard。
-圖僅保留已定 enum 轉移；複審提交後的獨立結案路徑以 §3.2 語意表為準，待表示定案後同步圖。盲審不依 CaseStatus 或 SUBMITTED 狀態解除（D-033）。
+複審提交建立合法結果與結案資格，不 CLOSED；原複審提交者可在未固定、未結案、未取消時 revision。正式結案須具資格且 actor 合法，同時固定複審結果。CLOSED 禁止所有 revision／reopen。提交後案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`（D-053）。
+§3.5 的圖已畫出複審提交與獨立結案（D-053）。盲審不依 CaseStatus 或 SUBMITTED 狀態解除（D-033）。
 
 ## DD-03 固定操作 guard
 
@@ -262,5 +262,5 @@ stateDiagram-v2
 
 ## D-034 複審獨立 Close Command 對齊
 
-初審固定後，不需複審由 HOSPITAL_MANAGER 另行結案；需要複審則先合法執行及提交，再由目前有效結果的合法提交醫師另行 Close Command，才進 CLOSED。提交後未結案的狀態表示 UNKNOWN，不新增 enum。
-Close 執行時拒絕 DRAFT、SUPERSEDED、過期／跨案／錯 stage 目標、錯誤 actor／scope，以及 CLOSED／CANCELLED 的新結案轉移。revision 先完成則指向舊版的 close 拒絕；close 先完成則 revision 拒絕，不回退主狀態。既有 CLOSED／CANCELLED 禁止 revision 與 CLOSED 禁止 reopen 不變；已成功 close 重試的回應策略 UNKNOWN，不代表可再次轉移。
+初審固定後，不需複審由 HOSPITAL_MANAGER 另行結案；需要複審則先合法執行及提交，再由目前有效結果的合法提交醫師另行 Close Command，才進 CLOSED。提交後未結案時，案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`，不新增 enum（D-053）。
+Close 執行時拒絕 DRAFT、SUPERSEDED、過期／跨案／錯 stage 目標、錯誤 actor／scope，以及 CLOSED／CANCELLED 的新結案轉移。revision 先完成則指向舊版的 close 拒絕；close 先完成則 revision 拒絕，不回退主狀態。既有 CLOSED／CANCELLED 禁止 revision 與 CLOSED 禁止 reopen 不變；已成功 close 的重試回 `CASE_TERMINAL`，不會再次轉移（D-053）。
