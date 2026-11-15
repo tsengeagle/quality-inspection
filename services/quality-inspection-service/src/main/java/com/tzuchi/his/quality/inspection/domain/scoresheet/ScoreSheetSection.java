@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import java.util.*;
 
 /**
@@ -28,11 +29,11 @@ public class ScoreSheetSection {
         Objects.requireNonNull(item, "item must not be null");
         boolean duplicateItemId = items.stream().anyMatch(i -> i.getItemId().equals(item.getItemId()));
         if (duplicateItemId) {
-            throw new IllegalArgumentException("Duplicate itemId: " + item.getItemId());
+            throw new DomainStateConflictException("DUPLICATE_ITEM_ID", "Duplicate itemId: " + item.getItemId());
         }
         boolean duplicateCode = items.stream().anyMatch(i -> i.getCode().equals(item.getCode()));
         if (duplicateCode) {
-            throw new IllegalArgumentException("Duplicate code: " + item.getCode());
+            throw new DomainStateConflictException("DUPLICATE_ITEM_CODE", "Duplicate code: " + item.getCode());
         }
         this.items.add(item);
     }

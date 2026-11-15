@@ -95,9 +95,10 @@ class ScoreSheetDefinitionTest {
         section.addItem(new ScoreItem("i1", "C01", "Item1",
                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
 
-        assertThrows(IllegalArgumentException.class,
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> section.addItem(new ScoreItem("i1", "C02", "Item2",
                         ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE)));
+        assertEquals("DUPLICATE_ITEM_ID", e.getErrorCode());
     }
 
     @Test
@@ -106,9 +107,10 @@ class ScoreSheetDefinitionTest {
         section.addItem(new ScoreItem("i1", "C01", "Item1",
                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
 
-        assertThrows(IllegalArgumentException.class,
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> section.addItem(new ScoreItem("i2", "C01", "Item2",
                         ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE)));
+        assertEquals("DUPLICATE_ITEM_CODE", e.getErrorCode());
     }
 
     @Test

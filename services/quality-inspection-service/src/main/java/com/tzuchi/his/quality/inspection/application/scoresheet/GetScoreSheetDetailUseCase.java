@@ -21,14 +21,18 @@ public class GetScoreSheetDetailUseCase {
     }
 
     public ScoreSheetSummary execute(ActorContext actor, String scoreSheetId) {
+        // D-024：角色 → 載入 → 院區
+        boolean systemAdmin = actor.hasRole(DomainRole.SYSTEM_ADMIN);
+        if (!systemAdmin) {
+            actor.requireRole(DomainRole.HOSPITAL_MANAGER);
+        }
         ScoreSheetSummary summary = queryPort.findSummaryById(scoreSheetId)
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheet not found: " + scoreSheetId));
 
-        if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
+        if (systemAdmin) {
             return summary;
         }
-        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         String hospitalId = hospitalIdResolver.resolveByProjectId(summary.getProjectId());
         actor.requireHospitalScope(hospitalId);
         return summary;

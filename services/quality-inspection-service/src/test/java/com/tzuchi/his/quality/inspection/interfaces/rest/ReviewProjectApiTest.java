@@ -331,6 +331,22 @@ class ReviewProjectApiTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    void listProjects_systemAdminHospitalIdNarrows_managerHospitalIdIgnored() throws Exception {
+        // D-047 第 1、2 點；api-spec.md §7.7 的 hospitalId 參數
+        createProjectAndGetId("H001 的專案");
+        String admin = TestTokenFactory.systemAdminToken();
+
+        mockMvc.perform(get(BASE).header("api-key", admin))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+        mockMvc.perform(get(BASE).header("api-key", admin).param("hospitalId", "H001"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+        mockMvc.perform(get(BASE).header("api-key", admin).param("hospitalId", "H002"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(0)));
+        mockMvc.perform(get(BASE).header("api-key", hmToken).param("hospitalId", "H002"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+    }
+
     private String createProjectAndGetId(String name) throws Exception {
         CreateReviewProjectRequest req = new CreateReviewProjectRequest();
         req.setName(name);
