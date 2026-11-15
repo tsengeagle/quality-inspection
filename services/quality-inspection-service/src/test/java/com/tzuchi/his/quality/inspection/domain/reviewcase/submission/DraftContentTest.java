@@ -91,5 +91,17 @@ class DraftContentTest {
         assertTimeoutPreemptively(java.time.Duration.ofSeconds(2),
                 () -> assertFalse(a.sameAs(draft(List.of(raw("Q1", "2"), raw("Q1", "1e999999998")), null, "c"))));
     }
+
+    @Test
+    void duplicateItemsWithDifferentScoresAreComparedAsAMultiset() {
+        // 同一題目、相同答案值、分數不同的兩筆，交換順序仍是相同內容（Copilot 審查）
+        DraftContent a = draft(List.of(scored("Q1", "true", "5"), scored("Q1", "true", "10")), "15", "c");
+        DraftContent b = draft(List.of(scored("Q1", "true", "10"), scored("Q1", "true", "5.0")), "15", "c");
+        assertTrue(a.sameAs(b));
+        assertFalse(a.sameAs(draft(List.of(scored("Q1", "true", "10"), scored("Q1", "true", "10")), "15", "c")));
+        // 沒有分數的答案（ofRaw）與有分數的混在一起時，排序同樣要穩定
+        assertTrue(draft(List.of(raw("Q1", "true"), scored("Q1", "true", "1")), null, "c")
+                .sameAs(draft(List.of(scored("Q1", "true", "1"), raw("Q1", "true")), null, "c")));
+    }
 }
 

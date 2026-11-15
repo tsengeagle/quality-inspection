@@ -33,7 +33,10 @@ public final class DraftContent {
                 }
             }
         }
-        list.sort(Comparator.comparing((Answer a) -> text(a.itemId)).thenComparing(a -> a.sortKey));
+        // 排序鍵要涵蓋逐筆比較的所有欄位（題目 id、答案值、分數），否則同一題目的多筆答案換個順序就會被誤判為有變更
+        list.sort(Comparator.comparing((Answer a) -> text(a.itemId))
+                .thenComparing(a -> a.sortKey)
+                .thenComparing(a -> a.derivedScore, Comparator.nullsFirst(BigDecimal::compareTo)));
         this.answers = Collections.unmodifiableList(list);
         this.totalScore = totalScore;
         this.comment = comment;
