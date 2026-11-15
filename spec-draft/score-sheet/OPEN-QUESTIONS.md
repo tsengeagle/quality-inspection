@@ -49,6 +49,7 @@
 | 讀取角色（D-050 第 7 點） | `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR` | 拒絕 `AUDITOR`；章節查詢只允許 `HOSPITAL_MANAGER` |
 | 列表的院區參數 | `SYSTEM_ADMIN` 可指定院區（D-047） | 不支援 |
 | 輸出欄位 | `versionNo`；章節與列表回物件 | `version`；回清單 |
+| 版本查詢 | 含 `scoreSheetVersionId`（未發布時 null） | 只有版本號與是否已發布 |
 | 綁定（D-050 第 8 點） | 綁定版本、檢查版本存在、屬於本專案、已發布 | 綁定 `scoreSheetId`，都不檢查 |
 
 ## 不指向規則、但仍未決的事

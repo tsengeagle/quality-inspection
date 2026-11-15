@@ -131,22 +131,13 @@ usecases:
       - { name: addItems,         type: list<ItemToSectionInput>,   required: false }
     input_note: 六相位命令（D-015、D-050 第 5 點）
     guards: [SS-G-01, SS-G-02, SS-G-04]
-    # SS-UPD-01 在任何相位之前檢查。SS-UPD-02～11 在各相位執行時檢查（相位順序見 SS-UPD-S1），
-    # 第一個違反的規則決定結果；被拒絕時整個命令沒有任何改變。
+    # SS-UPD-01 在任何相位之前檢查。其餘規則在各相位執行時檢查（相位順序見 SS-UPD-S1）；
+    # 每個相位內依下列順序：先驗證該操作的輸入（SS-UPD-04～08），再查找章節或題目（SS-UPD-02、03），
+    # 最後檢查重複（SS-UPD-09～11）。第一個違反的規則決定結果；被拒絕時整個命令沒有任何改變。
     rules:
       - id: SS-UPD-01
         when: currentVersion.status = PUBLISHED
         outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
-        status: decided
-        source: [{ decision: D-050 }]
-      - id: SS-UPD-02
-        when: removeSectionIds、updateSections 或 addItems.targetSectionId 指向不存在的章節（以前面相位做完後的內容判斷）
-        outcome: { result: REJECTED, code: SECTION_NOT_FOUND }
-        status: decided
-        source: [{ decision: D-050 }]
-      - id: SS-UPD-03
-        when: removeItemIds 或 updateItems 指向不存在的題目（以前面相位做完後的內容判斷）
-        outcome: { result: REJECTED, code: ITEM_NOT_FOUND }
         status: decided
         source: [{ decision: D-050 }]
       - id: SS-UPD-04
@@ -174,6 +165,16 @@ usecases:
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
         status: decided
         source: [{ decision: D-050 }, { rule: SS-INV-06 }]
+      - id: SS-UPD-02
+        when: removeSectionIds、updateSections 或 addItems.targetSectionId 指向不存在的章節（以前面相位做完後的內容判斷）
+        outcome: { result: REJECTED, code: SECTION_NOT_FOUND }
+        status: decided
+        source: [{ decision: D-050 }]
+      - id: SS-UPD-03
+        when: removeItemIds 或 updateItems 指向不存在的題目（以前面相位做完後的內容判斷）
+        outcome: { result: REJECTED, code: ITEM_NOT_FOUND }
+        status: decided
+        source: [{ decision: D-050 }]
       - id: SS-UPD-09
         when: 新增的章節 sectionId 與版本內既有的章節相同
         outcome: { result: REJECTED, code: DUPLICATE_SECTION_ID }
@@ -307,6 +308,7 @@ usecases:
       fields:
         - { name: versionNo, type: int }
         - { name: published, type: boolean }
+        - { name: scoreSheetVersionId, type: id, note: 已發布時是發布產生的 id，未發布時是 null；讓發布的回應遺失後仍能綁定（D-050 第 1 點） }
 
   - name: ListScoreSheetSummaries
     kind: query

@@ -1,7 +1,7 @@
 {
   "id": "2026-11-15-score-sheet-draft",
   "decision": "D-050",
-  "reason": "新增 ScoreSheetDefinition（評分表）的規格草稿 spec-draft/score-sheet/，直接採格式 v1，依 D-011、D-014、D-015、D-041、domain-model.md §5.2、api-spec.md §8、persistence-model.md §5.4–§5.7、domain-events.md §4.5–§4.7 與現行程式轉換。範圍：建立、更新（六相位）、發布 3 支命令與 4 支查詢；38 條規則、35 個範例涵蓋全部規則。依負責人 2026-11-15 的裁決 D-050（Q-16～Q-23 全部採建議；綁定時評分表版本尚未發布回 INVALID_STATE_TRANSITION、屬於另一個專案回 SCORE_SHEET_NOT_FOUND），規則全部改為 decided，OPEN-QUESTIONS.md 改為裁決紀錄與升格待辦。文件同步：api-spec.md §4.2 補評分表錯誤代碼，§7.6 補綁定的檢查，§8.1 移除 PROJECT_NOT_ACTIVE，§8.2 範例改為六相位命令，§8.3 補回應與錯誤，§8.4 讀取角色；domain-events.md 補 ScoreSheetDraftUpdated。草稿仍只列出、不擋 CI；升格與程式修改另開 PR。",
+  "reason": "新增 ScoreSheetDefinition（評分表）的規格草稿 spec-draft/score-sheet/，直接採格式 v1，依 D-011、D-014、D-015、D-041、domain-model.md §5.2、api-spec.md §8、persistence-model.md §5.4–§5.7、domain-events.md §4.5–§4.7 與現行程式轉換。範圍：建立、更新（六相位）、發布 3 支命令與 4 支查詢；38 條規則、36 個範例涵蓋全部規則。依負責人 2026-11-15 的裁決 D-050（Q-16～Q-23 全部採建議；綁定時評分表版本尚未發布回 INVALID_STATE_TRANSITION、屬於另一個專案回 SCORE_SHEET_NOT_FOUND），規則全部改為 decided，OPEN-QUESTIONS.md 改為裁決紀錄與升格待辦。文件同步：api-spec.md §4.2 補評分表錯誤代碼，§7.6 補綁定的檢查，§8.1 移除 PROJECT_NOT_ACTIVE，§8.2 範例改為六相位命令，§8.3 補回應與錯誤，§8.4 讀取角色；domain-events.md 補 ScoreSheetDraftUpdated。草稿仍只列出、不擋 CI；升格與程式修改另開 PR。",
   "drafted_by": "claude-code",
   "paths": [
     "spec-draft/",

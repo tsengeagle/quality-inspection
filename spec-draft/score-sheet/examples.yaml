@@ -326,6 +326,20 @@ examples:
           - { itemId: I9, code: other, title: "其他", scoreType: FIXED, maxScore: "5", requiredRule: OPTIONAL }
     then: { result: REJECTED, code: ITEM_NOT_FOUND }
 
+  - name: validates_an_identifier_before_looking_it_up
+    basis: [SS-UPD-04]
+    needs: [CreateReviewProject]
+    given:
+      - use: filled_sheet
+    when:
+      run: UpdateScoreSheetDraft
+      as: manager_h1
+      input:
+        scoreSheetId: "${s}"
+        updateSections:
+          - { sectionId: " ", title: "完整性" }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
   - name: rejects_an_item_without_a_code
     basis: [SS-UPD-04]
     needs: [CreateReviewProject]
@@ -517,7 +531,7 @@ examples:
         input: { scoreSheetId: "${s}" }
         expect:
           result: SUCCESS
-          output: { versionNo: 1, published: true }
+          output: { versionNo: 1, published: true, scoreSheetVersionId: "${sv}" }
       - run: GetScoreSheetDetail
         as: manager_h1
         input: { scoreSheetId: "${s}" }
@@ -575,7 +589,7 @@ examples:
         input: { scoreSheetId: "${s}" }
         expect:
           result: SUCCESS
-          output: { published: false }
+          output: { published: false, scoreSheetVersionId: null }
 
   - name: rejects_publishing_twice
     basis: [SS-PUB-01]

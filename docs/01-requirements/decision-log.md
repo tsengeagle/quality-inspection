@@ -1829,11 +1829,11 @@ spec-draft：`RP-G-03`、`CreateReviewProject` 與 `UpdateReviewProjectDraft` �
 
 ### Decision
 
-1. **版本的識別（Q-16）。** 評分表版本有自己的 `scoreSheetVersionId`，發布時產生並回傳；專案綁定的就是這個 id（D-041）。本次只有第一版，「建立新的草稿版本」未定。
+1. **版本的識別（Q-16）。** 評分表版本有自己的 `scoreSheetVersionId`，發布時產生並回傳，版本查詢也回傳（未發布時為 null）；專案綁定的就是這個 id（D-041）。本次只有第一版，「建立新的草稿版本」未定。
 2. **建立草稿（Q-17）。** 不檢查專案狀態；同一專案可以有多份評分表，被採用的是專案綁定的那個版本。
 3. **錯誤代碼（Q-18）。** 更新已發布的版本、再次發布：`INVALID_STATE_TRANSITION`（衝突）。指向不存在的章節、題目：`SECTION_NOT_FOUND`、`ITEM_NOT_FOUND`（規則違反；評分表本身存在，不用「找不到」類）。重複的章節、題目 id、題目代碼依 api-spec §8.2：`DUPLICATE_SECTION_ID`、`DUPLICATE_ITEM_ID`、`DUPLICATE_ITEM_CODE`（規則違反）。
 4. **欄位驗證（Q-19）。** 必填欄位為 null 或空白、章節標題空白、`maxScore` 小於 0、`CONDITIONAL` 沒有 `conditionExpression`、非 `CONDITIONAL` 卻有 `conditionExpression`：一律 `VALIDATION_ERROR`。題目沒有輸入 `weight` 時是 1；`weight` 的數值範圍本次不限制，由計分的規格處理。
-5. **更新命令（Q-20）。** 採 D-015 的六相位命令，依序：刪除章節 → 刪除題目 → 章節改名 → 修改題目 → 新增章節（含題目）→ 新增題目到既有章節，後面的相位看得到前面的結果。修改題目是整筆取代。六個相位都空時成功、沒有改變（D-038 的 `NO_CHANGES` 只適用提交草稿）。更新成功發出 `ScoreSheetDraftUpdated`。評分表名稱與 `displayOrder` 本次不納入；順序以清單順序表示。
+5. **更新命令（Q-20）。** 採 D-015 的六相位命令，依序：刪除章節 → 刪除題目 → 章節改名 → 修改題目 → 新增章節（含題目）→ 新增題目到既有章節，後面的相位看得到前面的結果。每個相位內先驗證該操作的輸入（第 4 點），再查找章節或題目，最後檢查重複。修改題目是整筆取代。六個相位都空時成功、沒有改變（D-038 的 `NO_CHANGES` 只適用提交草稿）。更新成功發出 `ScoreSheetDraftUpdated`。評分表名稱與 `displayOrder` 本次不納入；順序以清單順序表示。
 6. **發布條件（Q-21）。** 版本內沒有任何題目時拒絕，`SCORE_SHEET_NOT_PUBLISHABLE`；有題目時容許空章節。
 7. **查詢（Q-22）。** 詳情、章節、版本、列表四支查詢的讀取角色為 `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR`，院區範圍依 D-042、D-047。D-010 的「完整評分內容」指提交的分數與答案，不包括評分表的題目定義，所以 `SYSTEM_ADMIN` 可以讀章節與題目。`REVIEWER`／`REREVIEWER` 不開放（審查時用案件的 snapshot）。章節查詢回傳 `{ scoreSheetId, sections }`，列表回傳 `{ items }`。
 8. **綁定（Q-23）。** `BindScoreSheetToProject` 屬於 `ReviewProject`，在評分表規格升格時一起加進 `specs/review-project/`。檢查依序：角色 → 專案存在 → 院區 → 專案目前版本未發布（否則 `INVALID_STATE_TRANSITION`）→ 評分表版本存在且屬於這個專案（否則 `SCORE_SHEET_NOT_FOUND`，不透露其他專案的版本是否存在）→ 評分表版本已發布（否則 `INVALID_STATE_TRANSITION`）。成功時專案目前版本的評分表版本參照等於輸入，重新綁定會取代。

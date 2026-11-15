@@ -494,7 +494,7 @@ Accept: application/json
 ```
 
 > **欄位說明：**
-> - 相位依序執行：刪除章節 → 刪除題目 → 章節改名 → 修改題目 → 新增章節（含題目）→ 新增題目到既有章節；後面的相位看得到前面的結果。被拒絕時整個命令沒有任何改變
+> - 相位依序執行：刪除章節 → 刪除題目 → 章節改名 → 修改題目 → 新增章節（含題目）→ 新增題目到既有章節；後面的相位看得到前面的結果。每個相位內先驗證輸入，再查找章節或題目，最後檢查重複。被拒絕時整個命令沒有任何改變
 > - `updateItems` 整筆取代題目的欄位；沒有輸入 `weight` 時是 1
 > - `requiredRule`: enum string — `ALWAYS_REQUIRED` / `OPTIONAL` / `CONDITIONAL`
 > - `conditionExpression`: `requiredRule = CONDITIONAL` 時必填，其他時候必須沒有值
