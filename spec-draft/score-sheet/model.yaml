@@ -11,6 +11,7 @@ sources:
   - { decision: D-014 }
   - { decision: D-015 }
   - { decision: D-041 }
+  - { decision: D-050 }
   - { doc: docs/02-ddd/domain-model.md, section: "§3.2、§5.2、§7.1" }
   - { doc: docs/03-contracts/api-spec.md, section: "§8.1–§8.4" }
   - { doc: docs/03-contracts/persistence-model.md, section: "§5.4–§5.7、§8.4" }
@@ -38,9 +39,9 @@ entities:
       - name: scoreSheetVersionId
         type: id
         assigned_by: system
-        status: proposed
-        question: Q-16
-        note: D-041 規定專案綁定的是這個 id；現行程式沒有這個 id
+        status: decided
+        source: [{ decision: D-050 }]
+        note: 發布時產生；專案綁定的是這個 id（D-041）。現行程式沒有這個 id
       - name: versionNo
         type: int
         initial: 1
@@ -97,9 +98,9 @@ entities:
       - name: weight
         type: decimal(4)          # persistence-model.md §5.7 的 weight 是四位小數
         initial: "1"
-        status: proposed
-        question: Q-19
-        note: 沒有輸入時是 1 只見於程式；文件沒有寫
+        status: decided
+        source: [{ decision: D-050 }]
+        note: 沒有輸入時是 1；數值範圍本次不限制（D-050 第 4 點）
       - name: requiredRule
         type: enum RequiredRule
         required: true
@@ -112,13 +113,13 @@ entities:
 # 文件列出、但本次不處理的屬性與行為。
 deferred_attributes:
   - visibilityRule            # D-014：延後至 B3/B4
-  - name                      # api-spec.md §8.2 的請求範例與 persistence-model.md §5.4 有評分表名稱，領域模型沒有；見 Q-20
-  - displayOrder              # api-spec.md §8.2 與 persistence-model.md §5.6、§5.7 有，領域模型沒有；見 Q-20
+  - name                      # persistence-model.md §5.4 有評分表名稱，領域模型沒有；D-050 第 5 點：本次不納入
+  - displayOrder              # persistence-model.md §5.6、§5.7 有，領域模型沒有；D-050 第 5 點：順序以清單順序表示
   - checksum                  # persistence-model.md §5.5；發布時的 snapshot（D-011），屬於抽選與提交的規格
 deferred_behaviors:
   - freezeVersion             # domain-model.md §5.2 與 domain-events.md §4.7；FROZEN 狀態未定義
   - snapshotForSubmission     # domain-model.md §5.2；屬於提交的規格
-  - 建立新的草稿版本           # SS-INV-01 說發布後只能以新版本演進；見 Q-16
+  - 建立新的草稿版本           # SS-INV-01 說發布後只能以新版本演進；D-050 第 1 點：未定
 
 enums:
   - name: ScoreSheetStatus
@@ -143,7 +144,7 @@ transitions:
       - { doc: docs/02-ddd/domain-model.md, section: "§5.2" }
       - { doc: docs/02-ddd/domain-events.md, section: "§4.6" }
 
-# 版本發布後不能回到草稿；新版本見 Q-16。
+# 版本發布後不能回到草稿；建立新版本未定（D-050 第 1 點）。
 terminal_states: [PUBLISHED]
 
 invariants:

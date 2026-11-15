@@ -147,6 +147,22 @@
 
 ---
 
+## 4.5a `ScoreSheetDraftUpdated`
+
+### Emitted By
+
+* `ScoreSheetDefinition`
+
+### 業務意義
+
+評分表草稿的章節或題目已更新（D-050 第 5 點）。
+
+### 發布條件
+
+* 六相位的更新命令成功
+
+---
+
 ## 4.6 `ScoreSheetVersionPublished`
 
 ### Emitted By

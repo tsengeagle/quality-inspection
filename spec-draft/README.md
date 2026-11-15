@@ -2,7 +2,7 @@
 
 - 狀態：**草稿，尚未經人工審核，不是 authority**。權威來源仍是 `docs/01-requirements` 到 `docs/04-testing`。
 - 2026-11-15：`ReviewProject` 已升格到 `specs/review-project/`，草稿已移除。正式的格式是 `specs/README.md` 的格式 v1；本文件只留作試作紀錄。
-- 2026-11-15：新增 `score-sheet/`（`ScoreSheetDefinition`）草稿，直接採格式 v1。38 條規則中 18 條 `proposed`、20 條 `decided`；33 個範例，待裁決的 Q-16～Q-23 見 `score-sheet/OPEN-QUESTIONS.md`。spec-check 以「只列出」模式檢查，執行器不執行草稿的範例。
+- 2026-11-15：新增 `score-sheet/`（`ScoreSheetDefinition`）草稿，直接採格式 v1。38 條規則、33 個範例。Q-16～Q-23 已由負責人裁決（D-050），規則全部 `decided`；升格待辦見 `score-sheet/OPEN-QUESTIONS.md`。spec-check 以「只列出」模式檢查，執行器不執行草稿的範例。
 - 建立日期：2026-11-11，由 Claude Code 依現有文件轉換。
 - 範圍：`ReviewProject` 的 5 支命令與 1 支查詢。
 - 目的：試出一個機器可讀、可驗證的規格格式，並找出現有文件補不出來的地方。

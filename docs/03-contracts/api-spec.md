@@ -125,6 +125,12 @@ Accept: application/json
 | `PROJECT_NOT_ACTIVE`               |         422 | 專案未啟用，不可抽選                |
 | `PROJECT_VERSION_NOT_PUBLISHABLE`  |         422 | 專案版本不可發布                  |
 | `SCORE_SHEET_NOT_PUBLISHABLE`      |         422 | 評分表版本不可發布                 |
+| `SCORE_SHEET_NOT_FOUND`            |         404 | 評分表或評分表版本不存在（D-050）     |
+| `DUPLICATE_SECTION_ID`             |         422 | 評分表章節 id 重複（D-050）        |
+| `DUPLICATE_ITEM_ID`                |         422 | 評分表題目 id 重複（D-050）        |
+| `DUPLICATE_ITEM_CODE`              |         422 | 評分表題目代碼重複（D-050）         |
+| `SECTION_NOT_FOUND`                |         422 | 更新命令指向不存在的章節（D-050）     |
+| `ITEM_NOT_FOUND`                   |         422 | 更新命令指向不存在的題目（D-050）     |
 | `BATCH_NOT_RETRYABLE`              |         422 | 批次不可重跑                    |
 | `DUPLICATE_SELECTED_CASE_IN_BATCH` |         409 | 同批次重複抽中同一案件               |
 | `CASE_NOT_ASSIGNABLE`              |         422 | 案件目前不可指派                  |
@@ -342,6 +348,14 @@ Accept: application/json
 }
 ```
 
+#### 檢查（D-050 第 8 點）
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `PROJECT_NOT_FOUND` | 404 | projectId 不存在 |
+| `INVALID_STATE_TRANSITION` | 409 | 專案目前的版本已發布；或評分表版本尚未發布 |
+| `SCORE_SHEET_NOT_FOUND` | 404 | 評分表版本不存在，或屬於另一個專案 |
+
 #### Response
 
 ```json
@@ -422,7 +436,8 @@ Accept: application/json
 | code | HTTP | 說明 |
 |------|------|------|
 | `PROJECT_NOT_FOUND` | 404 | projectId 不存在 |
-| `PROJECT_NOT_ACTIVE` | 422 | project 非 ACTIVE 狀態 |
+
+> 不檢查專案狀態；同一專案可以有多份評分表（D-050 第 2 點）。原本的 `PROJECT_NOT_ACTIVE` 已移除：要求專案已啟用會使第一份評分表無法建立。
 
 ---
 
@@ -438,37 +453,53 @@ Accept: application/json
 
 * 僅 draft / 未發布版本可更新
 
-#### Request — 六相位 updateDraft command
+#### Request — 六相位 updateDraft command（D-015、D-050 第 5 點）
 
 ```json
 {
-  "name": "門診病歷評分表",
-  "sections": [
+  "removeSectionIds": [],
+  "removeItemIds": [],
+  "updateSections": [{ "sectionId": "S1", "title": "完整性" }],
+  "updateItems": [],
+  "addSections": [
     {
-      "sectionId": "S1",
-      "title": "完整性",
-      "displayOrder": 1,
+      "sectionId": "S2",
+      "title": "正確性",
       "items": [
         {
-          "itemId": "I1",
-          "itemCode": "record-complete",
-          "title": "病歷完整性",
+          "itemId": "I2",
+          "code": "diagnosis-correct",
+          "title": "診斷正確",
           "scoreType": "FIXED",
           "maxScore": 20,
-          "weight": 1.0,
+          "weight": 1,
           "requiredRule": "ALWAYS_REQUIRED",
-          "conditionExpression": null,
-          "displayOrder": 1
+          "conditionExpression": null
         }
       ]
+    }
+  ],
+  "addItems": [
+    {
+      "targetSectionId": "S1",
+      "itemId": "I3",
+      "code": "signature",
+      "title": "簽章",
+      "scoreType": "BOOLEAN",
+      "maxScore": 5,
+      "requiredRule": "OPTIONAL"
     }
   ]
 }
 ```
 
 > **欄位說明：**
+> - 相位依序執行：刪除章節 → 刪除題目 → 章節改名 → 修改題目 → 新增章節（含題目）→ 新增題目到既有章節；後面的相位看得到前面的結果。被拒絕時整個命令沒有任何改變
+> - `updateItems` 整筆取代題目的欄位；沒有輸入 `weight` 時是 1
 > - `requiredRule`: enum string — `ALWAYS_REQUIRED` / `OPTIONAL` / `CONDITIONAL`
-> - `conditionExpression`: 僅在 `requiredRule = CONDITIONAL` 時有值
+> - `conditionExpression`: `requiredRule = CONDITIONAL` 時必填，其他時候必須沒有值
+> - 六個相位都空時成功、沒有改變
+> - 評分表名稱與 `displayOrder` 本版不納入，順序以清單順序表示（D-050 第 5 點）
 > - `visibilityRule`: 延後至 B3/B4（見 D-014），本版不支援
 
 #### Response — 200
@@ -485,7 +516,10 @@ Accept: application/json
 | code | HTTP | 說明 |
 |------|------|------|
 | `SCORE_SHEET_NOT_FOUND` | 404 | scoreSheetId 不存在 |
-| `ALREADY_PUBLISHED` | 409 | 已發布版本不可更新 |
+| `INVALID_STATE_TRANSITION` | 409 | 已發布版本不可更新（D-050 第 3 點） |
+| `VALIDATION_ERROR` | 400 | 必填欄位空白、`maxScore` 小於 0、`conditionExpression` 與 `requiredRule` 不符 |
+| `SECTION_NOT_FOUND` | 422 | 指向不存在的章節 |
+| `ITEM_NOT_FOUND` | 422 | 指向不存在的題目 |
 | `DUPLICATE_SECTION_ID` | 422 | section id 重複 |
 | `DUPLICATE_ITEM_ID` | 422 | item id 重複 |
 | `DUPLICATE_ITEM_CODE` | 422 | item code 重複 |
@@ -500,6 +534,27 @@ Accept: application/json
 
 * `HOSPITAL_MANAGER`
 
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "scoreSheetVersionId": "SSV-001"
+  }
+}
+```
+
+回傳的 `scoreSheetVersionId` 用於綁定（§7.6，D-050 第 1 點）。
+
+#### Error
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `SCORE_SHEET_NOT_FOUND` | 404 | scoreSheetId 不存在 |
+| `INVALID_STATE_TRANSITION` | 409 | 已發布 |
+| `SCORE_SHEET_NOT_PUBLISHABLE` | 422 | 版本內沒有任何題目；有題目時容許空章節 |
+
 ---
 
 ## 8.4 查詢評分表詳情
@@ -508,9 +563,11 @@ Accept: application/json
 
 #### 權限
 
+* `SYSTEM_ADMIN`（不受院區限制，D-047）
 * `HOSPITAL_MANAGER`
 * `AUDITOR`
-* 其他角色依 scope 唯讀
+
+評分表的章節、版本與列表查詢採相同角色；`REVIEWER`／`REREVIEWER` 不開放（D-050 第 7 點）。
 
 ---
 
