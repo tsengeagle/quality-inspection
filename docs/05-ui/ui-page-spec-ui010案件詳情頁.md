@@ -767,7 +767,7 @@
 
 以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
 
-本頁維持 control center／導頁責任。初審未固定不得導向可執行複審或無需複審的 manager 結案；複審已提交不等於 CLOSED；正式結案限原複審提交者且具資格，操作 binding unknown。CLOSED 僅唯讀歷程，無例外修正入口（D-031／032）。複審醫師的所有摘要、finalScore、history 導頁均遵守 D-033。
+本頁維持 control center／導頁責任。初審未固定不得導向可執行複審或無需複審的 manager 結案；複審已提交不等於 CLOSED；正式結案限原複審提交者且具資格，操作 binding 見 D-053。CLOSED 僅唯讀歷程，無例外修正入口（D-031／032）。複審醫師的所有摘要、finalScore、history 導頁均遵守 D-033。
 
 驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。
 

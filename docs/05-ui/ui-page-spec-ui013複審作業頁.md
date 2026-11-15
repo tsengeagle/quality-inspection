@@ -690,6 +690,6 @@ READONLY_BLOCKED；禁止新提交、revision 與 reopen，不顯示例外修正
 
 以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
 
-D-031：必須基於已固定初審。D-032：提交不固定或 CLOSED；合法提交且無其他既有阻擋條件即具資格，原複審提交者決定正式結案時間，結案同時固定尚未固定結果。未固定、未結案／未取消時原提交者可 revision；CLOSED 無例外模式。結案 binding、提交後狀態表示 unknown，不新增 enum／API。D-033：所有階段初審內容及可反推的 finalScore／preview／diff 皆不可從畫面、response 或 cache 取得。
+D-031：必須基於已固定初審。D-032：提交不固定或 CLOSED；合法提交且無其他既有阻擋條件即具資格，原複審提交者決定正式結案時間，結案同時固定尚未固定結果。未固定、未結案／未取消時原提交者可 revision；CLOSED 無例外模式。結案 binding 見 D-053（`POST /review-cases/{caseId}/rereview/submissions/{submissionId}/close`）；提交後案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`，不新增 enum。D-033：所有階段初審內容及可反推的 finalScore／preview／diff 皆不可從畫面、response 或 cache 取得。
 
 驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。

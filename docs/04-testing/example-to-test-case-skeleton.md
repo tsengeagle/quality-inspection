@@ -408,7 +408,7 @@ EX-041～EX-052 分別一對一映射 TS-DA-001～TS-DA-012。Domain 層驗固�
 | EX-060 | TS-DC-004 | Application / Persistence / Event integration | 複審結案失敗不得部分成功 |
 | EX-061 | TS-DC-005 | Application / API / Frontend / Acceptance | 複審 Close Command 不解除永久盲審 |
 
-沿用 EX-043 / TS-DA-003（無需複審 manager 結案）、EX-044～047 / TS-DA-004～007（提交分離、未提交拒絕、有效結果提交者另行 Close Command、結案前 revision）、EX-056 / TS-DD03-004（兩條路徑回歸）。不得用 in-memory unit test 宣稱交易競爭／rollback 保證；API binding、schema、error code、鎖定／交易與事件技術 UNKNOWN。本次只補設計映射，未新增或執行程式測試。
+沿用 EX-043 / TS-DA-003（無需複審 manager 結案）、EX-044～047 / TS-DA-004～007（提交分離、未提交拒絕、有效結果提交者另行 Close Command、結案前 revision）、EX-056 / TS-DD03-004（兩條路徑回歸）。不得用 in-memory unit test 宣稱交易競爭／rollback 保證；複審結案的 API binding、回應與錯誤代碼見 D-053；初審固定的 binding、schema、error code，以及鎖定／交易與事件技術 UNKNOWN。本次只補設計映射，未新增或執行程式測試。
 
 
 ## D-035 Fail-closed 驗證映射
