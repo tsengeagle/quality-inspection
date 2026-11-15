@@ -36,17 +36,11 @@ com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-proje
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_after_the_version_is_published
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_weight_change_after_the_version_is_published
 
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/creates_a_project_with_given_scoring_inputs
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_without_a_bound_score_sheet
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_with_a_blank_name
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_with_a_quality_threshold_out_of_range
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_without_any_medical_record_type
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/update_resets_weights_that_are_not_given
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/updates_a_draft_project
 
 # 驗收範例：程式與規格的其他落差（原因見各行上方）
-#   observe[0] GetReviewProjectDetail：輸出沒有欄位 medicalRecordTypes；輸出沒有欄位 versionNo；輸出沒有欄位 versionPublished；輸出沒有欄位 initialReviewWeight；輸出沒有欄位 rereviewWeight
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/creates_a_draft_project
 #   then：預期 REJECTED VALIDATION_ERROR，實際 REJECTED INVALID_PROJECT_NAME
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_create_with_a_blank_name
 #   then：預期 REJECTED VALIDATION_ERROR，實際 SUCCESS

@@ -43,10 +43,26 @@ public class ReviewProjectQueryAdapter implements ReviewProjectQueryPort {
                 entity.getHospitalId(),
                 entity.getName(),
                 entity.getDescription(),
+                toMedicalRecordTypes(entity.getMedicalRecordTypes()),
                 entity.getStatus(),
                 entity.getBoundScoreSheetId(),
                 entity.getVersionNumber(),
-                entity.isVersionPublished()
+                entity.isVersionPublished(),
+                entity.getQualityThreshold(),
+                entity.getInitialReviewWeight(),
+                entity.getRereviewWeight()
         );
+    }
+
+    private static java.util.Set<com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType> toMedicalRecordTypes(
+            java.util.Set<String> stored) {
+        java.util.Set<com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType> types =
+                java.util.EnumSet.noneOf(com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.class);
+        if (stored != null) {
+            for (String type : stored) {
+                types.add(com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.valueOf(type));
+            }
+        }
+        return types;
     }
 }

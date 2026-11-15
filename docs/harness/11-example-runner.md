@@ -89,6 +89,19 @@
 | `rejects_create_without_any_medical_record_type`、`rejects_update_without_any_medical_record_type` | 空集合沒有被拒絕 | 2-3 |
 | `rejects_publish_without_a_bound_score_sheet` | 發布沒有檢查是否已綁定評分表（RP-PUB-02，D-041） | 另一批（2-4） |
 
+### 2-2：專案詳情的輸出使用規格的名稱（D-043）
+
+`ReviewProjectSummary`（application 的查詢 view）改用規格的欄位名稱：`versionNo`、`versionPublished`，並補上 `medicalRecordTypes`、`qualityThreshold`、`initialReviewWeight`、`rereviewWeight`。HTTP 回應的 JSON 欄位名稱不變（HTTP 對應屬於實作端）。
+
+同一支 use case 順帶對齊 D-043：`AUDITOR` 可以讀專案詳情，限自己的院區；`REVIEWER`、`REREVIEWER` 仍被拒（Q-12 未裁決）。這條規則沒有範例，執行器看不到這個落差，是讀規格時發現的。原本有一個測試把 `AUDITOR` 當成「沒有權限的角色」，那是照著舊行為寫的，已改用 `REVIEWER`。
+
+| 結果 | 範例 |
+|---|---|
+| 變綠（5） | `creates_a_draft_project`、`creates_a_project_with_given_scoring_inputs`、`updates_a_draft_project`、`rejects_update_with_a_quality_threshold_out_of_range`、`update_resets_weights_that_are_not_given` |
+| 仍是紅的（5） | 名稱空白與空集合 4 個（2-3）、`rejects_publish_without_a_bound_score_sheet`（2-4） |
+
+ReviewProject 30 個範例目前：13 個通過、5 個等建構 PR、12 個等評分表的規格。
+
 ## 六、還沒做的
 
 - 「沒有範例涵蓋的規則」與「`basis` 含 `proposed` 規則」從只列出改為擋下。

@@ -60,7 +60,8 @@ class ListReviewProjectsUseCaseTest {
 
     private ReviewProjectSummary summary(String id, String hospitalId) {
         return new ReviewProjectSummary(id, hospitalId, "Name", null,
-                ProjectStatus.DRAFT, null, 1, false);
+                java.util.EnumSet.of(com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.OUTPATIENT),
+                ProjectStatus.DRAFT, null, 1, false, null, null, null);
     }
 
     // --- Test double ---

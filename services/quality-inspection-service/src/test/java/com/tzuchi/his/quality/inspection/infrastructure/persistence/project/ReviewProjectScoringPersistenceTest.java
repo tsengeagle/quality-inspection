@@ -20,6 +20,9 @@ class ReviewProjectScoringPersistenceTest {
     @Autowired
     private ReviewProjectRepository repository;
 
+    @Autowired
+    private com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectQueryPort queryPort;
+
     private static void assertScoring(ProjectVersion v, String threshold, String initial, String rereview) {
         if (threshold == null) {
             assertNull(v.getQualityThreshold());
@@ -36,6 +39,20 @@ class ReviewProjectScoringPersistenceTest {
         repository.save(ReviewProject.create("p-scoring-1", "h1", "門診", null,
                 EnumSet.of(MedicalRecordType.OUTPATIENT), new BigDecimal("7"), new BigDecimal("9.99"), new BigDecimal("0.30")));
         assertScoring(repository.findById("p-scoring-1").orElseThrow().getCurrentVersion(), "7", "9.99", "0.30");
+    }
+
+    @Test
+    void detailViewCarriesTheFieldsTheSpecNames() {
+        repository.save(ReviewProject.create("p-scoring-3", "h1", "門診", "說明",
+                EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT),
+                new BigDecimal("7"), new BigDecimal("0.70"), new BigDecimal("0.30")));
+        var view = queryPort.findSummaryById("p-scoring-3").orElseThrow();
+        assertEquals(EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT), view.getMedicalRecordTypes());
+        assertEquals(1, view.getVersionNo());
+        assertFalse(view.isVersionPublished());
+        assertEquals(0, new BigDecimal("7").compareTo(view.getQualityThreshold()));
+        assertEquals(0, new BigDecimal("0.70").compareTo(view.getInitialReviewWeight()));
+        assertEquals(0, new BigDecimal("0.30").compareTo(view.getRereviewWeight()));
     }
 
     @Test
