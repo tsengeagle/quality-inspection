@@ -223,10 +223,13 @@ def reviewed_commit_problem(repo, head, reviewed, digest, record_path, law_paths
         return "沒有 reviewed_commit（核准者檢查的是哪個 commit）。請用核准工具 0.3.0 以上重新核准"
     if not isinstance(reviewed, str) or not COMMIT_PATTERN.match(reviewed):
         return "reviewed_commit 必須是完整的 commit id（40 或 64 個小寫十六進位字元），實際是 %r" % (reviewed,)
+    # squash 與 rebase 合併會產生新的 commit，被核准的 commit 不會進入目標分支的歷史，
+    # 合併後的檢查因此失敗。修法 PR 一律用 merge commit 合併（APPROVING.md 第五節）。
+    hint = "。若這是合併後的檢查，修法 PR 可能是用 squash 或 rebase 合併的；修法 PR 必須用 merge commit 合併"
     if git(repo, "cat-file", "-e", reviewed + "^{commit}", check=False).returncode != 0:
-        return "reviewed_commit %s 不存在" % reviewed[:12]
+        return "reviewed_commit %s 不存在%s" % (reviewed[:12], hint)
     if git(repo, "merge-base", "--is-ancestor", reviewed, head, check=False).returncode != 0:
-        return "reviewed_commit %s 不在這次修改的歷史裡" % reviewed[:12]
+        return "reviewed_commit %s 不在這次修改的歷史裡%s" % (reviewed[:12], hint)
     if amendment_digest(repo, reviewed, record_path, law_paths) != digest:
         return "reviewed_commit %s 的內容不是簽章簽的那一份" % reviewed[:12]
     return None

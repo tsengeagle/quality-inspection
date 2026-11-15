@@ -1,7 +1,7 @@
 {
   "id": "2026-11-15-reviewed-commit",
   "decision": "none",
-  "reason": "依負責人 2026-11-15 裁決採用方案 B：核准檔新增 reviewed_commit（核准者檢查與簽章時修法分支最新的 commit），由核准工具自動填入，判決程式驗證它存在、在這次修改的歷史裡、它的內容雜湊等於簽章的 digest；它不在簽章裡，簽章仍然只綁內容。核准工具印出的 commit 訊息改為 approve: <修法紀錄 id> @ <被核准 commit 前 12 碼>。核准 SOP 加入四個編號的定義、git diff 改用 --no-pager（第一次自行核准時分頁器清掉了畫面）、相關的常見問題。harness-core 版本 0.3.0。方案比較見 docs/harness/08-legislation-design.md。",
+  "reason": "依負責人 2026-11-15 裁決採用方案 B：核准檔新增 reviewed_commit（核准者檢查與簽章時修法分支最新的 commit），由核准工具自動填入，判決程式驗證它存在、在這次修改的歷史裡、它的內容雜湊等於簽章的 digest；它不在簽章裡，簽章仍然只綁內容。核准工具印出的 commit 訊息改為 approve: <修法紀錄 id> @ <被核准 commit 前 12 碼>。核准 SOP 加入四個編號的定義、git diff 改用 --no-pager（第一次自行核准時分頁器清掉了畫面）、相關的常見問題。harness-core 版本 0.3.0。方案比較見 docs/harness/08-legislation-design.md。 修法 PR 必須用 merge commit 合併：squash 或 rebase 會讓被核准的 commit 不在 main 的歷史裡，合併後的檢查失敗並指出原因；GitHub 端只允許 merge commit 的設定見 docs/harness/07-github-settings.md。",
   "drafted_by": "claude-code",
   "paths": [
     "harness-core/",

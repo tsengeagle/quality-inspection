@@ -543,6 +543,28 @@ law/allowed_signers    gate
         self.assertFalse(passed, report)
         self.assertIn("的內容不是簽章簽的那一份", report)
 
+    def test_merge_commit_keeps_the_approval_valid_after_merging(self):
+        # 合併後的檢查：base 到 merge commit。被核准的 commit 在 merge commit 的歷史裡
+        self.amend()
+        self.approve()
+        self.git("checkout", "-q", "-b", "target", self.base)
+        self.git("merge", "-q", "--no-ff", "-m", "merge the amendment", "change")
+        merged = self.git("rev-parse", "HEAD").strip()
+        passed, report = check.evaluate(self.repo, self.base, merged)
+        self.assertTrue(passed, "\n".join(report))
+
+    def test_squash_merge_fails_after_merging_and_says_why(self):
+        # squash 產生新的 commit：內容相同，但被核准的 commit 不在目標分支的歷史裡
+        self.amend()
+        self.approve()
+        self.git("checkout", "-q", "-b", "target", self.base)
+        self.git("merge", "-q", "--squash", "change")
+        self.git("commit", "-q", "-m", "squashed amendment")
+        squashed = self.git("rev-parse", "HEAD").strip()
+        passed, report = check.evaluate(self.repo, self.base, squashed)
+        self.assertFalse(passed, "\n".join(report))
+        self.assertIn("修法 PR 必須用 merge commit 合併", "\n".join(report))
+
     def test_change_reverted_after_approval_keeps_it_valid(self):
         # 核准之後改了律法又改回來：最後的內容就是核准者看過、簽過的那一份
         self.amend()
