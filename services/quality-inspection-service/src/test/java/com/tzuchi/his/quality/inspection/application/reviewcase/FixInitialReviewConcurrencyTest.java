@@ -107,6 +107,14 @@ class FixInitialReviewConcurrencyTest {
         inner.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
+    /** 這些交易都會 commit；結束後清掉，避免影響共用同一個 Spring context 與資料庫的其他測試（例如稽核表計數）。 */
+    @org.junit.jupiter.api.AfterEach
+    void cleanUp() {
+        audit.deleteAll();
+        submissions.deleteAll();
+        cases.deleteAll();
+    }
+
     private static ActorContext doctor() {
         return new ActorContext("doctor", "Doctor", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
     }
