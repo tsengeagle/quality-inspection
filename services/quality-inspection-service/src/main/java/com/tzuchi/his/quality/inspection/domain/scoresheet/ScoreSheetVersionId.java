@@ -37,7 +37,9 @@ public final class ScoreSheetVersionId {
             return Optional.empty();
         }
         String number = value.substring(at + SEPARATOR.length());
-        if (number.isEmpty() || number.length() > 9 || !number.chars().allMatch(c -> c >= '0' && c <= '9')) {
+        // 只接受 of() 會產生的寫法：十進位數字、沒有前導零（同一個版本只有一個 id）
+        if (number.isEmpty() || number.length() > 9 || number.charAt(0) == '0'
+                || !number.chars().allMatch(c -> c >= '0' && c <= '9')) {
             return Optional.empty();
         }
         int versionNo = Integer.parseInt(number);

@@ -37,7 +37,8 @@ class ScoreSheetVersionIdTest {
     @Test
     void malformedIdsAreNotVersionIds() {
         for (String bad : new String[] {null, "", "ss-123", "ss-123:v", ":v1", "ss-123:vx", "ss-123:v0", "ss-123:v-1",
-                "ss-123:v99999999999", "ss-123:v1 "}) {
+                "ss-123:v99999999999", "ss-123:v1 ",
+                "ss-123:v01", "ss-123:v000000001", "ss-123:v+1"}) {
             assertTrue(ScoreSheetVersionId.parse(bad).isEmpty(), "should not parse: " + bad);
         }
     }
