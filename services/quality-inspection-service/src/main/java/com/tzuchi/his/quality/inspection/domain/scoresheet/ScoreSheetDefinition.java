@@ -67,25 +67,9 @@ public class ScoreSheetDefinition {
 
         requireNewSectionId(section.getSectionId());
 
-        // H-001: cross-section itemId uniqueness check
-        Set<String> existingItemIds = new HashSet<>();
-        Set<String> existingCodes = new HashSet<>();
-        for (ScoreSheetSection existing : sections) {
-            for (ScoreItem item : existing.getItems()) {
-                existingItemIds.add(item.getItemId());
-                existingCodes.add(item.getCode());
-            }
-        }
-        for (ScoreItem newItem : section.getItems()) {
-            if (!existingItemIds.add(newItem.getItemId())) {
-                throw new DomainRuleViolationException("DUPLICATE_ITEM_ID",
-                        "Duplicate itemId across sections: " + newItem.getItemId());
-            }
-            if (!existingCodes.add(newItem.getCode())) {
-                throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE",
-                        "Duplicate item code across sections: " + newItem.getCode());
-            }
-        }
+        // 版本內不得重複：先檢查題目 id（SS-UPD-10），再檢查代碼（SS-UPD-11）
+        requireNoDuplicates(section.getItems(), ScoreItem::getItemId, "DUPLICATE_ITEM_ID");
+        requireNoDuplicates(section.getItems(), ScoreItem::getCode, "DUPLICATE_ITEM_CODE");
 
         this.sections.add(section);
     }
@@ -178,7 +162,9 @@ public class ScoreSheetDefinition {
             ScoreItem.requireText(add.getTargetSectionId(), "targetSectionId");
             ScoreItem newItem = toScoreItem(add);
             ScoreSheetSection section = findSection(add.getTargetSectionId());
-            validateCrossSectionUniqueness(newItem, section);
+            // 版本內所有章節（含目標章節）：先檢查題目 id（SS-UPD-10），再檢查代碼（SS-UPD-11）
+            requireNoDuplicates(List.of(newItem), ScoreItem::getItemId, "DUPLICATE_ITEM_ID");
+            requireNoDuplicates(List.of(newItem), ScoreItem::getCode, "DUPLICATE_ITEM_CODE");
             section.addItem(newItem);
         }
     }
@@ -248,6 +234,7 @@ public class ScoreSheetDefinition {
                 "Item not found: " + update.getItemId());
     }
 
+    /** 其他章節不得有相同的題目 id 或代碼；先檢查所有 id（SS-UPD-10），再檢查代碼（SS-UPD-11）。 */
     private void validateCrossSectionUniqueness(ScoreItem newItem, ScoreSheetSection excludeSection) {
         for (ScoreSheetSection section : sections) {
             if (section == excludeSection) continue;
@@ -256,6 +243,11 @@ public class ScoreSheetDefinition {
                     throw new DomainRuleViolationException("DUPLICATE_ITEM_ID",
                             "Duplicate itemId across sections: " + newItem.getItemId());
                 }
+            }
+        }
+        for (ScoreSheetSection section : sections) {
+            if (section == excludeSection) continue;
+            for (ScoreItem existing : section.getItems()) {
                 if (existing.getCode().equals(newItem.getCode())) {
                     throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE",
                             "Duplicate item code across sections: " + newItem.getCode());
