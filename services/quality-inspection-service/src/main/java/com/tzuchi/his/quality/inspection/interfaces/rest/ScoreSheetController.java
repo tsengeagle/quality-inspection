@@ -202,7 +202,11 @@ public class ScoreSheetController {
                 item.getRequiredRule().name(), item.getConditionExpression());
     }
 
+    /** 未提供（null）時回傳 null，交給 domain 依檢查順序回 VALIDATION_ERROR（SS-UPD-04）；不認得的值仍是 BAD_REQUEST。 */
     private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value, String fieldName) {
+        if (value == null) {
+            return null;
+        }
         try {
             return Enum.valueOf(enumClass, value);
         } catch (IllegalArgumentException | NullPointerException e) {

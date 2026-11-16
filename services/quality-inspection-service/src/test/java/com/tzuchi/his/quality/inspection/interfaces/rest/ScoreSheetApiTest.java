@@ -394,6 +394,8 @@ class ScoreSheetApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())
+                // SS-UPD-04：未提供列舉是欄位驗證錯誤，由 domain 依檢查順序回報（不是 controller 的 BAD_REQUEST）
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.error.message", containsString("scoreType")));
     }
 

@@ -65,13 +65,7 @@ public class ScoreSheetDefinition {
         requireDraft();
         Objects.requireNonNull(section, "section must not be null");
 
-        // Duplicate sectionId check
-        boolean duplicateSection = sections.stream()
-                .anyMatch(s -> s.getSectionId().equals(section.getSectionId()));
-        if (duplicateSection) {
-            throw new DomainRuleViolationException("DUPLICATE_SECTION_ID",
-                    "Duplicate sectionId: " + section.getSectionId());
-        }
+        requireNewSectionId(section.getSectionId());
 
         // H-001: cross-section itemId uniqueness check
         Set<String> existingItemIds = new HashSet<>();
@@ -170,6 +164,8 @@ public class ScoreSheetDefinition {
                 requireElement(itemCmd);
                 newItems.add(toScoreItem(itemCmd));
             }
+            // 重複的檢查順序：章節 id（SS-UPD-09）→ 題目 id（SS-UPD-10）→ 題目代碼（SS-UPD-11）
+            requireNewSectionId(newSection.getSectionId());
             newItems.forEach(newSection::addItem);
             addSection(newSection);
         }
@@ -182,6 +178,12 @@ public class ScoreSheetDefinition {
             ScoreSheetSection section = findSection(add.getTargetSectionId());
             validateCrossSectionUniqueness(newItem, section);
             section.addItem(newItem);
+        }
+    }
+
+    private void requireNewSectionId(String sectionId) {
+        if (sections.stream().anyMatch(s -> s.getSectionId().equals(sectionId))) {
+            throw new DomainRuleViolationException("DUPLICATE_SECTION_ID", "Duplicate sectionId: " + sectionId);
         }
     }
 
