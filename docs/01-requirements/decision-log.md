@@ -1698,17 +1698,31 @@ spec-draft：`RP-G-03`。
 
 ### Status
 
-`accepted`（2026-11-12，依使用者確認）；落地 BLOCKED
+`accepted`（2026-11-12，依使用者確認）；2026-11-16 依使用者裁決補上正式資料庫、migration 工具與衝突錯誤代碼，解除 BLOCKED
 
 ### Decision
 
 案件的併發保護採版本欄位的樂觀鎖：以過期資料寫入時，後寫者失敗，不得覆寫先寫者的資料。取代 `persistence-model.md`「IMP-02A-MD-03」提案中的悲觀鎖做法；該提案其餘內容（`updatedAt` 欄位、Clock、legacy 保留 null、必要的整合測試）仍為待審提案。
 
-### Pending / BLOCKED
+2026-11-16 補充（使用者裁決）：
 
-正式資料庫與 migration 工具未定，在決定之前不得新增欄位或 migration。衝突時的錯誤代碼與 HTTP 狀態未定。
+1. **正式資料庫**：Oracle Database 19c 以上。
+2. **migration 工具**：Flyway，版本跟隨 Spring Boot 2.7.18 管理的 8.5.13。已查證該版免費版的 Oracle 支援下限是 12.2（`flyway-core` 8.5.13 `OracleDatabase.ensureSupported`：12.2 以下需 Enterprise 版；19 以上只提示建議升級 Flyway），19c 在範圍內，不需付費。Flyway 10 以上需要 Java 17，後端目前是 Java 11，升級 Flyway 主版本要和升級 Java 一起處理。
+3. **衝突的錯誤代碼**：樂觀鎖失敗回 `409 CONFLICT`（沿用既有通用代碼，不新增）。
+4. **開發與測試**：繼續用 H2，改用 Oracle 相容模式，由 Flyway 以同一組 migration 建立 schema；Hibernate 不再自動建表，改為只驗證（`ddl-auto=validate`）。migration 只用 H2 Oracle 相容模式與 Oracle 19c 都能執行的語法。
+5. **Oracle 的限制**：空字串會被當成 NULL，程式不得依賴空字串與 NULL 的差別；19c 沒有 boolean 型別，布林值用 `NUMBER(1)`；物件名稱上限 128 字元。
+6. **落地順序**：`build.gradle` 與 `src/test/resources/application-test.yml` 是律法（gate），修改它們要走修法 PR，而修法 PR 不能夾帶程式或 migration（P4），所以導入 Flyway 分三步：
+   1. 修法 PR：`build.gradle` 加 Flyway 相依；`application-test.yml` 的資料庫改為 H2 Oracle 相容模式，`ddl-auto` 仍為 `create-drop`。此時還沒有 migration，Flyway 不建立任何東西（Spring Boot 2.7 預設找不到 migration 位置不會失敗），既有測試不受影響。
+   2. 建構 PR：加入第一版 migration（以現有 entity 對應的 schema 為準）；`application.yml` 的 local profile 改為 `validate`；個別測試以屬性覆寫 `ddl-auto=create-drop` 的地方改為 `validate`；加一個測試確認 migration 建出的 schema 通過 Hibernate 驗證。
+   3. 修法 PR：`application-test.yml` 的 `ddl-auto` 改為 `validate`，全部測試改用 Flyway 建的 schema。
 
-決定正式資料庫與 migration 工具時，一併處理評分表參照（2026-11-16 負責人裁決，PR #42 審查）：
+   之後依序以建構 PR 加入：(a) 案件版本欄位與 D-037 的 `updatedAt`；(b) 下方的評分表參照與 `boundScoreSheetId` 改名；(c) D-054 初審固定的欄位。這些只改 `src/main` 與 migration，不動律法。
+
+### Pending
+
+- CI 無法在 Oracle 19c 上執行 migration，只驗證 H2 Oracle 相容模式。上線前要在院內的 Oracle 19c 實際執行一次 migration，這是已知的剩餘風險。
+
+依 2026-11-16 負責人裁決（PR #42 審查），導入 migration 時一併處理評分表參照：
 
 - PR #42 起，專案綁定的評分表、案件的評分表參照、初審提交依據的評分表，存的都是評分表版本 id（D-050 第 1 點；由評分表 id 與版本號組成，沒有新增欄位），載入時只接受版本 id。
 - 若屆時有以評分表 id 儲存的既有資料，要轉換成版本 id；目前只用記憶體資料庫，沒有這類資料，所以 PR #42 沒有加相容轉換。
@@ -1965,3 +1979,54 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 ### Mapping
 
 `docs/03-contracts/api-spec.md` 的「D-034 複審獨立 Close Command 對齊」；`docs/02-ddd/state-machine.md` 的複審提交與結案轉移；已知失敗清單上的 `SubmitRereviewUseCaseTest#execute_submitMustNotCloseCase_D032`、`RereviewApiTest#fullRereviewFlow`。
+
+
+---
+
+## D-054 — 初審固定的 API、記錄方式與錯誤代碼
+
+### Status
+
+`accepted`（2026-11-16，依使用者裁決：只加欄位、不新增案件狀態；其餘採建議）
+
+### Decision
+
+補足 D-031、DD-03 列為 UNKNOWN 的技術契約：
+
+1. **API**：`POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/fix`，不需要請求內容。路徑上的 `submissionId` 是要固定的有效初審結果（DD-03 第 5 點：明確辨識固定目標，不得偷偷改用新版）。路徑形式與 D-053 的複審結案一致。
+2. **記錄方式**：在案件上新增三個欄位：固定時間 `initialFixedAt`、固定者 `initialFixedBy`、固定的提交 `initialFixedSubmissionId`。**不新增案件狀態**。「已固定」的判斷是 `initialFixedAt` 有值。欄位依 D-045 第 6 點的順序，在導入 Flyway 的三步完成之後才新增。
+3. **流向的判斷時點**：提交初審時不再判斷品質線，案件一律停在 `INITIAL_REVIEW_COMPLETED`。固定成功時才依 D-031 判斷：分數 > 品質線就進 `PENDING_REREVIEW`；≤ 品質線或品質線為 null，留在 `INITIAL_REVIEW_COMPLETED`，等管理者手工派複審或結案。用來判斷的分數是被固定那份提交的分數。
+4. **回應**：`{ caseId, caseStatus, submissionId, fixedAt }`。不回傳品質線。
+5. **固定之後**：初審 revision 拒絕；管理者手工派複審與不經複審結案，都要求初審已固定。
+6. **錯誤代碼**：全部沿用既有代碼，不新增。檢查順序依 D-024：角色 → 載入 → 院區 → 領域規則。
+
+   | 情況 | 代碼 |
+   |---|---|
+   | 不是 `REVIEWER` | `ROLE_DENIED` |
+   | 案件或提交不存在 | `CASE_NOT_FOUND`／`SUBMISSION_NOT_FOUND` |
+   | 院區不符 | `HOSPITAL_SCOPE_MISMATCH` |
+   | 案件已是 `CLOSED` 或 `CANCELLED` | `CASE_TERMINAL` |
+   | 初審已固定（重複固定） | `INVALID_STATE_TRANSITION` |
+   | 案件不在 `INITIAL_REVIEW_COMPLETED` | `CASE_NOT_INITIAL_REVIEW_COMPLETED` |
+   | 固定目標不屬於本案、不是初審階段，或不是目前有效版本（已被取代） | `CONFLICT` |
+   | 固定目標仍是草稿 | `SUBMISSION_NOT_SUBMITTED` |
+   | 操作者不是這份有效結果的提交者 | `NOT_SUBMISSION_OWNER` |
+   | 已固定後再 revision 初審；未固定就派複審或不經複審結案 | `INVALID_STATE_TRANSITION` |
+   | 與 revision 同時寫入，樂觀鎖失敗 | `CONFLICT`（D-045 第 3 點） |
+
+7. **重複固定**：回 `INVALID_STATE_TRANSITION`，不視為成功，不改變已固定的內容，也不再次推進流向。前端收到時重新整理畫面。
+8. **事件與稽核**：固定成功發布初審固定事件，稽核紀錄記下操作者、時間與 `submissionId`，不記分數。分數 > 品質線時另外發布既有的進複審事件。
+9. **前端**：案件詳情的 `allowedActions` 在「案件為 `INITIAL_REVIEW_COMPLETED`、尚未固定、登入者是目前有效初審結果的提交者」時加入 `FIX_INITIAL_REVIEW`；初審頁依此顯示「固定」按鈕。
+
+### Relationship / Evidence
+
+- 補足 D-031（method、API、狀態／儲存表示）與 DD-03 Contract Boundary 列出的 UNKNOWN（binding、request／response schema、錯誤細碼、重複固定、狀態／儲存表示、鎖定、既有資料遷移）。D-031、DD-03 的業務規則不變。
+- DD-03 Contract Boundary 寫的「不新增 enum、aggregate、endpoint 或 DB schema」，原意是該輪只定業務規則、不決定技術契約（同段把狀態／儲存表示列為後續定案的 UNKNOWN）。本決策新增一個 endpoint 與三個案件欄位，不新增 enum 與 aggregate，部分取代該句。
+- 第 3 點改變現行程式：`SubmitInitialReviewUseCase` 目前在提交時就依品質線進複審（D-019 的舊行為），與 D-031 不符，實作時一併修正。
+- 第 6 點的代碼都已在現有初審、複審、結案的程式中使用。目標不是目前有效版本時回 `CONFLICT`，與 D-053 第 5 點相同。
+- 現行只有記憶體資料庫，沒有既有資料需要轉換。
+- 固定與 revision 真正同時發生的競爭，要等 D-045 的版本欄位落地才能完全擋住；在那之前依 `submissionId` 檢查是否仍是目前有效版本。
+
+### Mapping
+
+`docs/03-contracts/api-spec.md` 的「DD-03 初審固定的語意契約」；`docs/02-ddd/state-machine.md` 的初審提交與固定轉移；`docs/03-contracts/persistence-model.md` 的「DD-03 固定持久化與併發保證」。

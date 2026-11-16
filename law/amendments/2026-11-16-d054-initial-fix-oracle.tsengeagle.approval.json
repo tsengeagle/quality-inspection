@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-16-d054-initial-fix-oracle",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:ffa47a84bc686072c505f0342988df6ae450955c896ce2b6b386274f1525c4bf",
+  "reviewed_commit": "454834fcf3779185e75d05016815cb1b187d9aa3",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFkAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAghihX/R\nq3C2qycCcVhx0LkVTeSw7MEttHzTwijS611dYAAAATc3NoOmxhdy1hbWVuZG1lbnQtMgAA\nAA1sYXctYW1lbmRtZW50AAAAAAAAAAZzaGE1MTIAAABnAAAAGnNrLXNzaC1lZDI1NTE5QG\n9wZW5zc2guY29tAAAAQFghsXzwjyOVLO5Bd8Mx5ClFn88QKEMWj2fdr6KzremhXT24+i7v\nQR9WSTvokTSCaeq0JDJBcv38hG8XnrtaUgcFAAAAFw==\n-----END SSH SIGNATURE-----\n"
+}

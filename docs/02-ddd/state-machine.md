@@ -63,7 +63,8 @@ ReviewCaseStatus:
 | INITIAL_REVIEW_IN_PROGRESS | returnInitialReview | RETURNED | 需有退回原因 |
 | INITIAL_REVIEW_IN_PROGRESS | cancel | CANCELLED | 未結案 |
 | RETURNED | reopenInitialReview | PENDING_INITIAL_REVIEW | 回到待初審 |
-| INITIAL_REVIEW_COMPLETED | 初審固定後 evaluateThreshold(score > threshold) | PENDING_REREVIEW | D-031：以固定結果自動進複審；提交時不執行此轉移 |
+| INITIAL_REVIEW_COMPLETED | fixInitialReview（score ≤ threshold 或 threshold 為 null） | INITIAL_REVIEW_COMPLETED | D-054：狀態不變，記下 `initialFixedAt`／`initialFixedBy`／`initialFixedSubmissionId`；等 manager 派複審或結案 |
+| INITIAL_REVIEW_COMPLETED | fixInitialReview（score > threshold） | PENDING_REREVIEW | D-031／D-054：以固定結果自動進複審；提交時不執行此轉移 |
 | INITIAL_REVIEW_COMPLETED | managerAssignRereviewer | PENDING_REREVIEW | D-031：初審已固定，manager 手工派複審 |
 | INITIAL_REVIEW_COMPLETED | managerCloseCase | CLOSED | D-031：初審已固定且不需複審，manager 手工結案 |
 | PENDING_REREVIEW | startRereview | REREVIEW_IN_PROGRESS | 僅 assigned rereviewer |
@@ -250,7 +251,7 @@ stateDiagram-v2
 
 ## 8) 固定與流程 guard（D-031～D-033）
 
-固定為業務事實，不預設 CaseStatus／SubmissionStatus。初審提交後保持初審完成，未固定不得自動／手工進複審或由 manager 結案；固定後禁止初審 revision。閾值 >、≤、null 分支不變。DD-03：固定僅限目前有效初審結果的合法提交醫師，須驗證有效版本及既有 scope／ownership guard。
+固定為業務事實，不新增 CaseStatus／SubmissionStatus；D-054 定案以案件欄位 `initialFixedAt`（有值即已固定）、`initialFixedBy`、`initialFixedSubmissionId` 表示。初審提交後保持初審完成，未固定不得自動／手工進複審或由 manager 結案；固定後禁止初審 revision。閾值 >、≤、null 分支不變。DD-03：固定僅限目前有效初審結果的合法提交醫師，須驗證有效版本及既有 scope／ownership guard。
 複審提交建立合法結果與結案資格，不 CLOSED；原複審提交者可在未固定、未結案、未取消時 revision。正式結案須具資格且 actor 合法，同時固定複審結果。CLOSED 禁止所有 revision／reopen。提交後案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`（D-053）。
 §3.5 的圖已畫出複審提交與獨立結案（D-053）。盲審不依 CaseStatus 或 SUBMITTED 狀態解除（D-033）。
 

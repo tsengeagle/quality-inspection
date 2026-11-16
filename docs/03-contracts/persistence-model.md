@@ -905,20 +905,33 @@ v1 建議：
 
 ## 16. 固定與正式結案語意對齊（D-031～D-033）
 
-沿用 §5.12 ReviewCase、§5.14 ReviewSubmission 與既有 aggregate／table 邊界，不在本輪新增 table、column、enum 或 migration。
+沿用 §5.12 ReviewCase、§5.14 ReviewSubmission 與既有 aggregate／table 邊界，原輪不新增 table、column、enum 或 migration。其後 D-054 決定 ReviewCase 新增初審固定的三個欄位（見下節），D-045 決定 migration 工具；仍不新增 table 與 enum。
 
 * 初審 SUBMITTED 不等於固定；固定後禁止 revision，複審及無需複審的 manager 結案必須引用已固定初審結果。
 * 複審 SUBMITTED 不等於 CLOSED 或固定；未固定、未結案時合法原提交者可 append-only revision，保留 revisionNo／SUPERSEDED 鏈與有效版本關聯。
 * 正式結案與固定尚未固定的複審結果須保持業務一致性；CLOSED 後不得寫任何 revision 或 reopen。CANCELLED terminal 不變。
 * finalScore 依固定初審結果、最新合法複審結果與已發布版本權重按 D-012／020 計算；固定不是改權重或改 snapshot。
 * read model／audit／export 向同案複審醫師輸出時，永久排除初審答案／分數／評語及可反推初審分數的衍生值（D-033）；不修改 domain 原始資料，也不改其他角色政策。
-* 複審已提交未結案時案件維持 `REREVIEW_IN_PROGRESS`、複審結果的固定以 `CLOSED` 表示，不新增欄位（D-053）；初審固定的儲存表示、併發／交易設計、既有資料遷移為 unknown；本輪不把新增規則宣稱為已存在 DB 保證。
+* 複審已提交未結案時案件維持 `REREVIEW_IN_PROGRESS`、複審結果的固定以 `CLOSED` 表示，不新增欄位（D-053）；初審固定的儲存表示由 D-054 定案（ReviewCase 三個欄位）、併發保護由 D-045 定案（版本欄位的樂觀鎖，衝突回 `409 CONFLICT`），目前沒有既有資料需要遷移；這些都尚未實作，不把新增規則宣稱為已存在 DB 保證。
 
 ## DD-03 固定持久化與併發保證
 
+> D-054（2026-11-16）：ReviewCase 新增 `initialFixedAt`（UTC 時間點）、`initialFixedBy`（操作者 userId）、`initialFixedSubmissionId` 三個 nullable 欄位，`initialFixedAt` 有值即已固定，不新增 enum。欄位依 D-045 第 6 點，在導入 Flyway 之後以 migration 新增；目前沒有既有資料需要補值。
+
 必須可持久追溯固定的 case、當時有效 INITIAL submission、操作者及時間；不得以目前指派醫師、查詢時間或可變動的 latest 指標重建歷史固定事實。保留 append-only revision／SUPERSEDED 鏈，固定後不得覆寫結果或換有效版本。
 有效版本驗證、固定事實、追溯資料與依固定結果產生的流向須維持一致；不得出現固定已成功但追溯缺漏、固定舊版卻採新版分數、或固定後又成功 revision。revision 先完成則舊版固定不可成功；固定先完成則 revision 不可成功。失敗不得留下部分成功事實或成功事件。
-以上是待實作的可觀察一致性契約；實體 table／column、時間表示、鎖定／版本控制、交易邊界／隔離與發布機制、migration／舊資料補值／相容性、重複固定策略均為 UNKNOWN。不新增 DB 設計、不執行 migration、不宣稱現有 DB 已保證。
+以上是待實作的可觀察一致性契約。
+
+| 項目 | 狀態 |
+|---|---|
+| 欄位與時間表示 | 已裁決（D-054）：`initialFixedAt`（UTC 時間點）、`initialFixedBy`、`initialFixedSubmissionId`，尚未實作 |
+| 鎖定／版本控制 | 已裁決（D-045）：案件版本欄位的樂觀鎖，衝突回 `409 CONFLICT`，尚未實作 |
+| migration 工具與落地順序 | 已裁決（D-045 第 2、6 點）：Flyway，尚未實作 |
+| 舊資料補值 | 不需要：目前只有記憶體資料庫，沒有既有資料 |
+| 重複固定 | 已裁決（D-054 第 7 點）：回 `INVALID_STATE_TRANSITION`，不寫入 |
+| 交易邊界／隔離、事件發布機制 | 尚未裁決 |
+
+在對應的建構 PR 落地前，不宣稱現有 DB 已保證上述內容。
 
 
 ## D-034 複審獨立 Close Command 對齊
@@ -940,6 +953,8 @@ revision 先完成則舊版 close 不得成功；close 先完成則不能再寫 
 ### 現有能力與部署邊界
 
 ReviewCase／ReviewCaseEntity 無通用時間欄位；ReviewCaseRepositoryImpl.toEntity 每次建立完整 Entity 再 save，不能拿過期 Domain 快照只為 touch 而整筆覆寫。Submission 已有 LocalDateTime updatedAt，但會在相同 Draft Save 重設，不能作案件可信來源。ReviewCaseJpaRepository 僅繼承 JpaRepository，無 lock／version／時間更新方法。
+
+> D-045（2026-11-16 補充）：正式資料庫為 Oracle 19c 以上，migration 工具為 Flyway 8.5.13；開發與測試用 H2 Oracle 相容模式，由 Flyway 建 schema、`ddl-auto=validate`。本段以下為裁決前的現況描述，落地後以 D-045 為準。
 
 application.yml 的共用 ddl-auto=none、local H2 memory profile 為 update；測試使用既有 create-drop H2。build.gradle 未宣告 Flyway／Liquibase，repo 未確認 migration 工具、正式資料庫及 timestamp 精度。現有能力不足以執行下述機制驗證；本輪不增加欄位、DDL 或 migration。H2 僅能驗證未來本地機制，不能代替未知正式 DB 驗收。
 

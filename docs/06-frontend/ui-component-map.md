@@ -361,6 +361,9 @@ classification_layers:
 - notes for future implementation: 暫不與 UI-010 摘要區共用，避免語意混淆。
 
 ### C19. FinalDecisionSummaryRegion (UI-013)
+
+> 已移除（D-033，PR #45）：複審頁只給複審醫師使用，最終分數與最終結論可反推初審分數，不得顯示。本節保留作為歷史紀錄；C18 也不顯示初審分數。
+
 - componentName: `FinalDecisionSummaryRegion`
 - classification: `page-owned`
 - primary responsibility: UI-013 呈現複審最終決策摘要。
@@ -486,7 +489,7 @@ classification_layers:
 | UI-010 案件詳情頁 | A2 | C01, C02, C03, C08, C09, C10, C11, C24 | shared: C01/C02/C03; feature: C08/C09/C10/C11; deferred: C24 | metadata-only control center；CLOSED exception 僅導頁不提交 |
 | UI-011 案件分派頁 | A3 | C01, C02, C03, C12, C13, C14, C23 | shared: C01/C02/C03; feature: C12/C13/C14; deferred: C23 | READONLY_BLOCKED（CLOSED/CANCELLED）；無 metadata-only 主情境 |
 | UI-012 初審作業頁 | A4 | C01, C02, C03, C15, C16, C17 | shared: C01/C02/C03; feature: C15/C16/C17 | command page；blocked/ownership guard；無 metadata-only 主情境 |
-| UI-013 複審作業頁 | A4 | C01, C02, C03, C15, C16, C17, C18, C19 | shared: C01/C02/C03; feature: C15/C16/C17; page-owned: C18/C19 | D-032：CLOSED 所有 submit／revision blocked |
+| UI-013 複審作業頁 | A4 | C01, C02, C03, C15, C16, C17, C18 | shared: C01/C02/C03; feature: C15/C16/C17; page-owned: C18 | D-032：CLOSED 所有 submit／revision blocked；D-033：C19 已移除，C18 不顯示初審分數 |
 | UI-014 Revision 歷程頁 | A5 | C01, C02, C03, C04, C09, C20, C21, C22 | shared: C01/C02/C03/C04; feature: C09/C20/C21/C22 | metadata-only compare 降級；navigate-only action；條件式 exception 導頁 |
 
 ---

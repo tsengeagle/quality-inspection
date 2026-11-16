@@ -798,7 +798,7 @@ features/cases/cases-rereview/
   CommentaryAttachmentZone             ← page-owned（placeholder）
   ReviewVersionSummaryRegionComponent  ← shared C17（REVISION: basedOn ref）
   InitialSummaryReferenceComponent     ← page-owned C18（read-only）
-  FinalDecisionSummaryComponent        ← page-owned C19（骨架；live calc = DEFERRED）
+  FinalDecisionSummaryComponent        ← page-owned C19（已依 D-033 移除，PR #45）
   ReviewCommandBarComponent            ← shared C16（viewport-fixed bottom）
 ```
 
@@ -825,7 +825,7 @@ interface RereviewPageViewModel {
 | `READONLY_BLOCKED`（CLOSED + 非 exception）：C02 = blocked tone（與 amber 明確區分） | visual-baseline §4.5 |
 | C15/C16/C17 A4 shared reuse（同 UI-012 pattern） | A4 family |
 | C18 InitialSummaryReferenceRegion（read-only；不 upgrade 為 shared） | page-owned |
-| C19 FinalDecisionSummaryComponent 骨架（無 live calc） | 骨架先實作 |
+| C19 FinalDecisionSummaryComponent 骨架（無 live calc） | 已依 D-033 移除（PR #45）：複審頁不得顯示最終分數與最終結論 |
 | Guard：ownership guard before exception guard（不可跳過 ownership）| guard hierarchy §3.5 |
 | API：`POST /api/quality-inspection/review-cases/:caseId/rereview/submit` | api-spec |
 
