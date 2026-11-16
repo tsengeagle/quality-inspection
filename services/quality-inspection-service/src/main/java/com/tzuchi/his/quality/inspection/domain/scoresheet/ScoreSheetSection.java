@@ -24,6 +24,15 @@ public class ScoreSheetSection {
         this.items = new ArrayList<>();
     }
 
+    /** 從已儲存的資料還原，不做新輸入的驗證與重複檢查。FOR INFRASTRUCTURE USE ONLY。 */
+    public static ScoreSheetSection reconstitute(String sectionId, String title, List<ScoreItem> items) {
+        ScoreSheetSection section = new ScoreSheetSection();
+        section.sectionId = sectionId;
+        section.title = title;
+        section.items = new ArrayList<>(items);
+        return section;
+    }
+
     public void addItem(ScoreItem item) {
         Objects.requireNonNull(item, "item must not be null");
         boolean duplicateItemId = items.stream().anyMatch(i -> i.getItemId().equals(item.getItemId()));
