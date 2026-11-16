@@ -78,7 +78,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'NEW_REREVIEW',
         hasDraft: false,
         hasSubmittedBase: false,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -87,8 +86,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'PENDING_FINAL_DECISION'
       },
       ...overrides
     };
@@ -136,7 +133,6 @@ describe('RereviewPageComponent', () => {
 
     expect(component.mode).toBe('NEW');
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-initial-summary-reference"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-testid="rereview-final-decision-summary"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-form-placeholder"]')).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Dr. Initial');
     expect(getButtonByText('開始複審')?.disabled).toBeFalse();
@@ -149,7 +145,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'EDIT_DRAFT',
         hasDraft: true,
         hasSubmittedBase: false,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -160,8 +155,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'PENDING_FINAL_DECISION'
       }
     })));
     casesService.startRereview.and.returnValue(of({ caseId: 'CASE-013' }));
@@ -183,7 +176,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'EDIT_DRAFT',
         hasDraft: true,
         hasSubmittedBase: false,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -194,8 +186,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'PENDING_FINAL_DECISION'
       }
     }));
 
@@ -212,7 +202,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'EDIT_DRAFT',
         hasDraft: true,
         hasSubmittedBase: false,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -223,8 +212,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'PENDING_FINAL_DECISION'
       }
     }));
     casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
@@ -253,7 +240,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'EDIT_DRAFT',
         hasDraft: true,
         hasSubmittedBase: false,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -264,8 +250,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'PENDING_FINAL_DECISION'
       }
     }));
     casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail()));
@@ -295,7 +279,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'EDIT_DRAFT',
         hasDraft: true,
         hasSubmittedBase: false,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -306,8 +289,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'PENDING_FINAL_DECISION'
       }
     }));
     casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail({ comment: 'submit comment' })));
@@ -330,6 +311,26 @@ describe('RereviewPageComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('最終分數');
   });
 
+  it('never renders initial score, final score or final conclusion even if the backend sends them (D-033)', () => {
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        ...revisionContext(['REVISE_REREVIEW']),
+        initialTotalScore: 79,
+        finalScore: 84,
+        finalConclusion: 'SECRET_CONCLUSION'
+      } as unknown as CaseDetailViewModel['rereviewContext']
+    }));
+
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).not.toContain('79');
+    expect(text).not.toContain('84');
+    expect(text).not.toContain('SECRET_CONCLUSION');
+    expect(text).not.toContain('最終分數');
+    expect(fixture.nativeElement.querySelector('[data-testid="rereview-final-decision-summary"]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="rereview-initial-summary-reference"]')).not.toBeNull();
+  });
+
   it('covers REVISION baseline and keeps C17 visible', () => {
     render(buildDetail({
       status: 'REREVIEW_IN_PROGRESS',
@@ -337,7 +338,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'REVISION',
         hasDraft: false,
         hasSubmittedBase: true,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -347,8 +347,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'PASS'
       }
     }));
 
@@ -361,7 +359,6 @@ describe('RereviewPageComponent', () => {
       pageMode: 'REVISION' as const,
       hasDraft: false,
       hasSubmittedBase: true,
-      closedRevisionException: false,
       readonly: false,
       blocked: false,
       blockedReason: null,
@@ -371,8 +368,6 @@ describe('RereviewPageComponent', () => {
       initialSubmissionId: 'SUB-INITIAL-001',
       initialReviewerId: 'reviewer-1',
       initialReviewerName: 'Dr. Initial',
-      initialTotalScore: null,
-      finalConclusion: null
     };
   }
 
@@ -462,7 +457,6 @@ describe('RereviewPageComponent', () => {
         pageMode: 'READONLY_BLOCKED',
         hasDraft: false,
         hasSubmittedBase: false,
-        closedRevisionException: false,
         readonly: true,
         blocked: true,
         blockedReason: 'CASE_ALREADY_CANCELLED',
@@ -471,8 +465,6 @@ describe('RereviewPageComponent', () => {
         initialSubmissionId: 'SUB-INITIAL-001',
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 79,
-        finalConclusion: 'BLOCKED'
       }
     }));
 
