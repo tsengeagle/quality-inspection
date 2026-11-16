@@ -120,6 +120,7 @@ public class ScoreSheetDefinition {
 
         // 1. Remove sections first
         for (String sectionId : command.getRemoveSectionIds()) {
+            ScoreItem.requireText(sectionId, "sectionId");
             boolean removed = sections.removeIf(s -> s.getSectionId().equals(sectionId));
             if (!removed) {
                 throw new DomainRuleViolationException("SECTION_NOT_FOUND",
@@ -129,6 +130,7 @@ public class ScoreSheetDefinition {
 
         // 2. Remove items (cross-section search)
         for (String itemId : command.getRemoveItemIds()) {
+            ScoreItem.requireText(itemId, "itemId");
             boolean found = false;
             for (ScoreSheetSection section : sections) {
                 if (section.getItems().stream().anyMatch(i -> i.getItemId().equals(itemId))) {
@@ -145,6 +147,7 @@ public class ScoreSheetDefinition {
 
         // 3. Update section titles
         for (UpdateDraftCommand.UpdateSectionCommand update : command.getUpdateSections()) {
+            requireElement(update);
             ScoreItem.requireText(update.getSectionId(), "sectionId");
             ScoreItem.requireText(update.getTitle(), "title");
             ScoreSheetSection section = findSection(update.getSectionId());
@@ -153,15 +156,18 @@ public class ScoreSheetDefinition {
 
         // 4. Update items (find item across sections, replace it)
         for (UpdateDraftCommand.UpdateItemCommand update : command.getUpdateItems()) {
+            requireElement(update);
             updateItemInSections(update);
         }
 
         // 5. Add new sections (reuses existing addSection() which enforces uniqueness)
         for (UpdateDraftCommand.AddSectionCommand add : command.getAddSections()) {
+            requireElement(add);
             // 先驗證這個章節與它所有題目的輸入，再檢查重複
             ScoreSheetSection newSection = new ScoreSheetSection(add.getSectionId(), add.getTitle());
             List<ScoreItem> newItems = new ArrayList<>();
             for (UpdateDraftCommand.AddItemCommand itemCmd : add.getItems()) {
+                requireElement(itemCmd);
                 newItems.add(toScoreItem(itemCmd));
             }
             newItems.forEach(newSection::addItem);
@@ -170,10 +176,19 @@ public class ScoreSheetDefinition {
 
         // 6. Add items to existing sections (with cross-section uniqueness)
         for (UpdateDraftCommand.AddItemCommand add : command.getAddItems()) {
+            requireElement(add);
+            ScoreItem.requireText(add.getTargetSectionId(), "targetSectionId");
             ScoreItem newItem = toScoreItem(add);
             ScoreSheetSection section = findSection(add.getTargetSectionId());
             validateCrossSectionUniqueness(newItem, section);
             section.addItem(newItem);
+        }
+    }
+
+    /** 清單裡的 null 元素是輸入錯誤（D-050 第 4 點），在輪到它的相位才回報。 */
+    private static void requireElement(Object element) {
+        if (element == null) {
+            throw ScoreItem.invalid("List elements must not be null");
         }
     }
 

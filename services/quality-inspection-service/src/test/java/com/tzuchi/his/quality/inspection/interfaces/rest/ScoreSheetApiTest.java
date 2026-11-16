@@ -288,6 +288,27 @@ class ScoreSheetApiTest {
     // --- ENUM VALIDATION ---
 
     @Test
+    void updateDraft_nullListElements_shouldReturn400ValidationError() throws Exception {
+        String projectId = createProject();
+        String ssId = createScoreSheet(projectId);
+
+        for (String phase : List.of("addSections", "addItems", "updateSections", "updateItems", "removeSectionIds", "removeItemIds")) {
+            mockMvc.perform(put(SS_BASE + "/" + ssId)
+                            .header("api-key", hmToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"" + phase + "\":[null]}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        }
+        mockMvc.perform(put(SS_BASE + "/" + ssId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"addSections\":[{\"sectionId\":\"S1\",\"title\":\"T\",\"items\":[null]}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void updateDraft_invalidScoreType_shouldReturn400() throws Exception {
         String projectId = createProject();
         String ssId = createScoreSheet(projectId);

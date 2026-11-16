@@ -514,4 +514,53 @@ class ScoreSheetDefinitionTest {
         DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
         assertEquals("DUPLICATE_SECTION_ID", e.getErrorCode());
     }
+
+    // --- PR #41 審查：null 元素與 targetSectionId 的檢查時機 ---
+
+    private static <T> List<T> listWithNull() {
+        List<T> list = new java.util.ArrayList<>();
+        list.add(null);
+        return list;
+    }
+
+    @Test
+    void updateDraft_nullElementOnPublishedSheet_isStateConflictFirst_SSUPD01() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        ss.publishVersion();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(listWithNull(), null, null, null, null, null);
+
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class, () -> ss.updateDraft(cmd));
+        assertEquals("INVALID_STATE_TRANSITION", e.getErrorCode());
+    }
+
+    @Test
+    void updateDraft_earlierPhaseErrorWinsOverNullElementInLaterPhase() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(listWithNull(), null, List.of("no-such-section"), null, null, null);
+
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
+        assertEquals("SECTION_NOT_FOUND", e.getErrorCode());
+    }
+
+    @Test
+    void updateDraft_nullElementInAnyPhase_isValidationError() {
+        assertValidationError(() -> createSheetWithOneItem().updateDraft(new UpdateDraftCommand(listWithNull(), null, null, null, null, null)));
+        assertValidationError(() -> createSheetWithOneItem().updateDraft(new UpdateDraftCommand(null, listWithNull(), null, null, null, null)));
+        assertValidationError(() -> createSheetWithOneItem().updateDraft(new UpdateDraftCommand(null, null, listWithNull(), null, null, null)));
+        assertValidationError(() -> createSheetWithOneItem().updateDraft(new UpdateDraftCommand(null, null, null, listWithNull(), null, null)));
+        assertValidationError(() -> createSheetWithOneItem().updateDraft(new UpdateDraftCommand(null, null, null, null, listWithNull(), null)));
+        assertValidationError(() -> createSheetWithOneItem().updateDraft(new UpdateDraftCommand(null, null, null, null, null, listWithNull())));
+        assertValidationError(() -> createSheetWithOneItem().updateDraft(new UpdateDraftCommand(
+                List.of(new UpdateDraftCommand.AddSectionCommand("sec9", "New", listWithNull())), null, null, null, null, null)));
+    }
+
+    @Test
+    void updateDraft_blankTargetSectionId_isValidationErrorNotSectionNotFound() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null,
+                List.of(new UpdateDraftCommand.AddItemCommand(" ", "i9", "C09", "Item",
+                        ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null)),
+                null, null);
+        assertValidationError(() -> ss.updateDraft(cmd));
+    }
 }

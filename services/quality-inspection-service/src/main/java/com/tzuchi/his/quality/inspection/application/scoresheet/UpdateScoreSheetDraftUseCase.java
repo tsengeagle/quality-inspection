@@ -8,7 +8,6 @@ import com.tzuchi.his.quality.inspection.application.scoresheet.input.ItemInput;
 import com.tzuchi.his.quality.inspection.application.scoresheet.input.ItemToSectionInput;
 import com.tzuchi.his.quality.inspection.application.scoresheet.input.SectionInput;
 import com.tzuchi.his.quality.inspection.application.scoresheet.input.SectionTitleInput;
-import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
@@ -71,17 +70,17 @@ public class UpdateScoreSheetDraftUseCase {
                 scoreSheet.getProjectId(), hospitalId));
     }
 
-    /** null 表示這個相位沒有內容；清單裡的 null 元素是輸入錯誤。 */
+    /**
+     * null 表示這個相位沒有內容。清單裡的 null 元素原樣保留，由 domain 在輪到該相位時以 VALIDATION_ERROR 拒絕：
+     * 這樣「已發布」（SS-UPD-01）與前面相位的錯誤會先被回報。
+     */
     private static <S, T> List<T> convert(Collection<S> source, Function<S, T> mapper) {
         if (source == null) {
             return null;
         }
         List<T> result = new ArrayList<>(source.size());
         for (S element : source) {
-            if (element == null) {
-                throw new DomainValidationException("VALIDATION_ERROR", "List elements must not be null");
-            }
-            result.add(mapper.apply(element));
+            result.add(element == null ? null : mapper.apply(element));
         }
         return result;
     }

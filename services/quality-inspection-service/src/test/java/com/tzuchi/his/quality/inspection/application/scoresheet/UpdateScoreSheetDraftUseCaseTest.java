@@ -105,6 +105,35 @@ class UpdateScoreSheetDraftUseCaseTest {
         assertTrue(eventPublisher.events.isEmpty());
     }
 
+    @Test
+    void execute_nullElementOnPublishedSheet_isStateConflictFirst_SSUPD01() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection section = new ScoreSheetSection("sec1", "General");
+        section.addItem(new ScoreItem("i1", "C01", "Item1", ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(section);
+        ss.publishVersion();
+        repository.save(ss);
+        java.util.List<SectionInput> sections = new java.util.ArrayList<>();
+        sections.add(null);
+
+        com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException.class,
+                () -> useCase.execute(hmActor("H001"), "ss1", null, null, null, null, sections, null));
+        assertEquals("INVALID_STATE_TRANSITION", e.getErrorCode());
+    }
+
+    @Test
+    void execute_earlierPhaseErrorWinsOverNullElementInLaterPhase() {
+        repository.save(ScoreSheetDefinition.createDraft("ss1", "p1"));
+        java.util.List<SectionInput> sections = new java.util.ArrayList<>();
+        sections.add(null);
+
+        com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException.class,
+                () -> useCase.execute(hmActor("H001"), "ss1", java.util.Set.of("no-such-section"), null, null, null, sections, null));
+        assertEquals("SECTION_NOT_FOUND", e.getErrorCode());
+    }
+
     private ActorContext hmActor(String hospitalId) {
         return new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of(hospitalId));

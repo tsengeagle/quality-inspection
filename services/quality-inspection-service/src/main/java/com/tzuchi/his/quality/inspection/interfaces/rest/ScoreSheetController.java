@@ -166,8 +166,16 @@ public class ScoreSheetController {
         return in;
     }
 
+    /** null 元素原樣保留，由 use case 依規格的檢查順序回 VALIDATION_ERROR（不在這裡解參照）。 */
     private static <S, T> List<T> map(List<S> source, java.util.function.Function<S, T> mapper) {
-        return source == null ? null : source.stream().map(mapper).collect(Collectors.toList());
+        if (source == null) {
+            return null;
+        }
+        List<T> result = new java.util.ArrayList<>(source.size());
+        for (S element : source) {
+            result.add(element == null ? null : mapper.apply(element));
+        }
+        return result;
     }
 
     private static Set<String> toSet(List<String> source) {
