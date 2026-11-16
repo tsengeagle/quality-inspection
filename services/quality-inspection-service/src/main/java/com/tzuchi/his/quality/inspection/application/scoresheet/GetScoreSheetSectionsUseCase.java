@@ -6,11 +6,9 @@ import com.tzuchi.his.quality.inspection.application.common.HospitalIdResolver;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
-import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetSection;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
@@ -25,13 +23,15 @@ public class GetScoreSheetSectionsUseCase {
         this.hospitalIdResolver = hospitalIdResolver;
     }
 
-    public List<ScoreSheetSection> execute(ActorContext actor, String scoreSheetId) {
-        actor.requireRole(DomainRole.HOSPITAL_MANAGER);
+    public ScoreSheetSectionsView execute(ActorContext actor, String scoreSheetId) {
+        // D-024：角色 → 載入 → 院區。讀取角色依 D-050 第 7 點；SYSTEM_ADMIN 不受院區限制（D-047）
+        actor.requireAnyRole(DomainRole.SYSTEM_ADMIN, DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR);
         ScoreSheetDefinition scoreSheet = repository.findById(scoreSheetId)
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheet not found: " + scoreSheetId));
-        String hospitalId = hospitalIdResolver.resolveByProjectId(scoreSheet.getProjectId());
-        actor.requireHospitalScope(hospitalId);
-        return scoreSheet.getSections();
+        if (!actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
+            actor.requireReadScope(hospitalIdResolver.resolveByProjectId(scoreSheet.getProjectId()));
+        }
+        return new ScoreSheetSectionsView(scoreSheet.getScoreSheetId(), scoreSheet.getSections());
     }
 }

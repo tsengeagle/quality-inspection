@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -37,8 +38,9 @@ class ScoreSheetDefinitionTest {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         ss.addSection(new ScoreSheetSection("sec1", "General"));
 
-        assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> ss.addSection(new ScoreSheetSection("sec1", "Another")));
+        assertEquals("DUPLICATE_SECTION_ID", e.getErrorCode());
     }
 
     @Test
@@ -54,7 +56,8 @@ class ScoreSheetDefinitionTest {
     void publishVersion_emptySections_shouldThrow() {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
 
-        assertThrows(DomainStateConflictException.class, ss::publishVersion);
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, ss::publishVersion);
+        assertEquals("SCORE_SHEET_NOT_PUBLISHABLE", e.getErrorCode());
     }
 
     @Test
@@ -62,7 +65,8 @@ class ScoreSheetDefinitionTest {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         ss.addSection(new ScoreSheetSection("sec1", "Empty"));
 
-        assertThrows(DomainStateConflictException.class, ss::publishVersion);
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, ss::publishVersion);
+        assertEquals("SCORE_SHEET_NOT_PUBLISHABLE", e.getErrorCode());
     }
 
     @Test
@@ -84,8 +88,7 @@ class ScoreSheetDefinitionTest {
 
     @Test
     void scoreItem_negativeMaxScore_shouldThrow() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new ScoreItem("i1", "C01", "Item",
+        assertValidationError(() -> new ScoreItem("i1", "C01", "Item",
                         ScoreType.FIXED, BigDecimal.valueOf(-1), BigDecimal.ONE));
     }
 
@@ -95,7 +98,7 @@ class ScoreSheetDefinitionTest {
         section.addItem(new ScoreItem("i1", "C01", "Item1",
                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
 
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> section.addItem(new ScoreItem("i1", "C02", "Item2",
                         ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE)));
         assertEquals("DUPLICATE_ITEM_ID", e.getErrorCode());
@@ -107,7 +110,7 @@ class ScoreSheetDefinitionTest {
         section.addItem(new ScoreItem("i1", "C01", "Item1",
                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
 
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> section.addItem(new ScoreItem("i2", "C01", "Item2",
                         ScoreType.BOOLEAN, BigDecimal.ONE, BigDecimal.ONE)));
         assertEquals("DUPLICATE_ITEM_CODE", e.getErrorCode());
@@ -125,7 +128,7 @@ class ScoreSheetDefinitionTest {
         s2.addItem(new ScoreItem("i1", "C99", "Different",
                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
 
-        assertThrows(DomainStateConflictException.class, () -> ss.addSection(s2));
+        assertThrows(DomainRuleViolationException.class, () -> ss.addSection(s2));
     }
 
     @Test
@@ -140,7 +143,7 @@ class ScoreSheetDefinitionTest {
         s2.addItem(new ScoreItem("i99", "C01", "Different",
                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
 
-        assertThrows(DomainStateConflictException.class, () -> ss.addSection(s2));
+        assertThrows(DomainRuleViolationException.class, () -> ss.addSection(s2));
     }
 
     // Step 1: requiredRule tests
@@ -165,16 +168,14 @@ class ScoreSheetDefinitionTest {
 
     @Test
     void scoreItem_conditional_noExpression_shouldThrow() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new ScoreItem("i1", "C01", "Item",
+        assertValidationError(() -> new ScoreItem("i1", "C01", "Item",
                         ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE,
                         RequiredRule.CONDITIONAL, null));
     }
 
     @Test
     void scoreItem_conditional_blankExpression_shouldThrow() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new ScoreItem("i1", "C01", "Item",
+        assertValidationError(() -> new ScoreItem("i1", "C01", "Item",
                         ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE,
                         RequiredRule.CONDITIONAL, "  "));
     }
@@ -189,8 +190,7 @@ class ScoreSheetDefinitionTest {
 
     @Test
     void scoreItem_nullRequiredRule_shouldThrow() {
-        assertThrows(NullPointerException.class,
-                () -> new ScoreItem("i1", "C01", "Item",
+        assertValidationError(() -> new ScoreItem("i1", "C01", "Item",
                         ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE,
                         null, null));
     }
@@ -316,7 +316,7 @@ class ScoreSheetDefinitionTest {
                         RequiredRule.ALWAYS_REQUIRED, null)),
                 null, null);
 
-        assertThrows(DomainStateConflictException.class, () -> ss.updateDraft(cmd));
+        assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
     }
 
     @Test
@@ -342,7 +342,7 @@ class ScoreSheetDefinitionTest {
     @Test
     void section_updateTitle_null_shouldThrow() {
         ScoreSheetSection section = new ScoreSheetSection("sec1", "Old");
-        assertThrows(NullPointerException.class, () -> section.updateTitle(null));
+        assertValidationError(() -> section.updateTitle(null));
     }
 
     @Test
@@ -397,7 +397,7 @@ class ScoreSheetDefinitionTest {
                         RequiredRule.ALWAYS_REQUIRED, null)),
                 null);
 
-        assertThrows(DomainStateConflictException.class, () -> ss.updateDraft(cmd));
+        assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
     }
 
     @Test
@@ -436,5 +436,82 @@ class ScoreSheetDefinitionTest {
                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
         ss.addSection(section);
         return ss;
+    }
+
+    // --- D-050 第 4 點：欄位驗證回 VALIDATION_ERROR（SS-UPD-04～08）；順序：驗證 → 查找 → 重複 ---
+
+    private static void assertValidationError(org.junit.jupiter.api.function.Executable action) {
+        DomainValidationException e = assertThrows(DomainValidationException.class, action);
+        assertEquals("VALIDATION_ERROR", e.getErrorCode());
+    }
+
+    @Test
+    void scoreItem_blankRequiredTextOrNullRequiredValue_isValidationError() {
+        assertValidationError(() -> new ScoreItem(" ", "C01", "Item", ScoreType.FIXED, BigDecimal.TEN, null, RequiredRule.OPTIONAL, null));
+        assertValidationError(() -> new ScoreItem("i1", null, "Item", ScoreType.FIXED, BigDecimal.TEN, null, RequiredRule.OPTIONAL, null));
+        assertValidationError(() -> new ScoreItem("i1", "C01", "", ScoreType.FIXED, BigDecimal.TEN, null, RequiredRule.OPTIONAL, null));
+        assertValidationError(() -> new ScoreItem("i1", "C01", "Item", null, BigDecimal.TEN, null, RequiredRule.OPTIONAL, null));
+        assertValidationError(() -> new ScoreItem("i1", "C01", "Item", ScoreType.FIXED, null, null, RequiredRule.OPTIONAL, null));
+    }
+
+    @Test
+    void scoreItem_expressionWithoutConditional_isValidationError() {
+        assertValidationError(() -> new ScoreItem("i1", "C01", "Item",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, "age > 65"));
+    }
+
+    @Test
+    void scoreItem_blankExpressionWithoutConditional_isTreatedAsNoExpression() {
+        ScoreItem item = new ScoreItem("i1", "C01", "Item",
+                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, " ");
+        assertNull(item.getConditionExpression());
+    }
+
+    @Test
+    void section_blankIdOrTitle_isValidationError() {
+        assertValidationError(() -> new ScoreSheetSection(" ", "Title"));
+        assertValidationError(() -> new ScoreSheetSection("sec1", null));
+        ScoreSheetSection section = new ScoreSheetSection("sec1", "Old");
+        assertValidationError(() -> section.updateTitle("  "));
+    }
+
+    @Test
+    void updateDraft_invalidItemForUnknownItem_reportsValidationBeforeLookup() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null, null,
+                List.of(new UpdateDraftCommand.UpdateItemCommand("no-such-item", "C01", " ",
+                        ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null)),
+                null);
+        assertValidationError(() -> ss.updateDraft(cmd));
+    }
+
+    @Test
+    void updateDraft_invalidItemForUnknownSection_reportsValidationBeforeLookup() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null,
+                List.of(new UpdateDraftCommand.AddItemCommand("no-such-section", "i9", "C09", "Item",
+                        ScoreType.FIXED, BigDecimal.valueOf(-1), BigDecimal.ONE, RequiredRule.OPTIONAL, null)),
+                null, null);
+        assertValidationError(() -> ss.updateDraft(cmd));
+    }
+
+    @Test
+    void updateDraft_blankTitleForUnknownSection_reportsValidationBeforeLookup() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(null,
+                List.of(new UpdateDraftCommand.UpdateSectionCommand("no-such-section", " ")),
+                null, null, null, null);
+        assertValidationError(() -> ss.updateDraft(cmd));
+    }
+
+    @Test
+    void updateDraft_duplicateNewSection_isDuplicateSectionId() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        String existing = ss.getSections().get(0).getSectionId();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(
+                List.of(new UpdateDraftCommand.AddSectionCommand(existing, "Again", List.of())),
+                null, null, null, null, null);
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
+        assertEquals("DUPLICATE_SECTION_ID", e.getErrorCode());
     }
 }

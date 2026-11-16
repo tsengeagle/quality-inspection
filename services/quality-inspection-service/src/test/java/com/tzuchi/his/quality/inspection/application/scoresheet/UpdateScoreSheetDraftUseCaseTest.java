@@ -5,6 +5,9 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.HospitalIdResolver;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
+import com.tzuchi.his.quality.inspection.application.scoresheet.input.ItemInput;
+import com.tzuchi.his.quality.inspection.application.scoresheet.input.SectionInput;
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.*;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.event.ScoreSheetDraftUpdatedEvent;
@@ -40,14 +43,19 @@ class UpdateScoreSheetDraftUseCaseTest {
         repository.save(ss);
         ActorContext actor = hmActor("H001");
 
-        UpdateDraftCommand cmd = new UpdateDraftCommand(
-                List.of(new UpdateDraftCommand.AddSectionCommand("sec1", "General",
-                        List.of(new UpdateDraftCommand.AddItemCommand("sec1", "i1", "C01", "Item1",
-                                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE,
-                                RequiredRule.ALWAYS_REQUIRED, null)))),
-                null, null, null, null, null);
+        ItemInput item = new ItemInput();
+        item.setItemId("i1");
+        item.setCode("C01");
+        item.setTitle("Item1");
+        item.setScoreType(ScoreType.FIXED);
+        item.setMaxScore(BigDecimal.TEN);
+        item.setRequiredRule(RequiredRule.ALWAYS_REQUIRED);
+        SectionInput section = new SectionInput();
+        section.setSectionId("sec1");
+        section.setTitle("General");
+        section.setItems(List.of(item));
 
-        useCase.execute(actor, "ss1", cmd);
+        useCase.execute(actor, "ss1", null, null, null, null, List.of(section), null);
 
         ScoreSheetDefinition saved = repository.store.get("ss1");
         assertEquals(1, saved.getSections().size());
@@ -58,10 +66,9 @@ class UpdateScoreSheetDraftUseCaseTest {
     @Test
     void execute_notFound_shouldThrow404() {
         ActorContext actor = hmActor("H001");
-        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null, null, null, null);
 
         assertThrows(ResourceNotFoundException.class,
-                () -> useCase.execute(actor, "nonexistent", cmd));
+                () -> useCase.execute(actor, "nonexistent", null, null, null, null, null, null));
     }
 
     @Test
@@ -70,10 +77,9 @@ class UpdateScoreSheetDraftUseCaseTest {
         repository.save(ss);
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H001"));
-        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null, null, null, null);
 
         assertThrows(RoleDeniedException.class,
-                () -> useCase.execute(actor, "ss1", cmd));
+                () -> useCase.execute(actor, "ss1", null, null, null, null, null, null));
     }
 
     @Test
@@ -81,10 +87,22 @@ class UpdateScoreSheetDraftUseCaseTest {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         repository.save(ss);
         ActorContext actor = hmActor("H999");
-        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null, null, null, null);
 
         assertThrows(AccessDeniedException.class,
-                () -> useCase.execute(actor, "ss1", cmd));
+                () -> useCase.execute(actor, "ss1", null, null, null, null, null, null));
+    }
+
+    @Test
+    void execute_nullListElement_isValidationErrorAndSavesNothing() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        repository.save(ss);
+        java.util.List<SectionInput> sections = new java.util.ArrayList<>();
+        sections.add(null);
+
+        DomainValidationException e = assertThrows(DomainValidationException.class,
+                () -> useCase.execute(hmActor("H001"), "ss1", null, null, null, null, sections, null));
+        assertEquals("VALIDATION_ERROR", e.getErrorCode());
+        assertTrue(eventPublisher.events.isEmpty());
     }
 
     private ActorContext hmActor(String hospitalId) {

@@ -14,6 +14,8 @@ import java.util.*;
  * - Published version is immutable.
  * - No duplicate itemId across all sections within the same version.
  * - No duplicate item code across all sections within the same version.
+ * Error categories follow specs/score-sheet (D-050): field validation is VALIDATION_ERROR,
+ * duplicates and missing targets are rule violations, changes to a published version are state conflicts.
  * - maxScore must not be negative.
  * - Only evolves via new version; no patching of published content.
  */
@@ -67,7 +69,7 @@ public class ScoreSheetDefinition {
         boolean duplicateSection = sections.stream()
                 .anyMatch(s -> s.getSectionId().equals(section.getSectionId()));
         if (duplicateSection) {
-            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+            throw new DomainRuleViolationException("DUPLICATE_SECTION_ID",
                     "Duplicate sectionId: " + section.getSectionId());
         }
 
@@ -82,11 +84,11 @@ public class ScoreSheetDefinition {
         }
         for (ScoreItem newItem : section.getItems()) {
             if (!existingItemIds.add(newItem.getItemId())) {
-                throw new DomainStateConflictException("DUPLICATE_ITEM_ID",
+                throw new DomainRuleViolationException("DUPLICATE_ITEM_ID",
                         "Duplicate itemId across sections: " + newItem.getItemId());
             }
             if (!existingCodes.add(newItem.getCode())) {
-                throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
+                throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE",
                         "Duplicate item code across sections: " + newItem.getCode());
             }
         }
@@ -101,12 +103,12 @@ public class ScoreSheetDefinition {
     public void publishVersion() {
         requireDraft();
         if (sections.isEmpty()) {
-            throw new DomainStateConflictException("SCORE_SHEET_NOT_PUBLISHABLE",
+            throw new DomainRuleViolationException("SCORE_SHEET_NOT_PUBLISHABLE",
                     "Cannot publish an empty score sheet");
         }
         boolean hasItems = sections.stream().anyMatch(s -> !s.getItems().isEmpty());
         if (!hasItems) {
-            throw new DomainStateConflictException("SCORE_SHEET_NOT_PUBLISHABLE",
+            throw new DomainRuleViolationException("SCORE_SHEET_NOT_PUBLISHABLE",
                     "Cannot publish a score sheet with no items");
         }
         this.status = ScoreSheetStatus.PUBLISHED;
@@ -143,6 +145,8 @@ public class ScoreSheetDefinition {
 
         // 3. Update section titles
         for (UpdateDraftCommand.UpdateSectionCommand update : command.getUpdateSections()) {
+            ScoreItem.requireText(update.getSectionId(), "sectionId");
+            ScoreItem.requireText(update.getTitle(), "title");
             ScoreSheetSection section = findSection(update.getSectionId());
             section.updateTitle(update.getTitle());
         }
@@ -154,17 +158,20 @@ public class ScoreSheetDefinition {
 
         // 5. Add new sections (reuses existing addSection() which enforces uniqueness)
         for (UpdateDraftCommand.AddSectionCommand add : command.getAddSections()) {
+            // 先驗證這個章節與它所有題目的輸入，再檢查重複
             ScoreSheetSection newSection = new ScoreSheetSection(add.getSectionId(), add.getTitle());
+            List<ScoreItem> newItems = new ArrayList<>();
             for (UpdateDraftCommand.AddItemCommand itemCmd : add.getItems()) {
-                newSection.addItem(toScoreItem(itemCmd));
+                newItems.add(toScoreItem(itemCmd));
             }
+            newItems.forEach(newSection::addItem);
             addSection(newSection);
         }
 
         // 6. Add items to existing sections (with cross-section uniqueness)
         for (UpdateDraftCommand.AddItemCommand add : command.getAddItems()) {
-            ScoreSheetSection section = findSection(add.getTargetSectionId());
             ScoreItem newItem = toScoreItem(add);
+            ScoreSheetSection section = findSection(add.getTargetSectionId());
             validateCrossSectionUniqueness(newItem, section);
             section.addItem(newItem);
         }
@@ -179,26 +186,24 @@ public class ScoreSheetDefinition {
     }
 
     private void updateItemInSections(UpdateDraftCommand.UpdateItemCommand update) {
+        // 先驗證輸入，再查找題目（D-050 第 4 點的檢查順序）
+        ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
+                update.getTitle(), update.getScoreType(), update.getMaxScore(),
+                update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
         for (ScoreSheetSection section : sections) {
             for (int i = 0; i < section.getItems().size(); i++) {
                 if (section.getItems().get(i).getItemId().equals(update.getItemId())) {
                     ScoreItem oldItem = section.getItems().get(i);
                     if (!oldItem.getCode().equals(update.getCode())) {
-                        ScoreItem tempItem = new ScoreItem(update.getItemId(), update.getCode(),
-                                update.getTitle(), update.getScoreType(), update.getMaxScore(),
-                                update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
-                        validateCrossSectionUniqueness(tempItem, section);
+                        validateCrossSectionUniqueness(replacement, section);
                         // 同一章節的其他題目也不能有相同代碼（題目本身被取代，不算重複）
                         for (int j = 0; j < section.getItems().size(); j++) {
                             if (j != i && section.getItems().get(j).getCode().equals(update.getCode())) {
-                                throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
+                                throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE",
                                         "Duplicate item code in section: " + update.getCode());
                             }
                         }
                     }
-                    ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
-                            update.getTitle(), update.getScoreType(), update.getMaxScore(),
-                            update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
                     section.replaceItemAt(i, replacement);
                     return;
                 }
@@ -213,11 +218,11 @@ public class ScoreSheetDefinition {
             if (section == excludeSection) continue;
             for (ScoreItem existing : section.getItems()) {
                 if (existing.getItemId().equals(newItem.getItemId())) {
-                    throw new DomainStateConflictException("DUPLICATE_ITEM_ID",
+                    throw new DomainRuleViolationException("DUPLICATE_ITEM_ID",
                             "Duplicate itemId across sections: " + newItem.getItemId());
                 }
                 if (existing.getCode().equals(newItem.getCode())) {
-                    throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
+                    throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE",
                             "Duplicate item code across sections: " + newItem.getCode());
                 }
             }

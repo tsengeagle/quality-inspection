@@ -275,13 +275,14 @@ class ScoreSheetApiTest {
     }
 
     @Test
-    void sections_sa_shouldReturn403() throws Exception {
+    void sections_sa_shouldReturn200_D050() throws Exception {
+        // D-050 第 7 點：SYSTEM_ADMIN 可讀取評分表，不受院區限制（D-047）
         String projectId = createProject();
         String ssId = createScoreSheet(projectId);
 
         mockMvc.perform(get(SS_BASE + "/" + ssId + "/sections")
                         .header("api-key", saToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     // --- ENUM VALIDATION ---

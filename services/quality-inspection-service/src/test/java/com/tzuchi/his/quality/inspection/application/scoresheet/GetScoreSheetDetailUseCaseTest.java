@@ -100,4 +100,22 @@ class GetScoreSheetDetailUseCaseTest {
             public Optional<ScoreSheetSummary> findSummaryById(String id) { return Optional.empty(); }
         };
     }
+
+    @Test
+    void execute_auditorOfTheSameHospital_reads_D050() {
+        GetScoreSheetDetailUseCase useCase = new GetScoreSheetDetailUseCase(stubQueryPortWithSummary(summary), projectId -> "H001");
+        ActorContext auditor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        assertEquals("ss1", useCase.execute(auditor, "ss1").getScoreSheetId());
+    }
+
+    @Test
+    void execute_auditorOfAnotherHospital_isScopeMismatch() {
+        GetScoreSheetDetailUseCase useCase = new GetScoreSheetDetailUseCase(stubQueryPortWithSummary(summary), projectId -> "H001");
+        ActorContext auditor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H999"));
+
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(auditor, "ss1"));
+    }
 }

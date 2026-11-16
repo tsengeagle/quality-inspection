@@ -2,14 +2,14 @@ package com.tzuchi.his.quality.inspection.application.scoresheet;
 
 public class ScoreSheetVersionInfo {
 
-    private final int version;
+    private final int versionNo;
     private final boolean published;
 
-    public ScoreSheetVersionInfo(int version, boolean published) {
-        this.version = version;
+    public ScoreSheetVersionInfo(int versionNo, boolean published) {
+        this.versionNo = versionNo;
         this.published = published;
     }
 
-    public int getVersion() { return version; }
+    public int getVersionNo() { return versionNo; }
     public boolean isPublished() { return published; }
 }
