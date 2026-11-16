@@ -4,6 +4,10 @@ import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.submission.ReviewSubmissionJpaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,10 +20,12 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -49,9 +55,12 @@ class ReviewCaseVersionAndUpdatedAtTest {
     @Autowired private ReviewCaseJpaRepository jpa;
     @Autowired private MutableClock clock;
     @Autowired private PlatformTransactionManager transactions;
+    @Autowired private ReviewSubmissionRepository submissions;
+    @Autowired private ReviewSubmissionJpaRepository submissionJpa;
 
     @BeforeEach
     void clean() {
+        submissionJpa.deleteAll();
         jpa.deleteAll();
         clock.set("2026-11-16T10:00:00Z");
     }
@@ -142,5 +151,35 @@ class ReviewCaseVersionAndUpdatedAtTest {
         assertThat(persisted.getReviewerId()).isEqualTo("first-doctor");
         assertThat(persisted.getStatus()).isEqualTo(CaseStatus.PENDING_INITIAL_REVIEW);
         assertThat(persisted.getCancelReason()).isNull();
+    }
+
+    /**
+     * 只寫提交時也要檢查案件版本，即使時鐘倒退、updatedAt 維持不變（案件沒有其他欄位變更）。
+     * 否則兩個同時的草稿儲存都會成功，後寫者覆蓋先寫者（D-045）。
+     */
+    @Test
+    void concurrentSubmissionOnlyWritesConflictEvenWhenTheTimeCannotAdvance() {
+        repository.save(newCase("c1"));
+        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("s1", "c1", "doctor");
+        submissions.save(draft);
+        clock.set("2026-11-16T09:00:00Z");
+        TransactionTemplate outer = new TransactionTemplate(transactions);
+        TransactionTemplate inner = new TransactionTemplate(transactions);
+        inner.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+
+        assertThatThrownBy(() -> outer.executeWithoutResult(status -> {
+            repository.findById("c1").orElseThrow();
+            ReviewSubmission stale = submissions.findById("s1").orElseThrow();
+            inner.executeWithoutResult(s -> {
+                ReviewSubmission first = submissions.findById("s1").orElseThrow();
+                first.updateDraft(List.of(AnswerItem.ofScored("Q", "first", BigDecimal.ONE)), BigDecimal.ONE, "first");
+                submissions.save(first);
+            });
+            stale.updateDraft(List.of(AnswerItem.ofScored("Q", "stale", BigDecimal.TEN)), BigDecimal.TEN, "stale");
+            submissions.save(stale);
+        })).isInstanceOf(ObjectOptimisticLockingFailureException.class);
+
+        assertThat(submissionJpa.findById("s1").orElseThrow().getComment()).isEqualTo("first");
+        assertThat(updatedAt("c1")).isEqualTo(Instant.parse("2026-11-16T10:00:00Z"));
     }
 }

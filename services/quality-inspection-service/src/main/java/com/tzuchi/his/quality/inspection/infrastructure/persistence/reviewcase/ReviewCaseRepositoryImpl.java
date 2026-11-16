@@ -5,6 +5,11 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewerAssignment;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
+import javax.persistence.PersistenceContext;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -20,6 +25,9 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
 
     private final ReviewCaseJpaRepository jpa;
     private final Clock clock;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public ReviewCaseRepositoryImpl(ReviewCaseJpaRepository jpa, Clock clock) {
         this.jpa = jpa;
@@ -42,14 +50,19 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
     }
 
     /**
-     * 只寫入提交（例如草稿儲存）時，由提交的 repository 呼叫，推進所屬案件的 updatedAt 與版本（D-037 第 1 點）。
-     * 案件不存在時不做事。
+     * 只寫入提交（例如草稿儲存）時，由提交的 repository 呼叫，推進所屬案件的 updatedAt（D-037 第 1 點），
+     * 並強制遞增案件版本（{@code OPTIMISTIC_FORCE_INCREMENT}）：即使時鐘倒退使 updatedAt 不變、案件沒有欄位變更，
+     * commit 時仍以版本檢查同一案件的並行寫入（D-045）。提交本身沒有版本欄位，靠案件版本保護。
+     * 加入呼叫端的交易；沒有交易時自己開一個。案件不存在時不做事。
      */
+    @Transactional
     public void touch(String caseId) {
-        jpa.findById(caseId).ifPresent(e -> {
-            e.setUpdatedAt(advance(e.getUpdatedAt()));
-            jpa.save(e);
-        });
+        ReviewCaseEntity e = entityManager.find(ReviewCaseEntity.class, caseId);
+        if (e == null) {
+            return;
+        }
+        e.setUpdatedAt(advance(e.getUpdatedAt()));
+        entityManager.lock(e, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     }
 
     /** 不倒退：取目前值與現在時間較晚者（D-037 第 5 點）。精度到微秒，與 Oracle TIMESTAMP 預設相同。 */
