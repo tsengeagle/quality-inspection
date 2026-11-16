@@ -2056,15 +2056,20 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
    - 案件歷史不完整 → UNKNOWN，拒絕（與現行相同）。
    - 不再以稽核紀錄判斷身份；稽核紀錄維持原用途。
 4. **寫入者**：目前只有指派複審醫師、改派複審醫師兩個 use case 會變更複審醫師，兩者都必須寫入歷史。之後新增任何會變更複審醫師的入口，也必須寫入；以測試確保每一個寫入點都有對應的歷史紀錄。
-5. **不變的部分**：D-033 永久盲審；REREVIEWER 只讀本人複審內容、初審永遠遮罩；SYSTEM_ADMIN 只看 metadata；D-024 院區範圍；多角色同時持有時仍拒絕（未裁決，維持 D-035 第 5 點）；錯誤回應仍為 403 `ACCESS_DENIED`。
+5. **初審讀取者紀錄**（2026-11-16 依使用者裁決補上，回應 PR #54 審查）：D-035 原本全面拒絕，等於附帶保證「複審醫師不可能事先讀過初審」。開放讀取後，必須另外擋住「先讀過完整初審、之後才被指派或改派為同案複審醫師」的情況，否則違反 D-033，而且事後無法補救。
+   - 每次准許某人讀取某案的完整初審內容（案件詳情、初審提交明細、revision 歷程中未遮罩的初審內容），就新增一筆只增不改的「初審讀取者」紀錄（案件、讀取者、時間），必須在回應送出前 commit；寫入失敗就拒絕這次讀取（fail-closed）。同一人同一案只需一筆。
+   - 指派或改派複審醫師時，若對象在該案的初審讀取者紀錄中，回 `422 REREVIEWER_HAS_READ_INITIAL`（新增的錯誤代碼），與既有的 `REREVIEWER_SAME_AS_REVIEWER` 並列。
+   - 讀取與指派要互斥：讀取寫入紀錄時一併以 D-045 的案件版本檢查（強制遞增版本，不推進 updatedAt，因為讀取不是業務更新），與同時進行的指派或改派只能有一方成功。
+6. **不變的部分**：D-033 永久盲審；REREVIEWER 只讀本人複審內容、初審永遠遮罩；SYSTEM_ADMIN 只看 metadata；D-024 院區範圍；多角色同時持有時仍拒絕（未裁決，維持 D-035 第 5 點）；錯誤回應仍為 403 `ACCESS_DENIED`。
 
 ### Relationship / Evidence
 
 - 部分取代 D-035 第 2 點的「現有來源尚不能產生可信的 Proven non-historical」與「Consequences」中「受保護的完整讀取可能全面遭拒」：歷史完整的案件可以證明負面身份。D-035 的 fail-closed 原則（UNKNOWN 一律拒絕、不得默默降級、不得補造完整性）不變。
 - 影響：HOSPITAL_MANAGER、AUDITOR、REVIEWER（本案指派或提交的初審醫師）在案件歷史完整時恢復完整讀取，因此初審頁（含 D-054 的 FIX_INITIAL_REVIEW）與管理者明細可以使用。
 - 第 2 點的「不得補造」依據 D-035 第 2 點；完整性來自「從案件建立起每一次指派都被記錄」，不是事後宣告。
+- 第 5 點新增錯誤代碼 `REREVIEWER_HAS_READ_INITIAL`（422），其餘錯誤代碼沿用。讀取會產生寫入（讀取者紀錄），屬於醫療資訊系統常見的存取紀錄；紀錄只用於指派限制，不輸出給一般 API。
 - 這份歷史之後也可以用於生命週期查詢的讀取範圍（2026-11-16 決定暫緩，待需要時裁決），本決策不包含該項。
 
 ### Mapping
 
-`docs/02-ddd/permission-matrix.md` 與 `docs/03-contracts/api-spec.md` 的「D-035 歷史身份 Fail-closed 讀取契約」；`docs/03-contracts/persistence-model.md`；實作以建構 PR 落地（Flyway migration、指派兩個 use case、`ReviewReadAccessPolicy`）。
+`docs/02-ddd/permission-matrix.md` 與 `docs/03-contracts/api-spec.md` 的「D-035 歷史身份 Fail-closed 讀取契約」、api-spec 的指派／改派複審醫師與錯誤代碼表；`docs/03-contracts/persistence-model.md`；實作以建構 PR 落地（Flyway migration、指派兩個 use case、`ReviewReadAccessPolicy`、三個完整讀取入口的讀取者紀錄）。
