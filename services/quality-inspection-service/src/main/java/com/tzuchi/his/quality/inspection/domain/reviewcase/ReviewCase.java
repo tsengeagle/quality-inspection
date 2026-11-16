@@ -242,6 +242,8 @@ public class ReviewCase {
         this.initialFixedSubmissionId = submissionId;
         if (qualityThreshold != null && fixedScore.compareTo(qualityThreshold) > 0) {
             this.rereviewRequired = true;
+            // 進複審後還沒有最終分數：保留 initialReviewScore，finalScore 於複審提交時依 D-012／D-020 加權計算。
+            this.finalScore = null;
             this.status = CaseStatus.PENDING_REREVIEW;
         }
     }

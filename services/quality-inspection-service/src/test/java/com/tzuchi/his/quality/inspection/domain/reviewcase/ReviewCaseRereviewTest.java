@@ -45,6 +45,9 @@ class ReviewCaseRereviewTest {
         rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("90"), new BigDecimal("80"));
         assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
         assertTrue(rc.isRereviewRequired());
+        // 進複審時還沒有最終分數：保留初審分數，finalScore 待複審提交時加權計算（與舊的自動進複審路徑相同）。
+        assertEquals(new BigDecimal("90"), rc.getInitialReviewScore());
+        assertNull(rc.getFinalScore());
         assertEquals(FIXED_AT, rc.getInitialFixedAt());
         assertEquals("reviewer-1", rc.getInitialFixedBy());
         assertEquals("sub-1", rc.getInitialFixedSubmissionId());
@@ -56,6 +59,7 @@ class ReviewCaseRereviewTest {
         rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("80"), new BigDecimal("80"));
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
         assertTrue(rc.isInitialReviewFixed());
+        assertEquals(new BigDecimal("80"), rc.getFinalScore());
     }
 
     @Test
