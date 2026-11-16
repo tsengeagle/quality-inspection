@@ -1,16 +1,17 @@
 # Test profile: each Spring context gets its own empty in-memory database.
 # The local demo data seed (@Profile("local")) is not loaded.
+# D-045 (Flyway rollout, step 3): production is Oracle 19c+, so tests run H2 in Oracle compatibility
+# mode with the Oracle dialect, and Flyway (db/migration) builds the schema; Hibernate only validates it.
+# H2OracleCompatibleDialect generates the same SQL as Oracle12cDialect; it only skips the ALL_SEQUENCES
+# lookup H2 lacks and treats NUMERIC/DECIMAL as matching integer/boolean types during validation.
+# No DB_CLOSE_DELAY: each context's database closes with its connection pool instead of piling up.
 spring:
   datasource:
-    url: jdbc:h2:mem:${random.uuid};DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:${random.uuid};MODE=Oracle
     driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
+    database-platform: com.tzuchi.his.quality.inspection.infrastructure.persistence.H2OracleCompatibleDialect
     hibernate:
-      ddl-auto: create-drop
-  # D-045 Flyway rollout, step 1: Flyway is on the classpath but disabled for tests, so the
-  # Oracle-syntax migrations added in step 2 never run on this plain-H2 database. Step 3 switches
-  # this profile to H2 Oracle mode, the Oracle dialect, Flyway on and ddl-auto=validate together.
-  flyway:
-    enabled: false
+      ddl-auto: validate

@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-16-flyway-step3",
+  "decision": "D-045",
+  "reason": "D-045 第 6 點 Flyway 導入的第 3 步（修法 PR）。(1) application-test.yml 一次切換：H2 Oracle 相容模式（MODE=Oracle）、方言 H2OracleCompatibleDialect（PR #49 新增的測試方言，SQL 與 Oracle12cDialect 相同）、啟用 Flyway（拿掉 spring.flyway.enabled: false）、ddl-auto=validate；並拿掉 DB_CLOSE_DELAY=-1，讓每個測試 context 的資料庫隨連線池關閉，不累積到 JVM 結束。(2) 依 PR #49 的實作更新 D-045 第 4、6 點：測試用 H2OracleCompatibleDialect 做 validate；local 與正式環境用 Oracle12cDialect、ddl-auto=none，原因是 Oracle 的 NUMBER 由 JDBC 回報為 NUMERIC/DECIMAL，Hibernate 5 的 validate 期望 BIGINT/BIT 而一律判為不符；第 1、2 步標上 PR 編號。本機驗證（以 PR #49 為基礎）：./gradlew cleanTest check 通過，859 個測試方法、失敗 7 個與清單相同；135 個測試 context 全部使用 H2OracleCompatibleDialect，Flyway 皆成功套用 V1（V1 的 VARCHAR2(n CHAR) 一般 H2 模式不接受，可證實都在 Oracle 相容模式下執行）。本 PR 只改律法與文件。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "services/quality-inspection-service/src/test/resources/application-test.yml",
+    "docs/01-requirements/decision-log.md",
+    "law/"
+  ]
+}
