@@ -111,7 +111,7 @@ class RevisionApiTest {
         proj.setStatus(ProjectStatus.ACTIVE);
         proj.setVersionNumber(1);
         proj.setVersionPublished(true);
-        proj.setBoundScoreSheetId(SCORE_SHEET_ID);
+        proj.setBoundScoreSheetId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         projectJpa.save(proj);
     }
 
@@ -128,7 +128,7 @@ class RevisionApiTest {
         e.setReviewerAssignedAt(LocalDateTime.now());
         e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
         e.setLatestInitialSubmissionId(SUBMISSION_ID);
-        e.setScoreSheetVersionRef(SCORE_SHEET_ID);
+        e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setFinalScore(new BigDecimal("17.5"));
         caseJpa.save(e);
 
@@ -146,7 +146,7 @@ class RevisionApiTest {
         sub.setTotalScore(new BigDecimal("17.5"));
         sub.setComment("initial review");
         sub.setSubmittedAt(LocalDateTime.now());
-        sub.setBasedOnScoreSheetVersionId(SCORE_SHEET_ID);
+        sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         sub.setCreatedAt(LocalDateTime.now());
         sub.setUpdatedAt(LocalDateTime.now());
         submissionJpa.save(sub);

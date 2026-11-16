@@ -15,32 +15,3 @@ com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegr
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#rereviewSubmitMustUpdateCaseTime_withoutRepairingD032
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#revisionMustUpdateCaseTime
 com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#submitMustUpdateCaseTime
-
-# 驗收範例（第 4 期）：評分表規格已升格（specs/score-sheet/），程式尚未照規格修改（見 specs/score-sheet/OPEN-QUESTIONS.md「程式現況」）。
-# 共同原因：UpdateScoreSheetDraft 的輸入是一個命令物件，規格是六個具名輸入；BindScoreSheetToProject 綁定 scoreSheetId，規格是 scoreSheetVersionId；
-# 發布不回傳 scoreSheetVersionId；查詢沒有 versionNo、列表回清單不回物件。由後續的建構 PR 逐一修正並刪除。
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activates_a_published_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activating_an_active_project_changes_nothing
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/deactivates_an_active_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/deactivating_a_deactivated_project_changes_nothing
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/publishes_the_draft_version
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/reactivates_a_deactivated_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_of_an_already_published_version
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_when_a_weight_is_zero
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_when_weights_do_not_sum_to_one
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_publish_without_a_quality_threshold
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_update_after_the_version_is_published
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_weight_change_after_the_version_is_published
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/binding_a_published_score_sheet_allows_publishing
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_after_the_version_is_published
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_by_a_non_manager
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_of_an_unknown_score_sheet_version
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_of_another_projects_score_sheet_version
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_bind_to_another_hospitals_project
-
-# 評分表的驗收範例（specs/score-sheet/），原因同上
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/creates_a_draft_for_an_active_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/publishes_a_version_with_items
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_publishing_sections_without_items
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_publishing_twice
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/rejects_update_of_a_published_version

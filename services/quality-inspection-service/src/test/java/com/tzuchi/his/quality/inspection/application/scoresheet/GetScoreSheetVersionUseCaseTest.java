@@ -40,6 +40,7 @@ class GetScoreSheetVersionUseCaseTest {
 
         assertEquals(1, info.getVersionNo());
         assertFalse(info.isPublished());
+        assertNull(info.getScoreSheetVersionId(), "未發布時版本 id 是 null（D-050 第 1 點）");
     }
 
     @Test
@@ -90,5 +91,24 @@ class GetScoreSheetVersionUseCaseTest {
                 EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
 
         assertEquals(1, useCase.execute(auditor, "ss1").getVersionNo());
+    }
+
+    @Test
+    void execute_published_returnsTheVersionIdProducedAtPublish() {
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetSection section =
+                new com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetSection("sec1", "General");
+        section.addItem(new com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreItem("i1", "C01", "Item1",
+                com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreType.FIXED, java.math.BigDecimal.TEN, java.math.BigDecimal.ONE));
+        ss.addSection(section);
+        ss.publishVersion();
+        repository.save(ss);
+        ActorContext actor = new ActorContext("u1", "Manager",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        ScoreSheetVersionInfo info = useCase.execute(actor, "ss1");
+
+        assertTrue(info.isPublished());
+        assertEquals(ss.getVersionId(), info.getScoreSheetVersionId());
     }
 }

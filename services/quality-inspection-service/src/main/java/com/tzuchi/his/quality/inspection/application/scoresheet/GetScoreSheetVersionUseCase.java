@@ -34,6 +34,6 @@ public class GetScoreSheetVersionUseCase {
             actor.requireReadScope(hospitalIdResolver.resolveByProjectId(scoreSheet.getProjectId()));
         }
         return new ScoreSheetVersionInfo(scoreSheet.getVersion(),
-                scoreSheet.getStatus() == ScoreSheetStatus.PUBLISHED);
+                scoreSheet.getStatus() == ScoreSheetStatus.PUBLISHED, scoreSheet.getVersionId());
     }
 }

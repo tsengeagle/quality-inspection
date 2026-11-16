@@ -91,7 +91,7 @@ class CloseRereviewUseCaseTest {
     private ReviewCase seedSubmittedRereview() {
         ReviewCase rc = ReviewCase.createFromSampling(CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer("reviewer-1", LocalDateTime.now());
-        rc.startInitialReview("sub-init", SCORE_SHEET_ID);
+        rc.startInitialReview("sub-init", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80")); // → PENDING_REREVIEW
         rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.of(2026, 6, 30, 23, 59));
         rc.startRereview(REREVIEWER_ID); // → REREVIEW_IN_PROGRESS
@@ -203,7 +203,7 @@ class CloseRereviewUseCaseTest {
     void execute_caseNotInRereview_shouldRejectWithCaseNotRereviewInProgress() {
         ReviewCase rc = ReviewCase.createFromSampling(CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer("reviewer-1", LocalDateTime.now());
-        rc.startInitialReview("sub-init", SCORE_SHEET_ID);
+        rc.startInitialReview("sub-init", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80")); // → PENDING_REREVIEW
         caseRepo.save(rc);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
@@ -235,7 +235,7 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_initialStageSubmission_shouldRejectWithConflict() {
         seedSubmittedRereview();
-        ReviewSubmission initial = ReviewSubmission.createInitialDraft("sub-init", CASE_ID, REREVIEWER_ID, SCORE_SHEET_ID);
+        ReviewSubmission initial = ReviewSubmission.createInitialDraft("sub-init", CASE_ID, REREVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         initial.submit();
         submissionRepo.save(initial);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,

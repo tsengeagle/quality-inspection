@@ -92,7 +92,7 @@ class SubmitRereviewUseCaseTest {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer("reviewer-1", LocalDateTime.now());
-        rc.startInitialReview("sub-init", SCORE_SHEET_ID);
+        rc.startInitialReview("sub-init", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80"));
         // score 90 > threshold 80 → PENDING_REREVIEW
         rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.of(2026, 6, 30, 23, 59));

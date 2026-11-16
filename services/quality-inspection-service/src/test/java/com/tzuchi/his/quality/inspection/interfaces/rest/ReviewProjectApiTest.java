@@ -186,7 +186,7 @@ class ReviewProjectApiTest {
         String projectId = createProjectAndGetId("Bind Test");
 
         BindScoreSheetRequest req = new BindScoreSheetRequest();
-        req.setScoreSheetId("ss-123");
+        req.setScoreSheetVersionId(publishedScoreSheetVersion(projectId));
 
         mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
                         .header("api-key", hmToken)
@@ -321,9 +321,35 @@ class ReviewProjectApiTest {
 
     // --- Helpers ---
 
+    /** 為專案建立一份有一個題目的評分表並發布，回傳發布產生的版本 id（D-050 第 1、8 點：只能綁定已發布的版本）。 */
+    private String publishedScoreSheetVersion(String projectId) throws Exception {
+        MvcResult created = mockMvc.perform(post("/score-sheets")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("projectId", projectId))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String scoreSheetId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .path("data").path("scoreSheetId").asText();
+        String body = "{\"addSections\":[{\"sectionId\":\"S1\",\"title\":\"完整性\",\"items\":["
+                + "{\"itemId\":\"I1\",\"code\":\"C01\",\"title\":\"病歷完整性\",\"scoreType\":\"FIXED\","
+                + "\"maxScore\":10,\"requiredRule\":\"ALWAYS_REQUIRED\"}]}]}";
+        mockMvc.perform(put("/score-sheets/" + scoreSheetId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+        MvcResult published = mockMvc.perform(post("/score-sheets/" + scoreSheetId + "/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(published.getResponse().getContentAsString())
+                .path("data").path("scoreSheetVersionId").asText();
+    }
+
     private void bindScoreSheet(String projectId) throws Exception {
         BindScoreSheetRequest bindReq = new BindScoreSheetRequest();
-        bindReq.setScoreSheetId("ss-1");
+        bindReq.setScoreSheetVersionId(publishedScoreSheetVersion(projectId));
         mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)

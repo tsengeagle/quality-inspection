@@ -63,7 +63,8 @@ class InitialReviewIntegrityIntegrationTest {
             sheet.publishVersion();
             scores.save(sheet);
         }
-        projects.save(ReviewProject.reconstitute("p", "H001", "Project", null, "ss", null,
+        projects.save(ReviewProject.reconstitute("p", "H001", "Project", null,
+                com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1), null,
                 ProjectStatus.ACTIVE, 1, true, new BigDecimal("100"),
                 new BigDecimal("0.5"), new BigDecimal("0.5")));
         ReviewCaseEntity rc = new ReviewCaseEntity();
@@ -75,7 +76,7 @@ class InitialReviewIntegrityIntegrationTest {
         rc.setReviewerId("doctor");
         rc.setReviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
         rc.setLatestInitialSubmissionId("s1");
-        rc.setScoreSheetVersionRef("ss");
+        rc.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
         rc.setInitialReviewScore(BigDecimal.TEN);
         rc.setFinalScore(BigDecimal.TEN);
         cases.save(rc);
@@ -89,7 +90,7 @@ class InitialReviewIntegrityIntegrationTest {
         sub.setAnswerSet(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)));
         sub.setTotalScore(BigDecimal.TEN);
         sub.setComment("original");
-        sub.setBasedOnScoreSheetVersionId("ss");
+        sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
         sub.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
         sub.setUpdatedAt(sub.getCreatedAt());
         submissions.save(sub);
@@ -151,7 +152,7 @@ class InitialReviewIntegrityIntegrationTest {
             target.setAnswerSet(sub.getAnswerSet());
             target.setTotalScore(sub.getTotalScore());
             target.setComment("referenced target");
-            target.setBasedOnScoreSheetVersionId("ss");
+            target.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
             submissions.save(target);
             rc.setLatestInitialSubmissionId(target.getSubmissionId());
         }
@@ -217,7 +218,7 @@ class InitialReviewIntegrityIntegrationTest {
         assertEquals("revision 2", s2.getComment());
         for (ReviewSubmissionEntity version : Arrays.asList(s1, s2, s3)) {
             assertEquals("doctor", version.getReviewerId());
-            assertEquals("ss", version.getBasedOnScoreSheetVersionId());
+            assertEquals(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1), version.getBasedOnScoreSheetVersionId());
         }
         ReviewCaseEntity rc = cases.findById("c1").orElseThrow();
         assertEquals(s3.getSubmissionId(), rc.getLatestInitialSubmissionId());

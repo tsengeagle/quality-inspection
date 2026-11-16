@@ -449,7 +449,8 @@ class SamplingUseCaseTest {
         assertEquals("H001", context.getHospitalId());
         assertEquals("ACTIVE", context.getProjectStatus());
         assertEquals(1, context.getVersionNo());
-        assertEquals("ss-test", context.getScoreSheetId());
+        // 專案綁定的是評分表版本 id（D-041、D-050 第 1 點）
+        assertEquals(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss-test", 1), context.getScoreSheetId());
         assertFalse(context.isPreviewReady());
         assertFalse(context.isExecuting());
         assertFalse(context.isExecuteFailed());
@@ -524,7 +525,6 @@ class SamplingUseCaseTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT, MedicalRecordType.INPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-test");
         project.activate();
         return project;
     }

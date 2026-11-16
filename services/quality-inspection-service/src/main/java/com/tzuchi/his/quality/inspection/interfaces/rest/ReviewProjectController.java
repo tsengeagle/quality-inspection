@@ -101,7 +101,7 @@ public class ReviewProjectController {
             @CurrentActor ActorContext actor,
             @PathVariable String projectId,
             @Valid @RequestBody BindScoreSheetRequest request) {
-        bindScoreSheetUseCase.execute(actor, projectId, request.getScoreSheetId());
+        bindScoreSheetUseCase.execute(actor, projectId, request.getScoreSheetVersionId());
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 

@@ -73,7 +73,7 @@ class SaveInitialReviewDraftUseCaseTest {
 
     private ReviewSubmission seedDraftSubmission() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         submissionRepo.save(sub);
         return sub;
     }
@@ -82,7 +82,7 @@ class SaveInitialReviewDraftUseCaseTest {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", "p1", HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer(REVIEWER_ID, java.time.LocalDateTime.now());
-        rc.startInitialReview(SUBMISSION_ID, SCORE_SHEET_ID);
+        rc.startInitialReview(SUBMISSION_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
         return rc;
     }
@@ -166,7 +166,7 @@ class SaveInitialReviewDraftUseCaseTest {
         seedPublishedScoreSheet();
         seedReviewCase();
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null);
         sub.submit();
         submissionRepo.save(sub);
@@ -256,9 +256,9 @@ class SaveInitialReviewDraftUseCaseTest {
         old.updateDraft(Collections.emptyList(), new BigDecimal("7"), "historical");
         rc.returnToInitialReview("return");
         rc.reopenInitialReview();
-        rc.startInitialReview("sub-2", SCORE_SHEET_ID);
+        rc.startInitialReview("sub-2", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
-        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         submissionRepo.save(current);
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);

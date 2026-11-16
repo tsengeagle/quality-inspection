@@ -39,7 +39,6 @@ class ActivateReviewProjectUseCaseTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         repository.save(project);
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
@@ -55,7 +54,6 @@ class ActivateReviewProjectUseCaseTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         repository.save(project);
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
@@ -109,7 +107,6 @@ class ActivateReviewProjectUseCaseTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         repository.save(project);
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H999"));

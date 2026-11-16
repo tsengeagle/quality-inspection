@@ -91,7 +91,6 @@ class UpdateReviewProjectDraftUseCaseTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         project.activate();
         repository.save(project);
         ActorContext actor = new ActorContext("u1", "Manager",

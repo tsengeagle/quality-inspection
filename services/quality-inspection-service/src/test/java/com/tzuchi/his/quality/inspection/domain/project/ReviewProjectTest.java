@@ -53,7 +53,6 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
 
         project.activate();
 
@@ -74,7 +73,6 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         project.activate();
 
         project.deactivate();
@@ -163,7 +161,6 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         project.activate();
 
         DomainStateConflictException ex = assertThrows(DomainStateConflictException.class,
@@ -187,7 +184,6 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         project.activate();
 
         assertThrows(DomainStateConflictException.class,
@@ -209,7 +205,6 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
 
         project.activate();
 
@@ -229,27 +224,11 @@ class ReviewProjectTest {
     }
 
     @Test
-    void activate_fromDeactivated_shouldThrow() {
-        ReviewProject project = ReviewProject.create("p1", "h1", "Test",
-                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
-        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
-        project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
-        project.activate();
-        project.deactivate();
-
-        DomainStateConflictException ex = assertThrows(DomainStateConflictException.class,
-                project::activate);
-        assertEquals("INVALID_STATE_TRANSITION", ex.getErrorCode());
-    }
-
-    @Test
     void activate_alreadyActive_shouldBeIdempotent() {
         ReviewProject project = ReviewProject.create("p1", "h1", "Test",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         project.activate();
 
         project.activate(); // no throw
@@ -263,7 +242,6 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         project.activate();
 
         project.deactivate();
@@ -287,7 +265,6 @@ class ReviewProjectTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.bindScoreSheet("ss-1");
         project.activate();
         project.deactivate();
 
@@ -314,5 +291,20 @@ class ReviewProjectTest {
         assertEquals(new java.math.BigDecimal("85.00"), project.getCurrentVersion().getQualityThreshold());
         assertEquals(new java.math.BigDecimal("0.50"), project.getCurrentVersion().getInitialReviewWeight());
         assertEquals(new java.math.BigDecimal("0.50"), project.getCurrentVersion().getRereviewWeight());
+    }
+
+    @Test
+    void activate_deactivatedProject_reactivates_RPT03() {
+        // specs/review-project RP-T-03（D-039）：DEACTIVATED → ACTIVE
+        ReviewProject project = ReviewProject.create("p1", "h1", "Test",
+                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
+        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
+        project.publishNewVersion();
+        project.activate();
+        project.deactivate();
+
+        project.activate();
+
+        assertEquals(ProjectStatus.ACTIVE, project.getStatus());
     }
 }

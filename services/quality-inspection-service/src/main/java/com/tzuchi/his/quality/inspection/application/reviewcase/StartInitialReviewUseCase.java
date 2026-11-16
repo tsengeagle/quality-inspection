@@ -76,8 +76,8 @@ public class StartInitialReviewUseCase {
                     "Project has no bound score sheet");
         }
 
-        // Load and validate score sheet is published
-        ScoreSheetDefinition scoreSheet = scoreSheetRepository.findById(boundScoreSheetId)
+        // Load and validate score sheet is published. The project binds a score sheet version id (D-041, D-050 pt 1).
+        ScoreSheetDefinition scoreSheet = scoreSheetRepository.findByVersionId(boundScoreSheetId)
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheetDefinition not found: " + boundScoreSheetId));
 
