@@ -10,7 +10,8 @@
 
 | aggregate | 位置 | 狀態 |
 |---|---|---|
-| `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。37 條規則全部 `decided`；30 個範例，其中 12 個要等評分表的規格（`needs`，含透過 fixture 間接需要的）；`RP-INV-04` 由抽選的 use case 執行，沒有範例。沒有待裁決的題目（Q-12 於 D-051 裁決） |
+| `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。42 條規則全部 `decided`，含評分表升格時加入的綁定（`BindScoreSheetToProject`，D-050 第 8 點）；36 個範例。沒有範例的規則：`RP-INV-04`（由抽選的 use case 執行）、`RP-BND-03`（範例拿不到未發布的版本 id）。沒有待裁決的題目 |
+| `ScoreSheetDefinition` | `specs/score-sheet/` | 2026-11-15 由 `spec-draft/` 升格。38 條規則全部 `decided`（D-050）；36 個範例。程式尚未照規格修改，未通過的範例列在已知失敗清單（見 `score-sheet/OPEN-QUESTIONS.md`「程式現況」） |
 
 尚未轉換的 aggregate 以 `docs/01-requirements` 到 `docs/04-testing` 為準。
 
@@ -107,6 +108,8 @@ specs/
 | `set<T>` | 不重複、無順序的集合。空集合與 null 的差別要在屬性上寫明 |
 | `decimal(n)` | 十進位數，小數 n 位。範例裡寫成字串，例如 `"0.50"` |
 | `int`、`boolean` | 整數、布林 |
+| `list<T>` | 有順序、可重複的清單。範例比對時不比順序（第四節「執行」） |
+| `T`（`input_types` 的名稱） | 輸入裡的物件結構。在 `usecases.yaml` 的 `input_types` 用名稱定義欄位，輸入的型別直接寫名稱或 `list<名稱>`。檢查程式目前不驗證名稱是否有定義 |
 | `ref <Aggregate>` | 指向另一個 aggregate 的 id。`external: true` 表示資料由外部系統提供 |
 
 ## 六、檢查程式擋什麼、只列出什麼

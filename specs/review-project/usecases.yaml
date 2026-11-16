@@ -15,6 +15,7 @@ sources:
   - { decision: D-046 }
   - { decision: D-047 }
   - { decision: D-049 }
+  - { decision: D-050 }
   - { decision: D-051 }
   - { doc: docs/02-ddd/application-service.md, section: "§5、§5.1" }
   - { doc: docs/02-ddd/domain-events.md, section: "§4.1–§4.4" }
@@ -30,6 +31,7 @@ error_codes:
   - { code: ROLE_DENIED,                     category: denied,         source: [{ decision: D-023 }] }
   - { code: HOSPITAL_SCOPE_MISMATCH,         category: denied,         source: [{ decision: D-024 }] }
   - { code: PROJECT_NOT_FOUND,               category: not_found,      source: [{ doc: docs/03-contracts/api-spec.md }] }
+  - { code: SCORE_SHEET_NOT_FOUND,           category: not_found,      source: [{ decision: D-050 }, { doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }] }
   - { code: VALIDATION_ERROR,                category: invalid_input,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
   - { code: INVALID_STATE_TRANSITION,        category: conflict,       source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
   - { code: PROJECT_VERSION_NOT_PUBLISHABLE, category: rule_violation, source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
@@ -139,6 +141,36 @@ usecases:
           source: [{ decision: D-047 }, { decision: D-049 }]
       emits:
         - { event: ReviewProjectDraftUpdated, status: decided, source: [{ decision: D-040 }] }
+
+  - name: BindScoreSheetToProject
+    kind: command
+    summary: 把已發布的評分表版本綁定到專案目前的草稿版本
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId,           type: id, required: true }
+      - { name: scoreSheetVersionId, type: id, required: true, status: decided, source: [{ decision: D-041 }, { decision: D-050 }] }
+    guards: [RP-G-01, RP-G-02, RP-G-03]
+    # 檢查順序依 D-050 第 8 點
+    rules:
+      - id: RP-BND-01
+        when: currentVersion.published = true
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        source: [{ decision: D-050 }, { rule: RP-INV-01 }]
+        status: decided
+      - id: RP-BND-02
+        when: scoreSheetVersionId 找不到對應的評分表版本，或該版本屬於另一個專案（兩者結果相同，不透露其他專案的版本是否存在）
+        outcome: { result: REJECTED, code: SCORE_SHEET_NOT_FOUND }
+        source: [{ decision: D-050 }]
+        status: decided
+      - id: RP-BND-03
+        when: 評分表版本尚未發布
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        source: [{ decision: D-050 }]
+        status: decided
+    success:
+      state:
+        - { id: RP-BND-S1, text: currentVersion.scoreSheetVersionRef = scoreSheetVersionId；已綁定時由新的輸入取代, status: decided, source: [{ decision: D-041 }, { decision: D-050 }] }
+        - { id: RP-BND-S2, text: status、currentVersion.versionNo、currentVersion.published 與其他版本內容不變, status: decided, source: [{ decision: D-050 }] }
 
   - name: PublishReviewProjectVersion
     kind: command

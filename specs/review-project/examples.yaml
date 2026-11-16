@@ -22,24 +22,39 @@ fixtures:
         input: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5 }
         save: { p: projectId }
 
-  bound_project:
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+  # 評分表要有至少一個題目才能發布（SS-PUB-02）
+  published_score_sheet:
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     steps:
       - use: draft_project
       - run: CreateScoreSheetDraft
         as: manager_h1
-        input_pending: 評分表的規格尚未轉換
+        input: { projectId: "${p}" }
         save: { s: scoreSheetId }
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", weight: "1", requiredRule: ALWAYS_REQUIRED }
       - run: PublishScoreSheetVersion
         as: manager_h1
         input: { scoreSheetId: "${s}" }
         save: { sv: scoreSheetVersionId }
+
+  bound_project:
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
+    steps:
+      - use: published_score_sheet
       - run: BindScoreSheetToProject
         as: manager_h1
         input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
 
   published_project:
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     steps:
       - use: bound_project
       - run: PublishReviewProjectVersion
@@ -47,7 +62,7 @@ fixtures:
         input: { projectId: "${p}" }
 
   active_project:
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     steps:
       - use: published_project
       - run: ActivateReviewProject
@@ -264,7 +279,7 @@ examples:
   - name: rejects_update_after_the_version_is_published
     basis: [RP-UPD-01, RP-INV-01]
     derived_from: [EX-018, TS-PV-004]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: published_project
     when:
@@ -277,6 +292,89 @@ examples:
         as: manager_h1
         input: { projectId: "${p}" }
         expect: { result: SUCCESS, output: { name: "門診品質審查", versionPublished: true } }
+
+  # ---------- BindScoreSheetToProject ----------
+  # 綁定成功（RP-BND-S1）只能透過「之後可以發布」觀察：專案詳情的輸出沒有評分表版本（D-043）。
+
+  - name: binding_a_published_score_sheet_allows_publishing
+    basis: [RP-BND-S1, RP-BND-S2, RP-PUB-S1]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
+    given:
+      - use: published_score_sheet
+    when:
+      run: BindScoreSheetToProject
+      as: manager_h1
+      input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect:
+          result: SUCCESS
+          output: { status: DRAFT, versionNo: 1, versionPublished: false }
+      - run: PublishReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS }
+
+  - name: rejects_bind_by_a_non_manager
+    basis: [RP-G-01]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
+    given:
+      - use: published_score_sheet
+    when:
+      run: BindScoreSheetToProject
+      as: reviewer_h1
+      input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_bind_to_another_hospitals_project
+    basis: [RP-G-03]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
+    given:
+      - use: published_score_sheet
+    when:
+      run: BindScoreSheetToProject
+      as: manager_h2
+      input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_bind_after_the_version_is_published
+    basis: [RP-BND-01]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
+    given:
+      - use: published_project
+    when:
+      run: BindScoreSheetToProject
+      as: manager_h1
+      input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+
+  - name: rejects_bind_of_an_unknown_score_sheet_version
+    basis: [RP-BND-02]
+    given:
+      - use: draft_project
+    when:
+      run: BindScoreSheetToProject
+      as: manager_h1
+      input: { projectId: "${p}", scoreSheetVersionId: "no-such-version" }
+    then: { result: REJECTED, code: SCORE_SHEET_NOT_FOUND }
+
+  - name: rejects_bind_of_another_projects_score_sheet_version
+    basis: [RP-BND-02]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
+    given:
+      - use: published_score_sheet
+      - run: CreateReviewProject
+        as: manager_h1
+        input: { name: "住院品質審查", medicalRecordTypes: [INPATIENT], qualityThreshold: 5 }
+        save: { other: projectId }
+    when:
+      run: BindScoreSheetToProject
+      as: manager_h1
+      input: { projectId: "${other}", scoreSheetVersionId: "${sv}" }
+    then: { result: REJECTED, code: SCORE_SHEET_NOT_FOUND }
 
   # ---------- PublishReviewProjectVersion ----------
 
@@ -298,7 +396,7 @@ examples:
   - name: publishes_the_draft_version
     basis: [RP-PUB-S1, RP-PUB-S2]
     derived_from: [TS-PV-003]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: bound_project
     when:
@@ -314,7 +412,7 @@ examples:
 
   - name: rejects_publish_when_weights_do_not_sum_to_one
     basis: [RP-PUB-03, RP-INV-02]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: bound_project
       - run: UpdateReviewProjectDraft
@@ -334,7 +432,7 @@ examples:
   # 相加為 1.00，但 initialReviewWeight 不大於 0。
   - name: rejects_publish_when_a_weight_is_zero
     basis: [RP-PUB-03, RP-INV-02]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: bound_project
       - run: UpdateReviewProjectDraft
@@ -348,7 +446,7 @@ examples:
 
   - name: rejects_publish_without_a_quality_threshold
     basis: [RP-PUB-04]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: bound_project
       - run: UpdateReviewProjectDraft
@@ -367,7 +465,7 @@ examples:
 
   - name: rejects_weight_change_after_the_version_is_published
     basis: [RP-INV-03, RP-UPD-01]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: published_project
     when:
@@ -383,7 +481,7 @@ examples:
 
   - name: rejects_publish_of_an_already_published_version
     basis: [RP-PUB-01]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: published_project
     when:
@@ -416,7 +514,7 @@ examples:
 
   - name: activates_a_published_project
     basis: [RP-T-01, RP-ACT-S1]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: published_project
     when:
@@ -432,7 +530,7 @@ examples:
 
   - name: activating_an_active_project_changes_nothing
     basis: [RP-ACT-01]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: active_project
     when:
@@ -465,7 +563,7 @@ examples:
 
   - name: deactivates_an_active_project
     basis: [RP-T-02, RP-DEA-S1]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: active_project
     when:
@@ -481,7 +579,7 @@ examples:
 
   - name: deactivating_a_deactivated_project_changes_nothing
     basis: [RP-DEA-01]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: active_project
       - run: DeactivateReviewProject
@@ -500,7 +598,7 @@ examples:
 
   - name: reactivates_a_deactivated_project
     basis: [RP-T-03, RP-ACT-S1]
-    needs: [CreateScoreSheetDraft, PublishScoreSheetVersion, BindScoreSheetToProject]
+    needs: [CreateScoreSheetDraft, UpdateScoreSheetDraft, PublishScoreSheetVersion]
     given:
       - use: active_project
       - run: DeactivateReviewProject
@@ -557,3 +655,13 @@ not_covered:
       或由實作端的白箱測試負責
   - rules: [RP-INV-04]
     reason: 由抽選的 use case 執行，不在本次範圍
+  - rules: [RP-BND-03]
+    reason: >
+      評分表版本 id 在發布時才產生（D-050 第 1 點），範例拿不到「尚未發布的版本 id」。
+      要等「建立新的草稿版本」定案（D-050 第 1 點、D-040 Pending）才寫得出範例
+  - rules: [RP-BND-S1]
+    reason: >
+      只驗證到一部分：binding_a_published_score_sheet_allows_publishing 只觀察到「綁定後可以發布」。
+      「參照等於輸入」與「重新綁定會取代舊值」都看不到，因為專案詳情的輸出沒有評分表版本參照（D-043），
+      綁錯版本或重新綁定時保留舊值，這組範例都抓不到。要由實作端的白箱測試驗證，
+      或等有查詢能讀到這個參照時（例如抽選使用的評分表版本）再補範例
