@@ -34,12 +34,6 @@ public class InMemoryRereviewAccessRecords implements RereviewerAssignmentHistor
         return !incompleteCases.contains(caseId);
     }
 
-    public Set<String> findCaseIdsAssignedTo(String rereviewerId) {
-        Set<String> ids = new HashSet<>();
-        history.stream().filter(r -> r.getRereviewerId().equals(rereviewerId)).forEach(r -> ids.add(r.getCaseId()));
-        return ids;
-    }
-
     @Override
     public void pinCaseVersion(String caseId) {
         calls.add("pin:" + caseId);

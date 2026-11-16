@@ -13,6 +13,11 @@ import javax.persistence.EntityManager;
 import javax.persistence.LockModeType;
 import javax.persistence.PersistenceContext;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /** D-055 的複審指派歷史與初審讀取者紀錄。寫入方法只在呼叫端的交易中執行（MANDATORY）。 */
@@ -51,16 +56,37 @@ public class RereviewAccessRecordAdapter implements RereviewerAssignmentHistoryP
     }
 
     @Override
-    public Set<String> findCaseIdsAssignedTo(String rereviewerId) {
-        return history.findCaseIdsByRereviewerId(rereviewerId);
+    public Set<String> findCaseIdsAssignedTo(String rereviewerId, Collection<String> caseIds) {
+        Set<String> found = new HashSet<>();
+        for (List<String> batch : batches(caseIds)) {
+            found.addAll(history.findCaseIdsByRereviewerIdAndCaseIdIn(rereviewerId, batch));
+        }
+        return found;
     }
 
     @Override
-    public Set<String> findHistoryIncompleteCaseIds() {
-        return new java.util.HashSet<>(entityManager.createQuery(
-                "select e.caseId from ReviewCaseEntity e where e.rereviewerHistoryComplete = false", String.class)
-                .getResultList());
+    public Set<String> findHistoryIncompleteCaseIds(Collection<String> caseIds) {
+        Set<String> found = new HashSet<>();
+        for (List<String> batch : batches(caseIds)) {
+            found.addAll(entityManager.createQuery("select e.caseId from ReviewCaseEntity e"
+                            + " where e.rereviewerHistoryComplete = false and e.caseId in :caseIds", String.class)
+                    .setParameter("caseIds", batch)
+                    .getResultList());
+        }
+        return found;
     }
+
+    /** Oracle 的 IN 清單最多 1000 個值（ORA-01795），分批查詢。 */
+    static List<List<String>> batches(Collection<String> ids) {
+        List<String> all = new ArrayList<>(new LinkedHashSet<>(ids));
+        List<List<String>> out = new ArrayList<>();
+        for (int i = 0; i < all.size(); i += IN_LIMIT) {
+            out.add(all.subList(i, Math.min(all.size(), i + IN_LIMIT)));
+        }
+        return out;
+    }
+
+    static final int IN_LIMIT = 1000;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)

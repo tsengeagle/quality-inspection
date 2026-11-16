@@ -88,20 +88,27 @@ public class ExportQueryService {
      * 該案歷史不完整（無法證明匯出者不是歷史複審醫師）。
      */
     private List<ExportRow> maskScores(ActorContext actor, List<ExportRow> rows) {
-        Set<String> historicalCases = historyQuery.findCaseIdsAssignedTo(actor.getUserId());
-        Set<String> incompleteCases = historyQuery.findHistoryIncompleteCaseIds();
+        if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
+            return rows.stream().map(ExportQueryService::masked).collect(Collectors.toList());
+        }
+        // 只有「狀態已不可能再指派、且匯出者不是現任複審醫師」的案件需要查歷史；其他一律遮罩，不必查。
+        List<String> candidates = rows.stream()
+                .filter(r -> !maskedWithoutHistory(actor, r))
+                .map(ExportRow::getCaseId)
+                .collect(Collectors.toList());
+        Set<String> historicalCases = candidates.isEmpty() ? Set.of()
+                : historyQuery.findCaseIdsAssignedTo(actor.getUserId(), candidates);
+        Set<String> incompleteCases = candidates.isEmpty() ? Set.of()
+                : historyQuery.findHistoryIncompleteCaseIds(candidates);
         return rows.stream()
-                .map(r -> mustMask(actor, r, historicalCases, incompleteCases) ? masked(r) : r)
+                .map(r -> maskedWithoutHistory(actor, r) || historicalCases.contains(r.getCaseId())
+                        || incompleteCases.contains(r.getCaseId()) ? masked(r) : r)
                 .collect(Collectors.toList());
     }
 
-    private static boolean mustMask(ActorContext actor, ExportRow r, Set<String> historicalCases,
-                                    Set<String> incompleteCases) {
-        return actor.hasRole(DomainRole.SYSTEM_ADMIN)
-                || !NO_FURTHER_REREVIEWER.contains(CaseStatus.valueOf(r.getStatus()))
-                || Objects.equals(actor.getUserId(), r.getRereviewerId())
-                || historicalCases.contains(r.getCaseId())
-                || incompleteCases.contains(r.getCaseId());
+    private static boolean maskedWithoutHistory(ActorContext actor, ExportRow r) {
+        return !NO_FURTHER_REREVIEWER.contains(CaseStatus.valueOf(r.getStatus()))
+                || Objects.equals(actor.getUserId(), r.getRereviewerId());
     }
 
     private static ExportRow masked(ExportRow r) {

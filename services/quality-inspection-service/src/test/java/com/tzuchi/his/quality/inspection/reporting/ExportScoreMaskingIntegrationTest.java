@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -121,6 +122,27 @@ class ExportScoreMaskingIntegrationTest {
     void systemAdmin_neverGetsPerCaseScores() {
         save("c", CaseStatus.CLOSED, "rr");
         assertMasked(exportAs("admin", DomainRole.SYSTEM_ADMIN).get("c"));
+    }
+
+    /** 候選案件超過 Oracle IN 清單上限（1000）時分批查詢，第 1001 筆之後的案件仍正確遮罩。 */
+    @Test
+    void moreThanOneThousandCandidates_areQueriedInBatches() {
+        List<Object[]> rows = new java.util.ArrayList<>();
+        for (int i = 0; i < 1201; i++) {
+            rows.add(new Object[]{String.format("bulk-%04d", i), i == 1150 ? 0 : 1});
+        }
+        jdbc.batchUpdate("insert into review_case (case_id, batch_id, project_id, hospital_id, status, rereview_required,"
+                + " initial_review_score, final_score, rereviewer_history_complete)"
+                + " values (?, 'b', 'p', 'H001', 'CLOSED', 0, 92, 86, ?)", rows);
+        history.save(new RereviewerAssignmentHistoryEntity("bulk-1200", "rr1", Instant.parse("2026-01-01T00:00:00Z"), "mgr", "ASSIGN"));
+
+        Map<String, ExportRow> exported = exportAs("rr1", DomainRole.AUDITOR);
+
+        assertThat(exported).hasSize(1201);
+        assertShown(exported.get("bulk-0000"));
+        assertShown(exported.get("bulk-1199"));
+        assertMasked(exported.get("bulk-1150")); // 歷史不完整
+        assertMasked(exported.get("bulk-1200")); // 歷史複審醫師
     }
 
     @Test
