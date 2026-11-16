@@ -16,18 +16,26 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GetReviewCaseDetailUseCaseTest {
 
+    /** D-055：預設案件歷史完整、沒有歷史紀錄；需要時由個別測試調整。 */
+    private final com.tzuchi.his.quality.inspection.testfixture.InMemoryRereviewAccessRecords accessRecords =
+            new com.tzuchi.his.quality.inspection.testfixture.InMemoryRereviewAccessRecords();
+
+    private ReviewReadAccessPolicy newPolicy() {
+        return new ReviewReadAccessPolicy(accessRecords, accessRecords, java.time.Clock.systemUTC());
+    }
+
     private InMemoryQueryPort queryPort;
     private GetReviewCaseDetailUseCase useCase;
 
     @BeforeEach
     void setUp() {
         queryPort = new InMemoryQueryPort();
-        useCase = new GetReviewCaseDetailUseCase(queryPort, new ReviewReadAccessPolicy(org.mockito.Mockito.mock(com.tzuchi.his.quality.inspection.application.audit.AuditTrailQueryPort.class), new com.fasterxml.jackson.databind.ObjectMapper()),
+        useCase = new GetReviewCaseDetailUseCase(queryPort, newPolicy(),
                 new CaseDetailMetadataMapper(org.mockito.Mockito.mock(com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectQueryPort.class)));
     }
 
     @Test
-    void managerWithUnknownHistoryIsDenied_D035() {
+    void managerWithIncompleteHistoryIsDenied_D055() {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
                 "c1", "p1", "b1", "H001", "CLOSED", "r1", null,
                 "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85),
@@ -36,8 +44,25 @@ class GetReviewCaseDetailUseCaseTest {
         queryPort.setDetail("c1", detail);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
+        accessRecords.incompleteCases.add("c1"); // D-055：歷史不完整 → UNKNOWN
         assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
                 () -> useCase.execute(actor, "c1"));
+        assertFalse(accessRecords.hasRead("c1", "u1"));
+    }
+
+    @Test
+    void managerWithCompleteHistoryIsGrantedAndRecorded_D055() {
+        ReviewCaseDetailView detail = new ReviewCaseDetailView(
+                "c1", "p1", "b1", "H001", "CLOSED", "r1", null,
+                "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85),
+                "PASS", null, null, null, null, null, Collections.emptyList(), null,
+                null, null, false);
+        queryPort.setDetail("c1", detail);
+        ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        // D-055：歷史完整且不在歷史中 → Proven non-historical，准許並記錄讀取者
+        assertNotNull(useCase.execute(actor, "c1"));
+        assertTrue(accessRecords.hasRead("c1", "u1"));
     }
 
     @Test
@@ -54,8 +79,8 @@ class GetReviewCaseDetailUseCaseTest {
         assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, "c1"));
     }
 
-        @Test
-        void assignedReviewerWithUnknownHistoryIsDenied_D035() {
+    @Test
+    void assignedReviewerWithIncompleteHistoryIsDenied_D055() {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
             "c1", "p1", "b1", "H001", "INITIAL_REVIEW_IN_PROGRESS",
             "reviewer-1", null, "OUTPATIENT", "SK-1",
@@ -70,9 +95,32 @@ class GetReviewCaseDetailUseCaseTest {
         ActorContext actor = new ActorContext(
             "reviewer-1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
+        accessRecords.incompleteCases.add("c1"); // D-055：歷史不完整 → UNKNOWN
         assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
                 () -> useCase.execute(actor, "c1"));
-        }
+        assertFalse(accessRecords.hasRead("c1", "reviewer-1"));
+    }
+
+    @Test
+    void assignedReviewerWithCompleteHistoryIsGrantedAndRecorded_D055() {
+        ReviewCaseDetailView detail = new ReviewCaseDetailView(
+            "c1", "p1", "b1", "H001", "INITIAL_REVIEW_IN_PROGRESS",
+            "reviewer-1", null, "OUTPATIENT", "SK-1",
+            null, null, null,
+            null, null, null, null, null,
+            "sub-init-draft", "ss-init-v1",
+            List.of(new SubmissionSummaryItem(
+                "sub-init-draft", "INITIAL", "reviewer-1", 1,
+                "DRAFT", BigDecimal.ZERO, null)),
+            null, null, null, false, null, null);
+        queryPort.setDetail("c1", detail);
+        ActorContext actor = new ActorContext(
+            "reviewer-1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
+
+        // D-055：歷史完整且不在歷史中 → Proven non-historical，准許並記錄讀取者
+        assertNotNull(useCase.execute(actor, "c1"));
+        assertTrue(accessRecords.hasRead("c1", "reviewer-1"));
+    }
 
         @Test
         void assignedRereviewer_closedCase_shouldBeReadonlyWithoutRevision_D032() {

@@ -15,7 +15,7 @@ class ExportQueryServiceTest {
 
     @Test
     void invalidReportType_shouldThrowBadRequest() {
-        ExportQueryService service = new ExportQueryService(null, null);
+        ExportQueryService service = new ExportQueryService(null, null, null);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         ExportCriteria criteria = new ExportCriteria("INVALID", null, null, null);
 
@@ -24,7 +24,7 @@ class ExportQueryServiceTest {
 
     @Test
     void reviewer_shouldThrowUnauthorized() {
-        ExportQueryService service = new ExportQueryService(null, null);
+        ExportQueryService service = new ExportQueryService(null, null, null);
         ActorContext actor = new ActorContext("r1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
         ExportCriteria criteria = new ExportCriteria("REVIEW_COMPLETION", null, null, null);
 

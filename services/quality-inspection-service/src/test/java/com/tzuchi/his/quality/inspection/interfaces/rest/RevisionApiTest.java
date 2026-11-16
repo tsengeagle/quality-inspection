@@ -226,23 +226,29 @@ class RevisionApiTest {
     // --- GET REVISION HISTORY ---
 
     @Test
-    void getRevisionHistory_returns200_withSubmissions_D035RejectsUnknown() throws Exception {
+    void getRevisionHistory_returns200_withSubmissions_D055() throws Exception {
         seedCompletedCaseWithSubmittedSubmission();
 
         mockMvc.perform(get(BASE + "/c1/revision-history")
                         .header("api-key", reviewerToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
+                .andExpect(jsonPath("$.data.submissions", hasSize(1)))
+                .andExpect(jsonPath("$.data.submissions[0].submissionId").value(SUBMISSION_ID))
+                .andExpect(jsonPath("$.data.submissions[0].stage").value("INITIAL"))
+                .andExpect(jsonPath("$.data.submissions[0].status").value("SUBMITTED"))
+                .andExpect(jsonPath("$.data.submissions[0].revisionNo").value(1));
     }
 
     @Test
-    void getRevisionHistory_hmRole_returns200_D035RejectsUnknown() throws Exception {
+    void getRevisionHistory_hmRole_returns200_D055() throws Exception {
         seedCompletedCaseWithSubmittedSubmission();
 
         mockMvc.perform(get(BASE + "/c1/revision-history")
                         .header("api-key", hmToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
@@ -255,7 +261,7 @@ class RevisionApiTest {
     // --- FULL ROUND-TRIP ---
 
     @Test
-    void fullRoundTrip_revisionPersistsButUnknownHistoryReadIsDenied_D035() throws Exception {
+    void fullRoundTrip_revise_thenQueryHistory_D055() throws Exception {
         seedCompletedCaseWithSubmittedSubmission();
 
         // Step 1: Revise
@@ -273,11 +279,15 @@ class RevisionApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.revisionNo").value(2));
 
-        // D-035 changes this read, not the successful append-only revision above.
+        // Step 2: Query history — should have 2 submissions（D-055：歷史完整 → 可讀取）
         mockMvc.perform(get(BASE + "/c1/revision-history")
                         .header("api-key", reviewerToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissions", hasSize(2)))
+                .andExpect(jsonPath("$.data.submissions[0].revisionNo").value(1))
+                .andExpect(jsonPath("$.data.submissions[0].status").value("SUPERSEDED"))
+                .andExpect(jsonPath("$.data.submissions[1].revisionNo").value(2))
+                .andExpect(jsonPath("$.data.submissions[1].status").value("SUBMITTED"));
         assertEquals(2, submissionJpa.findByCaseId(CASE_ID).size());
         assertEquals(SubmissionStatus.SUPERSEDED, submissionJpa.findById(SUBMISSION_ID).orElseThrow().getStatus());
         String currentId = caseJpa.findById(CASE_ID).orElseThrow().getLatestInitialSubmissionId();

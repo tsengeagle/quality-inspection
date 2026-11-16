@@ -49,11 +49,15 @@ class PermanentBlindReviewReadApiTest {
     @Autowired private AssignRereviewerUseCase assign;
     @Autowired private ReassignRereviewerUseCase reassign;
     @Autowired private ReviewProjectJpaRepository projects;
+    @Autowired private com.tzuchi.his.quality.inspection.infrastructure.persistence.rereviewaccess.InitialReviewReaderJpaRepository readers;
+    @Autowired private com.tzuchi.his.quality.inspection.infrastructure.persistence.rereviewaccess.RereviewerAssignmentHistoryJpaRepository history;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
     private final String[] paths = {"/review-submissions/i1", "/review-submissions/i2",
             "/review-cases/c1", "/review-cases/c1/revision-history"};
 
     @BeforeEach
     void seed() {
+        readers.deleteAll(); history.deleteAll();
         audit.deleteAll(); submissions.deleteAll(); cases.deleteAll();
         ReviewProjectEntity project = new ReviewProjectEntity();
         project.setProjectId("p"); project.setName("Reviewed Project"); project.setHospitalId("H001");
@@ -75,6 +79,12 @@ class PermanentBlindReviewReadApiTest {
         existingAudit.setActorUserId("initial"); existingAudit.setActorUserName("Initial Doctor");
         existingAudit.setHospitalId("H001"); existingAudit.setOccurredAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
         existingAudit.setDetail("SECRET_INITIAL_AUDIT_SCORE=92"); audit.save(existingAudit);
+    }
+
+    /** D-055 的讀取者紀錄與指派歷史會 commit；清掉，避免影響共用同一個資料庫的其他測試（例如指派被 422 擋下）。 */
+    @AfterEach
+    void cleanUpAccessRecords() {
+        readers.deleteAll(); history.deleteAll();
     }
 
     private ReviewSubmissionEntity sub(String id, ReviewStage stage, String owner, SubmissionStatus state) {
@@ -164,11 +174,39 @@ class PermanentBlindReviewReadApiTest {
         }
     }
 
+    /** D-055 第 3 點：歷史完整且不在歷史中 → Proven non-historical，可完整讀取（取代 D-035 時期的全面拒絕）。 */
     @ParameterizedTest
     @ValueSource(strings = {"hospital_manager", "auditor", "reviewer"})
-    void singleRoleFullReadersWithUnknownHistoryAreDenied_D035(String role) throws Exception {
+    void singleRoleFullReadersWithCompleteHistoryCanRead_D055(String role) throws Exception {
+        String user = role.equals("reviewer") ? "initial" : "full-reader";
+        String auth = token(user, "H001", role);
+        for (String path : paths) mvc.perform(get(path).header("api-key", auth)).andExpect(status().isOk());
+        assertTrue(read("/review-submissions/i2", auth).toString().contains("SECRET_INITIAL_ANSWER"));
+        assertEquals(List.of(user), readerIds());
+    }
+
+    /** D-055 第 3 點：歷史不完整仍為 UNKNOWN，拒絕且不留下任何寫入（含讀取者紀錄）。 */
+    @ParameterizedTest
+    @ValueSource(strings = {"hospital_manager", "auditor", "reviewer"})
+    void singleRoleFullReadersWithIncompleteHistoryAreDenied_D055(String role) throws Exception {
+        markHistoryIncomplete();
+        Map<String, String> before = snapshot();
         String auth = token(role.equals("reviewer") ? "initial" : "full-reader", "H001", role);
         for (String path : paths) mvc.perform(get(path).header("api-key", auth)).andExpect(status().isForbidden());
+        assertEquals(before, snapshot());
+        assertTrue(readerIds().isEmpty());
+    }
+
+    private void markHistoryIncomplete() {
+        // 只在測試用的內嵌資料庫模擬 V5 之前就存在的案件；正式程式沒有任何寫入這個欄位的路徑。
+        jdbc.update("update review_case set rereviewer_history_complete = 0 where case_id = 'c1'");
+    }
+
+    private List<String> readerIds() {
+        List<String> ids = new ArrayList<>();
+        readers.findAll().forEach(r -> ids.add(r.getReaderId()));
+        Collections.sort(ids);
+        return ids;
     }
 
     @ParameterizedTest
@@ -268,12 +306,14 @@ class PermanentBlindReviewReadApiTest {
         absent(read(paths[0], currentDoctor), "comment");
         assertTrue(read(paths[2], currentDoctor).path("initialReviewScore").isNull());
         for (JsonNode entry : read(paths[3], currentDoctor).path("submissions")) assertTrue(entry.path("totalScore").isNull());
-        // The audit actor is not the assignee; nevertheless absence of a match is UNKNOWN under D-035.
-        mvc.perform(get(paths[2]).header("api-key", token("manager", "H001", "hospital_manager")))
-                .andExpect(status().isForbidden());
-        mvc.perform(get(paths[0]).header("api-key", token("other-auditor", "H001", "auditor")))
-                .andExpect(status().isForbidden());
         assertEquals(before, snapshot());
+        assertTrue(readerIds().isEmpty());
+        // D-055：A 與 B 都在複審指派歷史中；指派操作者 manager 與 other-auditor 不在其中，歷史完整 → 可讀並記錄讀取者。
+        mvc.perform(get(paths[2]).header("api-key", token("manager", "H001", "hospital_manager")))
+                .andExpect(status().isOk());
+        mvc.perform(get(paths[0]).header("api-key", token("other-auditor", "H001", "auditor")))
+                .andExpect(status().isOk());
+        assertEquals(List.of("manager", "other-auditor"), readerIds());
     }
 
     @Test
@@ -365,8 +405,26 @@ class PermanentBlindReviewReadApiTest {
 
     @ParameterizedTest
     @MethodSource("legitimateReaderControls")
-    void existingFullReaderWithUnknownHistoryIsDenied_D035(String role, boolean noRereview, String path) throws Exception {
-        // This is fixture ground truth, not a runtime certificate of non-historical identity.
+    void existingFullReaderWithCompleteHistoryCanRead_D055(String role, boolean noRereview, String path) throws Exception {
+        fullReaderFixture(noRereview);
+        mvc.perform(get(path).header("api-key", token("unrelated-full-reader", "H001", role)))
+                .andExpect(status().isOk());
+        assertEquals(List.of("unrelated-full-reader"), readerIds());
+    }
+
+    @ParameterizedTest
+    @MethodSource("legitimateReaderControls")
+    void existingFullReaderWithIncompleteHistoryIsDenied_D055(String role, boolean noRereview, String path) throws Exception {
+        fullReaderFixture(noRereview);
+        markHistoryIncomplete();
+        Map<String, String> before = snapshot();
+        mvc.perform(get(path).header("api-key", token("unrelated-full-reader", "H001", role)))
+                .andExpect(status().isForbidden());
+        assertEquals(before, snapshot());
+        assertTrue(readerIds().isEmpty());
+    }
+
+    private void fullReaderFixture(boolean noRereview) throws Exception {
         if (noRereview) {
             ReviewCaseEntity rc = cases.findById("c1").orElseThrow();
             rc.setStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
@@ -375,10 +433,6 @@ class PermanentBlindReviewReadApiTest {
         } else {
             assignmentEvidenceFixture("missingAll", false);
         }
-        Map<String, String> before = snapshot();
-        mvc.perform(get(path).header("api-key", token("unrelated-full-reader", "H001", role)))
-                .andExpect(status().isForbidden());
-        assertEquals(before, snapshot());
     }
 
     private void assignmentEvidenceFixture(String evidence, boolean closed) throws Exception {

@@ -2,6 +2,8 @@ package com.tzuchi.his.quality.inspection.reporting;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
+import com.tzuchi.his.quality.inspection.application.common.RereviewerHistoryQuery;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.ReviewCaseEntity;
 import com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException;
 import org.springframework.stereotype.Service;
@@ -11,7 +13,10 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.*;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,10 +25,18 @@ public class ExportQueryService {
 
     private final EntityManager em;
     private final DashboardQueryService dashboardQueryService;
+    private final RereviewerHistoryQuery historyQuery;
 
-    public ExportQueryService(EntityManager em, DashboardQueryService dashboardQueryService) {
+    /** D-055 第 6 點：進入這些狀態後就不可能再指派或改派複審醫師。 */
+    private static final Set<CaseStatus> NO_FURTHER_REREVIEWER = EnumSet.of(
+            CaseStatus.REREVIEW_IN_PROGRESS, CaseStatus.CLOSED, CaseStatus.CANCELLED);
+    private static final List<String> SCORE_FIELDS = List.of("initialScore", "finalScore");
+
+    public ExportQueryService(EntityManager em, DashboardQueryService dashboardQueryService,
+                              RereviewerHistoryQuery historyQuery) {
         this.em = em;
         this.dashboardQueryService = dashboardQueryService;
+        this.historyQuery = historyQuery;
     }
 
     public ExportResult export(ActorContext actor, ExportCriteria criteria) {
@@ -37,7 +50,7 @@ public class ExportQueryService {
         ExportCriteria scoped = new ExportCriteria(criteria.getReportType(),
                 actor.readScopeHospitalId(criteria.getHospitalId()), criteria.getFrom(), criteria.getTo());
 
-        List<ExportRow> rows = queryRows(scoped);
+        List<ExportRow> rows = maskScores(actor, queryRows(scoped));
         DashboardQueryCriteria dashCriteria = new DashboardQueryCriteria(
                 scoped.getHospitalId(), null, scoped.getFrom(), scoped.getTo());
         DashboardSummary summary = dashboardQueryService.getSummary(actor, dashCriteria);
@@ -67,5 +80,39 @@ public class ExportQueryService {
                         e.getInitialReviewScore(), e.getFinalScore(),
                         null, e.getClosedAt()))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * D-055 第 6 點：匯出不記錄讀取者，改為遮罩逐案分數。下列任一成立即遮罩：
+     * SYSTEM_ADMIN（metadata／aggregated only）；案件之後仍可能指派複審；匯出者是現任或歷史複審醫師；
+     * 該案歷史不完整（無法證明匯出者不是歷史複審醫師）。
+     */
+    private List<ExportRow> maskScores(ActorContext actor, List<ExportRow> rows) {
+        if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
+            return rows.stream().map(ExportQueryService::masked).collect(Collectors.toList());
+        }
+        // 只有「狀態已不可能再指派、且匯出者不是現任複審醫師」的案件需要查歷史；其他一律遮罩，不必查。
+        List<String> candidates = rows.stream()
+                .filter(r -> !maskedWithoutHistory(actor, r))
+                .map(ExportRow::getCaseId)
+                .collect(Collectors.toList());
+        Set<String> historicalCases = candidates.isEmpty() ? Set.of()
+                : historyQuery.findCaseIdsAssignedTo(actor.getUserId(), candidates);
+        Set<String> incompleteCases = candidates.isEmpty() ? Set.of()
+                : historyQuery.findHistoryIncompleteCaseIds(candidates);
+        return rows.stream()
+                .map(r -> maskedWithoutHistory(actor, r) || historicalCases.contains(r.getCaseId())
+                        || incompleteCases.contains(r.getCaseId()) ? masked(r) : r)
+                .collect(Collectors.toList());
+    }
+
+    private static boolean maskedWithoutHistory(ActorContext actor, ExportRow r) {
+        return !NO_FURTHER_REREVIEWER.contains(CaseStatus.valueOf(r.getStatus()))
+                || Objects.equals(actor.getUserId(), r.getRereviewerId());
+    }
+
+    private static ExportRow masked(ExportRow r) {
+        return new ExportRow(r.getCaseId(), r.getProjectId(), r.getHospitalId(), r.getStatus(),
+                r.getReviewerId(), r.getRereviewerId(), null, null, r.getCreatedAt(), r.getClosedAt(), SCORE_FIELDS);
     }
 }
