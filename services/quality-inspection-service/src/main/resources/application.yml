@@ -13,6 +13,12 @@ spring:
       ddl-auto: none
     show-sql: false
     open-in-view: false
+    properties:
+      # D-037: case updatedAt is a UTC instant in a TIMESTAMP column without a time zone. Hibernate 5
+      # converts JDBC timestamps with the JVM default zone unless told otherwise, so a node in
+      # Asia/Taipei would store 10:00Z as 18:00 and a UTC node would read it back as 18:00Z.
+      # LocalDateTime columns are converted the same way and round-trip unchanged on every node.
+      hibernate.jdbc.time_zone: UTC
 
 quality-inspection:
   hospital-id: ${QUALITY_INSPECTION_HOSPITAL_ID:}

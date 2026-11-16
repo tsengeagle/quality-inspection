@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -57,6 +58,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
     @Autowired private PlatformTransactionManager transactions;
     @Autowired private ReviewSubmissionRepository submissions;
     @Autowired private ReviewSubmissionJpaRepository submissionJpa;
+    @Autowired private javax.persistence.EntityManagerFactory emf;
 
     @BeforeEach
     void clean() {
@@ -181,5 +183,18 @@ class ReviewCaseVersionAndUpdatedAtTest {
 
         assertThat(submissionJpa.findById("s1").orElseThrow().getComment()).isEqualTo("first");
         assertThat(updatedAt("c1")).isEqualTo(Instant.parse("2026-11-16T10:00:00Z"));
+    }
+
+    /**
+     * updated_at 是不帶時區的 TIMESTAMP，存的一律是 UTC。Hibernate 5 預設以 JVM 預設時區換算 JDBC 的 TIMESTAMP，
+     * 台北節點寫入 10:00Z 會存成 18:00，UTC 節點再讀就變成 18:00Z。所以 JDBC 時區必須明確是 UTC。
+     * （H2 2.x 的連線在建立時固定時區，同一個 JVM 內切換預設時區無法重現跨節點的偏移，因此直接驗證設定。）
+     */
+    @Test
+    void jdbcTimeZoneIsUtcSoTimestampsDoNotDependOnTheJvmTimeZone() {
+        TimeZone jdbcTimeZone = emf.unwrap(org.hibernate.engine.spi.SessionFactoryImplementor.class)
+                .getSessionFactoryOptions().getJdbcTimeZone();
+        assertThat(jdbcTimeZone).isNotNull();
+        assertThat(jdbcTimeZone.toZoneId().normalized()).isEqualTo(ZoneOffset.UTC);
     }
 }
