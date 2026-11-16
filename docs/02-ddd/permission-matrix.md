@@ -185,6 +185,8 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 
 完整初審內容的 Role／hospital／ownership 合法不足以單獨授權：Proven historical 與 UNKNOWN 均拒絕；Proven non-historical 才能在既有 scope 下繼續。現有證據來源尚無負面身份證明能力，因此 Manager／Auditor、無需複審案件及初審 REVIEWER 本人的完整讀取均可能 403。合法 REREVIEWER 仍只讀本人複審內容，初審永遠遮罩；SYSTEM_ADMIN 僅 metadata-only，D-024 scope 不變。
 
+> D-055（2026-11-16）：以只增不改的複審指派歷史提供負面身份證明。案件歷史完整（導入後建立的案件）且登入者不在歷史中，即為 Proven non-historical；歷史不完整仍為 UNKNOWN 並拒絕。HOSPITAL_MANAGER、AUDITOR、REVIEWER 在歷史完整的案件恢復完整讀取。每次准許完整初審讀取都記錄讀取者，讀過的人不得再被指派或改派為同案複審醫師（`422 REREVIEWER_HAS_READ_INITIAL`）。匯出不記錄讀取者，改為在案件狀態不是 `REREVIEW_IN_PROGRESS`／`CLOSED`／`CANCELLED` 時，或匯出者是該案現任／歷史複審醫師、或該案歷史不完整時，遮罩逐案初審分數與 finalScore；SYSTEM_ADMIN 不取得逐案分數。其餘規則不變。
+
 
 ## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
 

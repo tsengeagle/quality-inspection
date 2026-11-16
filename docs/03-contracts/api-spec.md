@@ -134,6 +134,7 @@ Accept: application/json
 | `BATCH_NOT_RETRYABLE`              |         422 | 批次不可重跑                    |
 | `DUPLICATE_SELECTED_CASE_IN_BATCH` |         409 | 同批次重複抽中同一案件               |
 | `CASE_NOT_ASSIGNABLE`              |         422 | 案件目前不可指派                  |
+| `REREVIEWER_HAS_READ_INITIAL`      |         422 | 指派或改派的複審醫師曾讀過本案完整初審（D-055） |
 | `CASE_NOT_IN_INITIAL_REVIEW_STAGE` |         422 | 案件不在可開始初審狀態               |
 | `CASE_NOT_IN_REREVIEW_STAGE`       |         422 | 案件不在可開始複審狀態               |
 | `CASE_ALREADY_CLOSED`              |         409 | 案件已結案                     |
@@ -929,6 +930,8 @@ Accept: application/json
 
 `dueAt` 為必填。此處僅收斂 command requiredness，不宣稱更深的 due date business validation 已定稿。
 
+對象曾讀過本案完整初審內容時回 `422 REREVIEWER_HAS_READ_INITIAL`（D-055 第 5 點，D-033 永久盲審）。
+
 ---
 
 ## 10.6 改派複審醫師
@@ -949,6 +952,8 @@ Accept: application/json
 ```
 
 不包含 `reason` 欄位。若需改派原因，應先更新 accepted decision / UI page spec / API contract。
+
+對象曾讀過本案完整初審內容時回 `422 REREVIEWER_HAS_READ_INITIAL`（D-055 第 5 點，D-033 永久盲審）。
 
 ---
 
@@ -1357,6 +1362,14 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * `AUDITOR`
 * `SYSTEM_ADMIN`：metadata / aggregated only
 
+#### 逐案分數遮罩（D-055 第 6 點）
+
+* 案件狀態不是 `REREVIEW_IN_PROGRESS`、`CLOSED`、`CANCELLED` 時（之後仍可能指派或改派複審醫師），逐案 `initialScore`、`finalScore` 輸出 `null`，並列入該列的 `maskedFields`。
+* 匯出者是該案目前的複審醫師或出現在複審指派歷史中，或該案歷史不完整時，同樣輸出 `null` 並列入 `maskedFields`（D-033 結案後不解除，D-035 fail-closed）。
+* 以上都不成立時照常輸出。
+* `SYSTEM_ADMIN` 任何狀態都不取得逐案分數。
+* 匯出不寫入初審讀取者紀錄，也不遞增案件版本。
+
 #### Request
 
 ```json
@@ -1570,6 +1583,8 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 ## D-035 歷史身份 Fail-closed 讀取契約
 
 Submission Detail、Case Detail、Revision History：完整初審內容讀取新增 D-035 前置條件。Role／scope 符合但歷史身份 Proven historical 或 UNKNOWN 時，使用既有 HTTP 403、ACCESS_DENIED 與錯誤外殼；不得回傳受限內容、成功資料或默默降級。這包括合法 Manager／Auditor、無需複審案件及無可靠排除證明的初審 REVIEWER。非法 Role／院所等既有拒絕仍優先執行；合法 REREVIEWER 本人複審內容及 SYSTEM_ADMIN 白名單投影不因此擴張。路徑／schema 不變，無新的 completeness token。
+
+> D-055（2026-11-16）：以只增不改的複審指派歷史提供負面身份證明。案件歷史完整（導入後建立的案件）且登入者不在歷史中，即為 Proven non-historical；歷史不完整仍為 UNKNOWN 並拒絕。HOSPITAL_MANAGER、AUDITOR、REVIEWER 在歷史完整的案件恢復完整讀取。每次准許完整初審讀取都記錄讀取者（回應前 commit，寫入失敗即拒絕），讀過的人不得再被指派或改派為同案複審醫師（`422 REREVIEWER_HAS_READ_INITIAL`）。匯出不記錄讀取者，改為在案件仍可能指派複審、匯出者是現任或歷史複審醫師、或歷史不完整時遮罩逐案分數（見 15.2）。其餘規則不變。
 
 
 ## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
