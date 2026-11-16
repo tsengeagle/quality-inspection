@@ -108,7 +108,10 @@ class GetRevisionHistoryUseCaseTest {
     void initialHistoryRemainsBlindThroughoutRereviewLifecycle(String phase) {
         ReviewCase rc = caseRepo.store.get(CASE_ID);
         rc.startInitialReview("initial", SCORE_SHEET_ID);
-        rc.completeInitialReview(new BigDecimal("92"), new BigDecimal("80"));
+        rc.completeInitialReview(new BigDecimal("92"));
+        // D-054：先固定初審，才依品質線判斷流向。
+        rc.fixInitialReview(rc.getLatestInitialSubmissionId(), "reviewer-1",
+                java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("92"), new BigDecimal("80"));
         rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.now());
         ReviewSubmission initial = ReviewSubmission.createInitialDraft("initial", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
         initial.updateDraft(Collections.emptyList(), new BigDecimal("92"), "private initial comment");

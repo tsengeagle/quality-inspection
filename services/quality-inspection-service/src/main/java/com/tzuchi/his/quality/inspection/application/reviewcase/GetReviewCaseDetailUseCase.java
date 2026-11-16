@@ -102,7 +102,7 @@ public class GetReviewCaseDetailUseCase {
                 blocked,
                 blockedReason,
                 raw.getScoreSheetVersionRef(),
-                resolveInitialAllowedActions(pageMode),
+                resolveInitialAllowedActions(pageMode, canFixInitialReview(raw, latestSubmittedBase)),
                 currentSubmission,
                 editableSubmission,
                 toRef(latestSubmittedBase));
@@ -192,6 +192,10 @@ public class GetReviewCaseDetailUseCase {
         if ("CANCELLED".equals(raw.getStatus())) {
             return "CASE_ALREADY_CANCELLED";
         }
+        // D-031、D-054：初審固定後不得再 revision，初審頁唯讀。
+        if (raw.isInitialReviewFixed()) {
+            return "INITIAL_REVIEW_FIXED";
+        }
         if (!hasSubmittedBase && !List.of("PENDING_INITIAL_REVIEW", "INITIAL_REVIEW_IN_PROGRESS").contains(raw.getStatus())) {
             return "CASE_NOT_IN_INITIAL_REVIEW_STAGE";
         }
@@ -219,7 +223,18 @@ public class GetReviewCaseDetailUseCase {
         return null;
     }
 
-    private List<String> resolveInitialAllowedActions(String pageMode) {
+    /**
+     * D-054 第 9 點：案件為 INITIAL_REVIEW_COMPLETED、尚未固定，且登入者提交的最新初審結果就是案件目前有效的初審結果。
+     * （登入者已確認是 REVIEWER、是本案指派醫師，否則 pageMode 已是 READONLY_BLOCKED。）
+     */
+    private boolean canFixInitialReview(ReviewCaseDetailView raw, SubmissionSummaryItem latestSubmittedBase) {
+        return "INITIAL_REVIEW_COMPLETED".equals(raw.getStatus())
+                && !raw.isInitialReviewFixed()
+                && latestSubmittedBase != null
+                && Objects.equals(latestSubmittedBase.getSubmissionId(), raw.getLatestInitialSubmissionId());
+    }
+
+    private List<String> resolveInitialAllowedActions(String pageMode, boolean canFix) {
         List<String> actions = new ArrayList<>();
         if ("NEW_INITIAL_REVIEW".equals(pageMode)) {
             actions.add("START_INITIAL_REVIEW");
@@ -230,6 +245,9 @@ public class GetReviewCaseDetailUseCase {
         }
         if ("REVISION".equals(pageMode)) {
             actions.add("REVISE_INITIAL_REVIEW");
+            if (canFix) {
+                actions.add("FIX_INITIAL_REVIEW");
+            }
         }
         return actions;
     }

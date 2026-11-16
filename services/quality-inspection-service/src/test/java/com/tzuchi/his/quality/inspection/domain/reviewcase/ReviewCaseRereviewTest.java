@@ -20,42 +20,84 @@ class ReviewCaseRereviewTest {
         return rc;
     }
 
-    // --- completeInitialReview threshold tests ---
+    private static final java.time.Instant FIXED_AT = java.time.Instant.parse("2026-01-01T00:00:00Z");
+
+    /** 提交後、尚未固定。 */
+    private ReviewCase submitted(String score) {
+        ReviewCase rc = caseInProgress();
+        rc.completeInitialReview(new BigDecimal(score));
+        return rc;
+    }
+
+    // --- D-031、D-054：提交不判斷品質線，固定時才判斷 ---
 
     @Test
-    void completeInitialReview_scoreAboveThreshold_shouldEscalateToPendingRereview() {
-        ReviewCase rc = caseInProgress();
-        rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80"));
+    void completeInitialReview_alwaysStaysCompletedAndUnfixed_D054() {
+        ReviewCase rc = submitted("90");
+        assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
+        assertEquals(new BigDecimal("90"), rc.getInitialReviewScore());
+        assertFalse(rc.isInitialReviewFixed());
+    }
+
+    @Test
+    void fix_scoreAboveThreshold_shouldEscalateToPendingRereview() {
+        ReviewCase rc = submitted("90");
+        rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("90"), new BigDecimal("80"));
         assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
-        assertEquals(new BigDecimal("90"), rc.getInitialReviewScore());
-        assertNull(rc.getFinalScore());
+        assertTrue(rc.isRereviewRequired());
+        assertEquals(FIXED_AT, rc.getInitialFixedAt());
+        assertEquals("reviewer-1", rc.getInitialFixedBy());
+        assertEquals("sub-1", rc.getInitialFixedSubmissionId());
     }
 
     @Test
-    void completeInitialReview_scoreEqualToThreshold_shouldStayCompleted() {
-        ReviewCase rc = caseInProgress();
-        rc.completeInitialReview(new BigDecimal("80"), new BigDecimal("80"));
+    void fix_scoreEqualToThreshold_shouldStayCompleted() {
+        ReviewCase rc = submitted("80");
+        rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("80"), new BigDecimal("80"));
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
-        assertEquals(new BigDecimal("80"), rc.getInitialReviewScore());
-        assertEquals(new BigDecimal("80"), rc.getFinalScore());
+        assertTrue(rc.isInitialReviewFixed());
     }
 
     @Test
-    void completeInitialReview_scoreBelowThreshold_shouldStayCompleted() {
-        ReviewCase rc = caseInProgress();
-        rc.completeInitialReview(new BigDecimal("60"), new BigDecimal("80"));
+    void fix_scoreBelowThreshold_shouldStayCompleted() {
+        ReviewCase rc = submitted("60");
+        rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("60"), new BigDecimal("80"));
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
-        assertEquals(new BigDecimal("60"), rc.getInitialReviewScore());
-        assertEquals(new BigDecimal("60"), rc.getFinalScore());
     }
 
     @Test
-    void completeInitialReview_nullThreshold_shouldStayCompleted() {
-        ReviewCase rc = caseInProgress();
-        rc.completeInitialReview(new BigDecimal("90"), null);
+    void fix_nullThreshold_shouldStayCompleted() {
+        ReviewCase rc = submitted("90");
+        rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("90"), null);
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
-        assertEquals(new BigDecimal("90"), rc.getInitialReviewScore());
-        assertEquals(new BigDecimal("90"), rc.getFinalScore());
+    }
+
+    @Test
+    void fix_notTheCurrentInitialSubmission_isConflict() {
+        ReviewCase rc = submitted("90");
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> rc.fixInitialReview("old", "reviewer-1", FIXED_AT, new BigDecimal("90"), null));
+        assertEquals("CONFLICT", e.getErrorCode());
+        assertFalse(rc.isInitialReviewFixed());
+    }
+
+    @Test
+    void afterFixing_revisionIsRejected_D054() {
+        ReviewCase rc = submitted("60");
+        rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("60"), new BigDecimal("80"));
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> rc.recordInitialReviewRevision("sub-1", "sub-2", new BigDecimal("70")));
+        assertEquals("INVALID_STATE_TRANSITION", e.getErrorCode());
+    }
+
+    @Test
+    void unfixed_closeWithoutRereviewAndSendToRereviewAreRejected_D054() {
+        ReviewCase rc = submitted("60");
+        assertEquals("INVALID_STATE_TRANSITION",
+                assertThrows(DomainStateConflictException.class, rc::closeWithoutRereview).getErrorCode());
+        assertEquals("INVALID_STATE_TRANSITION",
+                assertThrows(DomainStateConflictException.class, rc::sendToRereview).getErrorCode());
+        assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
     }
 
     @Test
@@ -63,13 +105,13 @@ class ReviewCaseRereviewTest {
         ReviewCase rc = ReviewCase.createFromSampling(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
         assertThrows(DomainStateConflictException.class,
-                () -> rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80")));
+                () -> rc.completeInitialReview(new BigDecimal("90")));
     }
 
+    /** 已提交且已固定（60 ≤ 品質線 80），留在 INITIAL_REVIEW_COMPLETED 等管理者處理。 */
     private ReviewCase caseAtInitialReviewCompleted() {
-        ReviewCase rc = caseInProgress();
-        rc.completeInitialReview(new BigDecimal("60"), new BigDecimal("80"));
-        // score 60 <= threshold 80 → INITIAL_REVIEW_COMPLETED
+        ReviewCase rc = submitted("60");
+        rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("60"), new BigDecimal("80"));
         return rc;
     }
 
@@ -105,10 +147,10 @@ class ReviewCaseRereviewTest {
         assertThrows(DomainStateConflictException.class, rc::sendToRereview);
     }
 
+    /** 已提交且已固定（90 > 品質線 80），進 PENDING_REREVIEW。 */
     private ReviewCase caseAtPendingRereview() {
-        ReviewCase rc = caseInProgress();
-        rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80"));
-        // score 90 > threshold 80 → PENDING_REREVIEW
+        ReviewCase rc = submitted("90");
+        rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("90"), new BigDecimal("80"));
         return rc;
     }
 

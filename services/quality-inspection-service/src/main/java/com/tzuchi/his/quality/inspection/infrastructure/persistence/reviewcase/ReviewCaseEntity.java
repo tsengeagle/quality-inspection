@@ -24,6 +24,16 @@ public class ReviewCaseEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    /** D-054：初審固定的時間（UTC）、固定者、固定的提交；尚未固定時皆為 null。 */
+    @Column(name = "initial_fixed_at")
+    private Instant initialFixedAt;
+
+    @Column(name = "initial_fixed_by")
+    private String initialFixedBy;
+
+    @Column(name = "initial_fixed_submission_id")
+    private String initialFixedSubmissionId;
+
     @Column(name = "batch_id", nullable = false)
     private String batchId;
 
@@ -182,4 +192,10 @@ public class ReviewCaseEntity {
     public Long getVersion() { return version; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public Instant getInitialFixedAt() { return initialFixedAt; }
+    public void setInitialFixedAt(Instant initialFixedAt) { this.initialFixedAt = initialFixedAt; }
+    public String getInitialFixedBy() { return initialFixedBy; }
+    public void setInitialFixedBy(String initialFixedBy) { this.initialFixedBy = initialFixedBy; }
+    public String getInitialFixedSubmissionId() { return initialFixedSubmissionId; }
+    public void setInitialFixedSubmissionId(String id) { this.initialFixedSubmissionId = id; }
 }

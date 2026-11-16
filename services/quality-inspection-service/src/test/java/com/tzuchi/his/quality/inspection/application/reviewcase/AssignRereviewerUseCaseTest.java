@@ -42,7 +42,10 @@ class AssignRereviewerUseCaseTest {
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer("reviewer-1", LocalDateTime.now());
         rc.startInitialReview("sub-1", "ss-1");
-        rc.completeInitialReview(new BigDecimal("90"), new BigDecimal("80"));
+        rc.completeInitialReview(new BigDecimal("90"));
+        // D-054：先固定初審，才依品質線判斷流向。
+        rc.fixInitialReview(rc.getLatestInitialSubmissionId(), "reviewer-1",
+                java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("90"), new BigDecimal("80"));
         // score 90 > threshold 80 → auto-escalated to PENDING_REREVIEW
         caseRepository.save(rc);
         return rc;
