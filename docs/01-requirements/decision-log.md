@@ -2034,3 +2034,37 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 ### Mapping
 
 `docs/03-contracts/api-spec.md` 的「DD-03 初審固定的語意契約」；`docs/02-ddd/state-machine.md` 的初審提交與固定轉移；`docs/03-contracts/persistence-model.md` 的「DD-03 固定持久化與併發保證」。
+
+
+---
+
+## D-055 — 以複審指派歷史證明「不是歷史複審醫師」（補足 D-035）
+
+### Status
+
+`accepted`（2026-11-16，依使用者裁決：方案 A，專用的複審指派歷史）
+
+### Decision
+
+補足 D-035 第 2 點「現有來源尚不能產生可信的 Proven non-historical」：
+
+1. **複審指派歷史**：新增只能新增、不能修改或刪除的紀錄，每次指派或改派複審醫師各一筆，內容為案件、複審醫師、指派時間、操作者、類別（指派／改派）。與案件的指派變更在同一個交易寫入；任何一方失敗，整筆回滾。
+2. **完整性**：案件上記一個「複審指派歷史完整」旗標。導入這份歷史之後建立的案件為完整；導入之前已存在的案件為不完整。正式環境在導入前沒有任何資料（D-045：正式資料庫自 Flyway V1 起，尚未上線），所以正式資料全部是完整的。不得事後把不完整的案件改為完整，也不得補造歷史紀錄。
+3. **判斷規則**（`ReviewReadAccessPolicy`）：
+   - 登入者是目前的複審醫師，或在歷史中出現過 → Proven historical（與現行相同，拒絕完整初審讀取）。
+   - 案件歷史完整，且登入者不在歷史中 → Proven non-historical，可在既有 role／scope／ownership 範圍內完整讀取。
+   - 案件歷史不完整 → UNKNOWN，拒絕（與現行相同）。
+   - 不再以稽核紀錄判斷身份；稽核紀錄維持原用途。
+4. **寫入者**：目前只有指派複審醫師、改派複審醫師兩個 use case 會變更複審醫師，兩者都必須寫入歷史。之後新增任何會變更複審醫師的入口，也必須寫入；以測試確保每一個寫入點都有對應的歷史紀錄。
+5. **不變的部分**：D-033 永久盲審；REREVIEWER 只讀本人複審內容、初審永遠遮罩；SYSTEM_ADMIN 只看 metadata；D-024 院區範圍；多角色同時持有時仍拒絕（未裁決，維持 D-035 第 5 點）；錯誤回應仍為 403 `ACCESS_DENIED`。
+
+### Relationship / Evidence
+
+- 部分取代 D-035 第 2 點的「現有來源尚不能產生可信的 Proven non-historical」與「Consequences」中「受保護的完整讀取可能全面遭拒」：歷史完整的案件可以證明負面身份。D-035 的 fail-closed 原則（UNKNOWN 一律拒絕、不得默默降級、不得補造完整性）不變。
+- 影響：HOSPITAL_MANAGER、AUDITOR、REVIEWER（本案指派或提交的初審醫師）在案件歷史完整時恢復完整讀取，因此初審頁（含 D-054 的 FIX_INITIAL_REVIEW）與管理者明細可以使用。
+- 第 2 點的「不得補造」依據 D-035 第 2 點；完整性來自「從案件建立起每一次指派都被記錄」，不是事後宣告。
+- 這份歷史之後也可以用於生命週期查詢的讀取範圍（2026-11-16 決定暫緩，待需要時裁決），本決策不包含該項。
+
+### Mapping
+
+`docs/02-ddd/permission-matrix.md` 與 `docs/03-contracts/api-spec.md` 的「D-035 歷史身份 Fail-closed 讀取契約」；`docs/03-contracts/persistence-model.md`；實作以建構 PR 落地（Flyway migration、指派兩個 use case、`ReviewReadAccessPolicy`）。

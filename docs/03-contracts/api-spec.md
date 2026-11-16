@@ -1571,6 +1571,8 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 Submission Detail、Case Detail、Revision History：完整初審內容讀取新增 D-035 前置條件。Role／scope 符合但歷史身份 Proven historical 或 UNKNOWN 時，使用既有 HTTP 403、ACCESS_DENIED 與錯誤外殼；不得回傳受限內容、成功資料或默默降級。這包括合法 Manager／Auditor、無需複審案件及無可靠排除證明的初審 REVIEWER。非法 Role／院所等既有拒絕仍優先執行；合法 REREVIEWER 本人複審內容及 SYSTEM_ADMIN 白名單投影不因此擴張。路徑／schema 不變，無新的 completeness token。
 
+> D-055（2026-11-16）：以只增不改的複審指派歷史提供負面身份證明。案件歷史完整（導入後建立的案件）且登入者不在歷史中，即為 Proven non-historical；歷史不完整仍為 UNKNOWN 並拒絕。HOSPITAL_MANAGER、AUDITOR、REVIEWER 在歷史完整的案件恢復完整讀取；其餘規則不變。
+
 
 ## D-036 — UI-010 metadata 八欄與 Lifecycle 延後邊界
 

@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-16-d055-rereviewer-history",
+  "decision": "D-055",
+  "reason": "依負責人 2026-11-16 的裁決（方案 A）新增 D-055：以只增不改的複審指派歷史（與指派變更同一交易寫入）加上案件的「歷史完整」旗標，提供 D-035 缺少的負面身份證明。歷史完整且登入者不在歷史中即為 Proven non-historical，HOSPITAL_MANAGER、AUDITOR、REVIEWER 在該案件恢復完整初審讀取；歷史不完整仍為 UNKNOWN 並拒絕；D-033 盲審、REREVIEWER 遮罩、SYSTEM_ADMIN metadata-only、多角色拒絕、403 ACCESS_DENIED 均不變；不再以稽核紀錄判斷身份。部分取代 D-035 第 2 點與 Consequences 中「現有來源無法證明負面身份」的敘述，fail-closed 原則不變。正式環境自 Flyway V1 起尚無資料，因此正式資料全部完整，不涉及補造。同步 permission-matrix、api-spec 的 D-035 節與 persistence-model。本 PR 只改律法與文件，實作由後續建構 PR 落地。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "docs/02-ddd/permission-matrix.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/03-contracts/persistence-model.md",
+    "law/"
+  ]
+}
