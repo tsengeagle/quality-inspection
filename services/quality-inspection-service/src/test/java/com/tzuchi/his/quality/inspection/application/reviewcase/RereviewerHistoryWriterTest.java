@@ -1,4 +1,4 @@
-package com.tzuchi.his.quality.inspection.architecture;
+package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import org.junit.jupiter.api.Test;
 
