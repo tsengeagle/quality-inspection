@@ -26,6 +26,10 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    // D-045：正式資料庫為 Oracle 19c 以上，schema 由 Flyway 管理。版本跟隨 Spring Boot 2.7.18 的 BOM（8.5.13），
+    // 免費版支援 Oracle 12.2 以上；Flyway 10 以上需要 Java 17。
+    implementation 'org.flywaydb:flyway-core'
+
     runtimeOnly 'com.h2database:h2'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

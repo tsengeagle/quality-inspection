@@ -9,3 +9,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  # D-045 Flyway rollout, step 1: Flyway is on the classpath but disabled for tests, so the
+  # Oracle-syntax migrations added in step 2 never run on this plain-H2 database. Step 3 switches
+  # this profile to H2 Oracle mode, the Oracle dialect, Flyway on and ddl-auto=validate together.
+  flyway:
+    enabled: false
