@@ -52,6 +52,7 @@ public class ReviewCaseController {
     private final SubmitRereviewUseCase submitRereviewUseCase;
     private final ReviseRereviewUseCase reviseRereviewUseCase;
     private final CloseRereviewUseCase closeRereviewUseCase;
+    private final FixInitialReviewUseCase fixInitialReviewUseCase;
     private final GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase;
     private final ListReviewCasesUseCase listReviewCasesUseCase;
     private final GetReviewCaseDetailUseCase getReviewCaseDetailUseCase;
@@ -83,7 +84,8 @@ public class ReviewCaseController {
                                  GetReviewCaseDetailUseCase getReviewCaseDetailUseCase,
                                  GetCaseAssignmentContextUseCase getCaseAssignmentContextUseCase,
                                  ListCaseAssignmentCandidatesUseCase listCaseAssignmentCandidatesUseCase,
-                                 GetCaseLifecycleUseCase getCaseLifecycleUseCase) {
+                                 GetCaseLifecycleUseCase getCaseLifecycleUseCase,
+                                 FixInitialReviewUseCase fixInitialReviewUseCase) {
         this.assignUseCase = assignUseCase;
         this.reassignUseCase = reassignUseCase;
         this.cancelUseCase = cancelUseCase;
@@ -103,6 +105,7 @@ public class ReviewCaseController {
         this.submitRereviewUseCase = submitRereviewUseCase;
         this.reviseRereviewUseCase = reviseRereviewUseCase;
         this.closeRereviewUseCase = closeRereviewUseCase;
+        this.fixInitialReviewUseCase = fixInitialReviewUseCase;
         this.getRereviewRevisionHistoryUseCase = getRereviewRevisionHistoryUseCase;
         this.listReviewCasesUseCase = listReviewCasesUseCase;
         this.getReviewCaseDetailUseCase = getReviewCaseDetailUseCase;
@@ -397,6 +400,20 @@ public class ReviewCaseController {
         return ResponseEntity.ok(ApiResponse.ok(new SubmitRereviewResponse(
                 result.getSubmissionId(), result.getStatus(),
                 result.getCaseId(), result.getCaseStatus())));
+    }
+
+    /**
+     * 初審固定（D-031、DD-03、D-054）：不需要請求內容，路徑上的 submissionId 是要固定的有效初審結果。
+     * 回應 { caseId, caseStatus, submissionId, fixedAt }；caseStatus 為 PENDING_REREVIEW 或 INITIAL_REVIEW_COMPLETED。
+     */
+    @PostMapping("/{caseId}/initial-review/submissions/{submissionId}/fix")
+    public ResponseEntity<ApiResponse<FixInitialReviewResponse>> fixInitialReview(
+            @CurrentActor ActorContext actor,
+            @PathVariable String caseId,
+            @PathVariable String submissionId) {
+        FixInitialReviewResult result = fixInitialReviewUseCase.execute(actor, caseId, submissionId);
+        return ResponseEntity.ok(ApiResponse.ok(new FixInitialReviewResponse(
+                result.getCaseId(), result.getCaseStatus(), result.getSubmissionId(), result.getFixedAt().toString())));
     }
 
     /** 複審的獨立結案（D-034、D-053）：不需要請求內容，路徑上的 submissionId 是要結案的有效複審結果。 */

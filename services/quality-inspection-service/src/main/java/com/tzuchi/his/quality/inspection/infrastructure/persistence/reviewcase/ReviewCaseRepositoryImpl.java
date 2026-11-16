@@ -100,7 +100,8 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
                 e.isRereviewRequired(), e.getFinalScore(), e.getFinalConclusion(),
                 e.getLatestInitialSubmissionId(), e.getRuleSnapshotRef(), e.getScoreSheetVersionRef(),
                 rereviewerAssignment, e.getRereviewerDueAt(), e.getInitialReviewScore(),
-                e.getLatestRereviewSubmissionId());
+                e.getLatestRereviewSubmissionId(),
+                e.getInitialFixedAt(), e.getInitialFixedBy(), e.getInitialFixedSubmissionId());
     }
 
     private ReviewCaseEntity toEntity(ReviewCase rc) {
@@ -143,6 +144,9 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
         e.setRereviewerDueAt(rc.getRereviewerDueAt());
         e.setInitialReviewScore(rc.getInitialReviewScore());
         e.setLatestRereviewSubmissionId(rc.getLatestRereviewSubmissionId());
+        e.setInitialFixedAt(rc.getInitialFixedAt());
+        e.setInitialFixedBy(rc.getInitialFixedBy());
+        e.setInitialFixedSubmissionId(rc.getInitialFixedSubmissionId());
     }
 
     /** 所有業務欄位（不含 version 與 updatedAt）。數值以 stripTrailingZeros 比較，避免 10 與 10.00 被當成變更。 */
@@ -153,7 +157,8 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
                 e.getCancelReason(), e.getReturnReason(), e.getCancelledAt(), e.getClosedAt(), e.isRereviewRequired(),
                 number(e.getFinalScore()), e.getFinalConclusion(), e.getLatestInitialSubmissionId(),
                 e.getRuleSnapshotRef(), e.getScoreSheetVersionRef(), e.getRereviewerId(), e.getRereviewerAssignedAt(),
-                e.getRereviewerDueAt(), number(e.getInitialReviewScore()), e.getLatestRereviewSubmissionId()
+                e.getRereviewerDueAt(), number(e.getInitialReviewScore()), e.getLatestRereviewSubmissionId(),
+                e.getInitialFixedAt(), e.getInitialFixedBy(), e.getInitialFixedSubmissionId()
         };
     }
 

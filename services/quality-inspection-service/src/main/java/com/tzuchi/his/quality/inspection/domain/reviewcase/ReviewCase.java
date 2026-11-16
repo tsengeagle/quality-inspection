@@ -5,6 +5,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationExcept
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
@@ -47,6 +48,11 @@ public class ReviewCase {
     private BigDecimal initialReviewScore;
     private String latestRereviewSubmissionId;
 
+    // --- D-054: initial review fixation (null until fixed) ---
+    private Instant initialFixedAt;
+    private String initialFixedBy;
+    private String initialFixedSubmissionId;
+
     protected ReviewCase() {
         // for persistence
     }
@@ -86,7 +92,29 @@ public class ReviewCase {
             ReviewerAssignment rereviewerAssignment, LocalDateTime rereviewerDueAt,
             BigDecimal initialReviewScore,
             String latestRereviewSubmissionId) {
+        return reconstitute(caseId, batchId, projectId, hospitalId, sourceCaseKey, medicalRecordType,
+                status, reviewerAssignment, dueAt, cancelReason, returnReason, cancelledAt, closedAt,
+                rereviewRequired, finalScore, finalConclusion, latestInitialSubmissionId, ruleSnapshotRef,
+                scoreSheetVersionRef, rereviewerAssignment, rereviewerDueAt, initialReviewScore,
+                latestRereviewSubmissionId, null, null, null);
+    }
+
+    /** Reconstitute including the D-054 initial review fixation (all three null when not fixed). */
+    public static ReviewCase reconstitute(
+            String caseId, String batchId, String projectId, String hospitalId,
+            String sourceCaseKey, MedicalRecordType medicalRecordType,
+            CaseStatus status, ReviewerAssignment reviewerAssignment, LocalDateTime dueAt,
+            String cancelReason, String returnReason, LocalDateTime cancelledAt, LocalDateTime closedAt,
+            boolean rereviewRequired, BigDecimal finalScore, String finalConclusion,
+            String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef,
+            ReviewerAssignment rereviewerAssignment, LocalDateTime rereviewerDueAt,
+            BigDecimal initialReviewScore,
+            String latestRereviewSubmissionId,
+            Instant initialFixedAt, String initialFixedBy, String initialFixedSubmissionId) {
         ReviewCase rc = new ReviewCase();
+        rc.initialFixedAt = initialFixedAt;
+        rc.initialFixedBy = initialFixedBy;
+        rc.initialFixedSubmissionId = initialFixedSubmissionId;
         rc.caseId = caseId;
         rc.batchId = batchId;
         rc.projectId = projectId;
@@ -180,18 +208,66 @@ public class ReviewCase {
         this.status = CaseStatus.INITIAL_REVIEW_IN_PROGRESS;
     }
 
-    public void completeInitialReview(BigDecimal totalScore, BigDecimal qualityThreshold) {
+    /**
+     * 提交初審：案件一律停在 INITIAL_REVIEW_COMPLETED。是否進複審在固定時才判斷（D-031、D-054 第 3 點）。
+     */
+    public void completeInitialReview(BigDecimal totalScore) {
         if (this.status != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
             throw new DomainStateConflictException("CASE_NOT_IN_INITIAL_REVIEW",
                     "Case must be in INITIAL_REVIEW_IN_PROGRESS to complete. Current: " + this.status);
         }
         Objects.requireNonNull(totalScore, "totalScore must not be null");
         this.initialReviewScore = totalScore;
-        if (qualityThreshold != null && totalScore.compareTo(qualityThreshold) > 0) {
+        this.finalScore = totalScore;
+        this.status = CaseStatus.INITIAL_REVIEW_COMPLETED;
+    }
+
+    /**
+     * 固定初審（D-031、DD-03、D-054）。呼叫端已確認目標是本案目前有效、已提交、由操作者提交的初審結果。
+     * 分數 > 品質線就進 PENDING_REREVIEW；≤ 品質線或品質線為 null，留在 INITIAL_REVIEW_COMPLETED。
+     *
+     * @param fixedScore 被固定那份提交的分數
+     */
+    public void fixInitialReview(String submissionId, String fixedBy, Instant fixedAt,
+                                 BigDecimal fixedScore, BigDecimal qualityThreshold) {
+        requireFixable();
+        if (!Objects.equals(submissionId, this.latestInitialSubmissionId)) {
+            throw new DomainStateConflictException("CONFLICT", "Initial submission is no longer current");
+        }
+        Objects.requireNonNull(fixedBy, "fixedBy must not be null");
+        Objects.requireNonNull(fixedAt, "fixedAt must not be null");
+        Objects.requireNonNull(fixedScore, "fixedScore must not be null");
+        this.initialFixedAt = fixedAt;
+        this.initialFixedBy = fixedBy;
+        this.initialFixedSubmissionId = submissionId;
+        if (qualityThreshold != null && fixedScore.compareTo(qualityThreshold) > 0) {
+            this.rereviewRequired = true;
+            // 進複審後還沒有最終分數：保留 initialReviewScore，finalScore 於複審提交時依 D-012／D-020 加權計算。
+            this.finalScore = null;
             this.status = CaseStatus.PENDING_REREVIEW;
-        } else {
-            this.finalScore = totalScore;
-            this.status = CaseStatus.INITIAL_REVIEW_COMPLETED;
+        }
+    }
+
+    /** D-054 第 6 點的順序：已結束 → 已固定 → 不在 INITIAL_REVIEW_COMPLETED。 */
+    public void requireFixable() {
+        requireNotTerminal();
+        if (isInitialReviewFixed()) {
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION", "Initial review is already fixed");
+        }
+        if (this.status != CaseStatus.INITIAL_REVIEW_COMPLETED) {
+            throw new DomainStateConflictException("CASE_NOT_INITIAL_REVIEW_COMPLETED",
+                    "Case must be in INITIAL_REVIEW_COMPLETED to fix the initial review. Current: " + this.status);
+        }
+    }
+
+    public boolean isInitialReviewFixed() {
+        return this.initialFixedAt != null;
+    }
+
+    private void requireInitialReviewFixed() {
+        if (!isInitialReviewFixed()) {
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Initial review must be fixed first (D-031, D-054)");
         }
     }
 
@@ -202,6 +278,7 @@ public class ReviewCase {
             throw new DomainStateConflictException("CASE_NOT_INITIAL_REVIEW_COMPLETED",
                     "Can only close-without-rereview from INITIAL_REVIEW_COMPLETED. Current: " + this.status);
         }
+        requireInitialReviewFixed();
         this.finalScore = this.initialReviewScore;
         this.closedAt = LocalDateTime.now();
         this.status = CaseStatus.CLOSED;
@@ -212,6 +289,7 @@ public class ReviewCase {
             throw new DomainStateConflictException("CASE_NOT_INITIAL_REVIEW_COMPLETED",
                     "Can only send-to-rereview from INITIAL_REVIEW_COMPLETED. Current: " + this.status);
         }
+        requireInitialReviewFixed();
         this.status = CaseStatus.PENDING_REREVIEW;
     }
 
@@ -330,6 +408,10 @@ public class ReviewCase {
     public void recordInitialReviewRevision(String previousSubmissionId, String newSubmissionId,
                                             BigDecimal newScore) {
         requireNotTerminal();
+        if (isInitialReviewFixed()) {
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Initial review is fixed and can no longer be revised (D-031, D-054)");
+        }
         if (!Objects.equals(previousSubmissionId, this.latestInitialSubmissionId)) {
             throw new DomainStateConflictException("CONFLICT", "Initial submission is no longer current");
         }
@@ -371,6 +453,9 @@ public class ReviewCase {
     public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
     public BigDecimal getInitialReviewScore() { return initialReviewScore; }
     public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
+    public Instant getInitialFixedAt() { return initialFixedAt; }
+    public String getInitialFixedBy() { return initialFixedBy; }
+    public String getInitialFixedSubmissionId() { return initialFixedSubmissionId; }
 
     public void setLatestRereviewSubmissionId(String submissionId) {
         this.latestRereviewSubmissionId = submissionId;

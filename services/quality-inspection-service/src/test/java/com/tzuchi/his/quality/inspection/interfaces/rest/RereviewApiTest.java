@@ -369,6 +369,7 @@ class RereviewApiTest {
     @Test
     void closeWithoutRereview_happyPath() throws Exception {
         seedCaseInInitialReviewCompleted();
+        fixInitialReview(); // D-054：管理者處理前，初審必須已固定
 
         mockMvc.perform(post(BASE + "/" + CASE_ID + "/close-without-rereview")
                         .header("api-key", hmToken))
@@ -392,6 +393,7 @@ class RereviewApiTest {
     @Test
     void sendToRereview_manualEscalation() throws Exception {
         seedCaseInInitialReviewCompleted();
+        fixInitialReview(); // D-054：管理者處理前，初審必須已固定
 
         mockMvc.perform(post(BASE + "/" + CASE_ID + "/send-to-rereview")
                         .header("api-key", hmToken))
@@ -402,6 +404,54 @@ class RereviewApiTest {
         ReviewCaseEntity updated = caseJpa.findById(CASE_ID).orElseThrow();
         if (updated.getStatus() != CaseStatus.PENDING_REREVIEW) {
             throw new AssertionError("Case should be PENDING_REREVIEW after send-to-rereview");
+        }
+    }
+
+    private void fixInitialReview() throws Exception {
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/initial-review/submissions/init-sub-1/fix")
+                        .header("api-key", reviewerToken))
+                .andExpect(status().isOk());
+    }
+
+    // --- D-054：初審固定 API ---
+
+    @Test
+    void fixInitialReview_returnsTheFixationAndKeepsTheCaseForTheManager_D054() throws Exception {
+        seedCaseInInitialReviewCompleted();
+
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/initial-review/submissions/init-sub-1/fix")
+                        .header("api-key", reviewerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
+                .andExpect(jsonPath("$.data.caseStatus").value("INITIAL_REVIEW_COMPLETED")) // 17.5 <= 60
+                .andExpect(jsonPath("$.data.submissionId").value("init-sub-1"))
+                .andExpect(jsonPath("$.data.fixedAt").isString())
+                .andExpect(jsonPath("$.data.threshold").doesNotExist())
+                .andExpect(jsonPath("$.data.qualityThreshold").doesNotExist());
+
+        ReviewCaseEntity fixed = caseJpa.findById(CASE_ID).orElseThrow();
+        if (fixed.getInitialFixedAt() == null || !REVIEWER_ID.equals(fixed.getInitialFixedBy())
+                || !"init-sub-1".equals(fixed.getInitialFixedSubmissionId())) {
+            throw new AssertionError("Fixation must be persisted with time, actor and submission");
+        }
+
+        mockMvc.perform(post(BASE + "/" + CASE_ID + "/initial-review/submissions/init-sub-1/fix")
+                        .header("api-key", reviewerToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("INVALID_STATE_TRANSITION"));
+    }
+
+    @Test
+    void unfixedInitialReview_cannotBeClosedOrSentToRereview_D054() throws Exception {
+        seedCaseInInitialReviewCompleted();
+
+        for (String action : new String[] {"close-without-rereview", "send-to-rereview"}) {
+            mockMvc.perform(post(BASE + "/" + CASE_ID + "/" + action).header("api-key", hmToken))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error.code").value("INVALID_STATE_TRANSITION"));
+        }
+        if (caseJpa.findById(CASE_ID).orElseThrow().getStatus() != CaseStatus.INITIAL_REVIEW_COMPLETED) {
+            throw new AssertionError("A rejected action must not change the case");
         }
     }
 

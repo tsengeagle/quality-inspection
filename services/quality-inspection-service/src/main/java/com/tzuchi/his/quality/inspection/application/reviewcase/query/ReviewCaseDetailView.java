@@ -34,6 +34,7 @@ public class ReviewCaseDetailView {
     private final RereviewBootstrapView rereviewContext;
 
     private java.time.Instant updatedAt;
+    private boolean initialReviewFixed;
 
     public ReviewCaseDetailView(String caseId, String projectId, String batchId,
                                  String hospitalId, String status, String reviewerId,
@@ -105,6 +106,15 @@ public class ReviewCaseDetailView {
 
     public ReviewCaseDetailView withUpdatedAt(java.time.Instant updatedAt) {
         this.updatedAt = updatedAt;
+        return this;
+    }
+
+    /** D-054：初審是否已固定（決定 FIX_INITIAL_REVIEW 與初審 revision 是否可用）。不輸出到 JSON。 */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public boolean isInitialReviewFixed() { return initialReviewFixed; }
+
+    public ReviewCaseDetailView withInitialReviewFixed(boolean initialReviewFixed) {
+        this.initialReviewFixed = initialReviewFixed;
         return this;
     }
 

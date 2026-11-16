@@ -58,7 +58,7 @@ class SubmitInitialReviewUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new SubmitInitialReviewUseCase(
-                caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService);
+                caseRepo, submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService);
         
         // Seed project with threshold 80 (score 17.5 won't escalate)
         seedProject(new BigDecimal("80"));
@@ -224,23 +224,24 @@ class SubmitInitialReviewUseCaseTest {
                 () -> useCase.execute(reviewer(), CASE_ID));
     }
 
+    /** D-031、D-054 第 3 點：提交不判斷品質線，分數再高也停在 INITIAL_REVIEW_COMPLETED，等初審固定。 */
     @Test
-    void execute_scoreAboveThreshold_shouldEscalateToPendingRereview() {
-        // Seed project with very low threshold so 17.5 > 0 triggers escalation
+    void execute_scoreAboveThreshold_staysCompletedUntilTheInitialReviewIsFixed_D054() {
         projectRepo.store.clear();
-        seedProject(BigDecimal.ZERO); // threshold 0 → any positive score escalates
-        
+        seedProject(BigDecimal.ZERO); // any positive score is above the threshold
+
         seedScoreSheet();
         seedCaseInProgress();
         seedDraftWithAnswers();
 
-        useCase.execute(reviewer(), CASE_ID);
+        SubmitInitialReviewResult result = useCase.execute(reviewer(), CASE_ID);
 
         ReviewCase savedCase = caseRepo.store.get(CASE_ID);
-        assertEquals(CaseStatus.PENDING_REREVIEW, savedCase.getStatus());
-        assertNull(savedCase.getFinalScore()); // no finalScore when escalated
-        // Should have 2 events: escalation + submission
-        assertTrue(eventPublisher.events.size() >= 2);
+        assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, savedCase.getStatus());
+        assertFalse(savedCase.isInitialReviewFixed());
+        assertFalse(result.isRereviewRequired());
+        assertTrue(eventPublisher.events.stream().noneMatch(
+                e -> e instanceof com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseEscalatedToRereviewEvent));
     }
 
     @Test
@@ -282,7 +283,7 @@ class SubmitInitialReviewUseCaseTest {
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
         SubmitInitialReviewUseCase submitting = new SubmitInitialReviewUseCase(
-                caseRepo, selected, projectRepo, scoreSheetRepo, eventPublisher, new ScoreCalculationService());
+                caseRepo, selected, scoreSheetRepo, eventPublisher, new ScoreCalculationService());
         assertEquals(1, old.getRevisionNo());
         assertEquals(1, current.getRevisionNo());
         SubmitInitialReviewResult result = submitting.execute(reviewer(), CASE_ID);
