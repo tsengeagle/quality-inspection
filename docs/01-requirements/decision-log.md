@@ -1711,7 +1711,12 @@ spec-draft：`RP-G-03`。
 3. **衝突的錯誤代碼**：樂觀鎖失敗回 `409 CONFLICT`（沿用既有通用代碼，不新增）。
 4. **開發與測試**：繼續用 H2，改用 Oracle 相容模式，由 Flyway 以同一組 migration 建立 schema；Hibernate 不再自動建表，改為只驗證（`ddl-auto=validate`）。migration 只用 H2 Oracle 相容模式與 Oracle 19c 都能執行的語法。
 5. **Oracle 的限制**：空字串會被當成 NULL，程式不得依賴空字串與 NULL 的差別；19c 沒有 boolean 型別，布林值用 `NUMBER(1)`；物件名稱上限 128 字元。
-6. **落地順序**：(1) 導入 Flyway，以現有 entity 對應的 schema 作為第一版 migration，`ddl-auto` 改為 `validate`；(2) 案件版本欄位與 D-037 的 `updatedAt`；(3) 下方的評分表參照與 `boundScoreSheetId` 改名；(4) D-054 初審固定的欄位。每一步一個建構 PR。
+6. **落地順序**：`build.gradle` 與 `src/test/resources/application-test.yml` 是律法（gate），修改它們要走修法 PR，而修法 PR 不能夾帶程式或 migration（P4），所以導入 Flyway 分三步：
+   1. 修法 PR：`build.gradle` 加 Flyway 相依；`application-test.yml` 的資料庫改為 H2 Oracle 相容模式，`ddl-auto` 仍為 `create-drop`。此時還沒有 migration，Flyway 不建立任何東西（Spring Boot 2.7 預設找不到 migration 位置不會失敗），既有測試不受影響。
+   2. 建構 PR：加入第一版 migration（以現有 entity 對應的 schema 為準）；`application.yml` 的 local profile 改為 `validate`；個別測試以屬性覆寫 `ddl-auto=create-drop` 的地方改為 `validate`；加一個測試確認 migration 建出的 schema 通過 Hibernate 驗證。
+   3. 修法 PR：`application-test.yml` 的 `ddl-auto` 改為 `validate`，全部測試改用 Flyway 建的 schema。
+
+   之後依序以建構 PR 加入：(a) 案件版本欄位與 D-037 的 `updatedAt`；(b) 下方的評分表參照與 `boundScoreSheetId` 改名；(c) D-054 初審固定的欄位。這些只改 `src/main` 與 migration，不動律法。
 
 ### Pending
 
@@ -1989,7 +1994,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 補足 D-031、DD-03 列為 UNKNOWN 的技術契約：
 
 1. **API**：`POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/fix`，不需要請求內容。路徑上的 `submissionId` 是要固定的有效初審結果（DD-03 第 5 點：明確辨識固定目標，不得偷偷改用新版）。路徑形式與 D-053 的複審結案一致。
-2. **記錄方式**：在案件上新增三個欄位：固定時間 `initialFixedAt`、固定者 `initialFixedBy`、固定的提交 `initialFixedSubmissionId`。**不新增案件狀態**。「已固定」的判斷是 `initialFixedAt` 有值。欄位依 D-045 第 6 點的順序，在導入 Flyway 之後才新增。
+2. **記錄方式**：在案件上新增三個欄位：固定時間 `initialFixedAt`、固定者 `initialFixedBy`、固定的提交 `initialFixedSubmissionId`。**不新增案件狀態**。「已固定」的判斷是 `initialFixedAt` 有值。欄位依 D-045 第 6 點的順序，在導入 Flyway 的三步完成之後才新增。
 3. **流向的判斷時點**：提交初審時不再判斷品質線，案件一律停在 `INITIAL_REVIEW_COMPLETED`。固定成功時才依 D-031 判斷：分數 > 品質線就進 `PENDING_REREVIEW`；≤ 品質線或品質線為 null，留在 `INITIAL_REVIEW_COMPLETED`，等管理者手工派複審或結案。用來判斷的分數是被固定那份提交的分數。
 4. **回應**：`{ caseId, caseStatus, submissionId, fixedAt }`。不回傳品質線。
 5. **固定之後**：初審 revision 拒絕；管理者手工派複審與不經複審結案，都要求初審已固定。

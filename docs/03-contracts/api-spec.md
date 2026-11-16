@@ -1470,23 +1470,23 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ## 19. 固定、正式結案與 response 保護（D-031～D-033）
 
-本輪只調整既有 API 的業務契約，不新增 endpoint／DTO／欄位／error code。
+原輪只調整既有 API 的業務契約，不新增 endpoint／DTO／欄位／error code。其後 D-053（複審結案）與 D-054（初審固定）各新增一個 endpoint，錯誤代碼都沿用既有代碼。
 
 | 業務操作 | 必要契約 |
 |---|---|
-| 初審固定 | 與提交分離；僅目前有效初審結果的合法提交醫師（DD-03）；binding UNKNOWN，不能假定現有 submit API 已支援 |
+| 初審固定 | 與提交分離；僅目前有效初審結果的合法提交醫師（DD-03）；binding、回應與錯誤代碼見「DD-03 初審固定的語意契約」一節（D-054） |
 | 進入／開始複審 | 初審已固定；閾值與 manager 手工派發規則不變 |
 | 無需複審的正式結案 | 初審已固定，由院方管理者操作；未固定拒絕 |
 | 複審 revision | 合法原提交者，已提交且未固定、未 CLOSED／CANCELLED；append-only，重算加權分數 |
 | 複審正式結案 | 目前有效合法複審結果的提交醫師另行 Close Command；既有角色／scope／ownership 與資格成立；同時固定；binding、回應與錯誤代碼見「D-034 複審獨立 Close Command 對齊」一節（D-053） |
 | 固定後／CLOSED revision 或 CLOSED reopen | 拒絕，不寫新 revision／成功事件 |
 
-複審正式結案的拒絕條件與錯誤代碼已由 D-053 定案（見「D-034 複審獨立 Close Command 對齊」一節）；其餘新的拒絕條件（例如初審固定）之精確 HTTP／error code mapping 仍為 unknown，保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
+複審正式結案的拒絕條件與錯誤代碼已由 D-053 定案（見「D-034 複審獨立 Close Command 對齊」一節），初審固定的已由 D-054 定案（見「DD-03 初審固定的語意契約」一節），保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
 複審醫師任何階段不得取得初審答案／分數／評語，亦不得從 command ack、list/detail、revision history/compare、audit、report/export、前端 cache 取得可反推值。finalScore 數值仍在 domain 依原公式計算；所有廣義 FULL view／共用回應範例都須先套用 D-033 角色限制。精確衍生欄位清單與多角色 policy 合成 unknown。
 
 ## DD-03 初審固定的語意契約（binding 已由 D-054 定案）
 
-> D-054（2026-11-16）補足本節的 binding UNKNOWN，以下表格為 DD-03 原有的語意保證，仍然有效：
+> D-054（2026-11-16）補足本節的 binding UNKNOWN。下方表格為 DD-03 原有的語意保證，仍然有效；表格前後原本標為 UNKNOWN 的項目（路徑、輸入欄位、重試策略、錯誤代碼）以本段為準。
 >
 > - `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/fix`，不需要請求內容；角色 `REVIEWER`，且必須是該有效初審結果的提交者。
 > - 成功回應 `{ caseId, caseStatus, submissionId, fixedAt }`；`caseStatus` 為 `PENDING_REREVIEW`（分數 > 品質線）或 `INITIAL_REVIEW_COMPLETED`。
@@ -1495,18 +1495,18 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 > - 案件詳情的 `allowedActions` 在可固定時加入 `FIX_INITIAL_REVIEW`。
 
 
-沿用 `/api/quality-inspection/**`、`api-key` 與既有 actor context；固定為與 submit 分離的操作，不新增路徑或暗示既有 submit 已支援。
+沿用 `/api/quality-inspection/**`、`api-key` 與既有 actor context；固定為與 submit 分離的操作，路徑見上方 D-054，既有 submit 不負責固定。
 
 | 項目 | 必要保證 |
 |---|---|
 | 授權 | 僅目前有效 INITIAL 結果的合法提交醫師；既有角色、院所 scope、ownership 全部適用；僅有 manager／指派／歷史提交身份不可代行 |
-| 輸入語意 | 明確辨識 case 與欲固定的有效 submission，執行時驗證仍有效；具體欄位及版本 token UNKNOWN |
+| 輸入語意 | 明確辨識 case 與欲固定的有效 submission，執行時驗證仍有效；以路徑上的 `caseId`、`submissionId` 辨識（D-054） |
 | 成功 | 固定該有效結果且可追溯操作者、時間、submission；不自動結案；依 D-031 流向且遵守 D-033 response 保護 |
 | 拒絕 | 無合法提交、DRAFT／SUPERSEDED、actor／scope 不符、terminal case、過期版本不得成功固定；無新 revision 或成功事件 |
 | 併發 | 固定與 revision 不可同時對同一結果成功；不得將舊版請求悄悄改為固定新版；進複審／結案以已固定有效結果為準 |
-| 重試 | 重複固定、遺失成功回應後重試的冪等／衝突策略 UNKNOWN；不可據此改變已固定內容或重複推進流程 |
+| 重試 | 重複固定（含遺失成功回應後的重試）回 `INVALID_STATE_TRANSITION`，不視為成功（D-054 第 7 點）；不可據此改變已固定內容或重複推進流程 |
 
-既有 role／hospital scope 錯誤維持 §3 的 403；既有通用 CONFLICT 為 409。固定新增拒絕條件的精確 HTTP／error code mapping、schema 與 binding 為 UNKNOWN，未建立可直接呼叫的完成契約。相容性與 consumer 對齊尚未驗證。
+既有 role／hospital scope 錯誤維持 §3 的 403；既有通用 CONFLICT 為 409。錯誤代碼、schema 與 binding 已由 D-054 定案（見本節開頭）；程式尚未實作，相容性與 consumer 對齊尚未驗證。
 
 
 ## D-034 複審獨立 Close Command 對齊
