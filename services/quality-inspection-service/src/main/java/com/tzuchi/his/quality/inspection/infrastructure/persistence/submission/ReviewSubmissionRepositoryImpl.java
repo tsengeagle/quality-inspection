@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.infrastructure.persistence.submission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
+import com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.ReviewCaseRepositoryImpl;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collections;
@@ -14,14 +15,18 @@ import java.util.stream.Collectors;
 public class ReviewSubmissionRepositoryImpl implements ReviewSubmissionRepository {
 
     private final ReviewSubmissionJpaRepository jpa;
+    private final ReviewCaseRepositoryImpl caseRepository;
 
-    public ReviewSubmissionRepositoryImpl(ReviewSubmissionJpaRepository jpa) {
+    public ReviewSubmissionRepositoryImpl(ReviewSubmissionJpaRepository jpa, ReviewCaseRepositoryImpl caseRepository) {
         this.jpa = jpa;
+        this.caseRepository = caseRepository;
     }
 
+    /** 寫入提交也是案件的業務更新：同一交易推進案件的 updatedAt 與版本（D-037 第 1 點、D-045）。 */
     @Override
     public void save(ReviewSubmission submission) {
         jpa.save(toEntity(submission));
+        caseRepository.touch(submission.getCaseId());
     }
 
     @Override

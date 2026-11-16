@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(ReviewCaseRepositoryImpl.class)
+@Import({ReviewCaseRepositoryImpl.class, com.tzuchi.his.quality.inspection.infrastructure.time.SystemClockConfig.class})
 class ReviewCaseEntityRoundTripTest {
 
     @Autowired

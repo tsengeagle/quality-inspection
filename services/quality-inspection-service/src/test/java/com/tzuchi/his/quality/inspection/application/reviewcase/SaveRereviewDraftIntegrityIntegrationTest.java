@@ -159,7 +159,21 @@ class SaveRereviewDraftIntegrityIntegrationTest {
         assertEquals("changed", saved.getAnswerSet().get(0).getAnswerValue());
         assertEquals(0, new BigDecimal("99").compareTo(saved.getTotalScore()));
         assertEquals("changed comment", saved.getComment());
-        assertEquals(beforeCases, caseSnapshot());
+        // D-037：草稿儲存是案件的業務更新，只推進案件的 updatedAt 與版本，其他案件欄位不變。
+        assertEquals(withoutCaseTimeAndVersion(beforeCases), withoutCaseTimeAndVersion(caseSnapshot()));
+        assertNotNull(cases.findById("c1").orElseThrow().getUpdatedAt());
+    }
+
+    private Map<String, String> withoutCaseTimeAndVersion(Map<String, String> snapshot) throws Exception {
+        Map<String, String> result = new TreeMap<>();
+        for (Map.Entry<String, String> entry : snapshot.entrySet()) {
+            com.fasterxml.jackson.databind.node.ObjectNode node =
+                    (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(entry.getValue());
+            node.remove("version");
+            node.remove("updatedAt");
+            result.put(entry.getKey(), mapper.writeValueAsString(node));
+        }
+        return result;
     }
 
     private Map<String, String> submissionSnapshot() throws Exception {

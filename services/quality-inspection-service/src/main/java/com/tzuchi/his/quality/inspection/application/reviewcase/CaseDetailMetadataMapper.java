@@ -21,6 +21,6 @@ public class CaseDetailMetadataMapper {
                 .filter(project -> Objects.equals(source.getHospitalId(), project.getHospitalId()))
                 .map(ReviewProjectSummary::getName).orElse(null);
         return new CaseDetailMetadataView(source.getCaseId(), source.getStatus(), projectName,
-                source.getHospitalId(), source.getReviewerId(), source.getRereviewerId());
+                source.getHospitalId(), source.getReviewerId(), source.getRereviewerId(), source.getUpdatedAt());
     }
 }

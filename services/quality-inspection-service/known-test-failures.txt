@@ -6,12 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-
-# D-037 尚未實作（updatedAt 契約）：要在案件新增欄位，被 D-045 擋住（正式資料庫與 migration 工具未定）
-com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#caseOnlyChangeMustUpdateTime
-com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#changedDraftMustUpdateCaseTime x2
-com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#newCaseMustInitializeTime
-com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#rereviewRevisionMustUpdateCaseTime
-com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#rereviewSubmitMustUpdateCaseTime_withoutRepairingD032
-com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#revisionMustUpdateCaseTime
-com.tzuchi.his.quality.inspection.application.reviewcase.UpdatedAtContractIntegrationTest#submitMustUpdateCaseTime

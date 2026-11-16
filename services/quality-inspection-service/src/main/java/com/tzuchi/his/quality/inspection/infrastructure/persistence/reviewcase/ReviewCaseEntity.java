@@ -4,6 +4,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,6 +14,15 @@ public class ReviewCaseEntity {
     @Id
     @Column(name = "case_id")
     private String caseId;
+
+    /** D-045：樂觀鎖。由 Hibernate 維護，程式不得自行設定。 */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
+    /** D-037：案件層級的最後更新時間（UTC）。由 ReviewCaseRepositoryImpl 維護；legacy 為 null。 */
+    @Column(name = "updated_at")
+    private Instant updatedAt;
 
     @Column(name = "batch_id", nullable = false)
     private String batchId;
@@ -168,4 +178,8 @@ public class ReviewCaseEntity {
 
     public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
     public void setLatestRereviewSubmissionId(String id) { this.latestRereviewSubmissionId = id; }
+
+    public Long getVersion() { return version; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

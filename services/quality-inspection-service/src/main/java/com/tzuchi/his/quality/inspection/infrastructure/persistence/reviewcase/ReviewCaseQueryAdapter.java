@@ -143,6 +143,7 @@ public class ReviewCaseQueryAdapter implements ReviewCaseQueryPort, ReviewCaseAs
                 null, e.getReviewerAssignedAt(), e.getDueAt(),
             e.getClosedAt(), e.getCancelledAt(),
             e.getLatestInitialSubmissionId(), e.getScoreSheetVersionRef(), submissions,
-            e.getLatestRereviewSubmissionId(), null, null, false, null, null);
+            e.getLatestRereviewSubmissionId(), null, null, false, null, null)
+                .withUpdatedAt(e.getUpdatedAt());
     }
 }

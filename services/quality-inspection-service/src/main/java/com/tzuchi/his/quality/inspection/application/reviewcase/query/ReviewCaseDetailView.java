@@ -33,6 +33,8 @@ public class ReviewCaseDetailView {
     private final InitialReviewBootstrapView initialReviewContext;
     private final RereviewBootstrapView rereviewContext;
 
+    private java.time.Instant updatedAt;
+
     public ReviewCaseDetailView(String caseId, String projectId, String batchId,
                                  String hospitalId, String status, String reviewerId,
                                  String rereviewerId, String medicalRecordType,
@@ -92,6 +94,18 @@ public class ReviewCaseDetailView {
         this.isOwner = isOwner;
         this.initialReviewContext = initialReviewContext;
         this.rereviewContext = rereviewContext;
+    }
+
+    /**
+     * D-037：案件的持久化 updatedAt（UTC）。只用於 SYSTEM_ADMIN 的 metadata 投影（D-036 八欄），
+     * 完整明細的回應格式不變，所以不輸出到 JSON。由查詢 adapter 在建立 view 時設定。
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public java.time.Instant getUpdatedAt() { return updatedAt; }
+
+    public ReviewCaseDetailView withUpdatedAt(java.time.Instant updatedAt) {
+        this.updatedAt = updatedAt;
+        return this;
     }
 
     public String getCaseId() { return caseId; }
