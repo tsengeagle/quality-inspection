@@ -1,7 +1,7 @@
 {
   "id": "2026-11-16-d055-rereviewer-history",
   "decision": "D-055",
-  "reason": "依負責人 2026-11-16 的裁決（方案 A）新增 D-055：以只增不改的複審指派歷史（與指派變更同一交易寫入）加上案件的「歷史完整」旗標，提供 D-035 缺少的負面身份證明。歷史完整且登入者不在歷史中即為 Proven non-historical，HOSPITAL_MANAGER、AUDITOR、REVIEWER 在該案件恢復完整初審讀取；歷史不完整仍為 UNKNOWN 並拒絕；D-033 盲審、REREVIEWER 遮罩、SYSTEM_ADMIN metadata-only、多角色拒絕、403 ACCESS_DENIED 均不變；不再以稽核紀錄判斷身份。部分取代 D-035 第 2 點與 Consequences 中「現有來源無法證明負面身份」的敘述，fail-closed 原則不變。正式環境自 Flyway V1 起尚無資料，因此正式資料全部完整，不涉及補造。另依負責人同日裁決（回應 PR #54 Copilot 審查）新增第 5 點：每次准許完整初審讀取就記錄讀取者（回應前 commit，寫入失敗即拒絕，並以案件版本與指派互斥），讀過的人不得被指派或改派為同案複審醫師，新增錯誤代碼 422 REREVIEWER_HAS_READ_INITIAL，以免開放讀取後出現「先讀後受派」的 D-033 缺口。同步 permission-matrix、api-spec（D-035 節、指派／改派、錯誤代碼表）與 persistence-model。本 PR 只改律法與文件，實作由後續建構 PR 落地。",
+  "reason": "依負責人 2026-11-16 的裁決（方案 A）新增 D-055：以只增不改的複審指派歷史（與指派變更同一交易寫入）加上案件的「歷史完整」旗標，提供 D-035 缺少的負面身份證明。歷史完整且登入者不在歷史中即為 Proven non-historical，HOSPITAL_MANAGER、AUDITOR、REVIEWER 在該案件恢復完整初審讀取；歷史不完整仍為 UNKNOWN 並拒絕；D-033 盲審、REREVIEWER 遮罩、SYSTEM_ADMIN metadata-only、多角色拒絕、403 ACCESS_DENIED 均不變；不再以稽核紀錄判斷身份。部分取代 D-035 第 2 點與 Consequences 中「現有來源無法證明負面身份」的敘述，fail-closed 原則不變。正式環境自 Flyway V1 起尚無資料，因此正式資料全部完整，不涉及補造。另依負責人同日裁決（回應 PR #54 Copilot 審查）新增第 5 點：每次准許完整初審讀取就記錄讀取者（回應前 commit，寫入失敗即拒絕，並以案件版本與指派互斥），讀過的人不得被指派或改派為同案複審醫師，新增錯誤代碼 422 REREVIEWER_HAS_READ_INITIAL，以免開放讀取後出現「先讀後受派」的 D-033 缺口。再依同日裁決（回應 PR #54 第二次審查）新增第 6 點：匯出不記錄讀取者，改為在案件狀態不是 REREVIEW_IN_PROGRESS／CLOSED／CANCELLED（仍可能指派複審）時，將逐案初審分數與 finalScore 輸出為 null 並標示 maskedFields，SYSTEM_ADMIN 依既有政策不取得逐案分數；原第 6 點改為第 7 點。同步 permission-matrix、api-spec（D-035 節、指派／改派、錯誤代碼表、15.2 匯出）與 persistence-model。本 PR 只改律法與文件，實作由後續建構 PR 落地。",
   "drafted_by": "claude-code",
   "paths": [
     "docs/01-requirements/decision-log.md",

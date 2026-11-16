@@ -2060,16 +2060,23 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
    - 每次准許某人讀取某案的完整初審內容（案件詳情、初審提交明細、revision 歷程中未遮罩的初審內容），就新增一筆只增不改的「初審讀取者」紀錄（案件、讀取者、時間），必須在回應送出前 commit；寫入失敗就拒絕這次讀取（fail-closed）。同一人同一案只需一筆。
    - 指派或改派複審醫師時，若對象在該案的初審讀取者紀錄中，回 `422 REREVIEWER_HAS_READ_INITIAL`（新增的錯誤代碼），與既有的 `REREVIEWER_SAME_AS_REVIEWER` 並列。
    - 讀取與指派要互斥：讀取寫入紀錄時一併以 D-045 的案件版本檢查（強制遞增版本，不推進 updatedAt，因為讀取不是業務更新），與同時進行的指派或改派只能有一方成功。
-6. **不變的部分**：D-033 永久盲審；REREVIEWER 只讀本人複審內容、初審永遠遮罩；SYSTEM_ADMIN 只看 metadata；D-024 院區範圍；多角色同時持有時仍拒絕（未裁決，維持 D-035 第 5 點）；錯誤回應仍為 403 `ACCESS_DENIED`。
+6. **匯出的逐案分數**（2026-11-16 依使用者裁決補上，回應 PR #54 第二次審查）：`POST /reports/export` 逐案輸出初審分數與 finalScore，卻不經過第 5 點的讀取者紀錄，可以用來繞過指派限制。處理方式是遮罩，不記錄讀取者：
+   - 複審指派與改派只能在 `PENDING_REREVIEW` 進行；案件進入 `REREVIEW_IN_PROGRESS`、`CLOSED` 或 `CANCELLED` 之後，就不可能再有新的複審醫師。
+   - 案件狀態還不是這三個之一時，匯出的逐案 `initialScore`、`finalScore`（以及之後新增的任何可反推初審分數的逐案值）一律輸出 `null`，並以 maskedFields 標示；狀態是這三個之一時照常輸出。
+   - 匯出不寫入讀取者紀錄，也不遞增案件版本。要看尚未進入複審的案件分數，請從案件詳情讀取（會留讀取者紀錄）。
+   - SYSTEM_ADMIN 依既有的 metadata／aggregated-only 政策（D-033、api-spec 15.2），任何狀態都不取得逐案分數；目前程式會輸出，由建構 PR 一併修正。
+   - 之後新增任何會輸出逐案初審分數或可反推值的出口，必須擇一套用第 5 點（記錄讀取者）或本點（遮罩）。
+7. **不變的部分**：D-033 永久盲審；REREVIEWER 只讀本人複審內容、初審永遠遮罩；SYSTEM_ADMIN 只看 metadata；D-024 院區範圍；多角色同時持有時仍拒絕（未裁決，維持 D-035 第 5 點）；錯誤回應仍為 403 `ACCESS_DENIED`。
 
 ### Relationship / Evidence
 
 - 部分取代 D-035 第 2 點的「現有來源尚不能產生可信的 Proven non-historical」與「Consequences」中「受保護的完整讀取可能全面遭拒」：歷史完整的案件可以證明負面身份。D-035 的 fail-closed 原則（UNKNOWN 一律拒絕、不得默默降級、不得補造完整性）不變。
 - 影響：HOSPITAL_MANAGER、AUDITOR、REVIEWER（本案指派或提交的初審醫師）在案件歷史完整時恢復完整讀取，因此初審頁（含 D-054 的 FIX_INITIAL_REVIEW）與管理者明細可以使用。
 - 第 2 點的「不得補造」依據 D-035 第 2 點；完整性來自「從案件建立起每一次指派都被記錄」，不是事後宣告。
+- 第 6 點只改匯出的輸出內容，不改匯出的權限、院區範圍與統計欄位；統計摘要（`DashboardSummary`）只有件數與比率，不含分數，不受影響。
 - 第 5 點新增錯誤代碼 `REREVIEWER_HAS_READ_INITIAL`（422），其餘錯誤代碼沿用。讀取會產生寫入（讀取者紀錄），屬於醫療資訊系統常見的存取紀錄；紀錄只用於指派限制，不輸出給一般 API。
 - 這份歷史之後也可以用於生命週期查詢的讀取範圍（2026-11-16 決定暫緩，待需要時裁決），本決策不包含該項。
 
 ### Mapping
 
-`docs/02-ddd/permission-matrix.md` 與 `docs/03-contracts/api-spec.md` 的「D-035 歷史身份 Fail-closed 讀取契約」、api-spec 的指派／改派複審醫師與錯誤代碼表；`docs/03-contracts/persistence-model.md`；實作以建構 PR 落地（Flyway migration、指派兩個 use case、`ReviewReadAccessPolicy`、三個完整讀取入口的讀取者紀錄）。
+`docs/02-ddd/permission-matrix.md` 與 `docs/03-contracts/api-spec.md` 的「D-035 歷史身份 Fail-closed 讀取契約」、api-spec 的指派／改派複審醫師與錯誤代碼表；`docs/03-contracts/persistence-model.md`；實作以建構 PR 落地（Flyway migration、指派兩個 use case、`ReviewReadAccessPolicy`、三個完整讀取入口的讀取者紀錄、匯出逐案分數遮罩）。
