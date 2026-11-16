@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-16-d054-initial-fix-oracle",
+  "decision": "D-054",
+  "reason": "依負責人 2026-11-16 的裁決：(1) D-045 補上正式資料庫 Oracle 19c 以上、migration 工具 Flyway（Spring Boot 2.7.18 管理的 8.5.13；已查證 flyway-core 8.5.13 OracleDatabase.ensureSupported 的免費版下限是 12.2，19c 不需付費）、樂觀鎖衝突回 409 CONFLICT、開發與測試改用 H2 Oracle 相容模式由 Flyway 建 schema、Oracle 的限制與落地順序，解除 BLOCKED；剩餘風險是 CI 無法在 Oracle 19c 上執行 migration。(2) 新增 D-054 補足 D-031、DD-03 的初審固定技術契約：POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/fix；以案件三個欄位 initialFixedAt／initialFixedBy／initialFixedSubmissionId 記錄，不新增案件狀態（負責人裁決）；提交時不再判斷品質線，固定時才判斷；錯誤代碼全部沿用既有代碼，目標不是目前有效版本回 CONFLICT 與 D-053 一致，重複固定回 INVALID_STATE_TRANSITION；DD-03 的「不新增 endpoint、DB schema」部分取代。(3) api-spec、state-machine、persistence-model 同步 D-054／D-045。(4) docs/06-frontend 的 C19 FinalDecisionSummaryRegion 標為已依 D-033 移除（PR #45）。(5) .ai/project-context.yaml 記下正式資料庫與 migration 工具，移除 backend_migration_tool_not_yet_confirmed。本 PR 只改律法與文件，程式尚未修改，由後續建構 PR 依 D-045 第 6 點的順序實作。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "docs/02-ddd/state-machine.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/03-contracts/persistence-model.md",
+    "docs/06-frontend/",
+    ".ai/project-context.yaml",
+    "law/"
+  ]
+}

@@ -916,6 +916,8 @@ v1 建議：
 
 ## DD-03 固定持久化與併發保證
 
+> D-054（2026-11-16）：ReviewCase 新增 `initialFixedAt`（UTC 時間點）、`initialFixedBy`（操作者 userId）、`initialFixedSubmissionId` 三個 nullable 欄位，`initialFixedAt` 有值即已固定，不新增 enum。欄位依 D-045 第 6 點，在導入 Flyway 之後以 migration 新增；目前沒有既有資料需要補值。
+
 必須可持久追溯固定的 case、當時有效 INITIAL submission、操作者及時間；不得以目前指派醫師、查詢時間或可變動的 latest 指標重建歷史固定事實。保留 append-only revision／SUPERSEDED 鏈，固定後不得覆寫結果或換有效版本。
 有效版本驗證、固定事實、追溯資料與依固定結果產生的流向須維持一致；不得出現固定已成功但追溯缺漏、固定舊版卻採新版分數、或固定後又成功 revision。revision 先完成則舊版固定不可成功；固定先完成則 revision 不可成功。失敗不得留下部分成功事實或成功事件。
 以上是待實作的可觀察一致性契約；實體 table／column、時間表示、鎖定／版本控制、交易邊界／隔離與發布機制、migration／舊資料補值／相容性、重複固定策略均為 UNKNOWN。不新增 DB 設計、不執行 migration、不宣稱現有 DB 已保證。
@@ -940,6 +942,8 @@ revision 先完成則舊版 close 不得成功；close 先完成則不能再寫 
 ### 現有能力與部署邊界
 
 ReviewCase／ReviewCaseEntity 無通用時間欄位；ReviewCaseRepositoryImpl.toEntity 每次建立完整 Entity 再 save，不能拿過期 Domain 快照只為 touch 而整筆覆寫。Submission 已有 LocalDateTime updatedAt，但會在相同 Draft Save 重設，不能作案件可信來源。ReviewCaseJpaRepository 僅繼承 JpaRepository，無 lock／version／時間更新方法。
+
+> D-045（2026-11-16 補充）：正式資料庫為 Oracle 19c 以上，migration 工具為 Flyway 8.5.13；開發與測試用 H2 Oracle 相容模式，由 Flyway 建 schema、`ddl-auto=validate`。本段以下為裁決前的現況描述，落地後以 D-045 為準。
 
 application.yml 的共用 ddl-auto=none、local H2 memory profile 為 update；測試使用既有 create-drop H2。build.gradle 未宣告 Flyway／Liquibase，repo 未確認 migration 工具、正式資料庫及 timestamp 精度。現有能力不足以執行下述機制驗證；本輪不增加欄位、DDL 或 migration。H2 僅能驗證未來本地機制，不能代替未知正式 DB 驗收。
 

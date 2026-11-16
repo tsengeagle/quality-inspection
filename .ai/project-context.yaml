@@ -206,6 +206,9 @@ architecture:
     build_dsl: Groovy DSL
     tech_stack_status: confirmed
     integration_baseline: must integrate with organization existing api-gateway
+    production_database: Oracle Database 19c or later  # D-045, 2026-11-16
+    migration_tool: Flyway 8.5.13 (Spring Boot 2.7.18 managed; community edition supports Oracle 12.2+)  # D-045
+    dev_test_database: H2 in Oracle compatibility mode, schema created by Flyway  # D-045
     skeleton:
       build_file: build.gradle
       settings_file: settings.gradle
@@ -697,5 +700,4 @@ uncovered_scope:
   - organization_api_gateway_technical_details_beyond_base_path_and_auth_header_not_to_be_fabricated
   - organization_mfe_shell_technical_details_beyond_module_federation_reference_not_to_be_fabricated
   - portal51_lib_component_level_usage_detail_pending
-  - backend_migration_tool_not_yet_confirmed
   - backend_package_root_may_need_org_specific_adjustment

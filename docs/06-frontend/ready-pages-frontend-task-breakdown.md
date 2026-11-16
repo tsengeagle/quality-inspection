@@ -1158,6 +1158,8 @@ parallelizable: false
 - 唯讀，僅顯示摘要（不顯示完整評分表）
 - 此 component 是 UI-013 page-owned，絕對不得抽成 shared（需要特定複審情境語意）
 
+> 已移除（D-033，PR #45）：複審頁只給複審醫師使用，最終分數與最終結論可反推初審分數，不得顯示。下列 C19 範圍與驗收條件僅為歷史紀錄；C18 也不顯示初審分數（UI-013 §5.3）。
+
 **C19 FinalDecisionSummaryComponent（skeleton，live calc Deferred）：**
 - 顯示最終決定摘要的結構骨架
 - C19 的 live score calculation 為 Deferred（等 OQ-C08 解答）

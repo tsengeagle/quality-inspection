@@ -542,7 +542,7 @@ lazyLoadBoundary: isolated command boundary
 | commentary / attachment zone | page-owned | placeholder |
 | C17 ReviewVersionSummaryRegion | shared（A4） | contains basedOn reference for REVISION |
 | C18 InitialSummaryReferenceRegion | page-owned | read-only reference; not upgrade to shared |
-| C19 FinalDecisionSummaryRegion | page-owned | final score 骨架（live calc = DEFERRED OQ §2） |
+| C19 FinalDecisionSummaryRegion | 已移除 | 已移除（D-033，PR #45）：複審頁只給複審醫師使用，最終分數與最終結論可反推初審分數，不得顯示。 |
 | C16 ReviewCommandBar | shared（A4） | viewport-fixed bottom；label 依 mode 切換 |
 
 #### 2.7.4 Shared vs page-owned
@@ -612,7 +612,7 @@ interface RereviewPageViewModel {
 | 項目 | 狀態 | 說明 |
 |---|---|---|
 | CLOSED exception C16 submit button label | DEFERRED | OQ §1：UX writing 決定 |
-| C19 FinalDecision live score calculation | DEFERRED | OQ §2：submit-time vs live calc |
+| C19 FinalDecision live score calculation | 不再適用 | C19 已依 D-033 移除 |
 | C02/C03 priority 在 exception 同時出現時 | DEFERRED | OQ §3 |
 | revision draft save | STUB/PENDING | api-spec 未明確；標 pending confirmation |
 | score sheet item-level form controls | STUB 佔位區域 | 不在本輪 spec 範圍 |

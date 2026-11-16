@@ -1484,7 +1484,16 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 複審正式結案的拒絕條件與錯誤代碼已由 D-053 定案（見「D-034 複審獨立 Close Command 對齊」一節）；其餘新的拒絕條件（例如初審固定）之精確 HTTP／error code mapping 仍為 unknown，保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
 複審醫師任何階段不得取得初審答案／分數／評語，亦不得從 command ack、list/detail、revision history/compare、audit、report/export、前端 cache 取得可反推值。finalScore 數值仍在 domain 依原公式計算；所有廣義 FULL view／共用回應範例都須先套用 D-033 角色限制。精確衍生欄位清單與多角色 policy 合成 unknown。
 
-## DD-03 初審固定的語意契約（binding UNKNOWN）
+## DD-03 初審固定的語意契約（binding 已由 D-054 定案）
+
+> D-054（2026-11-16）補足本節的 binding UNKNOWN，以下表格為 DD-03 原有的語意保證，仍然有效：
+>
+> - `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/fix`，不需要請求內容；角色 `REVIEWER`，且必須是該有效初審結果的提交者。
+> - 成功回應 `{ caseId, caseStatus, submissionId, fixedAt }`；`caseStatus` 為 `PENDING_REREVIEW`（分數 > 品質線）或 `INITIAL_REVIEW_COMPLETED`。
+> - 錯誤代碼依 decision-log D-054 第 6 點：`ROLE_DENIED`、`CASE_NOT_FOUND`、`SUBMISSION_NOT_FOUND`、`HOSPITAL_SCOPE_MISMATCH`、`CASE_TERMINAL`、`INVALID_STATE_TRANSITION`（重複固定；固定後 revision；未固定就派複審或結案）、`CASE_NOT_INITIAL_REVIEW_COMPLETED`、`CONFLICT`（目標不是本案目前有效的初審結果；樂觀鎖失敗）、`SUBMISSION_NOT_SUBMITTED`、`NOT_SUBMISSION_OWNER`。
+> - 提交初審（§11）不再依品質線進複審，案件一律停在 `INITIAL_REVIEW_COMPLETED`。
+> - 案件詳情的 `allowedActions` 在可固定時加入 `FIX_INITIAL_REVIEW`。
+
 
 沿用 `/api/quality-inspection/**`、`api-key` 與既有 actor context；固定為與 submit 分離的操作，不新增路徑或暗示既有 submit 已支援。
 
