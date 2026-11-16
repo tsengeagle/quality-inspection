@@ -111,7 +111,7 @@ class RevisionApiTest {
         proj.setStatus(ProjectStatus.ACTIVE);
         proj.setVersionNumber(1);
         proj.setVersionPublished(true);
-        proj.setBoundScoreSheetId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
+        proj.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         projectJpa.save(proj);
     }
 

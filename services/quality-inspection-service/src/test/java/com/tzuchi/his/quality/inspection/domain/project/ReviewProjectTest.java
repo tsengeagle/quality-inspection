@@ -175,7 +175,7 @@ class ReviewProjectTest {
 
         project.bindScoreSheet("ss-123");
 
-        assertEquals("ss-123", project.getBoundScoreSheetId());
+        assertEquals("ss-123", project.getScoreSheetVersionRef());
     }
 
     @Test
@@ -284,7 +284,7 @@ class ReviewProjectTest {
                 new java.math.BigDecimal("0.50"));
 
         assertEquals("My Desc", project.getDescription());
-        assertEquals("ss-99", project.getBoundScoreSheetId());
+        assertEquals("ss-99", project.getScoreSheetVersionRef());
         assertEquals(ProjectStatus.ACTIVE, project.getStatus());
         assertEquals(2, project.getCurrentVersion().getVersionNumber());
         assertTrue(project.getCurrentVersion().isPublished());

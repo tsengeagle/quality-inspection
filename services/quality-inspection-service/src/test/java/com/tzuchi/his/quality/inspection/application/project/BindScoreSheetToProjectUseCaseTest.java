@@ -75,7 +75,7 @@ class BindScoreSheetToProjectUseCaseTest {
 
         useCase.execute(manager("H001"), "p1", versionId);
 
-        assertEquals(versionId, repository.store.get("p1").getBoundScoreSheetId());
+        assertEquals(versionId, repository.store.get("p1").getScoreSheetVersionRef());
         assertEquals(1, eventPublisher.events.size());
         assertInstanceOf(ScoreSheetBoundToProjectEvent.class, eventPublisher.events.get(0));
     }
@@ -89,7 +89,7 @@ class BindScoreSheetToProjectUseCaseTest {
 
         useCase.execute(manager("H001"), "p1", second);
 
-        assertEquals(second, repository.store.get("p1").getBoundScoreSheetId());
+        assertEquals(second, repository.store.get("p1").getScoreSheetVersionRef());
     }
 
     @Test
@@ -133,7 +133,7 @@ class BindScoreSheetToProjectUseCaseTest {
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(manager("H001"), "p1", "no-such-version"));
         assertEquals("INVALID_STATE_TRANSITION", e.getErrorCode());
-        assertEquals(versionId, repository.store.get("p1").getBoundScoreSheetId());
+        assertEquals(versionId, repository.store.get("p1").getScoreSheetVersionRef());
     }
 
     @Test
@@ -144,7 +144,7 @@ class BindScoreSheetToProjectUseCaseTest {
                     () -> useCase.execute(manager("H001"), "p1", bad), bad);
             assertEquals("SCORE_SHEET_NOT_FOUND", e.getErrorCode());
         }
-        assertNull(repository.store.get("p1").getBoundScoreSheetId());
+        assertNull(repository.store.get("p1").getScoreSheetVersionRef());
     }
 
     @Test
@@ -166,7 +166,7 @@ class BindScoreSheetToProjectUseCaseTest {
         ResourceNotFoundException e = assertThrows(ResourceNotFoundException.class,
                 () -> useCase.execute(manager("H001"), "p1", otherProjectsVersion));
         assertEquals("SCORE_SHEET_NOT_FOUND", e.getErrorCode());
-        assertNull(repository.store.get("p1").getBoundScoreSheetId());
+        assertNull(repository.store.get("p1").getScoreSheetVersionRef());
     }
 
     @Test
@@ -177,7 +177,7 @@ class BindScoreSheetToProjectUseCaseTest {
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(manager("H001"), "p1", draftVersion));
         assertEquals("INVALID_STATE_TRANSITION", e.getErrorCode());
-        assertNull(repository.store.get("p1").getBoundScoreSheetId());
+        assertNull(repository.store.get("p1").getScoreSheetVersionRef());
         assertTrue(eventPublisher.events.isEmpty());
     }
 }

@@ -64,7 +64,7 @@ public class ExecuteSamplingUseCase {
         RuleSnapshot snapshot = new RuleSnapshot(
                 projectId + "-v" + project.getCurrentVersion().getVersionNumber(),
                 project.getCurrentVersion().getVersionNumber(),
-                project.getBoundScoreSheetId() != null ? project.getBoundScoreSheetId() : "UNBOUND",
+                project.getScoreSheetVersionRef() != null ? project.getScoreSheetVersionRef() : "UNBOUND",
                 "MANUAL",
                 null
         );

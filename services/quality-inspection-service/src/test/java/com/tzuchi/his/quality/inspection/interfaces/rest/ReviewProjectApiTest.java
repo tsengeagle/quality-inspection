@@ -195,6 +195,25 @@ class ReviewProjectApiTest {
                 .andExpect(status().isOk());
     }
 
+    /** D-045 Pending／D-050 第 1 點：專案回應以 scoreSheetVersionId 回傳綁定的評分表版本 id，不再有 boundScoreSheetId。 */
+    @Test
+    void getProject_returnsTheBoundVersionAsScoreSheetVersionId() throws Exception {
+        String projectId = createProjectAndGetId("Bound Version");
+        String versionId = publishedScoreSheetVersion(projectId);
+        BindScoreSheetRequest req = new BindScoreSheetRequest();
+        req.setScoreSheetVersionId(versionId);
+        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(BASE + "/" + projectId).header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.scoreSheetVersionId").value(versionId))
+                .andExpect(jsonPath("$.data.boundScoreSheetId").doesNotExist());
+    }
+
     // --- ACTIVATE ---
 
     @Test
