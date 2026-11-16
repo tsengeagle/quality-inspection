@@ -579,4 +579,23 @@ class ScoreSheetDefinitionTest {
         DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
         assertEquals("DUPLICATE_SECTION_ID", e.getErrorCode());
     }
+
+    @Test
+    void updateDraft_newSectionWithDuplicateIdAndCode_reportsItemIdFirst_SSUPD10() {
+        // 既有章節含 i1/C01；新章節含 i1/C02、i2/C02：同時違反 SS-UPD-10 與 SS-UPD-11，應先回題目 id
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection s1 = new ScoreSheetSection("sec1", "Section 1");
+        s1.addItem(new ScoreItem("i1", "C01", "Item1", ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s1);
+        UpdateDraftCommand cmd = new UpdateDraftCommand(
+                List.of(new UpdateDraftCommand.AddSectionCommand("sec2", "Section 2", List.of(
+                        new UpdateDraftCommand.AddItemCommand(null, "i1", "C02", "Item",
+                                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null),
+                        new UpdateDraftCommand.AddItemCommand(null, "i2", "C02", "Item",
+                                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null)))),
+                null, null, null, null, null);
+
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
+        assertEquals("DUPLICATE_ITEM_ID", e.getErrorCode());
+    }
 }

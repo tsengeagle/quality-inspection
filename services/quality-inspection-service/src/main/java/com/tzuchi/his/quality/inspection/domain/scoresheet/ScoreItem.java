@@ -56,6 +56,25 @@ public class ScoreItem {
         this.conditionExpression = hasExpression ? conditionExpression : null;
     }
 
+    /**
+     * 從已儲存的資料還原，不做新輸入的欄位驗證：舊版允許的資料（例如非 CONDITIONAL 卻有 conditionExpression）
+     * 仍要能載入、查詢，並透過更新修正。FOR INFRASTRUCTURE USE ONLY。
+     */
+    public static ScoreItem reconstitute(String itemId, String code, String title,
+                                         ScoreType scoreType, BigDecimal maxScore, BigDecimal weight,
+                                         RequiredRule requiredRule, String conditionExpression) {
+        ScoreItem item = new ScoreItem();
+        item.itemId = itemId;
+        item.code = code;
+        item.title = title;
+        item.scoreType = scoreType;
+        item.maxScore = maxScore;
+        item.weight = weight != null ? weight : BigDecimal.ONE; // 與先前載入時的行為相同
+        item.requiredRule = requiredRule;
+        item.conditionExpression = conditionExpression;
+        return item;
+    }
+
     static void requireText(String value, String field) {
         if (value == null || value.isBlank()) {
             throw invalid(field + " must not be blank");

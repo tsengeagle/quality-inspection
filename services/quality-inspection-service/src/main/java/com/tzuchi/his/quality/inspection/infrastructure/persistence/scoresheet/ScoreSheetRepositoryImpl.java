@@ -64,17 +64,14 @@ public class ScoreSheetRepositoryImpl implements ScoreSheetRepository {
 
     private ScoreSheetDefinition toDomain(ScoreSheetEntity e) {
         List<ScoreSheetSection> sections = e.getSections().stream().map(se -> {
-            ScoreSheetSection section = new ScoreSheetSection(se.getSectionId(), se.getTitle());
-            for (ScoreItemEntity ie : se.getItems()) {
-                section.addItem(new ScoreItem(
-                        ie.getItemId(), ie.getCode(), ie.getTitle(),
-                        ScoreType.valueOf(ie.getScoreType()),
-                        ie.getMaxScore(), ie.getWeight(),
-                        RequiredRule.valueOf(ie.getRequiredRule()),
-                        ie.getConditionExpression()
-                ));
-            }
-            return section;
+            // 還原已儲存的資料，不套用新輸入的驗證（舊資料要能載入並透過更新修正）
+            List<ScoreItem> items = se.getItems().stream().map(ie -> ScoreItem.reconstitute(
+                    ie.getItemId(), ie.getCode(), ie.getTitle(),
+                    ScoreType.valueOf(ie.getScoreType()),
+                    ie.getMaxScore(), ie.getWeight(),
+                    RequiredRule.valueOf(ie.getRequiredRule()),
+                    ie.getConditionExpression())).collect(Collectors.toList());
+            return ScoreSheetSection.reconstitute(se.getSectionId(), se.getTitle(), items);
         }).collect(Collectors.toList());
 
         return ScoreSheetDefinition.reconstitute(

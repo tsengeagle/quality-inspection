@@ -166,6 +166,8 @@ public class ScoreSheetDefinition {
             }
             // 重複的檢查順序：章節 id（SS-UPD-09）→ 題目 id（SS-UPD-10）→ 題目代碼（SS-UPD-11）
             requireNewSectionId(newSection.getSectionId());
+            requireNoDuplicates(newItems, ScoreItem::getItemId, "DUPLICATE_ITEM_ID");
+            requireNoDuplicates(newItems, ScoreItem::getCode, "DUPLICATE_ITEM_CODE");
             newItems.forEach(newSection::addItem);
             addSection(newSection);
         }
@@ -178,6 +180,22 @@ public class ScoreSheetDefinition {
             ScoreSheetSection section = findSection(add.getTargetSectionId());
             validateCrossSectionUniqueness(newItem, section);
             section.addItem(newItem);
+        }
+    }
+
+    /** 新題目之間、以及與版本內既有題目之間，指定欄位不得重複。 */
+    private void requireNoDuplicates(List<ScoreItem> newItems, java.util.function.Function<ScoreItem, String> key,
+                                     String errorCode) {
+        Set<String> seen = new HashSet<>();
+        for (ScoreSheetSection existing : sections) {
+            for (ScoreItem item : existing.getItems()) {
+                seen.add(key.apply(item));
+            }
+        }
+        for (ScoreItem item : newItems) {
+            if (!seen.add(key.apply(item))) {
+                throw new DomainRuleViolationException(errorCode, "Duplicate in score sheet version: " + key.apply(item));
+            }
         }
     }
 
