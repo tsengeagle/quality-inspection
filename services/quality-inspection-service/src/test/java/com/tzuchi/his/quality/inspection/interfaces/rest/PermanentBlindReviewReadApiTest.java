@@ -185,6 +185,35 @@ class PermanentBlindReviewReadApiTest {
         for (String path : paths) mvc.perform(get(path).header("api-key", auth)).andExpect(status().isForbidden());
     }
 
+    /** D-033：生命週期的稽核 detail 帶有初審分數與 finalScore，複審醫師與 metadata-only 的系統管理者不得取得。 */
+    @ParameterizedTest
+    @ValueSource(strings = {"rereviewer", "system_admin", "auditor+rereviewer", "hospital_manager+rereviewer"})
+    void lifecycleWithholdsAuditDetailFromRereviewersAndSystemAdmin_D033(String roles) throws Exception {
+        String user = roles.equals("system_admin") ? "admin" : "rr";
+        JsonNode data = mapper.readTree(mvc.perform(get("/review-cases/c1/lifecycle")
+                        .header("api-key", token(user, "H001", roles.split("\\+"))))
+                .andReturn().getResponse().getContentAsString()).path("data");
+        assertFalse(data.toString().contains("SECRET_INITIAL"), "Audit detail leaked via lifecycle to " + roles);
+        for (JsonNode entry : data) absent(entry, "detail");
+    }
+
+    /** D-033：同時持有複審醫師角色的人不可改從稽核軌跡列表讀到同一份 detail。 */
+    @ParameterizedTest
+    @ValueSource(strings = {"auditor+rereviewer", "hospital_manager+rereviewer"})
+    void auditTrailListWithholdsDetailFromActorsHoldingRereviewer_D033(String roles) throws Exception {
+        JsonNode data = mapper.readTree(mvc.perform(get("/audit-trails").param("aggregateId", "c1")
+                        .header("api-key", token("rr", "H001", roles.split("\\+"))))
+                .andReturn().getResponse().getContentAsString()).path("data");
+        assertFalse(data.toString().contains("SECRET_INITIAL"), "Audit detail leaked via audit-trails to " + roles);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"hospital_manager", "auditor"})
+    void lifecycleStillShowsAuditDetailToFullReaders(String role) throws Exception {
+        JsonNode data = read("/review-cases/c1/lifecycle", token("m", "H001", role));
+        assertEquals("SECRET_INITIAL_AUDIT_SCORE=92", data.get(0).path("detail").asText());
+    }
+
     @Test
     void systemAdminGetsMetadataWithoutScoresOrClinicalContent() throws Exception {
         String auth = token("admin", "H001", "system_admin");

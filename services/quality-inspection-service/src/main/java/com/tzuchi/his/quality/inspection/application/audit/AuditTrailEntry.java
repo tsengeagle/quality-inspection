@@ -37,4 +37,13 @@ public class AuditTrailEntry {
     public String getHospitalId() { return hospitalId; }
     public Instant getOccurredAt() { return occurredAt; }
     public String getDetail() { return detail; }
+
+    /**
+     * 同一筆紀錄但不含 detail。detail 可能帶有初審分數或 finalScore（D-033），
+     * 不得取得這些值的讀者只拿到動作、操作者與時間。
+     */
+    public AuditTrailEntry withoutDetail() {
+        return new AuditTrailEntry(id, entityType, entityId, action, actorUserId, actorUserName, hospitalId,
+                occurredAt, null);
+    }
 }
