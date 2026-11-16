@@ -22,8 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>資料：H001 兩筆案件、H002 一筆案件。
  */
-@SpringBootTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-@AutoConfigureTestDatabase
+@SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class ReportHospitalScopeIntegrationTest {
 
     @Autowired private DashboardQueryService dashboard;

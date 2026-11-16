@@ -15,7 +15,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@AutoConfigureTestDatabase
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(HisStaffDirectoryAssignmentCandidateAdapter.class)
 class HisStaffDirectoryAssignmentCandidateAdapterTest {
 

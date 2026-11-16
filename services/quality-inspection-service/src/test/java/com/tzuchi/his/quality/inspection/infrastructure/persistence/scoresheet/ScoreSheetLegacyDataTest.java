@@ -9,6 +9,7 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreType;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.UpdateDraftCommand;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
@@ -22,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 舊版允許的資料（例如非 CONDITIONAL 卻有 conditionExpression）仍要能載入、查詢，並透過更新修正。
  */
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(ScoreSheetRepositoryImpl.class)
 class ScoreSheetLegacyDataTest {
 

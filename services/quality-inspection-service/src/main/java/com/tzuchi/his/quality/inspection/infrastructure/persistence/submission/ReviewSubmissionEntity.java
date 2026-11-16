@@ -35,13 +35,15 @@ public class ReviewSubmissionEntity {
     private int revisionNo;
 
     @Convert(converter = AnswerSetJsonConverter.class)
-    @Column(name = "answer_set_json", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "answer_set_json")
     private List<AnswerItem> answerSet;
 
     @Column(name = "total_score", precision = 10, scale = 2)
     private BigDecimal totalScore;
 
-    @Column(name = "comment")
+    // COMMENT 是 Oracle 保留字（D-045 第 5 點），欄位名用 comment_text；Java 欄位與 API 名稱不變。
+    @Column(name = "comment_text")
     private String comment;
 
     @Column(name = "submitted_at")
@@ -53,7 +55,8 @@ public class ReviewSubmissionEntity {
     @Column(name = "superseded_by_submission_id")
     private String supersededBySubmissionId;
 
-    @Column(name = "attachment_refs_json", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "attachment_refs_json")
     private String attachmentRefsJson;
 
     @Column(name = "created_at")
