@@ -41,7 +41,7 @@ class CaseDetailMetadataMapperTest {
 
     @Test
     void addingAnInheritedDtoGetterCannotExpandTheWireFieldSet() {
-        CaseDetailMetadataView future = new CaseDetailMetadataView("c", "CLOSED", "name", "H001", "initial", "rr") {
+        CaseDetailMetadataView future = new CaseDetailMetadataView("c", "CLOSED", "name", "H001", "initial", "rr", null) {
             public Map<String, Object> getFutureBootstrap() { return Map.of("score", 99, "comment", "private"); }
         };
         JsonNode json = new ObjectMapper().valueToTree(future);

@@ -31,6 +31,12 @@ class ReportApiTest {
 
     private final String hmToken = TestTokenFactory.hospitalManagerToken();
 
+    /** 這個類別的測試共用同一個資料庫；每次從空的案件表開始，避免重複建立同一個 caseId。 */
+    @org.junit.jupiter.api.BeforeEach
+    void clearCases() {
+        caseRepo.deleteAll();
+    }
+
     private void seedCase(String caseId, CaseStatus status) {
         ReviewCaseEntity e = new ReviewCaseEntity();
         e.setCaseId(caseId);
