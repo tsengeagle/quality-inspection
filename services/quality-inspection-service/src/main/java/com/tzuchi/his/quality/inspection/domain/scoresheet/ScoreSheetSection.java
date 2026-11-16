@@ -1,7 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
-import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import java.util.*;
 
 /**
@@ -18,22 +17,31 @@ public class ScoreSheetSection {
     }
 
     public ScoreSheetSection(String sectionId, String title) {
-        Objects.requireNonNull(sectionId, "sectionId must not be null");
-        Objects.requireNonNull(title, "title must not be null");
+        ScoreItem.requireText(sectionId, "sectionId");
+        ScoreItem.requireText(title, "title");
         this.sectionId = sectionId;
         this.title = title;
         this.items = new ArrayList<>();
+    }
+
+    /** 從已儲存的資料還原，不做新輸入的驗證與重複檢查。FOR INFRASTRUCTURE USE ONLY。 */
+    public static ScoreSheetSection reconstitute(String sectionId, String title, List<ScoreItem> items) {
+        ScoreSheetSection section = new ScoreSheetSection();
+        section.sectionId = sectionId;
+        section.title = title;
+        section.items = new ArrayList<>(items);
+        return section;
     }
 
     public void addItem(ScoreItem item) {
         Objects.requireNonNull(item, "item must not be null");
         boolean duplicateItemId = items.stream().anyMatch(i -> i.getItemId().equals(item.getItemId()));
         if (duplicateItemId) {
-            throw new DomainStateConflictException("DUPLICATE_ITEM_ID", "Duplicate itemId: " + item.getItemId());
+            throw new DomainRuleViolationException("DUPLICATE_ITEM_ID", "Duplicate itemId: " + item.getItemId());
         }
         boolean duplicateCode = items.stream().anyMatch(i -> i.getCode().equals(item.getCode()));
         if (duplicateCode) {
-            throw new DomainStateConflictException("DUPLICATE_ITEM_CODE", "Duplicate code: " + item.getCode());
+            throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE", "Duplicate code: " + item.getCode());
         }
         this.items.add(item);
     }
@@ -43,10 +51,7 @@ public class ScoreSheetSection {
     public List<ScoreItem> getItems() { return Collections.unmodifiableList(items); }
 
     public void updateTitle(String newTitle) {
-        Objects.requireNonNull(newTitle, "title must not be null");
-        if (newTitle.isBlank()) {
-            throw new IllegalArgumentException("title must not be blank");
-        }
+        ScoreItem.requireText(newTitle, "title");
         this.title = newTitle;
     }
 

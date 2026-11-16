@@ -1,6 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
-import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -46,7 +46,7 @@ class ScoreSheetItemUniquenessTest {
     void updatingAnItemToTheCodeOfAnotherItemInTheSameSectionIsRejected() {
         ScoreSheetDefinition ss = sheetWithOneSection(item("i1", "C01"), item("i2", "C02"));
 
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> ss.updateDraft(updateItem("i2", "C01")));
 
         assertEquals("DUPLICATE_ITEM_CODE", e.getErrorCode());
@@ -66,7 +66,7 @@ class ScoreSheetItemUniquenessTest {
     void addingAnItemWithADuplicateIdToTheSameSectionIsRejectedWithItsCode() {
         ScoreSheetDefinition ss = sheetWithOneSection(item("i1", "C01"));
 
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> ss.updateDraft(addItem("sec1", "i1", "C09")));
 
         assertEquals("DUPLICATE_ITEM_ID", e.getErrorCode());
@@ -76,7 +76,7 @@ class ScoreSheetItemUniquenessTest {
     void addingAnItemWithADuplicateCodeToTheSameSectionIsRejectedWithItsCode() {
         ScoreSheetDefinition ss = sheetWithOneSection(item("i1", "C01"));
 
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> ss.updateDraft(addItem("sec1", "i9", "C01")));
 
         assertEquals("DUPLICATE_ITEM_CODE", e.getErrorCode());
@@ -93,7 +93,7 @@ class ScoreSheetItemUniquenessTest {
                                 ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.ALWAYS_REQUIRED, null)))),
                 null, null, null, null, null);
 
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class, () -> ss.updateDraft(cmd));
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
 
         assertEquals("DUPLICATE_ITEM_CODE", e.getErrorCode());
         assertTrue(ss.getSections().isEmpty());

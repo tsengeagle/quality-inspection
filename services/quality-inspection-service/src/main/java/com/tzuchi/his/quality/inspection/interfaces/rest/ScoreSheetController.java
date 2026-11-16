@@ -6,7 +6,10 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.RequiredRule;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreItem;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetSection;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreType;
-import com.tzuchi.his.quality.inspection.domain.scoresheet.UpdateDraftCommand;
+import com.tzuchi.his.quality.inspection.application.scoresheet.input.ItemInput;
+import com.tzuchi.his.quality.inspection.application.scoresheet.input.ItemToSectionInput;
+import com.tzuchi.his.quality.inspection.application.scoresheet.input.SectionInput;
+import com.tzuchi.his.quality.inspection.application.scoresheet.input.SectionTitleInput;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +17,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
@@ -65,15 +70,55 @@ public class ScoreSheetController {
     public ResponseEntity<?> updateDraft(@CurrentActor ActorContext actor,
                                           @PathVariable("id") String scoreSheetId,
                                           @RequestBody UpdateScoreSheetDraftRequest request) {
-        UpdateDraftCommand command = toCommand(request);
-        updateDraftUseCase.execute(actor, scoreSheetId, command);
+        updateDraftUseCase.execute(actor, scoreSheetId,
+                toSet(request.getRemoveSectionIds()),
+                toSet(request.getRemoveItemIds()),
+                map(request.getUpdateSections(), s -> {
+                    SectionTitleInput in = new SectionTitleInput();
+                    in.setSectionId(s.getSectionId());
+                    in.setTitle(s.getTitle());
+                    return in;
+                }),
+                map(request.getUpdateItems(), i -> {
+                    ItemInput in = new ItemInput();
+                    in.setItemId(i.getItemId());
+                    in.setCode(i.getCode());
+                    in.setTitle(i.getTitle());
+                    in.setScoreType(parseEnum(ScoreType.class, i.getScoreType(), "scoreType"));
+                    in.setMaxScore(i.getMaxScore());
+                    in.setWeight(i.getWeight());
+                    in.setRequiredRule(parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"));
+                    in.setConditionExpression(i.getConditionExpression());
+                    return in;
+                }),
+                map(request.getAddSections(), s -> {
+                    SectionInput in = new SectionInput();
+                    in.setSectionId(s.getSectionId());
+                    in.setTitle(s.getTitle());
+                    in.setItems(map(s.getItems(), this::toItemInput));
+                    return in;
+                }),
+                map(request.getAddItems(), i -> {
+                    ItemInput base = toItemInput(i);
+                    ItemToSectionInput in = new ItemToSectionInput();
+                    in.setTargetSectionId(i.getTargetSectionId());
+                    in.setItemId(base.getItemId());
+                    in.setCode(base.getCode());
+                    in.setTitle(base.getTitle());
+                    in.setScoreType(base.getScoreType());
+                    in.setMaxScore(base.getMaxScore());
+                    in.setWeight(base.getWeight());
+                    in.setRequiredRule(base.getRequiredRule());
+                    in.setConditionExpression(base.getConditionExpression());
+                    return in;
+                }));
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
     @GetMapping
     public ResponseEntity<?> list(@CurrentActor ActorContext actor,
                                   @RequestParam(required = false) String hospitalId) {
-        List<ScoreSheetSummary> summaries = listUseCase.execute(actor, hospitalId);
+        List<ScoreSheetSummary> summaries = listUseCase.execute(actor, hospitalId).getItems();
         List<ScoreSheetSummaryResponse> response = summaries.stream()
                 .map(this::toSummaryResponse)
                 .collect(Collectors.toList());
@@ -92,14 +137,14 @@ public class ScoreSheetController {
                                       @PathVariable("id") String scoreSheetId) {
         ScoreSheetVersionInfo info = versionUseCase.execute(actor, scoreSheetId);
         return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "version", info.getVersion(),
+                "version", info.getVersionNo(),
                 "published", info.isPublished())));
     }
 
     @GetMapping("/{id}/sections")
     public ResponseEntity<?> sections(@CurrentActor ActorContext actor,
                                        @PathVariable("id") String scoreSheetId) {
-        List<ScoreSheetSection> sections = sectionsUseCase.execute(actor, scoreSheetId);
+        List<ScoreSheetSection> sections = sectionsUseCase.execute(actor, scoreSheetId).getSections();
         List<ScoreSheetSectionResponse> response = sections.stream()
                 .map(this::toSectionResponse)
                 .collect(Collectors.toList());
@@ -108,46 +153,38 @@ public class ScoreSheetController {
 
     // --- Mapping helpers ---
 
-    private UpdateDraftCommand toCommand(UpdateScoreSheetDraftRequest req) {
-        List<UpdateDraftCommand.AddSectionCommand> addSections = req.getAddSections() != null
-                ? req.getAddSections().stream().map(s -> new UpdateDraftCommand.AddSectionCommand(
-                        s.getSectionId(), s.getTitle(),
-                        s.getItems() != null ? s.getItems().stream().map(this::toAddItemCmd).collect(Collectors.toList()) : Collections.emptyList()))
-                .collect(Collectors.toList()) : null;
-
-        List<UpdateDraftCommand.UpdateSectionCommand> updateSections = req.getUpdateSections() != null
-                ? req.getUpdateSections().stream().map(s -> new UpdateDraftCommand.UpdateSectionCommand(
-                        s.getSectionId(), s.getTitle()))
-                .collect(Collectors.toList()) : null;
-
-        List<UpdateDraftCommand.AddItemCommand> addItems = req.getAddItems() != null
-                ? req.getAddItems().stream().map(this::toAddItemCmd).collect(Collectors.toList()) : null;
-
-        List<UpdateDraftCommand.UpdateItemCommand> updateItems = req.getUpdateItems() != null
-                ? req.getUpdateItems().stream().map(i -> new UpdateDraftCommand.UpdateItemCommand(
-                        i.getItemId(), i.getCode(), i.getTitle(),
-                        parseEnum(ScoreType.class, i.getScoreType(), "scoreType"),
-                        i.getMaxScore(), i.getWeight(),
-                        parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"),
-                        i.getConditionExpression()))
-                .collect(Collectors.toList()) : null;
-
-        return new UpdateDraftCommand(addSections, updateSections, req.getRemoveSectionIds(),
-                addItems, updateItems, req.getRemoveItemIds());
+    private ItemInput toItemInput(UpdateScoreSheetDraftRequest.AddItemRequest i) {
+        ItemInput in = new ItemInput();
+        in.setItemId(i.getItemId());
+        in.setCode(i.getCode());
+        in.setTitle(i.getTitle());
+        in.setScoreType(parseEnum(ScoreType.class, i.getScoreType(), "scoreType"));
+        in.setMaxScore(i.getMaxScore());
+        in.setWeight(i.getWeight());
+        in.setRequiredRule(parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"));
+        in.setConditionExpression(i.getConditionExpression());
+        return in;
     }
 
-    private UpdateDraftCommand.AddItemCommand toAddItemCmd(UpdateScoreSheetDraftRequest.AddItemRequest i) {
-        return new UpdateDraftCommand.AddItemCommand(
-                i.getTargetSectionId(), i.getItemId(), i.getCode(), i.getTitle(),
-                parseEnum(ScoreType.class, i.getScoreType(), "scoreType"),
-                i.getMaxScore(), i.getWeight(),
-                parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"),
-                i.getConditionExpression());
+    /** null 元素原樣保留，由 use case 依規格的檢查順序回 VALIDATION_ERROR（不在這裡解參照）。 */
+    private static <S, T> List<T> map(List<S> source, java.util.function.Function<S, T> mapper) {
+        if (source == null) {
+            return null;
+        }
+        List<T> result = new java.util.ArrayList<>(source.size());
+        for (S element : source) {
+            result.add(element == null ? null : mapper.apply(element));
+        }
+        return result;
+    }
+
+    private static Set<String> toSet(List<String> source) {
+        return source == null ? null : new LinkedHashSet<>(source);
     }
 
     private ScoreSheetSummaryResponse toSummaryResponse(ScoreSheetSummary s) {
         return new ScoreSheetSummaryResponse(s.getScoreSheetId(), s.getProjectId(),
-                s.getStatus().name(), s.getVersion(), s.getSectionCount(), s.getItemCount());
+                s.getStatus().name(), s.getVersionNo(), s.getSectionCount(), s.getItemCount());
     }
 
     private ScoreSheetSectionResponse toSectionResponse(ScoreSheetSection section) {
@@ -163,7 +200,11 @@ public class ScoreSheetController {
                 item.getRequiredRule().name(), item.getConditionExpression());
     }
 
+    /** 未提供（null）時回傳 null，交給 domain 依檢查順序回 VALIDATION_ERROR（SS-UPD-04）；不認得的值仍是 BAD_REQUEST。 */
     private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value, String fieldName) {
+        if (value == null) {
+            return null;
+        }
         try {
             return Enum.valueOf(enumClass, value);
         } catch (IllegalArgumentException | NullPointerException e) {

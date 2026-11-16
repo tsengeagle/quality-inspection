@@ -1,5 +1,7 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -21,23 +23,28 @@ public class ScoreItem {
         // for JPA
     }
 
+    /**
+     * 欄位驗證依 D-050 第 4 點（SS-UPD-04、06、07、08），違反時回 VALIDATION_ERROR。
+     * 沒有輸入 weight 時為 1（SS-UPD-S3）。requiredRule 不是 CONDITIONAL 時，空白的 conditionExpression 視為沒有值。
+     */
     public ScoreItem(String itemId, String code, String title,
                      ScoreType scoreType, BigDecimal maxScore, BigDecimal weight,
                      RequiredRule requiredRule, String conditionExpression) {
-        Objects.requireNonNull(itemId, "itemId must not be null");
-        Objects.requireNonNull(code, "code must not be null");
-        Objects.requireNonNull(title, "title must not be null");
-        Objects.requireNonNull(scoreType, "scoreType must not be null");
-        Objects.requireNonNull(maxScore, "maxScore must not be null");
+        requireText(itemId, "itemId");
+        requireText(code, "code");
+        requireText(title, "title");
+        requireValue(scoreType, "scoreType");
+        requireValue(maxScore, "maxScore");
+        requireValue(requiredRule, "requiredRule");
         if (maxScore.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("maxScore must not be negative");
+            throw invalid("maxScore must not be negative");
         }
-        Objects.requireNonNull(requiredRule, "requiredRule must not be null");
-        if (requiredRule == RequiredRule.CONDITIONAL) {
-            if (conditionExpression == null || conditionExpression.isBlank()) {
-                throw new IllegalArgumentException(
-                        "conditionExpression must not be blank when requiredRule is CONDITIONAL");
-            }
+        boolean hasExpression = conditionExpression != null && !conditionExpression.isBlank();
+        if (requiredRule == RequiredRule.CONDITIONAL && !hasExpression) {
+            throw invalid("conditionExpression must not be blank when requiredRule is CONDITIONAL");
+        }
+        if (requiredRule != RequiredRule.CONDITIONAL && hasExpression) {
+            throw invalid("conditionExpression is only allowed when requiredRule is CONDITIONAL");
         }
         this.itemId = itemId;
         this.code = code;
@@ -46,7 +53,42 @@ public class ScoreItem {
         this.maxScore = maxScore;
         this.weight = weight != null ? weight : BigDecimal.ONE;
         this.requiredRule = requiredRule;
-        this.conditionExpression = conditionExpression;
+        this.conditionExpression = hasExpression ? conditionExpression : null;
+    }
+
+    /**
+     * 從已儲存的資料還原，不做新輸入的欄位驗證：舊版允許的資料（例如非 CONDITIONAL 卻有 conditionExpression）
+     * 仍要能載入、查詢，並透過更新修正。FOR INFRASTRUCTURE USE ONLY。
+     */
+    public static ScoreItem reconstitute(String itemId, String code, String title,
+                                         ScoreType scoreType, BigDecimal maxScore, BigDecimal weight,
+                                         RequiredRule requiredRule, String conditionExpression) {
+        ScoreItem item = new ScoreItem();
+        item.itemId = itemId;
+        item.code = code;
+        item.title = title;
+        item.scoreType = scoreType;
+        item.maxScore = maxScore;
+        item.weight = weight != null ? weight : BigDecimal.ONE; // 與先前載入時的行為相同
+        item.requiredRule = requiredRule;
+        item.conditionExpression = conditionExpression;
+        return item;
+    }
+
+    static void requireText(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw invalid(field + " must not be blank");
+        }
+    }
+
+    private static void requireValue(Object value, String field) {
+        if (value == null) {
+            throw invalid(field + " must not be null");
+        }
+    }
+
+    static DomainValidationException invalid(String message) {
+        return new DomainValidationException("VALIDATION_ERROR", message);
     }
 
     public ScoreItem(String itemId, String code, String title,

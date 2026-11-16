@@ -14,6 +14,8 @@ import java.util.*;
  * - Published version is immutable.
  * - No duplicate itemId across all sections within the same version.
  * - No duplicate item code across all sections within the same version.
+ * Error categories follow specs/score-sheet (D-050): field validation is VALIDATION_ERROR,
+ * duplicates and missing targets are rule violations, changes to a published version are state conflicts.
  * - maxScore must not be negative.
  * - Only evolves via new version; no patching of published content.
  */
@@ -63,33 +65,11 @@ public class ScoreSheetDefinition {
         requireDraft();
         Objects.requireNonNull(section, "section must not be null");
 
-        // Duplicate sectionId check
-        boolean duplicateSection = sections.stream()
-                .anyMatch(s -> s.getSectionId().equals(section.getSectionId()));
-        if (duplicateSection) {
-            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
-                    "Duplicate sectionId: " + section.getSectionId());
-        }
+        requireNewSectionId(section.getSectionId());
 
-        // H-001: cross-section itemId uniqueness check
-        Set<String> existingItemIds = new HashSet<>();
-        Set<String> existingCodes = new HashSet<>();
-        for (ScoreSheetSection existing : sections) {
-            for (ScoreItem item : existing.getItems()) {
-                existingItemIds.add(item.getItemId());
-                existingCodes.add(item.getCode());
-            }
-        }
-        for (ScoreItem newItem : section.getItems()) {
-            if (!existingItemIds.add(newItem.getItemId())) {
-                throw new DomainStateConflictException("DUPLICATE_ITEM_ID",
-                        "Duplicate itemId across sections: " + newItem.getItemId());
-            }
-            if (!existingCodes.add(newItem.getCode())) {
-                throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
-                        "Duplicate item code across sections: " + newItem.getCode());
-            }
-        }
+        // 版本內不得重複：先檢查題目 id（SS-UPD-10），再檢查代碼（SS-UPD-11）
+        requireNoDuplicates(section.getItems(), ScoreItem::getItemId, "DUPLICATE_ITEM_ID");
+        requireNoDuplicates(section.getItems(), ScoreItem::getCode, "DUPLICATE_ITEM_CODE");
 
         this.sections.add(section);
     }
@@ -101,12 +81,12 @@ public class ScoreSheetDefinition {
     public void publishVersion() {
         requireDraft();
         if (sections.isEmpty()) {
-            throw new DomainStateConflictException("SCORE_SHEET_NOT_PUBLISHABLE",
+            throw new DomainRuleViolationException("SCORE_SHEET_NOT_PUBLISHABLE",
                     "Cannot publish an empty score sheet");
         }
         boolean hasItems = sections.stream().anyMatch(s -> !s.getItems().isEmpty());
         if (!hasItems) {
-            throw new DomainStateConflictException("SCORE_SHEET_NOT_PUBLISHABLE",
+            throw new DomainRuleViolationException("SCORE_SHEET_NOT_PUBLISHABLE",
                     "Cannot publish a score sheet with no items");
         }
         this.status = ScoreSheetStatus.PUBLISHED;
@@ -118,6 +98,7 @@ public class ScoreSheetDefinition {
 
         // 1. Remove sections first
         for (String sectionId : command.getRemoveSectionIds()) {
+            ScoreItem.requireText(sectionId, "sectionId");
             boolean removed = sections.removeIf(s -> s.getSectionId().equals(sectionId));
             if (!removed) {
                 throw new DomainRuleViolationException("SECTION_NOT_FOUND",
@@ -127,6 +108,7 @@ public class ScoreSheetDefinition {
 
         // 2. Remove items (cross-section search)
         for (String itemId : command.getRemoveItemIds()) {
+            ScoreItem.requireText(itemId, "itemId");
             boolean found = false;
             for (ScoreSheetSection section : sections) {
                 if (section.getItems().stream().anyMatch(i -> i.getItemId().equals(itemId))) {
@@ -143,30 +125,76 @@ public class ScoreSheetDefinition {
 
         // 3. Update section titles
         for (UpdateDraftCommand.UpdateSectionCommand update : command.getUpdateSections()) {
+            requireElement(update);
+            ScoreItem.requireText(update.getSectionId(), "sectionId");
+            ScoreItem.requireText(update.getTitle(), "title");
             ScoreSheetSection section = findSection(update.getSectionId());
             section.updateTitle(update.getTitle());
         }
 
         // 4. Update items (find item across sections, replace it)
         for (UpdateDraftCommand.UpdateItemCommand update : command.getUpdateItems()) {
+            requireElement(update);
             updateItemInSections(update);
         }
 
         // 5. Add new sections (reuses existing addSection() which enforces uniqueness)
         for (UpdateDraftCommand.AddSectionCommand add : command.getAddSections()) {
+            requireElement(add);
+            // 先驗證這個章節與它所有題目的輸入，再檢查重複
             ScoreSheetSection newSection = new ScoreSheetSection(add.getSectionId(), add.getTitle());
+            List<ScoreItem> newItems = new ArrayList<>();
             for (UpdateDraftCommand.AddItemCommand itemCmd : add.getItems()) {
-                newSection.addItem(toScoreItem(itemCmd));
+                requireElement(itemCmd);
+                newItems.add(toScoreItem(itemCmd));
             }
+            // 重複的檢查順序：章節 id（SS-UPD-09）→ 題目 id（SS-UPD-10）→ 題目代碼（SS-UPD-11）
+            requireNewSectionId(newSection.getSectionId());
+            requireNoDuplicates(newItems, ScoreItem::getItemId, "DUPLICATE_ITEM_ID");
+            requireNoDuplicates(newItems, ScoreItem::getCode, "DUPLICATE_ITEM_CODE");
+            newItems.forEach(newSection::addItem);
             addSection(newSection);
         }
 
         // 6. Add items to existing sections (with cross-section uniqueness)
         for (UpdateDraftCommand.AddItemCommand add : command.getAddItems()) {
-            ScoreSheetSection section = findSection(add.getTargetSectionId());
+            requireElement(add);
+            ScoreItem.requireText(add.getTargetSectionId(), "targetSectionId");
             ScoreItem newItem = toScoreItem(add);
-            validateCrossSectionUniqueness(newItem, section);
+            ScoreSheetSection section = findSection(add.getTargetSectionId());
+            // 版本內所有章節（含目標章節）：先檢查題目 id（SS-UPD-10），再檢查代碼（SS-UPD-11）
+            requireNoDuplicates(List.of(newItem), ScoreItem::getItemId, "DUPLICATE_ITEM_ID");
+            requireNoDuplicates(List.of(newItem), ScoreItem::getCode, "DUPLICATE_ITEM_CODE");
             section.addItem(newItem);
+        }
+    }
+
+    /** 新題目之間、以及與版本內既有題目之間，指定欄位不得重複。 */
+    private void requireNoDuplicates(List<ScoreItem> newItems, java.util.function.Function<ScoreItem, String> key,
+                                     String errorCode) {
+        Set<String> seen = new HashSet<>();
+        for (ScoreSheetSection existing : sections) {
+            for (ScoreItem item : existing.getItems()) {
+                seen.add(key.apply(item));
+            }
+        }
+        for (ScoreItem item : newItems) {
+            if (!seen.add(key.apply(item))) {
+                throw new DomainRuleViolationException(errorCode, "Duplicate in score sheet version: " + key.apply(item));
+            }
+        }
+    }
+
+    private void requireNewSectionId(String sectionId) {
+        if (sections.stream().anyMatch(s -> s.getSectionId().equals(sectionId))) {
+            throw new DomainRuleViolationException("DUPLICATE_SECTION_ID", "Duplicate sectionId: " + sectionId);
+        }
+    }
+
+    /** 清單裡的 null 元素是輸入錯誤（D-050 第 4 點），在輪到它的相位才回報。 */
+    private static void requireElement(Object element) {
+        if (element == null) {
+            throw ScoreItem.invalid("List elements must not be null");
         }
     }
 
@@ -179,26 +207,24 @@ public class ScoreSheetDefinition {
     }
 
     private void updateItemInSections(UpdateDraftCommand.UpdateItemCommand update) {
+        // 先驗證輸入，再查找題目（D-050 第 4 點的檢查順序）
+        ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
+                update.getTitle(), update.getScoreType(), update.getMaxScore(),
+                update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
         for (ScoreSheetSection section : sections) {
             for (int i = 0; i < section.getItems().size(); i++) {
                 if (section.getItems().get(i).getItemId().equals(update.getItemId())) {
                     ScoreItem oldItem = section.getItems().get(i);
                     if (!oldItem.getCode().equals(update.getCode())) {
-                        ScoreItem tempItem = new ScoreItem(update.getItemId(), update.getCode(),
-                                update.getTitle(), update.getScoreType(), update.getMaxScore(),
-                                update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
-                        validateCrossSectionUniqueness(tempItem, section);
+                        validateCrossSectionUniqueness(replacement, section);
                         // 同一章節的其他題目也不能有相同代碼（題目本身被取代，不算重複）
                         for (int j = 0; j < section.getItems().size(); j++) {
                             if (j != i && section.getItems().get(j).getCode().equals(update.getCode())) {
-                                throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
+                                throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE",
                                         "Duplicate item code in section: " + update.getCode());
                             }
                         }
                     }
-                    ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
-                            update.getTitle(), update.getScoreType(), update.getMaxScore(),
-                            update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
                     section.replaceItemAt(i, replacement);
                     return;
                 }
@@ -208,16 +234,22 @@ public class ScoreSheetDefinition {
                 "Item not found: " + update.getItemId());
     }
 
+    /** 其他章節不得有相同的題目 id 或代碼；先檢查所有 id（SS-UPD-10），再檢查代碼（SS-UPD-11）。 */
     private void validateCrossSectionUniqueness(ScoreItem newItem, ScoreSheetSection excludeSection) {
         for (ScoreSheetSection section : sections) {
             if (section == excludeSection) continue;
             for (ScoreItem existing : section.getItems()) {
                 if (existing.getItemId().equals(newItem.getItemId())) {
-                    throw new DomainStateConflictException("DUPLICATE_ITEM_ID",
+                    throw new DomainRuleViolationException("DUPLICATE_ITEM_ID",
                             "Duplicate itemId across sections: " + newItem.getItemId());
                 }
+            }
+        }
+        for (ScoreSheetSection section : sections) {
+            if (section == excludeSection) continue;
+            for (ScoreItem existing : section.getItems()) {
                 if (existing.getCode().equals(newItem.getCode())) {
-                    throw new DomainStateConflictException("DUPLICATE_ITEM_CODE",
+                    throw new DomainRuleViolationException("DUPLICATE_ITEM_CODE",
                             "Duplicate item code across sections: " + newItem.getCode());
                 }
             }

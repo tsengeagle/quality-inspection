@@ -24,7 +24,7 @@ class ListScoreSheetSummariesUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        List<ScoreSheetSummary> result = useCase.execute(actor, null);
+        List<ScoreSheetSummary> result = useCase.execute(actor, null).getItems();
 
         assertEquals(1, result.size());
         assertEquals("ss1", result.get(0).getScoreSheetId());
@@ -37,7 +37,7 @@ class ListScoreSheetSummariesUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        List<ScoreSheetSummary> result = useCase.execute(actor, null);
+        List<ScoreSheetSummary> result = useCase.execute(actor, null).getItems();
 
         assertEquals(2, result.size());
     }
@@ -101,5 +101,18 @@ class ListScoreSheetSummariesUseCaseTest {
             @Override
             public Optional<ScoreSheetSummary> findSummaryById(String id) { return Optional.empty(); }
         };
+    }
+
+    @Test
+    void execute_auditor_listsOwnHospital_D050() {
+        RecordingPort port = new RecordingPort();
+        ListScoreSheetSummariesUseCase useCase = new ListScoreSheetSummariesUseCase(port);
+        ActorContext auditor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        useCase.execute(auditor, "H002");
+
+        assertEquals("H001", port.requestedHospital);
+        assertFalse(port.allRequested);
     }
 }

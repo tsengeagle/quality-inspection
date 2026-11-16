@@ -275,16 +275,38 @@ class ScoreSheetApiTest {
     }
 
     @Test
-    void sections_sa_shouldReturn403() throws Exception {
+    void sections_sa_shouldReturn200_D050() throws Exception {
+        // D-050 第 7 點：SYSTEM_ADMIN 可讀取評分表，不受院區限制（D-047）
         String projectId = createProject();
         String ssId = createScoreSheet(projectId);
 
         mockMvc.perform(get(SS_BASE + "/" + ssId + "/sections")
                         .header("api-key", saToken))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     // --- ENUM VALIDATION ---
+
+    @Test
+    void updateDraft_nullListElements_shouldReturn400ValidationError() throws Exception {
+        String projectId = createProject();
+        String ssId = createScoreSheet(projectId);
+
+        for (String phase : List.of("addSections", "addItems", "updateSections", "updateItems", "removeSectionIds", "removeItemIds")) {
+            mockMvc.perform(put(SS_BASE + "/" + ssId)
+                            .header("api-key", hmToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"" + phase + "\":[null]}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+        }
+        mockMvc.perform(put(SS_BASE + "/" + ssId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"addSections\":[{\"sectionId\":\"S1\",\"title\":\"T\",\"items\":[null]}]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
 
     @Test
     void updateDraft_invalidScoreType_shouldReturn400() throws Exception {
@@ -372,6 +394,8 @@ class ScoreSheetApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(body)))
                 .andExpect(status().isBadRequest())
+                // SS-UPD-04：未提供列舉是欄位驗證錯誤，由 domain 依檢查順序回報（不是 controller 的 BAD_REQUEST）
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.error.message", containsString("scoreType")));
     }
 

@@ -38,7 +38,7 @@ class GetScoreSheetVersionUseCaseTest {
 
         ScoreSheetVersionInfo info = useCase.execute(actor, "ss1");
 
-        assertEquals(1, info.getVersion());
+        assertEquals(1, info.getVersionNo());
         assertFalse(info.isPublished());
     }
 
@@ -51,7 +51,7 @@ class GetScoreSheetVersionUseCaseTest {
 
         ScoreSheetVersionInfo info = useCase.execute(actor, "ss1");
 
-        assertEquals(1, info.getVersion());
+        assertEquals(1, info.getVersionNo());
     }
 
     @Test
@@ -81,5 +81,14 @@ class GetScoreSheetVersionUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
         assertThrows(ResourceNotFoundException.class, () -> useCase.execute(actor, "nonexistent"));
+    }
+
+    @Test
+    void execute_auditorOfTheSameHospital_reads_D050() {
+        repository.save(ScoreSheetDefinition.createDraft("ss1", "p1"));
+        ActorContext auditor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        assertEquals(1, useCase.execute(auditor, "ss1").getVersionNo());
     }
 }

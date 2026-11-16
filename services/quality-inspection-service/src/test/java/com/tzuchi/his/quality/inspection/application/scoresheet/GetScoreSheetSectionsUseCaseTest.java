@@ -40,20 +40,21 @@ class GetScoreSheetSectionsUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        List<ScoreSheetSection> result = useCase.execute(actor, "ss1");
+        ScoreSheetSectionsView result = useCase.execute(actor, "ss1");
 
-        assertEquals(1, result.size());
-        assertEquals("General", result.get(0).getTitle());
+        assertEquals("ss1", result.getScoreSheetId());
+        assertEquals(1, result.getSections().size());
+        assertEquals("General", result.getSections().get(0).getTitle());
     }
 
     @Test
-    void execute_sa_shouldThrow() {
+    void execute_sa_readsAnyHospital_D050() {
         ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
         repository.save(ss);
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, "ss1"));
+        assertEquals("ss1", useCase.execute(actor, "ss1").getScoreSheetId());
     }
 
     @Test
@@ -64,5 +65,32 @@ class GetScoreSheetSectionsUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H999"));
 
         assertThrows(AccessDeniedException.class, () -> useCase.execute(actor, "ss1"));
+    }
+
+    @Test
+    void execute_auditorOfTheSameHospital_reads_D050() {
+        repository.save(ScoreSheetDefinition.createDraft("ss1", "p1"));
+        ActorContext auditor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        assertEquals("ss1", useCase.execute(auditor, "ss1").getScoreSheetId());
+    }
+
+    @Test
+    void execute_auditorOfAnotherHospital_isScopeMismatch() {
+        repository.save(ScoreSheetDefinition.createDraft("ss1", "p1"));
+        ActorContext auditor = new ActorContext("u1", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H999"));
+
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(auditor, "ss1"));
+    }
+
+    @Test
+    void execute_reviewer_isRoleDenied() {
+        repository.save(ScoreSheetDefinition.createDraft("ss1", "p1"));
+        ActorContext reviewer = new ActorContext("u1", "Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
+
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, "ss1"));
     }
 }
