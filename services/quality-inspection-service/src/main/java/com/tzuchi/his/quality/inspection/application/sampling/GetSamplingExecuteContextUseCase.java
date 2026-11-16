@@ -49,7 +49,7 @@ public class GetSamplingExecuteContextUseCase {
                 project.getHospitalId(),
             project.getStatus().name(),
             project.getCurrentVersion().getVersionNumber(),
-            project.getBoundScoreSheetId(),
+            project.getScoreSheetVersionRef(),
             project.getCurrentVersion().getQualityThreshold() != null
                 ? project.getCurrentVersion().getQualityThreshold().toPlainString()
                 : null,
@@ -121,7 +121,7 @@ public class GetSamplingExecuteContextUseCase {
                 .sorted(Comparator.comparing(Enum::name))
                 .map(Enum::name)
                 .collect(Collectors.joining(", "));
-        String scoreSheetId = project.getBoundScoreSheetId() != null ? project.getBoundScoreSheetId() : "UNBOUND";
+        String scoreSheetId = project.getScoreSheetVersionRef() != null ? project.getScoreSheetVersionRef() : "UNBOUND";
         String threshold = currentVersion.getQualityThreshold() != null
                 ? currentVersion.getQualityThreshold().toPlainString()
                 : "未設定";

@@ -7,7 +7,7 @@ public class ReviewProjectResponse {
     private String name;
     private String description;
     private String status;
-    private String boundScoreSheetId;
+    private String scoreSheetVersionId;
     private int currentVersionNumber;
     private boolean currentVersionPublished;
 
@@ -15,7 +15,7 @@ public class ReviewProjectResponse {
 
     public ReviewProjectResponse(String projectId, String hospitalId, String name,
                                   String description, String status,
-                                  String boundScoreSheetId,
+                                  String scoreSheetVersionId,
                                   int currentVersionNumber,
                                   boolean currentVersionPublished) {
         this.projectId = projectId;
@@ -23,7 +23,7 @@ public class ReviewProjectResponse {
         this.name = name;
         this.description = description;
         this.status = status;
-        this.boundScoreSheetId = boundScoreSheetId;
+        this.scoreSheetVersionId = scoreSheetVersionId;
         this.currentVersionNumber = currentVersionNumber;
         this.currentVersionPublished = currentVersionPublished;
     }
@@ -43,8 +43,8 @@ public class ReviewProjectResponse {
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
 
-    public String getBoundScoreSheetId() { return boundScoreSheetId; }
-    public void setBoundScoreSheetId(String boundScoreSheetId) { this.boundScoreSheetId = boundScoreSheetId; }
+    public String getScoreSheetVersionId() { return scoreSheetVersionId; }
+    public void setScoreSheetVersionId(String scoreSheetVersionId) { this.scoreSheetVersionId = scoreSheetVersionId; }
 
     public int getCurrentVersionNumber() { return currentVersionNumber; }
     public void setCurrentVersionNumber(int currentVersionNumber) { this.currentVersionNumber = currentVersionNumber; }

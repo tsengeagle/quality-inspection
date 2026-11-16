@@ -35,7 +35,7 @@ public class ReviewProjectRepositoryImpl implements ReviewProjectRepository {
         e.setHospitalId(project.getHospitalId());
         e.setName(project.getName());
         e.setDescription(project.getDescription());
-        e.setBoundScoreSheetId(project.getBoundScoreSheetId());
+        e.setScoreSheetVersionRef(project.getScoreSheetVersionRef());
         e.setMedicalRecordTypes(
                 project.getMedicalRecordTypes().stream()
                         .map(Enum::name)
@@ -59,7 +59,7 @@ public class ReviewProjectRepositoryImpl implements ReviewProjectRepository {
                 e.getHospitalId(),
                 e.getName(),
                 e.getDescription(),
-                e.getBoundScoreSheetId(),
+                e.getScoreSheetVersionRef(),
                 types,
                 e.getStatus(),
                 e.getVersionNumber(),

@@ -70,16 +70,16 @@ public class StartInitialReviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
                         "ReviewProject not found: " + reviewCase.getProjectId()));
 
-        String boundScoreSheetId = project.getBoundScoreSheetId();
-        if (boundScoreSheetId == null) {
+        String scoreSheetVersionRef = project.getScoreSheetVersionRef();
+        if (scoreSheetVersionRef == null) {
             throw new DomainRuleViolationException("NO_BOUND_SCORE_SHEET",
                     "Project has no bound score sheet");
         }
 
         // Load and validate score sheet is published. The project binds a score sheet version id (D-041, D-050 pt 1).
-        ScoreSheetDefinition scoreSheet = scoreSheetRepository.findByVersionId(boundScoreSheetId)
+        ScoreSheetDefinition scoreSheet = scoreSheetRepository.findByVersionId(scoreSheetVersionRef)
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
-                        "ScoreSheetDefinition not found: " + boundScoreSheetId));
+                        "ScoreSheetDefinition not found: " + scoreSheetVersionRef));
 
         if (scoreSheet.getStatus() != ScoreSheetStatus.PUBLISHED) {
             throw new DomainRuleViolationException("SCORE_SHEET_NOT_PUBLISHED",
@@ -89,10 +89,10 @@ public class StartInitialReviewUseCase {
         // Create draft submission
         String submissionId = UUID.randomUUID().toString();
         ReviewSubmission submission = ReviewSubmission.createInitialDraft(
-                submissionId, caseId, actor.getUserId(), boundScoreSheetId);
+                submissionId, caseId, actor.getUserId(), scoreSheetVersionRef);
 
         // Transition case
-        reviewCase.startInitialReview(submissionId, boundScoreSheetId);
+        reviewCase.startInitialReview(submissionId, scoreSheetVersionRef);
 
         // Persist
         submissionRepository.save(submission);

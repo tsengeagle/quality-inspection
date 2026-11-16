@@ -23,8 +23,8 @@ public class ReviewProjectEntity {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "bound_score_sheet_id")
-    private String boundScoreSheetId;
+    @Column(name = "score_sheet_version_ref")
+    private String scoreSheetVersionRef;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "review_project_record_types",
@@ -67,8 +67,8 @@ public class ReviewProjectEntity {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public String getBoundScoreSheetId() { return boundScoreSheetId; }
-    public void setBoundScoreSheetId(String boundScoreSheetId) { this.boundScoreSheetId = boundScoreSheetId; }
+    public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
+    public void setScoreSheetVersionRef(String scoreSheetVersionRef) { this.scoreSheetVersionRef = scoreSheetVersionRef; }
 
     public Set<String> getMedicalRecordTypes(){ return medicalRecordTypes; }
     public void setMedicalRecordTypes(Set<String> medicalRecordTypes) { this.medicalRecordTypes = medicalRecordTypes; }

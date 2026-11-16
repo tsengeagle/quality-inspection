@@ -45,7 +45,7 @@ public class ReviewProjectQueryAdapter implements ReviewProjectQueryPort {
                 entity.getDescription(),
                 toMedicalRecordTypes(entity.getMedicalRecordTypes()),
                 entity.getStatus(),
-                entity.getBoundScoreSheetId(),
+                entity.getScoreSheetVersionRef(),
                 entity.getVersionNumber(),
                 entity.isVersionPublished(),
                 entity.getQualityThreshold(),

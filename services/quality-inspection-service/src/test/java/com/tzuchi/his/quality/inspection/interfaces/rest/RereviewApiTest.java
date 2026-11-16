@@ -113,7 +113,7 @@ class RereviewApiTest {
         proj.setStatus(ProjectStatus.ACTIVE);
         proj.setVersionNumber(1);
         proj.setVersionPublished(true);
-        proj.setBoundScoreSheetId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
+        proj.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         proj.setQualityThreshold(new BigDecimal("60.0"));
         proj.setInitialReviewWeight(new BigDecimal("0.5"));
         proj.setRereviewWeight(new BigDecimal("0.5"));

@@ -28,7 +28,7 @@ public class ReviewProject {
     private String hospitalId;
     private String name;
     private String description;
-    private String boundScoreSheetId;
+    private String scoreSheetVersionRef;
     private Set<MedicalRecordType> medicalRecordTypes;
     private ProjectStatus status;
     private ProjectVersion currentVersion;
@@ -128,7 +128,7 @@ public class ReviewProject {
      * FOR INFRASTRUCTURE USE ONLY — do not call from domain or application code.
      */
     public static ReviewProject reconstitute(String projectId, String hospitalId, String name,
-                                              String description, String boundScoreSheetId,
+                                              String description, String scoreSheetVersionRef,
                                               Set<MedicalRecordType> medicalRecordTypes,
                                               ProjectStatus status, int versionNumber,
                                               boolean versionPublished,
@@ -140,7 +140,7 @@ public class ReviewProject {
         project.hospitalId = hospitalId;
         project.name = name;
         project.description = description;
-        project.boundScoreSheetId = boundScoreSheetId;
+        project.scoreSheetVersionRef = scoreSheetVersionRef;
         project.medicalRecordTypes = (medicalRecordTypes != null && !medicalRecordTypes.isEmpty())
                 ? EnumSet.copyOf(medicalRecordTypes)
                 : EnumSet.noneOf(MedicalRecordType.class);
@@ -217,12 +217,11 @@ public class ReviewProject {
     /**
      * 綁定評分表版本：參照的是評分表版本 id（D-041、D-050 第 1 點；格式見 ScoreSheetVersionId），重新綁定會取代
      * （RP-BND-S1）。版本是否存在、屬於本專案、已發布，由 application 在呼叫前檢查（RP-BND-02、03）。
-     * 欄位名稱沿用 boundScoreSheetId，內容是版本 id。
      */
     public void bindScoreSheet(String scoreSheetVersionId) {
         requireBindable();
         Objects.requireNonNull(scoreSheetVersionId, "scoreSheetVersionId must not be null");
-        this.boundScoreSheetId = scoreSheetVersionId;
+        this.scoreSheetVersionRef = scoreSheetVersionId;
     }
 
     /**
@@ -234,7 +233,7 @@ public class ReviewProject {
                     "Current version is already published. Cannot re-publish without creating a new draft.");
         }
         // Checked in the order of specs/review-project: RP-PUB-02, RP-PUB-03, RP-PUB-04
-        if (this.boundScoreSheetId == null) {
+        if (this.scoreSheetVersionRef == null) {
             // D-041: the score sheet must be bound before publishing (it used to be checked only at activation)
             throw new DomainRuleViolationException("PROJECT_VERSION_NOT_PUBLISHABLE",
                     "Cannot publish a version without a bound score sheet");
@@ -287,7 +286,7 @@ public class ReviewProject {
     public String getHospitalId() { return hospitalId; }
     public String getName() { return name; }
     public String getDescription() { return description; }
-    public String getBoundScoreSheetId() { return boundScoreSheetId; }
+    public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public Set<MedicalRecordType> getMedicalRecordTypes() { return Collections.unmodifiableSet(medicalRecordTypes); }
     public ProjectStatus getStatus() { return status; }
     public ProjectVersion getCurrentVersion() { return currentVersion; }

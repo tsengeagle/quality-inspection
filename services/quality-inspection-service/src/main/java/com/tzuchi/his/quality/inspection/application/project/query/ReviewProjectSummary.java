@@ -22,7 +22,7 @@ public class ReviewProjectSummary {
     private final String description;
     private final Set<MedicalRecordType> medicalRecordTypes;
     private final ProjectStatus status;
-    private final String boundScoreSheetId;
+    private final String scoreSheetVersionRef;
     private final int versionNo;
     private final boolean versionPublished;
     private final BigDecimal qualityThreshold;
@@ -31,7 +31,7 @@ public class ReviewProjectSummary {
 
     public ReviewProjectSummary(String projectId, String hospitalId, String name,
                                  String description, Set<MedicalRecordType> medicalRecordTypes,
-                                 ProjectStatus status, String boundScoreSheetId,
+                                 ProjectStatus status, String scoreSheetVersionRef,
                                  int versionNo, boolean versionPublished,
                                  BigDecimal qualityThreshold, BigDecimal initialReviewWeight,
                                  BigDecimal rereviewWeight) {
@@ -43,7 +43,7 @@ public class ReviewProjectSummary {
                 ? Collections.unmodifiableSet(EnumSet.noneOf(MedicalRecordType.class))
                 : Collections.unmodifiableSet(EnumSet.copyOf(medicalRecordTypes));
         this.status = status;
-        this.boundScoreSheetId = boundScoreSheetId;
+        this.scoreSheetVersionRef = scoreSheetVersionRef;
         this.versionNo = versionNo;
         this.versionPublished = versionPublished;
         this.qualityThreshold = qualityThreshold;
@@ -57,7 +57,7 @@ public class ReviewProjectSummary {
     public String getDescription() { return description; }
     public Set<MedicalRecordType> getMedicalRecordTypes() { return medicalRecordTypes; }
     public ProjectStatus getStatus() { return status; }
-    public String getBoundScoreSheetId() { return boundScoreSheetId; }
+    public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public int getVersionNo() { return versionNo; }
     public boolean isVersionPublished() { return versionPublished; }
     public BigDecimal getQualityThreshold() { return qualityThreshold; }

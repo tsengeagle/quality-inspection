@@ -154,7 +154,7 @@ public class ReviewProjectController {
                 summary.getName(),
                 summary.getDescription(),
                 summary.getStatus().name(),
-                summary.getBoundScoreSheetId(),
+                summary.getScoreSheetVersionRef(),
                 summary.getVersionNo(),
                 summary.isVersionPublished()
         );
