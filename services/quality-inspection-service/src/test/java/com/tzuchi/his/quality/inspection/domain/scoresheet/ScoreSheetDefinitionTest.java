@@ -563,4 +563,20 @@ class ScoreSheetDefinitionTest {
                 null, null);
         assertValidationError(() -> ss.updateDraft(cmd));
     }
+
+    @Test
+    void updateDraft_duplicateSectionIdIsReportedBeforeDuplicateItemsInsideIt_SSUPD09() {
+        ScoreSheetDefinition ss = createSheetWithOneItem();
+        String existing = ss.getSections().get(0).getSectionId();
+        UpdateDraftCommand cmd = new UpdateDraftCommand(
+                List.of(new UpdateDraftCommand.AddSectionCommand(existing, "Again", List.of(
+                        new UpdateDraftCommand.AddItemCommand(null, "i8", "C08", "Item",
+                                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null),
+                        new UpdateDraftCommand.AddItemCommand(null, "i8", "C09", "Item",
+                                ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null)))),
+                null, null, null, null, null);
+
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
+        assertEquals("DUPLICATE_SECTION_ID", e.getErrorCode());
+    }
 }
