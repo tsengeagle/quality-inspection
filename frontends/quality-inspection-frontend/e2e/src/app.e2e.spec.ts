@@ -206,7 +206,9 @@ test.describe('frontend smoke baseline', () => {
     await page.goto('/cases');
 
     await expect(page.locator('.case-summary-header')).toBeVisible();
-    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('審查佇列');
+    // standalone 模式的 actor 固定為 HOSPITAL_MANAGER（standalone-mock-actor-context.source.ts），
+    // UI-009 §4.1 依目前角色顯示視角。
+    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('管理者視角');
   });
 
   test('renders the sampling batch list placeholder region', async ({ page }) => {
