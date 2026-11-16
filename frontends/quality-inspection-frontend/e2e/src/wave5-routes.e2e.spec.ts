@@ -269,7 +269,7 @@ async function mockRereviewCase(
           projectId: 'PROJECT-001',
           batchId: 'BATCH-001',
           hospitalId: 'H001',
-          status: 'CLOSED',
+          status: 'REREVIEW_IN_PROGRESS',
           reviewerId: 'reviewer-1',
           rereviewerId: 'rereviewer-1',
           medicalRecordType: 'OUTPATIENT',
@@ -280,10 +280,9 @@ async function mockRereviewCase(
           actorRole: 'REREVIEWER',
           isOwner: true,
           rereviewContext: {
-            pageMode: 'REVISION_EXCEPTION_CLOSED',
+            pageMode: 'REVISION',
             hasDraft: false,
             hasSubmittedBase: true,
-            closedRevisionException: true,
             readonly: false,
             blocked: false,
             blockedReason: null,
@@ -298,6 +297,7 @@ async function mockRereviewCase(
             initialSubmissionId: 'SUB-INITIAL-001',
             initialReviewerId: 'reviewer-1',
             initialReviewerName: null,
+            // D-033：後端若誤送這些值，頁面也不得顯示
             initialTotalScore: 79,
             finalScore: 84,
             finalConclusion: 'PASS'
@@ -323,7 +323,7 @@ async function mockRereviewCase(
           answers: [
             { itemId: 'ITEM-1', answerValue: 'N', derivedScore: 4 }
           ],
-          comment: 'exception revise base',
+          comment: 'revise base',
           totalScore: 84,
           maskedFields: []
         }
@@ -436,21 +436,23 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
     await page.goto('/cases/CASE-013/rereview');
 
     await expect(page.locator('.rereview-title')).toHaveText('複審作業頁');
-    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('CLOSED_REVISION_EXCEPTION');
+    await expect(page.locator('.mode-indicator-strip__label')).toHaveText('REVISION');
     await expect(page.locator('[data-testid="rereview-initial-summary-reference"]')).toBeVisible();
     await expect(page.locator('[data-testid="rereview-form-placeholder"]')).toBeVisible();
-    await expect(page.locator('[data-testid="rereview-c16-placeholder-label"]')).toBeVisible();
-    await expect(page.locator('[data-testid="rereview-final-decision-summary"]')).toContainText('PASS / 最終分數 84');
+    // D-033：複審頁不顯示初審分數、最終分數與最終結論
+    await expect(page.locator('[data-testid="rereview-final-decision-summary"]')).toHaveCount(0);
+    await expect(page.locator('[data-testid="rereview-initial-summary-reference"]')).not.toContainText('79');
+    await expect(page.locator('body')).not.toContainText('最終分數');
     await expect(page.getByRole('button', { name: '提交複審修正' })).toBeEnabled();
 
     await page.getByTestId('rereview-answer-input-0').fill('Y');
-    await page.getByTestId('rereview-comment-input').fill('exception from page state');
+    await page.getByTestId('rereview-comment-input').fill('revision from page state');
 
     await page.getByRole('button', { name: '提交複審修正' }).click();
 
     expect(requestBody).toEqual({
       answers: [{ itemId: 'ITEM-1', answerValue: 'Y' }],
-      comment: 'exception from page state'
+      comment: 'revision from page state'
     });
     await expect(page.getByText('複審 command 執行失敗，limited wiring 僅提供最小錯誤提示。')).toBeVisible();
   });

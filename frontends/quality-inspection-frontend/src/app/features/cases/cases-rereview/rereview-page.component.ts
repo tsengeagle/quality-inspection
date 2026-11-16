@@ -31,8 +31,6 @@ export interface RereviewContext {
   basedOnVersion?: SubmissionRef;
   initialSubmissionId: string;
   initialReviewerName: string;
-  initialTotalScore: string;
-  finalDecisionSummary: string;
 }
 
 interface RereviewAnswerState {
@@ -97,9 +95,7 @@ export class RereviewPageComponent implements OnInit {
       hasSubmittedBase: bootstrap?.hasSubmittedBase ?? false,
       basedOnVersion: bootstrap?.basedOnVersion,
       initialSubmissionId: bootstrap?.initialSubmissionId ?? '',
-      initialReviewerName: bootstrap?.initialReviewerName || bootstrap?.initialReviewerId || '未提供',
-      initialTotalScore: bootstrap?.initialTotalScore != null ? String(bootstrap.initialTotalScore) : '未提供',
-      finalDecisionSummary: this.buildFinalDecisionSummary(bootstrap)
+      initialReviewerName: bootstrap?.initialReviewerName || bootstrap?.initialReviewerId || '未提供'
     }, bootstrap);
 
     this.syncFormState();
@@ -339,9 +335,7 @@ export class RereviewPageComponent implements OnInit {
       hasDraft: false,
       hasSubmittedBase: false,
       initialSubmissionId: 'SUB-INITIAL-001',
-      initialReviewerName: '原初審醫師',
-      initialTotalScore: '82',
-      finalDecisionSummary: '最終結論 placeholder'
+      initialReviewerName: '原初審醫師'
     };
   }
 
@@ -358,17 +352,6 @@ export class RereviewPageComponent implements OnInit {
       default:
         return '待複審';
     }
-  }
-
-  private buildFinalDecisionSummary(bootstrap?: RereviewBootstrapViewModel): string {
-    if (!bootstrap) {
-      return '最終結論 placeholder';
-    }
-
-    const parts = [bootstrap.finalConclusion, bootstrap.finalScore != null ? `最終分數 ${bootstrap.finalScore}` : null]
-      .filter((value): value is string => Boolean(value));
-
-    return parts.join(' / ') || '最終結論未提供';
   }
 
   private buildRereviewDraftPayloadFromState(submissionId: string): RereviewDraftPayload {

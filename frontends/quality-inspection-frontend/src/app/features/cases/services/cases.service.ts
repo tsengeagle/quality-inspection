@@ -116,11 +116,9 @@ interface RereviewBootstrapDto {
     | 'NEW_REREVIEW'
     | 'EDIT_DRAFT'
     | 'REVISION'
-    | 'REVISION_EXCEPTION_CLOSED'
     | 'READONLY_BLOCKED';
   hasDraft: boolean;
   hasSubmittedBase: boolean;
-  closedRevisionException: boolean;
   readonly: boolean;
   blocked: boolean;
   blockedReason?: string | null;
@@ -133,10 +131,7 @@ interface RereviewBootstrapDto {
   initialSubmissionRevisionNo?: number | null;
   initialReviewerId?: string | null;
   initialReviewerName?: string | null;
-  initialTotalScore?: number | null;
   initialSubmittedAt?: string | null;
-  finalScore?: number | null;
-  finalConclusion?: string | null;
 }
 
 interface ReviewCaseDetailDto {
@@ -356,16 +351,18 @@ export interface InitialReviewBootstrapViewModel {
   basedOnVersion?: ReviewSubmissionRef;
 }
 
+/**
+ * 複審頁的 bootstrap。不含初審分數、finalScore、finalConclusion：這些值會洩漏或可反推初審分數（D-033），
+ * 後端即使回傳也不映射，避免留在前端快取。closedRevisionException 與 REVISION_EXCEPTION_CLOSED 已隨 D-032 撤銷。
+ */
 export interface RereviewBootstrapViewModel {
   pageMode:
     | 'NEW_REREVIEW'
     | 'EDIT_DRAFT'
     | 'REVISION'
-    | 'REVISION_EXCEPTION_CLOSED'
     | 'READONLY_BLOCKED';
   hasDraft: boolean;
   hasSubmittedBase: boolean;
-  closedRevisionException: boolean;
   readonly: boolean;
   blocked: boolean;
   blockedReason?: string | null;
@@ -378,10 +375,7 @@ export interface RereviewBootstrapViewModel {
   initialSubmissionRevisionNo?: number | null;
   initialReviewerId?: string | null;
   initialReviewerName?: string | null;
-  initialTotalScore?: number | null;
   initialSubmittedAt?: string | null;
-  finalScore?: number | null;
-  finalConclusion?: string | null;
 }
 
 export interface CommandAnswerInput {
@@ -829,7 +823,6 @@ export class CasesService {
       pageMode: item.pageMode,
       hasDraft: item.hasDraft,
       hasSubmittedBase: item.hasSubmittedBase,
-      closedRevisionException: item.closedRevisionException,
       readonly: item.readonly,
       blocked: item.blocked,
       blockedReason: item.blockedReason,
@@ -842,10 +835,7 @@ export class CasesService {
       initialSubmissionRevisionNo: item.initialSubmissionRevisionNo,
       initialReviewerId: item.initialReviewerId,
       initialReviewerName: item.initialReviewerName,
-      initialTotalScore: item.initialTotalScore,
-      initialSubmittedAt: item.initialSubmittedAt,
-      finalScore: item.finalScore,
-      finalConclusion: item.finalConclusion
+      initialSubmittedAt: item.initialSubmittedAt
     };
   }
 

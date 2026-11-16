@@ -350,7 +350,6 @@ describe('CasesService', () => {
         pageMode: 'EDIT_DRAFT',
         hasDraft: true,
         hasSubmittedBase: true,
-        closedRevisionException: false,
         readonly: false,
         blocked: false,
         blockedReason: null,
@@ -378,12 +377,14 @@ describe('CasesService', () => {
         initialSubmissionRevisionNo: 1,
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialTotalScore: 88,
-        initialSubmittedAt: '2026-04-01T08:00:00',
-        finalScore: 91,
-        finalConclusion: 'PASS'
+        initialSubmittedAt: '2026-04-01T08:00:00'
       }
     });
+    // D-033：複審頁的快取不得保留初審分數或可反推初審分數的值，即使後端回傳了也一樣。
+    const rereviewContext = (actual as { rereviewContext: Record<string, unknown> }).rereviewContext;
+    for (const field of ['initialTotalScore', 'finalScore', 'finalConclusion', 'closedRevisionException']) {
+      expect(field in rereviewContext).withContext(field).toBeFalse();
+    }
   });
 
   it('maps submission detail truth for minimal command payload reuse', () => {
