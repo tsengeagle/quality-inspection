@@ -26,9 +26,9 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = {"spring.jpa.hibernate.ddl-auto=create-drop", "spring.jpa.properties.hibernate.generate_statistics=true"})
+@SpringBootTest(properties = "spring.jpa.properties.hibernate.generate_statistics=true")
 @org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
-@AutoConfigureTestDatabase
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @RecordApplicationEvents
 class UpdatedAtContractIntegrationTest {
     @Autowired private SaveInitialReviewDraftUseCase saveDraft;

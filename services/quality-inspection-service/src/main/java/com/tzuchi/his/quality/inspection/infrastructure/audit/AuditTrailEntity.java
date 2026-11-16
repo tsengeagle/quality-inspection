@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.infrastructure.audit;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Lob;
 import javax.persistence.Table;
 import java.time.Instant;
 
@@ -39,7 +40,8 @@ public class AuditTrailEntity {
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
+    @Column
     private String detail;
 
     public String getId() { return id; }

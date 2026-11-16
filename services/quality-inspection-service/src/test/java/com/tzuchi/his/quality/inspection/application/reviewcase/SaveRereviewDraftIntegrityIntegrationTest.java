@@ -32,8 +32,8 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-@AutoConfigureTestDatabase
+@SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @RecordApplicationEvents
 class SaveRereviewDraftIntegrityIntegrationTest {
     @Autowired private SaveRereviewDraftUseCase useCase;

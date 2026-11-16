@@ -29,8 +29,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@SpringBootTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
-@AutoConfigureTestDatabase
+@SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @RecordApplicationEvents
 class InitialReviewIntegrityIntegrationTest {
     @Autowired private SaveInitialReviewDraftUseCase saveDraft;
