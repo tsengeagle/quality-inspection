@@ -598,4 +598,43 @@ class ScoreSheetDefinitionTest {
         DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
         assertEquals("DUPLICATE_ITEM_ID", e.getErrorCode());
     }
+
+    @Test
+    void updateDraft_addItemDuplicatingACodeInOneSectionAndAnIdInAnother_reportsItemIdFirst_SSUPD10() {
+        // sec1 有 a/C01、sec2 有 b/C02；新題目 b/C01 加到 sec3：代碼與 sec1 重複、id 與 sec2 重複，應先回題目 id
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection s1 = new ScoreSheetSection("sec1", "S1");
+        s1.addItem(new ScoreItem("a", "C01", "A", ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s1);
+        ScoreSheetSection s2 = new ScoreSheetSection("sec2", "S2");
+        s2.addItem(new ScoreItem("b", "C02", "B", ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s2);
+        ss.addSection(new ScoreSheetSection("sec3", "S3"));
+        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null,
+                List.of(new UpdateDraftCommand.AddItemCommand("sec3", "b", "C01", "New",
+                        ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null)),
+                null, null);
+
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
+        assertEquals("DUPLICATE_ITEM_ID", e.getErrorCode());
+    }
+
+    @Test
+    void updateDraft_addItemDuplicatingACodeElsewhereAndAnIdInTheTargetSection_reportsItemIdFirst_SSUPD10() {
+        // sec1 有 a/C01、sec2 有 b/C02；新題目 b/C01 加到 sec2：id 與同章節重複、代碼與其他章節重複
+        ScoreSheetDefinition ss = ScoreSheetDefinition.createDraft("ss1", "p1");
+        ScoreSheetSection s1 = new ScoreSheetSection("sec1", "S1");
+        s1.addItem(new ScoreItem("a", "C01", "A", ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s1);
+        ScoreSheetSection s2 = new ScoreSheetSection("sec2", "S2");
+        s2.addItem(new ScoreItem("b", "C02", "B", ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE));
+        ss.addSection(s2);
+        UpdateDraftCommand cmd = new UpdateDraftCommand(null, null, null,
+                List.of(new UpdateDraftCommand.AddItemCommand("sec2", "b", "C01", "New",
+                        ScoreType.FIXED, BigDecimal.TEN, BigDecimal.ONE, RequiredRule.OPTIONAL, null)),
+                null, null);
+
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> ss.updateDraft(cmd));
+        assertEquals("DUPLICATE_ITEM_ID", e.getErrorCode());
+    }
 }
