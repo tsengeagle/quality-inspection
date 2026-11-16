@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-16-d045-score-sheet-refs",
+  "decision": "D-045",
+  "reason": "依負責人 2026-11-16 在 PR #42 的裁決（選項 A）：評分表參照改存版本 id 後，不在建構 PR 加入既有資料的相容轉換，留到 D-045 決定正式資料庫與 migration 工具時一起處理。本修法 (1) 在 decision-log.md D-045 的 Pending 記下這件待辦：專案綁定、案件參照、初審提交依據的評分表都存版本 id；若屆時有以評分表 id 儲存的既有資料要轉換；欄位改名（boundScoreSheetId）也在那時做。目前只用記憶體資料庫（jdbc:h2:mem），沒有既有資料。(2) 把 specs/score-sheet/OPEN-QUESTIONS.md 的「程式現況」改成已全部修正（PR #41、#42），保留「不指向規則、但仍未決的事」。(3) specs/README.md 第一節的評分表狀態改為範例全部通過。本 PR 只改律法與文件，規則與範例沒有變動。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/",
+    "law/"
+  ]
+}

@@ -11,7 +11,7 @@
 | aggregate | 位置 | 狀態 |
 |---|---|---|
 | `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。42 條規則全部 `decided`，含評分表升格時加入的綁定（`BindScoreSheetToProject`，D-050 第 8 點）；36 個範例。沒有範例的規則：`RP-INV-04`（由抽選的 use case 執行）、`RP-BND-03`（範例拿不到未發布的版本 id）。沒有待裁決的題目 |
-| `ScoreSheetDefinition` | `specs/score-sheet/` | 2026-11-15 由 `spec-draft/` 升格。38 條規則全部 `decided`（D-050）；36 個範例。程式尚未照規格修改，未通過的範例列在已知失敗清單（見 `score-sheet/OPEN-QUESTIONS.md`「程式現況」） |
+| `ScoreSheetDefinition` | `specs/score-sheet/` | 2026-11-15 由 `spec-draft/` 升格。38 條規則全部 `decided`（D-050）；36 個範例。程式已照規格修改（PR #41、#42），範例全部通過 |
 
 尚未轉換的 aggregate 以 `docs/01-requirements` 到 `docs/04-testing` 為準。
 
