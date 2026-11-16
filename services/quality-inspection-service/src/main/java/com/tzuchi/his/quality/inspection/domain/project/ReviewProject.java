@@ -154,9 +154,10 @@ public class ReviewProject {
         if (this.status == ProjectStatus.ACTIVE) {
             return; // idempotent
         }
-        if (this.status != ProjectStatus.DRAFT) {
+        // RP-T-01 DRAFT → ACTIVE、RP-T-03 DEACTIVATED → ACTIVE（D-039）
+        if (this.status != ProjectStatus.DRAFT && this.status != ProjectStatus.DEACTIVATED) {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
-                    "Can only activate from DRAFT status, current: " + this.status);
+                    "Can only activate from DRAFT or DEACTIVATED status, current: " + this.status);
         }
         if (!this.currentVersion.isPublished()) {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
@@ -203,13 +204,25 @@ public class ReviewProject {
     }
 
     /**
-     * Bind a score sheet definition to this project. Only allowed in DRAFT status.
-     * Does NOT cross-validate that the scoreSheetId exists or is published.
+     * 專案目前的版本已發布時不能綁定（RP-BND-01）。application 在查找評分表版本之前呼叫（D-050 第 8 點的檢查順序）。
      */
-    public void bindScoreSheet(String scoreSheetId) {
+    public void requireBindable() {
+        if (this.currentVersion.isPublished()) {
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Cannot bind a score sheet after the project version is published");
+        }
         requireStatusDraft();
-        Objects.requireNonNull(scoreSheetId, "scoreSheetId must not be null");
-        this.boundScoreSheetId = scoreSheetId;
+    }
+
+    /**
+     * 綁定評分表版本：參照的是評分表版本 id（D-041、D-050 第 1 點；格式見 ScoreSheetVersionId），重新綁定會取代
+     * （RP-BND-S1）。版本是否存在、屬於本專案、已發布，由 application 在呼叫前檢查（RP-BND-02、03）。
+     * 欄位名稱沿用 boundScoreSheetId，內容是版本 id。
+     */
+    public void bindScoreSheet(String scoreSheetVersionId) {
+        requireBindable();
+        Objects.requireNonNull(scoreSheetVersionId, "scoreSheetVersionId must not be null");
+        this.boundScoreSheetId = scoreSheetVersionId;
     }
 
     /**

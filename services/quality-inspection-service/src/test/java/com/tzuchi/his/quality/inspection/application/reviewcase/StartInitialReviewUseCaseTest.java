@@ -82,7 +82,7 @@ class StartInitialReviewUseCaseTest {
         // Create a project bound to the score sheet
         ReviewProject project = ReviewProject.create(PROJECT_ID, HOSPITAL_ID, "Test Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
-        project.bindScoreSheet(SCORE_SHEET_ID);
+        project.bindScoreSheet(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.activate();
@@ -102,7 +102,7 @@ class StartInitialReviewUseCaseTest {
         ReviewCase savedCase = caseRepo.store.get(CASE_ID);
         assertEquals(CaseStatus.INITIAL_REVIEW_IN_PROGRESS, savedCase.getStatus());
         assertEquals(submissionId, savedCase.getLatestInitialSubmissionId());
-        assertEquals(SCORE_SHEET_ID, savedCase.getScoreSheetVersionRef());
+        assertEquals(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), savedCase.getScoreSheetVersionRef());
 
         // Submission should exist as DRAFT
         ReviewSubmission savedSub = submissionRepo.store.get(submissionId);
@@ -110,7 +110,7 @@ class StartInitialReviewUseCaseTest {
         assertEquals(SubmissionStatus.DRAFT, savedSub.getStatus());
         assertEquals(ReviewStage.INITIAL, savedSub.getStage());
         assertEquals(REVIEWER_ID, savedSub.getReviewerId());
-        assertEquals(SCORE_SHEET_ID, savedSub.getBasedOnScoreSheetVersionId());
+        assertEquals(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), savedSub.getBasedOnScoreSheetVersionId());
     }
 
     @Test
@@ -178,7 +178,7 @@ class StartInitialReviewUseCaseTest {
 
         ReviewProject project = ReviewProject.create(PROJECT_ID, HOSPITAL_ID, "Test Project",
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
-        project.bindScoreSheet(SCORE_SHEET_ID);
+        project.bindScoreSheet(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
         project.activate();

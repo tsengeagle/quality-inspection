@@ -96,14 +96,14 @@ class SubmitInitialReviewUseCaseTest {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer(REVIEWER_ID, LocalDateTime.of(2026, 2, 1, 23, 59));
-        rc.startInitialReview(SUBMISSION_ID, SCORE_SHEET_ID);
+        rc.startInitialReview(SUBMISSION_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
         return rc;
     }
 
     private ReviewSubmission seedDraftWithAnswers() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         List<AnswerItem> answers = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
@@ -179,7 +179,7 @@ class SubmitInitialReviewUseCaseTest {
         seedScoreSheet();
         seedCaseInProgress();
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null);
         sub.submit();
         submissionRepo.save(sub);
@@ -194,7 +194,7 @@ class SubmitInitialReviewUseCaseTest {
         seedCaseInProgress();
 
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         List<AnswerItem> partialAnswers = Collections.singletonList(
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5")));
         sub.updateDraft(partialAnswers, new BigDecimal("7.5"), null);
@@ -216,7 +216,7 @@ class SubmitInitialReviewUseCaseTest {
 
         // Seed a submission manually so it passes submission lookup
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null);
         submissionRepo.save(sub);
 
@@ -274,9 +274,9 @@ class SubmitInitialReviewUseCaseTest {
         ReviewSubmission old = seedDraftWithAnswers();
         rc.returnToInitialReview("return");
         rc.reopenInitialReview();
-        rc.startInitialReview("sub-2", SCORE_SHEET_ID);
+        rc.startInitialReview("sub-2", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
-        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         current.updateDraft(old.getAnswerSet(), old.getTotalScore(), "current");
         submissionRepo.save(current);
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);

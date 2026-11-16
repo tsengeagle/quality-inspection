@@ -20,7 +20,7 @@ public final class PublishableProjects {
 
     public static ReviewProject prepare(ReviewProject project) {
         if (project.getBoundScoreSheetId() == null) {
-            project.bindScoreSheet(SCORE_SHEET_ID);
+            project.bindScoreSheet(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         }
         ProjectVersion version = project.getCurrentVersion();
         if (!version.isPublished() && version.getQualityThreshold() == null) {

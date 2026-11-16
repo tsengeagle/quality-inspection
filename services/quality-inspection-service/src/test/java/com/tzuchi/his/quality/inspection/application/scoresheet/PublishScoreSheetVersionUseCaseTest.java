@@ -39,9 +39,12 @@ class PublishScoreSheetVersionUseCaseTest {
         repository.save(ss);
         ActorContext actor = hmActor("H001");
 
-        useCase.execute(actor, "ss1");
+        PublishScoreSheetVersionResult result = useCase.execute(actor, "ss1");
 
         assertEquals(ScoreSheetStatus.PUBLISHED, repository.store.get("ss1").getStatus());
+        // D-050 第 1 點：發布產生並回傳版本 id（SS-PUB-S2）
+        assertEquals(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss1", 1),
+                result.getScoreSheetVersionId());
         assertEquals(1, eventPublisher.events.size());
         assertInstanceOf(ScoreSheetVersionPublishedEvent.class, eventPublisher.events.get(0));
     }

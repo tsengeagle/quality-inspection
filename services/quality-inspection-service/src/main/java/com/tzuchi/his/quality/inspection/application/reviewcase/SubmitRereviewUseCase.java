@@ -98,7 +98,7 @@ public class SubmitRereviewUseCase {
 
         // Load score sheet for scoring
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
-                .findById(reviewCase.getScoreSheetVersionRef())
+                .findByVersionId(reviewCase.getScoreSheetVersionRef())
                 .orElseThrow(() -> new ResourceNotFoundException("ScoreSheetDefinition",
                         reviewCase.getScoreSheetVersionRef()));
 

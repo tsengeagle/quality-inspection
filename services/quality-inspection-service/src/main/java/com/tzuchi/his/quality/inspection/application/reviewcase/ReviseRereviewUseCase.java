@@ -102,7 +102,7 @@ public class ReviseRereviewUseCase {
 
         // 4. Load ScoreSheetDefinition via reviewCase.getScoreSheetVersionRef()
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
-                .findById(reviewCase.getScoreSheetVersionRef())
+                .findByVersionId(reviewCase.getScoreSheetVersionRef())
                 .orElseThrow(() -> new ResourceNotFoundException("ScoreSheetDefinition", reviewCase.getScoreSheetVersionRef()));
 
         // 5. Build raw AnswerItem list from cmd answers

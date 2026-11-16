@@ -27,7 +27,7 @@ public class PublishScoreSheetVersionUseCase {
         this.eventPublisher = eventPublisher;
     }
 
-    public void execute(ActorContext actor, String scoreSheetId) {
+    public PublishScoreSheetVersionResult execute(ActorContext actor, String scoreSheetId) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ScoreSheetDefinition scoreSheet = repository.findById(scoreSheetId)
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
@@ -39,5 +39,6 @@ public class PublishScoreSheetVersionUseCase {
         repository.save(scoreSheet);
         eventPublisher.publish(new ScoreSheetVersionPublishedEvent(this, actor.getUserId(), actor.getUserName(), scoreSheetId,
                 scoreSheet.getProjectId(), hospitalId));
+        return new PublishScoreSheetVersionResult(scoreSheet.getVersionId());
     }
 }

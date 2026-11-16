@@ -91,7 +91,7 @@ public class ReviseInitialReviewUseCase {
 
         // Load score sheet for scoring
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
-                .findById(oldSubmission.getBasedOnScoreSheetVersionId())
+                .findByVersionId(oldSubmission.getBasedOnScoreSheetVersionId())
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheetDefinition not found: " + oldSubmission.getBasedOnScoreSheetVersionId()));
 

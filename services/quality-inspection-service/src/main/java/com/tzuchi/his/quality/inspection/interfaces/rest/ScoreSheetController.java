@@ -62,8 +62,8 @@ public class ScoreSheetController {
     @PostMapping("/{id}/publish")
     public ResponseEntity<?> publishVersion(@CurrentActor ActorContext actor,
                                              @PathVariable("id") String scoreSheetId) {
-        publishVersionUseCase.execute(actor, scoreSheetId);
-        return ResponseEntity.ok(ApiResponse.ok(null));
+        PublishScoreSheetVersionResult result = publishVersionUseCase.execute(actor, scoreSheetId);
+        return ResponseEntity.ok(ApiResponse.ok(Map.of("scoreSheetVersionId", result.getScoreSheetVersionId())));
     }
 
     @PutMapping("/{id}")
@@ -136,9 +136,11 @@ public class ScoreSheetController {
     public ResponseEntity<?> version(@CurrentActor ActorContext actor,
                                       @PathVariable("id") String scoreSheetId) {
         ScoreSheetVersionInfo info = versionUseCase.execute(actor, scoreSheetId);
-        return ResponseEntity.ok(ApiResponse.ok(Map.of(
-                "version", info.getVersionNo(),
-                "published", info.isPublished())));
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("version", info.getVersionNo());
+        body.put("published", info.isPublished());
+        body.put("scoreSheetVersionId", info.getScoreSheetVersionId()); // 未發布時為 null（D-050 第 1 點）
+        return ResponseEntity.ok(ApiResponse.ok(body));
     }
 
     @GetMapping("/{id}/sections")

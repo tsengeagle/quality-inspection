@@ -73,7 +73,7 @@ class UpdatedAtContractIntegrationTest {
         rc.setReviewerId("doctor");
         rc.setReviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
         rc.setLatestInitialSubmissionId("s1");
-        rc.setScoreSheetVersionRef("ss");
+        rc.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
         rc.setInitialReviewScore(BigDecimal.TEN);
         rc.setFinalScore(BigDecimal.TEN);
         cases.save(rc);
@@ -87,7 +87,7 @@ class UpdatedAtContractIntegrationTest {
         sub.setAnswerSet(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)));
         sub.setTotalScore(BigDecimal.TEN);
         sub.setComment("original");
-        sub.setBasedOnScoreSheetVersionId("ss");
+        sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
         sub.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
         sub.setUpdatedAt(sub.getCreatedAt());
         submissions.save(sub);

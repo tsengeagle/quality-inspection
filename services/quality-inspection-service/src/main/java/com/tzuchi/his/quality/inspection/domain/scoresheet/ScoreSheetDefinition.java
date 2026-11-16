@@ -262,6 +262,11 @@ public class ScoreSheetDefinition {
     public String getScoreSheetId() { return scoreSheetId; }
     public String getProjectId() { return projectId; }
     public int getVersion() { return version; }
+
+    /** 已發布的版本才有版本 id，發布時產生（D-050 第 1 點）；草稿為 null。 */
+    public String getVersionId() {
+        return status == ScoreSheetStatus.PUBLISHED ? ScoreSheetVersionId.of(scoreSheetId, version) : null;
+    }
     public ScoreSheetStatus getStatus() { return status; }
     public List<ScoreSheetSection> getSections() { return Collections.unmodifiableList(sections); }
 }

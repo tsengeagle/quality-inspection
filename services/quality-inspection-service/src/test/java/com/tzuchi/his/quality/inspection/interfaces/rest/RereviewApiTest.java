@@ -113,7 +113,7 @@ class RereviewApiTest {
         proj.setStatus(ProjectStatus.ACTIVE);
         proj.setVersionNumber(1);
         proj.setVersionPublished(true);
-        proj.setBoundScoreSheetId(SCORE_SHEET_ID);
+        proj.setBoundScoreSheetId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         proj.setQualityThreshold(new BigDecimal("60.0"));
         proj.setInitialReviewWeight(new BigDecimal("0.5"));
         proj.setRereviewWeight(new BigDecimal("0.5"));
@@ -133,7 +133,7 @@ class RereviewApiTest {
         e.setReviewerAssignedAt(LocalDateTime.now());
         e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
         e.setLatestInitialSubmissionId("init-sub-1");
-        e.setScoreSheetVersionRef(SCORE_SHEET_ID);
+        e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setInitialReviewScore(new BigDecimal("17.5"));
         caseJpa.save(e);
 
@@ -149,7 +149,7 @@ class RereviewApiTest {
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
         ));
         initSub.setTotalScore(new BigDecimal("17.5"));
-        initSub.setBasedOnScoreSheetVersionId(SCORE_SHEET_ID);
+        initSub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         initSub.setSubmittedAt(LocalDateTime.now());
         initSub.setCreatedAt(LocalDateTime.now());
         initSub.setUpdatedAt(LocalDateTime.now());
@@ -170,7 +170,7 @@ class RereviewApiTest {
         e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
         e.setRereviewRequired(true);
         e.setLatestInitialSubmissionId("init-sub-1");
-        e.setScoreSheetVersionRef(SCORE_SHEET_ID);
+        e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setInitialReviewScore(new BigDecimal("17.5"));
         caseJpa.save(e);
 
@@ -186,7 +186,7 @@ class RereviewApiTest {
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
         ));
         initSub.setTotalScore(new BigDecimal("17.5"));
-        initSub.setBasedOnScoreSheetVersionId(SCORE_SHEET_ID);
+        initSub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         initSub.setSubmittedAt(LocalDateTime.now());
         initSub.setCreatedAt(LocalDateTime.now());
         initSub.setUpdatedAt(LocalDateTime.now());
@@ -210,7 +210,7 @@ class RereviewApiTest {
         e.setRereviewerAssignedAt(LocalDateTime.now());
         e.setRereviewerDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
         e.setLatestInitialSubmissionId("init-sub-1");
-        e.setScoreSheetVersionRef(SCORE_SHEET_ID);
+        e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setInitialReviewScore(new BigDecimal("17.5"));
         caseJpa.save(e);
 
@@ -226,7 +226,7 @@ class RereviewApiTest {
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
         ));
         initSub.setTotalScore(new BigDecimal("17.5"));
-        initSub.setBasedOnScoreSheetVersionId(SCORE_SHEET_ID);
+        initSub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         initSub.setSubmittedAt(LocalDateTime.now());
         initSub.setCreatedAt(LocalDateTime.now());
         initSub.setUpdatedAt(LocalDateTime.now());
