@@ -9,6 +9,8 @@ import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository;
+import com.tzuchi.his.quality.inspection.testfixture.InMemoryRereviewAccessRecords;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,12 +26,16 @@ class AssignRereviewerUseCaseTest {
     private InMemoryReviewCaseRepository caseRepository;
     private CapturingDomainEventPublisher eventPublisher;
     private AssignRereviewerUseCase useCase;
+    private InMemoryRereviewAccessRecords records;
+    private static final java.time.Instant NOW = java.time.Instant.parse("2026-11-16T10:00:00Z");
 
     @BeforeEach
     void setUp() {
         caseRepository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new AssignRereviewerUseCase(caseRepository, eventPublisher);
+        records = new InMemoryRereviewAccessRecords();
+        useCase = new AssignRereviewerUseCase(caseRepository, eventPublisher, records, records,
+                java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
     }
 
     private ActorContext managerActor() {
@@ -101,5 +107,73 @@ class AssignRereviewerUseCaseTest {
         ActorContext wrongHospital = new ActorContext("mgr-1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
         assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
+    }
+    // ---- D-055 第 1、4 點：每次指派／改派都寫一筆歷史 ----
+
+    @Test
+    void execute_writesAssignmentHistory() {
+        seedPendingRereviewCase();
+        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
+        cmd.setCaseId("c1");
+        cmd.setRereviewerId("rereviewer-9");
+        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
+
+        useCase.execute(managerActor(), cmd);
+
+        assertEquals(1, records.history.size());
+        RereviewerAssignmentRecord r = records.history.get(0);
+        assertEquals("c1", r.getCaseId());
+        assertEquals("rereviewer-9", r.getRereviewerId());
+        assertEquals("mgr-1", r.getAssignedBy());
+        assertEquals(NOW, r.getAssignedAt());
+        assertEquals(RereviewerAssignmentRecord.Kind.ASSIGN, r.getKind());
+    }
+
+    @Test
+    void execute_rejectedAssignment_writesNoHistory() {
+        seedPendingRereviewCase();
+        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
+        cmd.setCaseId("c1");
+        cmd.setRereviewerId("reviewer-1"); // D-017
+        cmd.setDueAt(LocalDateTime.now());
+
+        assertThrows(DomainRuleViolationException.class, () -> useCase.execute(managerActor(), cmd));
+        assertTrue(records.history.isEmpty());
+    }
+
+    // ---- D-055 第 5 點：讀過完整初審的人不得受派 ----
+
+    @Test
+    void execute_targetHasReadInitial_shouldReject422AndLeaveCaseUnchanged() {
+        ReviewCase before = seedPendingRereviewCase();
+        String previous = before.getRereviewerAssignment() == null ? null
+                : before.getRereviewerAssignment().getReviewerId();
+        records.record("c1", "auditor-7", NOW);
+        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
+        cmd.setCaseId("c1");
+        cmd.setRereviewerId("auditor-7");
+        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
+
+        DomainRuleViolationException ex = assertThrows(DomainRuleViolationException.class,
+                () -> useCase.execute(managerActor(), cmd));
+
+        assertEquals("REREVIEWER_HAS_READ_INITIAL", ex.getErrorCode());
+        ReviewCase saved = caseRepository.findById("c1").orElseThrow();
+        assertEquals(previous, saved.getRereviewerAssignment() == null ? null
+                : saved.getRereviewerAssignment().getReviewerId());
+        assertTrue(records.history.isEmpty());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
+    @Test
+    void execute_readerOfAnotherCase_isNotBlocked() {
+        seedPendingRereviewCase();
+        records.record("other-case", "auditor-7", NOW);
+        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
+        cmd.setCaseId("c1");
+        cmd.setRereviewerId("auditor-7");
+        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
+
+        assertDoesNotThrow(() -> useCase.execute(managerActor(), cmd));
     }
 }

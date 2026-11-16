@@ -5,23 +5,30 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCase
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.*;
 import org.springframework.stereotype.Component;
-import com.tzuchi.his.quality.inspection.application.audit.AuditTrailQueryPort;
-import com.tzuchi.his.quality.inspection.application.audit.AuditTrailEntry;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import java.io.IOException;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * D-035、D-055：完整初審讀取的授權。
+ * 除了既有的角色、院區、指派範圍之外，必須以複審指派歷史證明登入者「不是本案的現任或歷史複審醫師」
+ * （Proven non-historical）才准許；准許時記錄讀取者（D-055 第 5 點），讀過的人之後不得受派同案複審。
+ * 呼叫端必須在可寫入的交易中，讀取者紀錄隨交易 commit；commit 失敗則整筆讀取失敗。
+ */
 @Component
 public class ReviewReadAccessPolicy {
-    private final AuditTrailQueryPort auditQueryPort;
-    private final ObjectMapper objectMapper;
+    private final RereviewerAssignmentHistoryPort historyPort;
+    private final InitialReviewReaderPort readerPort;
+    private final Clock clock;
 
-    public ReviewReadAccessPolicy(AuditTrailQueryPort auditQueryPort, ObjectMapper objectMapper) {
-        this.auditQueryPort = auditQueryPort;
-        this.objectMapper = objectMapper;
+    public ReviewReadAccessPolicy(RereviewerAssignmentHistoryPort historyPort,
+                                  InitialReviewReaderPort readerPort,
+                                  Clock clock) {
+        this.historyPort = historyPort;
+        this.readerPort = readerPort;
+        this.clock = clock;
     }
 
     public void requireAccess(ActorContext actor, ReviewCaseDetailView view) {
@@ -57,37 +64,25 @@ public class ReviewReadAccessPolicy {
         if (!allowed) throw new AccessDeniedException("Case is outside the actor's assignment/submission scope");
         // This role only receives its existing blind/own-rereview projection, never full initial content.
         if (actor.hasRole(DomainRole.REREVIEWER)) return;
+        // D-055 第 5 點：先把案件版本固定在本交易，再判斷身分；兩者之間若有指派先 commit，本交易 commit 時失敗。
+        readerPort.pinCaseVersion(caseId);
         HistoricalIdentity identity = Objects.equals(actor.getUserId(), rereviewer) || rereviewSubmitter
                 ? HistoricalIdentity.PROVEN_HISTORICAL
-                : assessHistoricalIdentity(caseId, hospital, actor.getUserId());
+                : assessHistoricalIdentity(caseId, actor.getUserId());
         if (identity != HistoricalIdentity.PROVEN_NON_HISTORICAL) {
             throw new AccessDeniedException("Historical rereviewer identity cannot be reliably excluded");
         }
+        readerPort.record(caseId, actor.getUserId(), Instant.now(clock));
     }
 
     enum HistoricalIdentity {
         PROVEN_HISTORICAL, PROVEN_NON_HISTORICAL, UNKNOWN
     }
 
-    HistoricalIdentity assessHistoricalIdentity(String caseId, String hospital, String doctorId) {
-        for (AuditTrailEntry entry : auditQueryPort.findLifecycleByEntityId("ReviewCase", caseId)) {
-            if (!"ReviewCase".equals(entry.getEntityType()) || !caseId.equals(entry.getEntityId())
-                    || !hospital.equals(entry.getHospitalId()) || !"REREVIEWER_ASSIGNED".equals(entry.getAction())) {
-                continue;
-            }
-            try {
-                JsonNode detail = entry.getDetail() == null ? null : objectMapper.readTree(entry.getDetail());
-                JsonNode assignee = detail == null ? null : detail.get("rereviewerId");
-                if (assignee == null || !assignee.isTextual() || assignee.asText().isBlank()) {
-                    return HistoricalIdentity.UNKNOWN;
-                }
-                if (doctorId.equals(assignee.asText())) return HistoricalIdentity.PROVEN_HISTORICAL;
-            } catch (IOException ex) {
-                return HistoricalIdentity.UNKNOWN;
-            }
-        }
-        // No current evidence source certifies complete negative history, including an empty result.
-        return HistoricalIdentity.UNKNOWN;
+    /** D-055 第 3 點：出現在歷史中 → historical；歷史完整且不在其中 → non-historical；歷史不完整 → UNKNOWN。 */
+    HistoricalIdentity assessHistoricalIdentity(String caseId, String userId) {
+        if (historyPort.contains(caseId, userId)) return HistoricalIdentity.PROVEN_HISTORICAL;
+        return historyPort.isComplete(caseId) ? HistoricalIdentity.PROVEN_NON_HISTORICAL : HistoricalIdentity.UNKNOWN;
     }
 
     public boolean canReadContent(ActorContext actor, String stage, String submitter) {

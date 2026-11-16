@@ -24,6 +24,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GetRevisionHistoryUseCaseTest {
 
+    /** D-055：預設案件歷史完整、沒有歷史紀錄；需要時由個別測試調整。 */
+    private final com.tzuchi.his.quality.inspection.testfixture.InMemoryRereviewAccessRecords accessRecords =
+            new com.tzuchi.his.quality.inspection.testfixture.InMemoryRereviewAccessRecords();
+
+    private ReviewReadAccessPolicy newPolicy() {
+        return new ReviewReadAccessPolicy(accessRecords, accessRecords, java.time.Clock.systemUTC());
+    }
+
     private InMemoryReviewSubmissionRepository submissionRepo;
     private InMemoryReviewCaseRepository caseRepo;
     private GetRevisionHistoryUseCase useCase;
@@ -38,7 +46,7 @@ class GetRevisionHistoryUseCaseTest {
     void setUp() {
         submissionRepo = new InMemoryReviewSubmissionRepository();
         caseRepo = new InMemoryReviewCaseRepository();
-        useCase = new GetRevisionHistoryUseCase(submissionRepo, caseRepo, new ReviewReadAccessPolicy(org.mockito.Mockito.mock(com.tzuchi.his.quality.inspection.application.audit.AuditTrailQueryPort.class), new com.fasterxml.jackson.databind.ObjectMapper()));
+        useCase = new GetRevisionHistoryUseCase(submissionRepo, caseRepo, newPolicy());
 
         // Default: active (non-CLOSED) case
         ReviewCase rc = ReviewCase.createFromSampling(
@@ -58,7 +66,7 @@ class GetRevisionHistoryUseCaseTest {
     }
 
     @Test
-    void getHistory_reviewerWithUnknownHistoryIsDenied_D035() {
+    void getHistory_reviewerWithIncompleteHistoryIsDenied_D055() {
         // Seed rev-2 first, rev-1 second (to test sorting)
         ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
                 "sub-1", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
@@ -71,14 +79,44 @@ class GetRevisionHistoryUseCaseTest {
         submissionRepo.save(sub2);
         submissionRepo.save(sub1);
 
+        accessRecords.incompleteCases.add(CASE_ID); // D-055：歷史不完整 → UNKNOWN
         assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
                 () -> useCase.execute(reviewer(), CASE_ID));
+        assertFalse(accessRecords.hasRead(CASE_ID, REVIEWER_ID));
     }
 
     @Test
-    void getHistory_emptyCaseDoesNotProveSafeHistory_D035() {
+    void getHistory_reviewerWithCompleteHistoryIsGrantedAndRecorded_D055() {
+        // Seed rev-2 first, rev-1 second (to test sorting)
+        ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
+                "sub-1", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
+        sub1.submit();
+        ReviewSubmission sub2 = ReviewSubmission.createRevision(
+                "sub-2", sub1, Collections.emptyList(), BigDecimal.ZERO, null);
+        sub1.markSuperseded("sub-2");
+
+        // Store in reverse order
+        submissionRepo.save(sub2);
+        submissionRepo.save(sub1);
+
+        // D-055：歷史完整且不在歷史中 → Proven non-historical，准許並記錄讀取者
+        assertNotNull(useCase.execute(reviewer(), CASE_ID));
+        assertTrue(accessRecords.hasRead(CASE_ID, REVIEWER_ID));
+    }
+
+    @Test
+    void getHistory_emptyCaseWithIncompleteHistoryIsDenied_D055() {
+        accessRecords.incompleteCases.add(CASE_ID); // D-055：歷史不完整 → UNKNOWN
         assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
                 () -> useCase.execute(reviewer(), CASE_ID));
+        assertFalse(accessRecords.hasRead(CASE_ID, REVIEWER_ID));
+    }
+
+    @Test
+    void getHistory_emptyCaseWithCompleteHistoryIsGrantedAndRecorded_D055() {
+        // D-055：歷史完整且不在歷史中 → Proven non-historical，准許並記錄讀取者
+        assertNotNull(useCase.execute(reviewer(), CASE_ID));
+        assertTrue(accessRecords.hasRead(CASE_ID, REVIEWER_ID));
     }
 
     @Test

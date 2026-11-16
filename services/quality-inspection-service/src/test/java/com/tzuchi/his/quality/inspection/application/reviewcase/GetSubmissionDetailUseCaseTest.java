@@ -16,6 +16,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GetSubmissionDetailUseCaseTest {
 
+    /** D-055：預設案件歷史完整、沒有歷史紀錄；需要時由個別測試調整。 */
+    private final com.tzuchi.his.quality.inspection.testfixture.InMemoryRereviewAccessRecords accessRecords =
+            new com.tzuchi.his.quality.inspection.testfixture.InMemoryRereviewAccessRecords();
+
+    private ReviewReadAccessPolicy newPolicy() {
+        return new ReviewReadAccessPolicy(accessRecords, accessRecords, java.time.Clock.systemUTC());
+    }
+
     private InMemorySubmissionQueryPort queryPort;
     private GetSubmissionDetailUseCase useCase;
 
@@ -29,19 +37,34 @@ class GetSubmissionDetailUseCaseTest {
                     null, null, null, null, null, null, null, null, null, null,
                     Collections.emptyList(), null, null, null, false));
         }
-        useCase = new GetSubmissionDetailUseCase(queryPort, casePort, new ReviewReadAccessPolicy(org.mockito.Mockito.mock(com.tzuchi.his.quality.inspection.application.audit.AuditTrailQueryPort.class), new com.fasterxml.jackson.databind.ObjectMapper()));
+        useCase = new GetSubmissionDetailUseCase(queryPort, casePort, newPolicy());
     }
 
     @Test
-    void managerWithUnknownHistoryIsDenied_D035() {
+    void managerWithIncompleteHistoryIsDenied_D055() {
         SubmissionDetailView detail = new SubmissionDetailView(
                 "sub1", "c1", "INITIAL", 1, "SUBMITTED", "r1",
                 Collections.emptyList(), "ok", null, BigDecimal.valueOf(90), null, null, null);
         queryPort.setDetail("sub1", detail);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
+        accessRecords.incompleteCases.add("c1"); // D-055：歷史不完整 → UNKNOWN
         assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
                 () -> useCase.execute(actor, "sub1"));
+        assertFalse(accessRecords.hasRead("c1", "u1"));
+    }
+
+    @Test
+    void managerWithCompleteHistoryIsGrantedAndRecorded_D055() {
+        SubmissionDetailView detail = new SubmissionDetailView(
+                "sub1", "c1", "INITIAL", 1, "SUBMITTED", "r1",
+                Collections.emptyList(), "ok", null, BigDecimal.valueOf(90), null, null, null);
+        queryPort.setDetail("sub1", detail);
+        ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        // D-055：歷史完整且不在歷史中 → Proven non-historical，准許並記錄讀取者
+        assertNotNull(useCase.execute(actor, "sub1"));
+        assertTrue(accessRecords.hasRead("c1", "u1"));
     }
 
     @Test

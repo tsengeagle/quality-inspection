@@ -24,6 +24,13 @@ public class ReviewCaseEntity {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    /**
+     * D-055 第 2 點：複審指派歷史是否完整。經由這個 entity 建立的案件（V5 之後）一律為完整；
+     * V5 之前已存在的資料由 migration 預設為不完整。insert 後不可更新（updatable = false），也沒有 setter。
+     */
+    @Column(name = "rereviewer_history_complete", nullable = false, updatable = false)
+    private boolean rereviewerHistoryComplete = true;
+
     /** D-054：初審固定的時間（UTC）、固定者、固定的提交；尚未固定時皆為 null。 */
     @Column(name = "initial_fixed_at")
     private Instant initialFixedAt;
@@ -190,6 +197,7 @@ public class ReviewCaseEntity {
     public void setLatestRereviewSubmissionId(String id) { this.latestRereviewSubmissionId = id; }
 
     public Long getVersion() { return version; }
+    public boolean isRereviewerHistoryComplete() { return rereviewerHistoryComplete; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
     public Instant getInitialFixedAt() { return initialFixedAt; }

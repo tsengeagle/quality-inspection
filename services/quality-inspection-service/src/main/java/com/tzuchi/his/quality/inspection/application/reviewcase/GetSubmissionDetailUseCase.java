@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
-@Transactional(readOnly = true)
+// D-055 第 5 點：准許完整初審讀取時會寫入讀取者紀錄並遞增案件版本，所以是可寫入的交易；
+// 紀錄在回應送出前 commit，commit 失敗即拒絕這次讀取。
+@Transactional
 public class GetSubmissionDetailUseCase {
 
     private final SubmissionQueryPort queryPort;

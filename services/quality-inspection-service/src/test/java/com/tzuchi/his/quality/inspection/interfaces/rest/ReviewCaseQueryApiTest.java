@@ -116,17 +116,19 @@ class ReviewCaseQueryApiTest {
     }
 
     @Test
-    void getCaseDetail_returnsDetail_D035RejectsUnknown() throws Exception {
+    void getCaseDetail_returnsDetail_D055() throws Exception {
         seedCase("c1", CaseStatus.CLOSED);
 
+        // D-055：歷史完整且管理者不在複審指派歷史中 → 可完整讀取
         mockMvc.perform(get("/review-cases/c1")
                         .header("api-key", hmToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.caseId").value("c1"))
+                .andExpect(jsonPath("$.data.status").value("CLOSED"));
     }
 
             @Test
-            void getCaseDetail_returnsInitialBootstrapContextForReviewer_D035RejectsUnknown() throws Exception {
+            void getCaseDetail_returnsInitialBootstrapContextForReviewer_D055() throws Exception {
             ReviewCaseEntity e = new ReviewCaseEntity();
             e.setCaseId("c1");
             e.setBatchId("b1");
@@ -142,10 +144,17 @@ class ReviewCaseQueryApiTest {
             seedSubmission("sub-init-draft", "c1", ReviewStage.INITIAL, "reviewer-1",
                 SubmissionStatus.DRAFT, 1, BigDecimal.ZERO, null);
 
+            // D-055：初審醫師本人、歷史完整 → 可讀取初審頁的 bootstrap context
             mockMvc.perform(get("/review-cases/c1")
                     .header("api-key", reviewerToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.initialReviewContext.pageMode").value("EDIT_DRAFT"))
+                .andExpect(jsonPath("$.data.initialReviewContext.hasDraft").value(true))
+                .andExpect(jsonPath("$.data.initialReviewContext.hasSubmittedBase").value(false))
+                .andExpect(jsonPath("$.data.initialReviewContext.scoreSheetVersionId").value("ss-init-v1"))
+                .andExpect(jsonPath("$.data.initialReviewContext.currentSubmission.submissionId").value("sub-init-draft"))
+                .andExpect(jsonPath("$.data.initialReviewContext.allowedActions[0]").value("SAVE_INITIAL_REVIEW_DRAFT"))
+                .andExpect(jsonPath("$.data.initialReviewContext.allowedActions[1]").value("SUBMIT_INITIAL_REVIEW"));
             }
 
             @Test

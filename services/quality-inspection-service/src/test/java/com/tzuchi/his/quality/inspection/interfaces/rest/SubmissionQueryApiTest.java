@@ -51,13 +51,15 @@ class SubmissionQueryApiTest {
     }
 
     @Test
-    void getSubmissionDetail_returnsDetail_D035RejectsUnknown() throws Exception {
+    void getSubmissionDetail_returnsDetail_D055() throws Exception {
         seedSubmission("sub1");
 
+        // D-055：歷史完整且管理者不在複審指派歷史中 → 可完整讀取
         mockMvc.perform(get("/review-submissions/sub1")
                         .header("api-key", hmToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.error.code").value("ACCESS_DENIED"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.submissionId").value("sub1"))
+                .andExpect(jsonPath("$.data.stage").value("INITIAL"));
     }
 
     @Test
