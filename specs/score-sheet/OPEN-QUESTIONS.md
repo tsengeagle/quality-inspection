@@ -9,21 +9,15 @@
 
 ## 程式現況（給建構 PR 參考，不是規格）
 
-下列差異讓範例未通過，列在已知失敗清單。建構 PR 修正後，從清單刪除變綠的範例。
+升格時列出的差異已全部修正，`specs/` 的驗收範例全部通過，已知失敗清單裡沒有評分表的範例。
 
-| 項目 | 規格 | 程式 |
-|---|---|---|
-| 版本 id | 發布回傳 `scoreSheetVersionId`（D-050 第 1 點） | 沒有 |
-| 更新的輸入 | 六個具名輸入 | 一個命令物件；執行器依參數名稱綁定，要改成六個參數 |
-| 重複章節 | `DUPLICATE_SECTION_ID` | `INVALID_STATE_TRANSITION` |
-| 重複題目 id、代碼（跨章節、同章節新增、同章節修改） | 分類 `rule_violation` | 代碼正確，分類是 409 類的例外。同章節的檢查與代碼已由 PR #29 修正 |
-| 欄位驗證（D-050 第 4 點） | `VALIDATION_ERROR` | 程式錯誤（500）；非 CONDITIONAL 帶 conditionExpression 被接受 |
-| 查詢的檢查順序 | 角色 → 載入 → 院區（D-024） | 詳情、版本兩支已由 PR #29 修正；章節查詢本來就是這個順序 |
-| 讀取角色（D-050 第 7 點） | `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR` | 拒絕 `AUDITOR`；章節查詢只允許 `HOSPITAL_MANAGER` |
-| 列表的院區參數 | `SYSTEM_ADMIN` 可指定院區（D-047） | 不支援 |
-| 輸出欄位 | `versionNo`；章節與列表回物件 | `version`；回清單 |
-| 版本查詢 | 含 `scoreSheetVersionId`（未發布時 null） | 只有版本號與是否已發布 |
-| 綁定（D-050 第 8 點） | 綁定版本、檢查版本存在、屬於本專案、已發布 | 綁定 `scoreSheetId`，都不檢查 |
+| 項目 | 修正 |
+|---|---|
+| 更新的輸入改為六個具名輸入；欄位驗證回 `VALIDATION_ERROR`；重複章節回 `DUPLICATE_SECTION_ID`；重複題目與「不能發布」改為規則違反類；檢查順序依本規格 | PR #41 |
+| 讀取角色加入 `AUDITOR`；`SYSTEM_ADMIN` 不受院區限制；輸出欄位 `versionNo`，章節與列表回物件 | PR #41 |
+| 發布回傳 `scoreSheetVersionId`、版本查詢含 `scoreSheetVersionId`；綁定檢查版本存在、屬於本專案、已發布；評審流程以版本 id 載入評分表 | PR #42 |
+
+版本 id 的格式由實作決定（評分表 id 加版本號，沒有新增欄位）；既有資料的轉換與欄位改名見 `decision-log.md` D-045 的 Pending。
 
 ## 不指向規則、但仍未決的事
 
