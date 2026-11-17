@@ -31,25 +31,25 @@ public class DashboardQueryService {
         String whereClause = buildWhereClause(scoped);
         List<Object> params = buildParams(scoped);
 
-        long total = countWithCondition("", whereClause, params);
-        long closed = countWithCondition("AND e.status = 'CLOSED'", whereClause, params);
-        long rereviewed = countWithCondition("AND e.rereviewerId IS NOT NULL", whereClause, params);
-        long overdue = countWithCondition(
-                "AND e.dueAt < CURRENT_TIMESTAMP AND e.status NOT IN ('CLOSED', 'CANCELLED')",
-                whereClause, params);
-
-        return new DashboardSummary(total, closed, rereviewed, overdue);
-    }
-
-    private long countWithCondition(String extraCondition, String whereClause,
-                                     List<Object> params) {
-        String jpql = "SELECT COUNT(e) FROM ReviewCaseEntity e WHERE 1=1 "
-                + whereClause + " " + extraCondition;
+        // 4 個數字以單一查詢一次算出：單一 SQL 敘述讀同一個時間點（Oracle READ COMMITTED 的敘述層級一致讀取），
+        // 查詢之間提交的案件不會只算進其中幾個數字，比率的分子分母也來自同一個母體。
+        String jpql = "SELECT COUNT(e),"
+                + " COALESCE(SUM(CASE WHEN e.status = 'CLOSED' THEN 1 ELSE 0 END), 0),"
+                + " COALESCE(SUM(CASE WHEN e.rereviewerId IS NOT NULL THEN 1 ELSE 0 END), 0),"
+                + " COALESCE(SUM(CASE WHEN e.dueAt < CURRENT_TIMESTAMP"
+                + " AND e.status NOT IN ('CLOSED', 'CANCELLED') THEN 1 ELSE 0 END), 0)"
+                + " FROM ReviewCaseEntity e WHERE 1=1 " + whereClause;
         Query q = em.createQuery(jpql);
         for (int i = 0; i < params.size(); i++) {
             q.setParameter(i + 1, params.get(i));
         }
-        return ((Number) q.getSingleResult()).longValue();
+        Object[] row = (Object[]) q.getSingleResult();
+
+        return new DashboardSummary(count(row[0]), count(row[1]), count(row[2]), count(row[3]));
+    }
+
+    private static long count(Object value) {
+        return value == null ? 0L : ((Number) value).longValue();
     }
 
     /**
