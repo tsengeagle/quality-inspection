@@ -63,6 +63,7 @@
 				name="rereview-draft-total-score"
 				[ngModel]="draftTotalScoreInput"
 				(ngModelChange)="onDraftTotalScoreChange($event)"
+				[disabled]="formLocked"
 				data-testid="rereview-total-score-input">
 		</label>
 	</section>

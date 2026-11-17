@@ -569,4 +569,52 @@ describe('RereviewPageComponent', () => {
     expect(answer().disabled).withContext('重新載入完成').toBeFalse();
     expect(comment().disabled).withContext('重新載入完成').toBeFalse();
   });
+
+  it('locks the draft total score input while the save-draft command and the following reload are in flight', async () => {
+    const draftDetail = () => buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_REREVIEW_DRAFT', 'SUBMIT_REREVIEW'],
+        currentSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+      }
+    });
+    render(draftDetail());
+    const save$ = new Subject<{ submissionId: string; status: string; stage: string; totalScore: number }>();
+    const reload$ = new Subject<CaseDetailViewModel>();
+    casesService.saveRereviewDraft.and.returnValue(save$);
+    casesService.getCaseDetail.and.returnValue(reload$);
+
+    const score = () => fixture.nativeElement.querySelector('[data-testid="rereview-total-score-input"]') as HTMLInputElement;
+    await fixture.whenStable();
+    expect(score().disabled).toBeFalse();
+
+    setInputValue('[data-testid="rereview-total-score-input"]', '91');
+    getButtonByText('保存複審草稿')?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(score().disabled).withContext('保存請求進行中').toBeTrue();
+
+    save$.next({ submissionId: 'SUB-REREVIEW-001', status: 'DRAFT', stage: 'REREVIEW', totalScore: 91 });
+    save$.complete();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(score().disabled).withContext('重新載入進行中').toBeTrue();
+
+    reload$.next(draftDetail());
+    reload$.complete();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(score().disabled).withContext('重新載入完成').toBeFalse();
+  });
 });
