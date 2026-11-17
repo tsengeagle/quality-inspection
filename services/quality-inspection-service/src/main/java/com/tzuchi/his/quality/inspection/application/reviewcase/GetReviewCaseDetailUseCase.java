@@ -42,7 +42,7 @@ public class GetReviewCaseDetailUseCase {
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
         ReviewCaseDetailView raw = queryPort.findDetailById(caseId)
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         accessPolicy.requireAccess(actor, raw);
         if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) return metadataMapper.project(raw);

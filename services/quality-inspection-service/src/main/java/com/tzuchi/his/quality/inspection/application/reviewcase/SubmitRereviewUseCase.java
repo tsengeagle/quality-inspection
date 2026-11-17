@@ -58,7 +58,7 @@ public class SubmitRereviewUseCase {
         actor.requireRole(DomainRole.REREVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
@@ -75,7 +75,7 @@ public class SubmitRereviewUseCase {
         }
 
         ReviewSubmission submission = submissionRepository.findById(cmd.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewSubmission", cmd.getSubmissionId()));
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + cmd.getSubmissionId()));
 
         if (!reviewCase.getCaseId().equals(submission.getCaseId())
                 || submission.getStage() != ReviewStage.REREVIEW) {
@@ -99,8 +99,7 @@ public class SubmitRereviewUseCase {
         // Load score sheet for scoring
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
                 .findByVersionId(reviewCase.getScoreSheetVersionRef())
-                .orElseThrow(() -> new ResourceNotFoundException("ScoreSheetDefinition",
-                        reviewCase.getScoreSheetVersionRef()));
+                .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND", "ScoreSheetDefinition not found: " + reviewCase.getScoreSheetVersionRef()));
 
         // Get current answers (from command if provided, else from draft)
         List<AnswerItem> currentAnswers = cmd.getAnswers() != null
@@ -120,7 +119,7 @@ public class SubmitRereviewUseCase {
 
         // Load project for weights
         ReviewProject project = projectRepository.findById(reviewCase.getProjectId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewProject", reviewCase.getProjectId()));
+                .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND", "ReviewProject not found: " + reviewCase.getProjectId()));
         ProjectVersion version = project.getCurrentVersion();
 
         // 計算並保存加權 finalScore；不結案（D-032、D-053 第 4 點），結案由 CloseRereviewUseCase 另行執行

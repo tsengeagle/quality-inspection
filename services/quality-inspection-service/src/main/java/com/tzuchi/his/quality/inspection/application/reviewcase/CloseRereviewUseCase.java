@@ -50,7 +50,7 @@ public class CloseRereviewUseCase {
         actor.requireRole(DomainRole.REREVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
@@ -60,7 +60,7 @@ public class CloseRereviewUseCase {
         }
 
         ReviewSubmission submission = submissionRepository.findById(cmd.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewSubmission", cmd.getSubmissionId()));
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + cmd.getSubmissionId()));
 
         if (!reviewCase.getCaseId().equals(submission.getCaseId())
                 || submission.getStage() != ReviewStage.REREVIEW) {
