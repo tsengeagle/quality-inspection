@@ -727,4 +727,116 @@ describe('RereviewPageComponent', () => {
     expect(getButtonByText('保存複審草稿')?.disabled).toBeFalse();
     expect(getButtonByText('提交複審')?.disabled).toBeFalse();
   });
+  // ---- 過期回應：只有最新一次發出的提交明細載入，可以寫入表單或解除鎖定 ----
+
+  function newerRevisionDetail(): CaseDetailViewModel {
+    // revisionDetail() 會重設 getSubmissionDetail 的回傳值，呼叫端須在之後才指定延遲回應
+    const newer = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    newer.rereviewContext!.basedOnVersion = { submissionId: 'SUB-REREVIEW-003', version: 3, status: 'SUBMITTED' };
+    return newer;
+  }
+
+  function newerSubmissionDetail() {
+    return buildSubmissionDetail({
+      submissionId: 'SUB-REREVIEW-003', revisionNo: 3, status: 'SUBMITTED',
+      answers: [{ itemId: 'ITEM-3', answerValue: 'Y' }], comment: 'newer'
+    });
+  }
+
+  it('unlocks and ignores the late response when the page reloads into a mode without a form source', () => {
+    const pending$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    const detail = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(pending$);
+    render(detail);
+    expect(component.formLocked).toBeTrue();
+
+    component.applyCaseDetail(buildDetail());
+    fixture.detectChanges();
+    expect(component.mode).toBe('NEW');
+    expect(component.formLocked).withContext('已不需要提交明細').toBeFalse();
+    expect(getButtonByText('開始複審')?.disabled).withContext('已不需要提交明細').toBeFalse();
+
+    pending$.next(revisionBaseSubmission());
+    pending$.complete();
+    fixture.detectChanges();
+    expect(component.formSourceSubmissionId).withContext('晚到的回應不得寫入表單').toBeUndefined();
+    expect(component.formAnswers).toEqual([]);
+    expect(component.formComment).toBe('');
+  });
+
+  it('drops a pending newer load when the page returns to the version already on screen', () => {
+    render(revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']));
+    const newer = newerRevisionDetail();
+    const back = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    const newer$ = new Subject<ReturnType<typeof newerSubmissionDetail>>();
+    casesService.getSubmissionDetail.and.returnValue(newer$);
+
+    component.applyCaseDetail(newer);
+    fixture.detectChanges();
+    expect(component.formLocked).toBeTrue();
+
+    component.applyCaseDetail(back);
+    fixture.detectChanges();
+    expect(casesService.getSubmissionDetail).toHaveBeenCalledTimes(2);
+    expect(component.formLocked).withContext('畫面已是目前版本').toBeFalse();
+    expect(getButtonByText('提交複審修正')?.disabled).withContext('畫面已是目前版本').toBeFalse();
+    expect(getButtonByText('結案')?.disabled).withContext('畫面已是目前版本').toBeFalse();
+
+    newer$.next(newerSubmissionDetail());
+    newer$.complete();
+    fixture.detectChanges();
+    expect(component.formSourceSubmissionId).withContext('晚到的回應不得寫入表單').toBe('SUB-REREVIEW-002');
+    expect(component.formComment).toBe('revision base');
+  });
+
+  it('ignores a failure from a superseded load', () => {
+    const older$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    const detail = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(older$);
+    render(detail);
+
+    const newer = newerRevisionDetail();
+    const newer$ = new Subject<ReturnType<typeof newerSubmissionDetail>>();
+    casesService.getSubmissionDetail.and.returnValue(newer$);
+    component.applyCaseDetail(newer);
+    fixture.detectChanges();
+
+    older$.error({ status: 500 });
+    fixture.detectChanges();
+    expect(component.commandFeedbackMessage).withContext('過期請求的失敗不得顯示').toBe('');
+    expect(component.formLocked).withContext('較新請求仍在載入').toBeTrue();
+
+    newer$.next(newerSubmissionDetail());
+    fixture.detectChanges();
+    expect(component.formLocked).toBeFalse();
+    expect(component.formSourceSubmissionId).toBe('SUB-REREVIEW-003');
+    expect(component.formComment).toBe('newer');
+  });
+
+  it('stays locked until the latest of two loads for the same submission responds', () => {
+    render(revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']));
+    const first = newerRevisionDetail();
+    const second = newerRevisionDetail();
+    const first$ = new Subject<ReturnType<typeof newerSubmissionDetail>>();
+    const second$ = new Subject<ReturnType<typeof newerSubmissionDetail>>();
+    casesService.getSubmissionDetail.and.returnValues(first$, second$);
+
+    component.applyCaseDetail(first);
+    fixture.detectChanges();
+    component.applyCaseDetail(second);
+    fixture.detectChanges();
+    expect(casesService.getSubmissionDetail).toHaveBeenCalledTimes(3);
+
+    first$.next(newerSubmissionDetail());
+    first$.complete();
+    fixture.detectChanges();
+    expect(component.formLocked).withContext('同一筆的較新請求仍在載入').toBeTrue();
+    expect(getButtonByText('提交複審修正')?.disabled).withContext('同一筆的較新請求仍在載入').toBeTrue();
+
+    second$.next(newerSubmissionDetail());
+    second$.complete();
+    fixture.detectChanges();
+    expect(component.formLocked).toBeFalse();
+    expect(getButtonByText('提交複審修正')?.disabled).toBeFalse();
+  });
 });

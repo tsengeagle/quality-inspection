@@ -55,7 +55,8 @@ export class RereviewPageComponent implements OnInit {
   reloadPending = false;
   /** 表單來源提交明細載入中；載入完成前表單內容仍是舊版，視同重新載入尚未完成 */
   submissionLoadPending = false;
-  private loadingSubmissionId?: string;
+  /** 每次發出提交明細載入就遞增；只有最新一次的回應可以寫入表單或解除鎖定 */
+  private submissionLoadSeq = 0;
   commandFeedbackMessage = '';
   commandFeedbackTone: 'info' | 'blocked' = 'info';
   formAnswers: RereviewAnswerState[] = [];
@@ -405,37 +406,53 @@ export class RereviewPageComponent implements OnInit {
     const sourceSubmissionId = this.resolveFormSourceSubmissionId();
 
     if (!sourceSubmissionId) {
+      this.abandonSubmissionLoad();
       this.resetFormState();
       return;
     }
 
     if (this.formSourceSubmissionId === sourceSubmissionId && this.formStateLoaded) {
+      this.abandonSubmissionLoad();
       return;
     }
 
     this.submissionLoadPending = true;
-    this.loadingSubmissionId = sourceSubmissionId;
+    const seq = ++this.submissionLoadSeq;
     this.casesService.getSubmissionDetail(sourceSubmissionId).pipe(finalize(() => {
-      this.endSubmissionLoad(sourceSubmissionId);
+      this.endSubmissionLoad(seq);
     })).subscribe({
       next: detail => {
-        this.endSubmissionLoad(sourceSubmissionId);
+        if (!this.endSubmissionLoad(seq)) {
+          return;
+        }
         this.hydrateFormState(detail);
       },
       error: () => {
-        this.endSubmissionLoad(sourceSubmissionId);
+        if (!this.endSubmissionLoad(seq)) {
+          return;
+        }
         this.resetFormState(sourceSubmissionId);
         this.setCommandFeedback('複審表單狀態載入失敗，僅保留最小骨架。', 'blocked');
       }
     });
   }
 
-  /** 只由最後一次發出的載入解除鎖定，避免較舊的請求提早解鎖 */
-  private endSubmissionLoad(sourceSubmissionId: string): void {
-    if (this.loadingSubmissionId === sourceSubmissionId) {
-      this.submissionLoadPending = false;
-      this.loadingSubmissionId = undefined;
+  /**
+   * 只有最新一次發出的載入可以解除鎖定；回傳 false 表示這是過期請求，其回應須忽略。
+   * 以序號而非提交 id 判斷，同一筆提交重複載入時，較舊的請求也不會提早解鎖。
+   */
+  private endSubmissionLoad(seq: number): boolean {
+    if (seq !== this.submissionLoadSeq) {
+      return false;
     }
+    this.submissionLoadPending = false;
+    return true;
+  }
+
+  /** 已不需要仍在進行的載入（頁面不需表單來源，或畫面已是目前版本）：解除鎖定，晚到的回應一律忽略 */
+  private abandonSubmissionLoad(): void {
+    this.submissionLoadSeq++;
+    this.submissionLoadPending = false;
   }
 
   private hydrateFormState(detail: SubmissionDetailViewModel): void {
