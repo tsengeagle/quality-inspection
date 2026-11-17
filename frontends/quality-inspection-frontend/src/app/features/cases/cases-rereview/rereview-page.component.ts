@@ -51,6 +51,8 @@ export class RereviewPageComponent implements OnInit {
   bannerTone: 'blocked' = 'blocked';
   bannerMessage = '';
   commandPending = false;
+  /** 命令成功或失敗後重新載入頁面，載入完成前視同命令仍在進行 */
+  reloadPending = false;
   commandFeedbackMessage = '';
   commandFeedbackTone: 'info' | 'blocked' = 'info';
   formAnswers: RereviewAnswerState[] = [];
@@ -166,6 +168,11 @@ export class RereviewPageComponent implements OnInit {
     return this.commandFeedbackMessage.length > 0;
   }
 
+  /** 唯讀、命令進行中或重新載入中時鎖定表單，避免輸入在重新載入後遺失 */
+  get formLocked(): boolean {
+    return this.mode === 'READONLY_BLOCKED' || this.commandPending || this.reloadPending;
+  }
+
   get showCommandBar(): boolean {
     return this.mode !== 'READONLY_BLOCKED';
   }
@@ -196,7 +203,7 @@ export class RereviewPageComponent implements OnInit {
   }
 
   get commandPrimaryDisabled(): boolean {
-    if (this.commandPending || this.isBlockedByBackendTruth()) {
+    if (this.commandPending || this.reloadPending || this.isBlockedByBackendTruth()) {
       return true;
     }
 
@@ -213,15 +220,19 @@ export class RereviewPageComponent implements OnInit {
   }
 
   get commandSecondaryDisabled(): boolean {
-    if (this.commandPending || this.isBlockedByBackendTruth()) {
+    if (this.commandPending || this.reloadPending || this.isBlockedByBackendTruth()) {
       return true;
     }
 
     if (this.mode === 'REVISION') {
       // 表單有尚未提交的修改時不能結案：結案會固定舊版，修改會在重新載入後遺失
+      // 畫面上必須已載入要結案的那一版：載入中、載入失敗或版本不符時都不能結案
+      const target = this.resolveRereviewRevisionBaseSubmissionId();
       return this.formStateDirty
         || !this.hasAllowedAction('CLOSE_REREVIEW')
-        || !this.resolveRereviewRevisionBaseSubmissionId();
+        || !target
+        || !this.formStateLoaded
+        || this.formSourceSubmissionId !== target;
     }
 
     if (this.mode !== 'EDIT_DRAFT') {
@@ -493,7 +504,10 @@ export class RereviewPageComponent implements OnInit {
   }
 
   private reloadCaseDetail(): void {
-    this.casesService.getCaseDetail(this.caseId).subscribe({
+    this.reloadPending = true;
+    this.casesService.getCaseDetail(this.caseId).pipe(finalize(() => {
+      this.reloadPending = false;
+    })).subscribe({
       next: detail => this.applyCaseDetail(detail),
       error: () => this.setCommandFeedback('重新整理複審頁面 bootstrap 失敗。', 'blocked')
     });

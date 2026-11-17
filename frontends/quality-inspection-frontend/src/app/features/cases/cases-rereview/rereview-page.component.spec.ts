@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { of, throwError } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { CaseSummaryHeaderComponent } from '../components/case-summary-header/case-summary-header.component';
 import { ModeIndicatorStripComponent } from '../components/mode-indicator-strip/mode-indicator-strip.component';
@@ -355,6 +355,8 @@ describe('RereviewPageComponent', () => {
   });
 
   function revisionContext(allowedActions: string[]) {
+    // 表單顯示的提交必須與結案目標（basedOnVersion）一致，結案按鈕才會啟用
+    casesService.getSubmissionDetail.and.returnValue(of(revisionBaseSubmission()));
     return {
       pageMode: 'REVISION' as const,
       hasDraft: false,
@@ -369,6 +371,13 @@ describe('RereviewPageComponent', () => {
       initialReviewerId: 'reviewer-1',
       initialReviewerName: 'Dr. Initial',
     };
+  }
+
+  function revisionBaseSubmission() {
+    return buildSubmissionDetail({
+      submissionId: 'SUB-REREVIEW-002', revisionNo: 2, status: 'SUBMITTED',
+      answers: [{ itemId: 'ITEM-2', answerValue: 'N' }], comment: 'revision base'
+    });
   }
 
   it('closes the case with the current submitted rereview when the backend allows it (D-053)', () => {
@@ -471,5 +480,93 @@ describe('RereviewPageComponent', () => {
     expect(component.mode).toBe('READONLY_BLOCKED');
     expect(fixture.nativeElement.querySelector('app-status-or-blocked-banner')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-review-command-bar')).toBeNull();
+  });
+
+  // ---- 與 PR #56 相同的保護：結案目標必須是畫面上已載入的版本；命令與重新載入期間鎖定表單 ----
+
+  function revisionDetail(allowedActions: string[]): CaseDetailViewModel {
+    return buildDetail({ status: 'REREVIEW_IN_PROGRESS', rereviewContext: revisionContext(allowedActions) });
+  }
+
+  it('keeps the close button disabled until the based-on submission has loaded', () => {
+    const load$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    const detail = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(load$);
+    render(detail);
+
+    expect(getButtonByText('結案')?.disabled).toBeTrue();
+    getButtonByText('結案')?.click();
+    expect(casesService.closeRereview).not.toHaveBeenCalled();
+
+    load$.next(revisionBaseSubmission());
+    fixture.detectChanges();
+    expect(getButtonByText('結案')?.disabled).toBeFalse();
+  });
+
+  it('keeps the close button disabled when the based-on submission fails to load', () => {
+    const detail = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(throwError(() => ({ status: 500 })));
+    render(detail);
+
+    const button = getButtonByText('結案');
+    expect(button?.disabled).toBeTrue();
+    button?.click();
+    expect(casesService.closeRereview).not.toHaveBeenCalled();
+  });
+
+  it('disables the close button while a newer based-on version is still loading (screen shows the old one)', () => {
+    render(revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']));
+    expect(getButtonByText('結案')?.disabled).toBeFalse();
+
+    const newer = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    const newer$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    casesService.getSubmissionDetail.and.returnValue(newer$);
+    newer.rereviewContext!.basedOnVersion = { submissionId: 'SUB-REREVIEW-003', version: 3, status: 'SUBMITTED' };
+    component.applyCaseDetail(newer);
+    fixture.detectChanges();
+
+    expect(getButtonByText('結案')?.disabled).toBeTrue();
+    getButtonByText('結案')?.click();
+    expect(casesService.closeRereview).not.toHaveBeenCalled();
+
+    newer$.next(buildSubmissionDetail({ submissionId: 'SUB-REREVIEW-003', revisionNo: 3, status: 'SUBMITTED' }));
+    fixture.detectChanges();
+    expect(getButtonByText('結案')?.disabled).toBeFalse();
+  });
+
+  it('locks the form while the close command and the following reload are in flight', async () => {
+    render(revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']));
+    const close$ = new Subject<{ caseId: string; caseStatus: string; submissionId: string }>();
+    const reload$ = new Subject<CaseDetailViewModel>();
+    casesService.closeRereview.and.returnValue(close$);
+    casesService.getCaseDetail.and.returnValue(reload$);
+
+    const answer = () => fixture.nativeElement.querySelector('[data-testid="rereview-answer-input-0"]') as HTMLInputElement;
+    const comment = () => fixture.nativeElement.querySelector('[data-testid="rereview-comment-input"]') as HTMLTextAreaElement;
+    expect(answer().disabled).toBeFalse();
+    expect(comment().disabled).toBeFalse();
+
+    getButtonByText('結案')?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(answer().disabled).withContext('結案請求進行中').toBeTrue();
+    expect(comment().disabled).withContext('結案請求進行中').toBeTrue();
+    expect(getButtonByText('提交複審修正')?.disabled).withContext('結案請求進行中').toBeTrue();
+
+    close$.next({ caseId: 'CASE-013', caseStatus: 'CLOSED', submissionId: 'SUB-REREVIEW-002' });
+    close$.complete();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(answer().disabled).withContext('重新載入進行中').toBeTrue();
+    expect(comment().disabled).withContext('重新載入進行中').toBeTrue();
+    expect(getButtonByText('結案')?.disabled).withContext('重新載入進行中').toBeTrue();
+    expect(getButtonByText('提交複審修正')?.disabled).withContext('重新載入進行中').toBeTrue();
+
+    reload$.next(revisionDetail(['REVISE_REREVIEW']));
+    reload$.complete();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(answer().disabled).withContext('重新載入完成').toBeFalse();
+    expect(comment().disabled).withContext('重新載入完成').toBeFalse();
   });
 });
