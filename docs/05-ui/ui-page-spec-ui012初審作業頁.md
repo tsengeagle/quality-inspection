@@ -762,7 +762,7 @@ page_modes:
 * 固定目標：`basedOnVersion`（目前有效的初審結果）。畫面上必須已載入這一版，載入中、載入失敗或版本不符時不可按。
 * 表單有尚未提交的修改時不可按；命令與之後的重新載入期間鎖定表單與所有命令按鈕。
 * 成功後依回應的 `caseStatus` 提示是否已送往複審，並重新載入；失敗時重新整理畫面，以後端狀態為準（D-054 第 7 點）。
-* 固定後為 `READONLY_BLOCKED`，`blockedReason` 為 `INITIAL_REVIEW_FIXED`，顯示「初審已固定，不可再修改。」
+* 固定後為 `READONLY_BLOCKED`。尚未結案或取消時 `blockedReason` 為 `INITIAL_REVIEW_FIXED`，顯示「初審已固定，不可再修改。」；已結案或取消時，後端回終態代碼（`CASE_ALREADY_CLOSED`／`CASE_ALREADY_CANCELLED`），沿用既有的終態提示（判斷順序見 api-spec 的 DD-03 節）。
 * 提交初審後的提示為「尚未固定」，不再顯示送往複審（D-054 第 3 點）。
 
 已固定且不需複審時由 manager 正式結案。其他頁面輸出此結果時適用 D-033。
