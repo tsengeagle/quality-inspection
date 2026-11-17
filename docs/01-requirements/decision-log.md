@@ -2099,7 +2099,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 
 1. `POST /reports/export` 的請求條件直接放在最外層：`reportType`（必填）、`hospitalId`、`from`、`to`，不包在 `filters` 物件中。api-spec 15.2 依此修正，與程式的 `ExportRequest` 一致。
 2. 院區範圍不變，依 D-042、D-047。
-3. `from`、`to` 的現況如實記載：程式會接收，但逐案資料列與統計摘要都沒有依時間過濾。要依哪個時間欄位過濾（例如抽選時間、指派時間或結案時間）尚未裁決，本決策不包含。
+3. `from`、`to` 的現況如實記載：程式會接收，但逐案資料列與統計摘要都沒有依時間過濾。要依哪個時間欄位過濾（例如抽選時間、指派時間或結案時間）尚未裁決，本決策不包含。（已由 D-057 取代：以案件建立時間過濾、必填、分頁。）
 
 ### Relationship / Evidence
 
@@ -2109,3 +2109,35 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 ### Mapping
 
 `docs/03-contracts/api-spec.md` 15.2「匯出統計報表」的 Request。
+
+---
+
+## D-057 — 匯出依案件建立時間過濾、時間區間必填、逐案資料列分頁
+
+### Status
+
+`accepted`（2026-11-17，依負責人裁決：(1) 以案件建立時間過濾；(2) `from`、`to` 改為必填；(3) 改用分頁。細節採建議）
+
+### Decision
+
+1. **時間欄位**：以案件建立時間 `review_case.created_at` 過濾。案件建立（抽選產生案件）時寫入，UTC 時間點，之後不得修改。此欄位以 Flyway 新增（D-045 第 6 點），可為 NULL；導入前已存在的案件為 NULL，不回填，也不會落在任何時間區間內（正式環境導入前沒有資料，D-045）。
+2. **區間必填**：`POST /reports/export` 的 `from`、`to` 改為必填，格式為 ISO-8601 時間點。區間為含起不含迄（`from` ≤ `created_at` < `to`），相鄰期間不會重複計算。缺少任一個，或 `from` 不早於 `to`，回 `400 BAD_REQUEST`。
+3. **分頁**：逐案資料列改為分頁，取代原本最多 10,000 筆的隱性截斷。
+   - 請求加 `page`（0 起算，預設 0）與 `size`（預設 100，上限 1,000；超過以 1,000 計）；回應加 `page`、`size`（實際使用的值）、`totalElements`、`totalPages`。
+   - 非正值比照現有列表 API 的處理方式正規化，不回錯誤：`page` 小於 0 以 0 計；`size` 小於或等於 0 以預設值 100 計。
+   - 排序固定為 `caseId` 遞增，分頁結果穩定。
+   - 統計摘要 `summary` 以整個過濾範圍計算，不受分頁影響，與 `totalElements` 對應同一個母體。
+4. **統計摘要與儀表板**：匯出的 `summary` 套用同一個時間區間。`GET /reports/dashboard-summary` 的 `from`、`to` 維持選填；兩個都給時套用同一個規則（含起不含迄，`from` 不早於 `to` 回 `400 BAD_REQUEST`），只給其中一個回 `400 BAD_REQUEST`，都不給時不依時間過濾（與現行相同）。
+5. **逐案資料列**的 `createdAt` 改為案件建立時間（原本一律為 `null`）。
+6. **不變**：院區範圍（D-042、D-047）、逐案分數遮罩（D-055 第 6 點，以每一列判斷）、`reportType` 只支援 `REVIEW_COMPLETION`。
+
+### Relationship / Evidence
+
+- 取代 D-056 第 3 點（「`from`、`to` 會接收但沒有作用、依哪個時間欄位過濾尚未裁決」）；D-056 第 1、2 點不變。
+- 原因（PR #61 之後的分析）：不依時間過濾時，報表的完成率、逾期率會變成歷年累計而使用者無從察覺；資料超過 10,000 筆後逐案資料列被靜默截斷、與統計摘要不一致；每次匯出都帶出全院歷年的每案醫師代號與分數，不符合資料最小化。
+- UI-017 報表匯出頁的主要內容已列「日期區間」；`persistence-model.md` 的 `review_case` 已列 `created_at`，本決策將其落地。
+- 第 3、4 點的預設值（`size` 預設 100、上限 1,000；儀表板只給一端回 400）是建議值，與現有列表 API 的分頁形狀（`page`、`size`、`totalElements`、`totalPages`）一致，上限放寬是因為匯出的用途是批次取資料。
+
+### Mapping
+
+`docs/03-contracts/api-spec.md` 15.1、15.2；`docs/03-contracts/persistence-model.md` 5.12；實作以建構 PR 落地（V6 migration、案件建立時寫入時間、匯出與儀表板的過濾與驗證、分頁）。

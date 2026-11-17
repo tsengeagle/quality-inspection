@@ -1350,6 +1350,8 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * `from`
 * `to`
 
+`from`、`to` 為選填的 ISO-8601 時間點（D-057 第 4 點）：兩個都給時，只統計案件建立時間 `from` ≤ `createdAt` < `to` 的案件，`from` 不早於 `to` 回 `400 BAD_REQUEST`；只給其中一個回 `400 BAD_REQUEST`；都不給時不依時間過濾。
+
 ---
 
 ## 15.2 匯出統計報表
@@ -1370,16 +1372,23 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * `SYSTEM_ADMIN` 任何狀態都不取得逐案分數。
 * 匯出不寫入初審讀取者紀錄，也不遞增案件版本。
 
-#### Response（逐案列與遮罩相關的欄位）
+#### Response（分頁欄位、逐案列與遮罩相關的欄位）
+
+逐案資料列 `rows` 為當頁內容，依 `caseId` 遞增排序；`totalElements`、`totalPages` 與統計摘要 `summary` 都以整個過濾範圍計算，不受分頁影響（D-057 第 3 點）。
 
 ```json
 {
   "success": true,
   "data": {
     "reportType": "REVIEW_COMPLETION",
+    "page": 0,
+    "size": 100,
+    "totalElements": 2,
+    "totalPages": 1,
     "rows": [
       {
         "caseId": "RC-001",
+        "createdAt": "2026-04-02T01:00:00Z",
         "status": "CLOSED",
         "reviewerId": "DOC-1001",
         "rereviewerId": "DOC-2001",
@@ -1389,6 +1398,7 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
       },
       {
         "caseId": "RC-002",
+        "createdAt": "2026-04-03T01:00:00Z",
         "status": "PENDING_REREVIEW",
         "reviewerId": "DOC-1002",
         "rereviewerId": null,
@@ -1411,7 +1421,9 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
   "reportType": "REVIEW_COMPLETION",
   "hospitalId": "H001",
   "from": "2026-03-31T16:00:00Z",
-  "to": "2026-04-30T15:59:59Z"
+  "to": "2026-04-30T16:00:00Z",
+  "page": 0,
+  "size": 100
 }
 ```
 
@@ -1421,7 +1433,9 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 |---|---|---|
 | `reportType` | 是 | 目前只支援 `REVIEW_COMPLETION`；其他值回 `400 BAD_REQUEST`。 |
 | `hospitalId` | 否 | 院區範圍依 D-042、D-047：只有 `SYSTEM_ADMIN` 可以用它縮小範圍，其他角色一律採登入者的院區，忽略此參數。 |
-| `from`、`to` | 否 | ISO-8601 時間點（`Instant`）。**目前程式會接收，但逐案資料列與統計摘要都沒有依時間過濾**；要依哪個時間欄位過濾尚未裁決（D-056 第 3 點），裁決前不得假設有作用。 |
+| `from`、`to` | 是 | ISO-8601 時間點（D-057）。以案件建立時間過濾，含起不含迄：`from` ≤ `createdAt` < `to`。缺少任一個，或 `from` 不早於 `to`，回 `400 BAD_REQUEST`。建立時間為 NULL 的案件（導入前已存在）不會出現在任何區間。 |
+| `page` | 否 | 0 起算，預設 0；小於 0 以 0 計。 |
+| `size` | 否 | 預設 100，上限 1,000；超過以 1,000 計，小於或等於 0 以 100 計。回應中的 `page`、`size` 為實際使用的值。 |
 
 ---
 
