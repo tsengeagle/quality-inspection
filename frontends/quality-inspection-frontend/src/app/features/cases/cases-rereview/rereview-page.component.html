@@ -47,7 +47,7 @@
 					[name]="'rereview-answer-' + index"
 					[ngModel]="answer.answerValue"
 					(ngModelChange)="onAnswerValueChange(index, $event)"
-					[disabled]="mode === 'READONLY_BLOCKED'"
+					[disabled]="formLocked"
 					[attr.data-testid]="'rereview-answer-input-' + index">
 			</label>
 		</div>
@@ -63,6 +63,7 @@
 				name="rereview-draft-total-score"
 				[ngModel]="draftTotalScoreInput"
 				(ngModelChange)="onDraftTotalScoreChange($event)"
+				[disabled]="formLocked"
 				data-testid="rereview-total-score-input">
 		</label>
 	</section>
@@ -74,7 +75,7 @@
 				name="rereview-comment"
 				[ngModel]="formComment"
 				(ngModelChange)="onCommentChange($event)"
-				[disabled]="mode === 'READONLY_BLOCKED'"
+				[disabled]="formLocked"
 				data-testid="rereview-comment-input"></textarea>
 		</label>
 	</section>
