@@ -297,6 +297,17 @@ frontend 實作應以 docs/04-testing 為上游，建立至少以下測試層級
 * 權限差異
 * 初審 / 複審 / revision 主要路徑
 
+執行環境：`npm run e2e` 預設使用 Playwright 依專案鎖定版本下載的瀏覽器（`npx playwright install chromium`）。
+若環境無法下載該版本（例如雲端 session 只預裝較新的 Chromium），可設定環境變數 `QI_PLAYWRIGHT_CHROMIUM_PATH` 指向既有的 Chromium 執行檔：
+
+```bash
+QI_PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run e2e
+```
+
+* 未設定或為空白時行為不變。
+* 路徑不存在時，`playwright.config.ts` 會直接報錯，不會靜默改回預設瀏覽器。
+* 指定的 Chromium 版本可能比專案鎖定的 Playwright 預期的新；以實際 e2e 結果為準。
+
 ---
 
 ## 11. Build / Test / Run / Gate Status
