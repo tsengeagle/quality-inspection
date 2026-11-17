@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-17-docs-sync-d054-d055",
+  "decision": "D-054",
+  "reason": "文件同步，不改任何規則。D-054、D-055 與 Flyway 導入的實作（PR #50～#56）完成後，律法文件中仍有過時的敘述，依權威順位更新：(1) UI-012 頁面規格「操作 binding UNKNOWN，本輪不新增按鈕」寫在 D-054 之前，改為 D-054 第 9 點已定案的「固定初審」行為（依 allowedActions 顯示、固定目標須為畫面已載入的版本、命令期間鎖定表單、失敗時重新整理、已固定時 blockedReason 為 INITIAL_REVIEW_FIXED），即 PR #56 的實作。(2) api-spec 補上已固定時的 blockedReason INITIAL_REVIEW_FIXED，以及 15.2 匯出回應的 maskedFields（D-055 第 6 點，PR #55）。(3) D-045 的落地順序標上 PR #50～#53 與 migration 版本，Pending 的評分表參照標為已在 PR #52 完成，並記下 PR #55 在 Oracle XE 21c 的驗證結果；Oracle 19c 實測仍為剩餘風險。(4) 更正 D-045 第 4 點的證據說明：「真的 Oracle 回報的型別相同、validate 一律判為不符」原是由 H2 實測推論，2026-11-17 在 Oracle XE 21c 實測 Oracle12cDialect 的 validate 通過（刪欄位時正確失敗），故加上更正；local 與正式環境仍維持 ddl-auto=none，是否改為 validate 另行裁決。本 PR 只改律法與文件。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/05-ui/ui-page-spec-ui012初審作業頁.md",
+    "law/"
+  ]
+}
