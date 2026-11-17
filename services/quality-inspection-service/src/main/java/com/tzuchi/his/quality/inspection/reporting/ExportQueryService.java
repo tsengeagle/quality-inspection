@@ -9,6 +9,7 @@ import com.tzuchi.his.quality.inspection.application.common.RereviewerHistoryQue
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
@@ -39,8 +40,11 @@ public class ExportQueryService {
 
     /**
      * D-057：依案件建立時間過濾（from ≤ createdAt < to，兩者必填，由 controller 驗證後回 400），
-     * 逐案資料列依 caseId 遞增分頁；summary 以整個過濾範圍計算，不受分頁影響。
+     * 逐案資料列依 caseId 遞增分頁；summary 以整個過濾範圍計算，不受分頁影響，且與 totalElements 為同一個母體。
      */
+    // 計數、逐案資料列與 summary 是多次查詢；SERIALIZABLE 讓整次匯出讀同一個快照（Oracle 的 SERIALIZABLE 為
+    // 交易層級的一致讀取），查詢之間提交的案件不會只算進其中一部分。匯出只讀不寫，不會有序列化衝突。
+    @Transactional(readOnly = true, isolation = Isolation.SERIALIZABLE)
     public ExportResult export(ActorContext actor, ExportCriteria criteria) {
         actor.requireAnyRole(DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
