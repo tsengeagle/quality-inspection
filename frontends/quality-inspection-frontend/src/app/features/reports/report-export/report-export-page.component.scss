@@ -1,0 +1,19 @@
+// GOV-CSS-001：不得硬寫色碼；版面與顏色優先使用 shell 提供的 utility class 與 CSS 變數。
+
+.export-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+
+  dt {
+    font-size: 0.75rem;
+    font-weight: normal;
+  }
+
+  dd {
+    margin: 4px 0 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--bs-body-color);
+  }
+}
