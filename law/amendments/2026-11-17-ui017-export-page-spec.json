@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-17-ui017-export-page-spec",
+  "decision": "D-057",
+  "reason": "新增 UI-017 報表匯出頁的頁面規格（docs/05-ui/ui-page-spec-ui017報表匯出頁.md），作為前端實作的依據；原本只有頁面清冊的摘要。依 D-056、D-057、D-055 第 6 點與 D-042／D-047 定義頁面行為，並依負責人 2026-11-17 的裁決：呈現方式為分頁表格加下載檔案、檔案格式為 CSV（UTF-8 加 BOM）、日期區間預設上一個整月。其餘採建議：route /reports/export 與 features/reports 模組；迄日在畫面上含當天，送出時轉為次日 00:00（本地）的 UTC 時間點；被遮罩的分數在表格與 CSV 都顯示「已遮罩」；下載逐頁取完（size=1000），totalElements 變動或任一頁失敗即中止且不產生檔案；CSV 依 RFC 4180 跳脫並防公式注入，時間欄位為 ISO-8601 UTC；SYSTEM_ADMIN 才顯示院區條件。不改任何後端規則或 API 契約。本 PR 只改文件，實作由後續建構 PR 落地。另依 PR #68 審查：closedAt 是後端以伺服器預設時區產生的不帶時區 LocalDateTime，前端無法換算為 UTC，故規定原樣顯示與輸出、標題註明伺服器時間，不得自行換算；改為帶時區時間點屬後端契約變更，列為不屬於本頁處理的事項。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/05-ui/ui-page-spec-ui017報表匯出頁.md",
+    "law/"
+  ]
+}
