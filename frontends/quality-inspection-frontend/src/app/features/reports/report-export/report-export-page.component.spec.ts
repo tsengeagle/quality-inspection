@@ -25,6 +25,14 @@ class ActorContextServiceStub {
   setRole(role: string): void {
     this.subject.next({ ...this.subject.getValue(), roles: [role], currentRole: role });
   }
+
+  setContext(patch: Partial<ReturnType<ActorContextServiceStub['subject']['getValue']>>): void {
+    this.subject.next({ ...this.subject.getValue(), ...patch });
+  }
+
+  getSnapshot() {
+    return this.subject.getValue();
+  }
 }
 
 function row(overrides: Partial<ExportRowView> = {}): ExportRowView {
@@ -151,6 +159,14 @@ describe('ReportExportPageComponent (UI-017)', () => {
       query();
       expect(text('export-scope')).toContain('本院');
       expect(text('export-scope')).toContain('2026-10-01 ～ 2026-10-31（含迄日）');
+    });
+
+    it('treats a multi-role account holding SYSTEM_ADMIN as SYSTEM_ADMIN, like the backend scope', () => {
+      actor.setContext({ roles: ['SYSTEM_ADMIN', 'HOSPITAL_MANAGER'], currentRole: 'HOSPITAL_MANAGER' });
+      create();
+      expect(el('export-hospital')).not.toBeNull();
+      query();
+      expect(text('export-scope')).toContain('全部院區');
     });
 
     it('lets SYSTEM_ADMIN pick a hospital or leave it blank for all hospitals', () => {
@@ -300,6 +316,82 @@ describe('ReportExportPageComponent (UI-017)', () => {
       pending.complete();
       fixture.detectChanges();
       expect(component.controlsLocked).toBeFalse();
+    });
+  });
+
+  // D-033：身分或授權範圍改變後，不得保留上一個身分取得的資料。
+  describe('actor context change', () => {
+    it('clears the result and applied conditions when the user, hospital or roles change', () => {
+      create();
+      query();
+      expect(el('export-table')).not.toBeNull();
+
+      actor.setContext({ userId: 'U-2' });
+      fixture.detectChanges();
+      expect(el('export-table')).toBeNull();
+      expect(component.result).toBeNull();
+      expect(component.applied).toBeNull();
+      expect(text('export-initial')).toBe('請按查詢');
+
+      query();
+      actor.setContext({ hospitalId: 'H002' });
+      fixture.detectChanges();
+      expect(component.result).toBeNull();
+
+      query();
+      actor.setRole('AUDITOR');
+      fixture.detectChanges();
+      expect(component.result).toBeNull();
+    });
+
+    it('keeps the result when the context is re-emitted unchanged', () => {
+      create();
+      query();
+      actor.setContext({});
+      fixture.detectChanges();
+      expect(component.result).not.toBeNull();
+    });
+
+    it('drops an in-flight query response from the previous identity', () => {
+      const pending = new Subject<ExportPageResult>();
+      exportService.fetchPage.and.returnValue(pending.asObservable());
+      create();
+      query();
+
+      actor.setContext({ userId: 'U-2' });
+      pending.next(pageResult());
+      fixture.detectChanges();
+
+      expect(component.result).toBeNull();
+      expect(component.status).toBe('initial');
+      expect(component.controlsLocked).toBeFalse();
+    });
+
+    it('cancels an in-flight download so no file of the previous identity is saved', () => {
+      const pending = new Subject<ExportRowView[]>();
+      exportService.fetchAllRows.and.returnValue(pending.asObservable());
+      create();
+      button('export-download').click();
+      fixture.detectChanges();
+      expect(component.downloading).toBeTrue();
+
+      actor.setContext({ userId: 'U-2' });
+      pending.next([row()]);
+      fixture.detectChanges();
+
+      expect(saver.save).not.toHaveBeenCalled();
+      expect(component.downloading).toBeFalse();
+      expect(el('export-download-progress')).toBeNull();
+    });
+
+    it('clears the hospital condition when SYSTEM_ADMIN is no longer held', () => {
+      actor.setRole('SYSTEM_ADMIN');
+      create();
+      component.form.hospitalId = 'H002';
+      actor.setRole('HOSPITAL_MANAGER');
+      fixture.detectChanges();
+      expect(component.form.hospitalId).toBe('');
+      expect(el('export-hospital')).toBeNull();
     });
   });
 

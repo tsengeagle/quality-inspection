@@ -1,8 +1,10 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Subject, finalize, takeUntil } from 'rxjs';
+import { Subject, finalize, merge, takeUntil } from 'rxjs';
 
+import { ActorContext } from '@core/actor-context/actor-context.model';
 import { ActorContextService } from '@core/actor-context/actor-context.service';
+import { AccessControlService } from '@shared/access/access-control.service';
 import { CsvFileSaver } from '../services/csv-file-saver.service';
 import {
   ExportCriteria,
@@ -60,11 +62,16 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
   downloadError = '';
 
   private readonly destroy$ = new Subject<void>();
+  /** 身分或授權範圍改變時發出，用來取消上一個身分發出的查詢與下載（D-033）。 */
+  private readonly contextReset$ = new Subject<void>();
+  private readonly cancel$ = merge(this.destroy$, this.contextReset$);
+  private contextKey: string | null = null;
 
   constructor(
     private readonly exportService: ReportExportService,
     private readonly fileSaver: CsvFileSaver,
-    private readonly actorContextService: ActorContextService
+    private readonly actorContextService: ActorContextService,
+    private readonly accessControlService: AccessControlService
   ) {}
 
   ngOnInit(): void {
@@ -74,9 +81,36 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
 
     this.actorContextService.context$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(context => {
-        this.isSystemAdmin = context.currentRole === 'SYSTEM_ADMIN';
-      });
+      .subscribe(context => this.applyActorContext(context));
+  }
+
+  /**
+   * 院區條件依「是否持有 SYSTEM_ADMIN」決定，與後端 ActorContext.readScopeHospitalId 一致（多角色帳號也是）。
+   * 身分、院區或角色改變時，取消進行中的請求並清除結果，不保留上一個身分取得的資料。
+   */
+  private applyActorContext(context: ActorContext): void {
+    this.isSystemAdmin = this.accessControlService.hasAnyRole('SYSTEM_ADMIN', context);
+    const key = JSON.stringify([
+      context.userId, context.hospitalId, context.currentRole, [...context.roles].sort()
+    ]);
+    if (this.contextKey !== null && this.contextKey !== key) {
+      this.resetForNewContext();
+    }
+    this.contextKey = key;
+  }
+
+  private resetForNewContext(): void {
+    this.contextReset$.next();
+    this.status = 'initial';
+    this.result = null;
+    this.applied = null;
+    this.errorMessage = '';
+    this.downloading = false;
+    this.downloadProgress = null;
+    this.downloadError = '';
+    if (!this.isSystemAdmin) {
+      this.form.hospitalId = '';
+    }
   }
 
   ngOnDestroy(): void {
@@ -159,7 +193,7 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
     this.exportService
       .fetchAllRows(criteria, (done, total) => (this.downloadProgress = { done, total }))
       .pipe(
-        takeUntil(this.destroy$),
+        takeUntil(this.cancel$),
         finalize(() => {
           this.downloading = false;
           this.downloadProgress = null;
@@ -222,7 +256,7 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
 
     this.exportService
       .fetchPage({ ...applied.criteria, page, size: EXPORT_PREVIEW_PAGE_SIZE })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.cancel$))
       .subscribe({
         next: result => {
           this.result = result;
