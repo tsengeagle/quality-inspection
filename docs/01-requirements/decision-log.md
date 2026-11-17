@@ -2124,9 +2124,10 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 2. **區間必填**：`POST /reports/export` 的 `from`、`to` 改為必填，格式為 ISO-8601 時間點。區間為含起不含迄（`from` ≤ `created_at` < `to`），相鄰期間不會重複計算。缺少任一個，或 `from` 不早於 `to`，回 `400 BAD_REQUEST`。
 3. **分頁**：逐案資料列改為分頁，取代原本最多 10,000 筆的隱性截斷。
    - 請求加 `page`（0 起算，預設 0）與 `size`（預設 100，上限 1,000；超過以 1,000 計）；回應加 `page`、`size`（實際使用的值）、`totalElements`、`totalPages`。
+   - 非正值比照現有列表 API 的處理方式正規化，不回錯誤：`page` 小於 0 以 0 計；`size` 小於或等於 0 以預設值 100 計。
    - 排序固定為 `caseId` 遞增，分頁結果穩定。
    - 統計摘要 `summary` 以整個過濾範圍計算，不受分頁影響，與 `totalElements` 對應同一個母體。
-4. **統計摘要與儀表板**：匯出的 `summary` 套用同一個時間區間。`GET /reports/dashboard-summary` 的 `from`、`to` 維持選填；兩個都給時套用同一個規則，只給其中一個回 `400 BAD_REQUEST`，都不給時不依時間過濾（與現行相同）。
+4. **統計摘要與儀表板**：匯出的 `summary` 套用同一個時間區間。`GET /reports/dashboard-summary` 的 `from`、`to` 維持選填；兩個都給時套用同一個規則（含起不含迄，`from` 不早於 `to` 回 `400 BAD_REQUEST`），只給其中一個回 `400 BAD_REQUEST`，都不給時不依時間過濾（與現行相同）。
 5. **逐案資料列**的 `createdAt` 改為案件建立時間（原本一律為 `null`）。
 6. **不變**：院區範圍（D-042、D-047）、逐案分數遮罩（D-055 第 6 點，以每一列判斷）、`reportType` 只支援 `REVIEW_COMPLETION`。
 

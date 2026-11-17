@@ -483,7 +483,7 @@ review_case:
   latest_rereview_submission_id: varchar nullable
   closed_at: datetime nullable
   cancelled_at: datetime nullable
-  created_at: datetime
+  created_at: datetime nullable
   updated_at: datetime
 ```
 
