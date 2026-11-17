@@ -52,14 +52,23 @@ public class DashboardQueryService {
         return ((Number) q.getSingleResult()).longValue();
     }
 
+    /**
+     * 院區、專案，以及 D-057 第 4 點的時間區間：from、to 兩個都有值時，只統計
+     * from ≤ createdAt < to 的案件（建立時間為 NULL 的不計入）；兩個都沒有時不依時間過濾。
+     * 只給其中一個或 from 不早於 to 的請求由 controller 回 400，不會到這裡。
+     */
     private String buildWhereClause(DashboardQueryCriteria criteria) {
         StringBuilder sb = new StringBuilder();
         int paramIndex = 1;
         if (criteria.getHospitalId() != null) {
-            sb.append("AND e.hospitalId = ?").append(paramIndex);
+            sb.append("AND e.hospitalId = ?").append(paramIndex++).append(' ');
         }
         if (criteria.getProjectId() != null) {
-            sb.append("AND e.projectId = ?").append(paramIndex + (criteria.getHospitalId() != null ? 1 : 0));
+            sb.append("AND e.projectId = ?").append(paramIndex++).append(' ');
+        }
+        if (hasRange(criteria)) {
+            sb.append("AND e.createdAt >= ?").append(paramIndex++).append(' ');
+            sb.append("AND e.createdAt < ?").append(paramIndex++).append(' ');
         }
         return sb.toString();
     }
@@ -72,6 +81,14 @@ public class DashboardQueryService {
         if (criteria.getProjectId() != null) {
             params.add(criteria.getProjectId());
         }
+        if (hasRange(criteria)) {
+            params.add(criteria.getFrom());
+            params.add(criteria.getTo());
+        }
         return params;
+    }
+
+    private static boolean hasRange(DashboardQueryCriteria criteria) {
+        return criteria.getFrom() != null && criteria.getTo() != null;
     }
 }

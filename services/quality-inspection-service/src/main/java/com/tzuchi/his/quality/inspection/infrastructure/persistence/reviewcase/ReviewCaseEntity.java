@@ -20,6 +20,13 @@ public class ReviewCaseEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
+    /**
+     * D-057：案件建立時間（UTC）。由 ReviewCaseRepositoryImpl 在第一次寫入時設定；insert 後不可更新
+     * （updatable = false）。V6 之前的資料為 null。setter 只供新建 entity（含測試資料）使用。
+     */
+    @Column(name = "created_at", updatable = false)
+    private Instant createdAt;
+
     /** D-037：案件層級的最後更新時間（UTC）。由 ReviewCaseRepositoryImpl 維護；legacy 為 null。 */
     @Column(name = "updated_at")
     private Instant updatedAt;
@@ -198,6 +205,8 @@ public class ReviewCaseEntity {
 
     public Long getVersion() { return version; }
     public boolean isRereviewerHistoryComplete() { return rereviewerHistoryComplete; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
     public Instant getInitialFixedAt() { return initialFixedAt; }

@@ -109,6 +109,8 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
         boolean isNew = e == null;
         if (isNew) {
             e = new ReviewCaseEntity();
+            // D-057 第 1 點：案件第一次寫入時記下建立時間；欄位 updatable = false，之後的儲存不會改到它。
+            e.setCreatedAt(Instant.now(clock).truncatedTo(ChronoUnit.MICROS));
         }
         Object[] before = isNew ? null : businessState(e);
         apply(rc, e);

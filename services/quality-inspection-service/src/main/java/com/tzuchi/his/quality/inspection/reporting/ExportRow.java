@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.reporting;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,21 +15,22 @@ public class ExportRow {
     private final String rereviewerId;
     private final BigDecimal initialScore;
     private final BigDecimal finalScore;
-    private final LocalDateTime createdAt;
+    /** D-057：案件建立時間（UTC）。 */
+    private final Instant createdAt;
     private final LocalDateTime closedAt;
     /** D-055 第 6 點：遮罩為 null 的欄位名稱；沒有遮罩時為空清單。 */
     private final List<String> maskedFields;
 
     public ExportRow(String caseId, String projectId, String hospitalId, String status,
                       String reviewerId, String rereviewerId, BigDecimal initialScore,
-                      BigDecimal finalScore, LocalDateTime createdAt, LocalDateTime closedAt) {
+                      BigDecimal finalScore, Instant createdAt, LocalDateTime closedAt) {
         this(caseId, projectId, hospitalId, status, reviewerId, rereviewerId, initialScore, finalScore,
                 createdAt, closedAt, List.of());
     }
 
     public ExportRow(String caseId, String projectId, String hospitalId, String status,
                       String reviewerId, String rereviewerId, BigDecimal initialScore,
-                      BigDecimal finalScore, LocalDateTime createdAt, LocalDateTime closedAt,
+                      BigDecimal finalScore, Instant createdAt, LocalDateTime closedAt,
                       List<String> maskedFields) {
         this.caseId = caseId;
         this.projectId = projectId;
@@ -51,7 +53,7 @@ public class ExportRow {
     public String getRereviewerId() { return rereviewerId; }
     public BigDecimal getInitialScore() { return initialScore; }
     public BigDecimal getFinalScore() { return finalScore; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public Instant getCreatedAt() { return createdAt; }
     public LocalDateTime getClosedAt() { return closedAt; }
     public List<String> getMaskedFields() { return maskedFields; }
 }

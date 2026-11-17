@@ -4,5 +4,4 @@
 application/reviewcase/ReviseInitialReviewUseCase.java imports com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException
 infrastructure/security/ApiKeyAuthFilter.java imports com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse
 interfaces/rest/ActorContextArgumentResolver.java imports com.tzuchi.his.quality.inspection.infrastructure.security.ApiKeyAuthFilter
-reporting/ExportQueryService.java imports com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.ReviewCaseEntity
 reporting/ExportQueryService.java imports com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException

@@ -45,12 +45,13 @@ class ExportHistoryQueryScopeTest {
         ReviewCaseEntity e = new ReviewCaseEntity();
         e.setCaseId(id); e.setBatchId("b"); e.setProjectId("p"); e.setHospitalId("H001");
         e.setStatus(status); e.setRereviewerId(rereviewerId);
+        e.setCreatedAt(java.time.Instant.parse("2026-04-15T00:00:00Z")); // D-057：落在匯出的時間區間內
         cases.save(e);
     }
 
     private void exportAs(String user, DomainRole role) {
         export.export(new ActorContext(user, user, EnumSet.of(role), Optional.of("H001")),
-                new ExportCriteria("REVIEW_COMPLETION", null, null, null));
+                new ExportCriteria("REVIEW_COMPLETION", null, java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000));
     }
 
     @SuppressWarnings("unchecked")
