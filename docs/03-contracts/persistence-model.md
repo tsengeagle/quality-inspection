@@ -499,6 +499,7 @@ review_case:
 
 * `closed_at` / `cancelled_at` 可協助查詢與 guard
 * 真正禁止 revision 仍由 application/domain 控制，不建議只依 DB trigger 實作
+* `created_at`（D-057）：案件建立時寫入的 UTC 時間點，之後不得修改；報表與匯出依它過濾時間區間（含起不含迄）。以 Flyway 新增、可為 NULL，導入前已存在的案件為 NULL、不回填。建議加 index `(hospital_id, created_at)`。
 
 ---
 

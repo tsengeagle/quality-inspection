@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-17-d057-export-time-filter-paging",
+  "decision": "D-057",
+  "reason": "依負責人 2026-11-17 的裁決新增 D-057：(1) 匯出以案件建立時間 review_case.created_at 過濾（案件建立時寫入、不得修改；以 Flyway 新增、可為 NULL，導入前的案件不回填）；(2) from、to 改為必填，含起不含迄，缺少或 from 不早於 to 回 400；(3) 逐案資料列改為分頁（page 0 起算預設 0、size 預設 100 上限 1000、依 caseId 遞增），取代原本最多 10000 筆的隱性截斷，summary 與 totalElements 以整個過濾範圍計算。另採建議：儀表板的 from、to 維持選填，兩個都給時套用同一規則、只給一個回 400；逐案資料列的 createdAt 改為案件建立時間。取代 D-056 第 3 點。同步 api-spec 15.1、15.2 與 persistence-model 5.12。本 PR 只改律法與文件，實作由後續建構 PR 落地。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/03-contracts/persistence-model.md",
+    "law/"
+  ]
+}
