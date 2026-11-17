@@ -108,7 +108,9 @@ export class InitialReviewPageComponent implements OnInit {
     if (backendMode === 'READONLY_BLOCKED') {
       this.mode = 'READONLY_BLOCKED';
       this.modeLabel = 'READONLY_BLOCKED';
-      this.bannerMessage = '案件目前不可執行初審作業。';
+      this.bannerMessage = context.blockedReason === 'INITIAL_REVIEW_FIXED'
+        ? '初審已固定，不可再修改。'
+        : '案件目前不可執行初審作業。';
       return;
     }
 
@@ -161,7 +163,12 @@ export class InitialReviewPageComponent implements OnInit {
   }
 
   get commandSecondaryLabel(): string | undefined {
-    return this.mode === 'EDIT_DRAFT' ? '保存草稿' : undefined;
+    if (this.mode === 'EDIT_DRAFT') {
+      return '保存草稿';
+    }
+
+    // D-054 第 9 點：已提交、未固定時，由提交者另行固定；是否允許以後端的 allowedActions 為準
+    return this.mode === 'REVISION' ? '固定初審' : undefined;
   }
 
   get commandPrimaryDisabled(): boolean {
@@ -184,6 +191,13 @@ export class InitialReviewPageComponent implements OnInit {
   get commandSecondaryDisabled(): boolean {
     if (this.commandPending || this.isBlockedByBackendTruth()) {
       return true;
+    }
+
+    if (this.mode === 'REVISION') {
+      // 表單有尚未提交的修改時不能固定：固定的是目前有效的版本，修改會在重新載入後遺失
+      return this.formStateDirty
+        || !this.hasAllowedAction('FIX_INITIAL_REVIEW')
+        || !this.resolveInitialRevisionBaseSubmissionId();
     }
 
     if (this.mode !== 'EDIT_DRAFT') {
@@ -217,7 +231,8 @@ export class InitialReviewPageComponent implements OnInit {
         this.casesService.saveInitialReviewDraft(this.caseId, this.buildInitialPayloadFromState()).pipe(
           switchMap(() => this.casesService.submitInitialReview(this.caseId))
         ),
-        result => result.rereviewRequired ? '初審已提交，案件已送往複審。' : '初審已提交。'
+        // D-054 第 3 點：提交後一律停在 INITIAL_REVIEW_COMPLETED，固定時才判斷是否進複審
+        () => '初審已提交，尚未固定。確認結果無誤後，請按「固定初審」。'
       );
       return;
     }
@@ -238,6 +253,24 @@ export class InitialReviewPageComponent implements OnInit {
 
   onSecondaryAction(): void {
     if (this.commandSecondaryDisabled) {
+      return;
+    }
+
+    if (this.mode === 'REVISION') {
+      const submissionId = this.resolveInitialRevisionBaseSubmissionId();
+      if (!submissionId) {
+        this.setCommandFeedback('無法取得要固定的初審版本。', 'blocked');
+        return;
+      }
+
+      this.executeCommand(
+        this.casesService.fixInitialReview(this.caseId, submissionId),
+        result => result.caseStatus === 'PENDING_REREVIEW'
+          ? '初審已固定，案件已送往複審。'
+          : '初審已固定，案件不需複審，由管理者決定後續處理。',
+        // D-054 第 7 點：重複固定等失敗時重新整理畫面，以後端狀態為準
+        '固定初審失敗，已重新整理頁面。'
+      );
       return;
     }
 
@@ -379,7 +412,11 @@ export class InitialReviewPageComponent implements OnInit {
     return Boolean(this.bootstrap?.blocked || this.bootstrap?.blockedReason || this.mode === 'READONLY_BLOCKED');
   }
 
-  private executeCommand(command$: Observable<CommandResultViewModel>, successMessage: (result: CommandResultViewModel) => string): void {
+  private executeCommand(
+    command$: Observable<CommandResultViewModel>,
+    successMessage: (result: CommandResultViewModel) => string,
+    reloadOnErrorMessage?: string
+  ): void {
     this.commandPending = true;
     this.commandFeedbackMessage = '';
 
@@ -392,6 +429,11 @@ export class InitialReviewPageComponent implements OnInit {
         this.reloadCaseDetail();
       },
       error: () => {
+        if (reloadOnErrorMessage) {
+          this.setCommandFeedback(reloadOnErrorMessage, 'blocked');
+          this.reloadCaseDetail();
+          return;
+        }
         this.setCommandFeedback('初審 command 執行失敗，limited wiring 僅提供最小錯誤提示。', 'blocked');
       }
     });

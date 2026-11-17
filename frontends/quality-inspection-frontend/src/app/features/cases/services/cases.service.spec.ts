@@ -775,6 +775,23 @@ describe('CasesService', () => {
     expect(results).toEqual([{ noChanges: true }, { noChanges: true }]);
   });
 
+  it('posts the initial-review fix command without a body and maps the response (D-054)', () => {
+    const actual: unknown[] = [];
+    service.fixInitialReview('CASE-012', 'SUB-INITIAL-002').subscribe(result => actual.push(result));
+
+    const request = httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-012/initial-review/submissions/SUB-INITIAL-002/fix`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({});
+    request.flush({
+      success: true,
+      data: { caseId: 'CASE-012', caseStatus: 'PENDING_REREVIEW', submissionId: 'SUB-INITIAL-002', fixedAt: '2026-11-17T01:00:00Z' }
+    });
+
+    expect(actual).toEqual([{
+      caseId: 'CASE-012', caseStatus: 'PENDING_REREVIEW', submissionId: 'SUB-INITIAL-002', fixedAt: '2026-11-17T01:00:00Z'
+    }]);
+  });
+
   it('posts the rereview close command without a body and maps the response (D-053)', () => {
     const actual: unknown[] = [];
     service.closeRereview('CASE-013', 'SUB-REREVIEW-002').subscribe(result => actual.push(result));
