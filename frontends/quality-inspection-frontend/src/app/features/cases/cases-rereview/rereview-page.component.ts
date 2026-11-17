@@ -405,11 +405,13 @@ export class RereviewPageComponent implements OnInit {
     const sourceSubmissionId = this.resolveFormSourceSubmissionId();
 
     if (!sourceSubmissionId) {
+      this.clearSubmissionLoad();
       this.resetFormState();
       return;
     }
 
     if (this.formSourceSubmissionId === sourceSubmissionId && this.formStateLoaded) {
+      this.clearSubmissionLoad();
       return;
     }
 
@@ -419,10 +421,16 @@ export class RereviewPageComponent implements OnInit {
       this.endSubmissionLoad(sourceSubmissionId);
     })).subscribe({
       next: detail => {
+        if (this.loadingSubmissionId !== sourceSubmissionId) {
+          return; // 已被較新的載入或頁面狀態取代，忽略較晚的回應
+        }
         this.endSubmissionLoad(sourceSubmissionId);
         this.hydrateFormState(detail);
       },
       error: () => {
+        if (this.loadingSubmissionId !== sourceSubmissionId) {
+          return; // 已被取代的載入失敗時，不重設表單也不顯示訊息
+        }
         this.endSubmissionLoad(sourceSubmissionId);
         this.resetFormState(sourceSubmissionId);
         this.setCommandFeedback('複審表單狀態載入失敗，僅保留最小骨架。', 'blocked');
@@ -436,6 +444,12 @@ export class RereviewPageComponent implements OnInit {
       this.submissionLoadPending = false;
       this.loadingSubmissionId = undefined;
     }
+  }
+
+  /** 不再需要等待任何提交明細時解除鎖定；仍在途中的回應會因 id 不符而被忽略 */
+  private clearSubmissionLoad(): void {
+    this.submissionLoadPending = false;
+    this.loadingSubmissionId = undefined;
   }
 
   private hydrateFormState(detail: SubmissionDetailViewModel): void {

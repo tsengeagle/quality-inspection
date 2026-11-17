@@ -713,4 +713,76 @@ describe('InitialReviewPageComponent', () => {
     expect(getButtonByText('保存草稿')?.disabled).toBeFalse();
     expect(getButtonByText('提交初審')?.disabled).toBeFalse();
   });
+
+  // ---- 被取代的提交明細載入：較晚回應不得覆蓋表單或留下鎖定 ----
+
+  it('releases the lock when a pending submission load is superseded by a page with no form source, and ignores its late response', () => {
+    const detail = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    const stale$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    casesService.getSubmissionDetail.and.returnValue(stale$);
+    render(detail);
+    expect(component.formLocked).withContext('A 載入中').toBeTrue();
+
+    component.applyCaseDetail(buildDetail());
+    fixture.detectChanges();
+    expect(component.mode).toBe('NEW');
+    expect(component.submissionLoadPending).withContext('改為無表單來源的頁面').toBeFalse();
+    expect(component.formLocked).withContext('改為無表單來源的頁面').toBeFalse();
+    expect(getButtonByText('開始初審')?.disabled).withContext('依 allowedActions').toBeFalse();
+
+    stale$.next(revisionBaseSubmission());
+    stale$.complete();
+    fixture.detectChanges();
+    expect(component.formAnswers).withContext('A 的較晚回應').toEqual([]);
+    expect(component.formComment).withContext('A 的較晚回應').toBe('');
+    expect(component.formSourceSubmissionId).withContext('A 的較晚回應').toBeUndefined();
+  });
+
+  it('releases the lock when the page returns to an already loaded submission while a newer load is pending, and ignores the newer late response', () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    expect(component.formSourceSubmissionId).toBe('SUB-INITIAL-002');
+
+    const newer = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    newer.initialReviewContext!.basedOnVersion = { submissionId: 'SUB-INITIAL-003', version: 3, status: 'SUBMITTED' };
+    const newer$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    casesService.getSubmissionDetail.and.returnValue(newer$);
+    component.applyCaseDetail(newer);
+    fixture.detectChanges();
+    expect(component.formLocked).withContext('B 載入中').toBeTrue();
+
+    component.applyCaseDetail(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    fixture.detectChanges();
+    expect(component.submissionLoadPending).withContext('回到已載入的 A').toBeFalse();
+    expect(component.formLocked).withContext('回到已載入的 A').toBeFalse();
+    expect(getButtonByText('提交初審修正')?.disabled).withContext('回到已載入的 A').toBeFalse();
+    expect(getButtonByText('固定初審')?.disabled).withContext('回到已載入的 A').toBeFalse();
+
+    newer$.next(buildSubmissionDetail({
+      submissionId: 'SUB-INITIAL-003', revisionNo: 3, status: 'SUBMITTED',
+      answers: [{ itemId: 'ITEM-3', answerValue: 'Y' }], comment: 'stale newer'
+    }));
+    newer$.complete();
+    fixture.detectChanges();
+    expect(component.formSourceSubmissionId).withContext('B 的較晚回應').toBe('SUB-INITIAL-002');
+    expect(component.formComment).withContext('B 的較晚回應').toBe('revision base');
+    expect(component.formAnswers).withContext('B 的較晚回應').toEqual([{ itemId: 'ITEM-2', answerValue: 'N' }]);
+  });
+
+  it('ignores a late error from a superseded submission load (no feedback, no form reset)', () => {
+    const detail = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    const stale$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    casesService.getSubmissionDetail.and.returnValue(stale$);
+    render(detail);
+
+    component.applyCaseDetail(buildDetail());
+    fixture.detectChanges();
+
+    stale$.error({ status: 500 });
+    fixture.detectChanges();
+    expect(component.commandFeedbackMessage).withContext('A 的較晚錯誤').toBe('');
+    expect(component.formSourceSubmissionId).withContext('A 的較晚錯誤').toBeUndefined();
+    expect(component.formStateLoaded).withContext('A 的較晚錯誤').toBeTrue();
+    expect(component.formLocked).toBeFalse();
+    expect(getButtonByText('開始初審')?.disabled).toBeFalse();
+  });
 });
