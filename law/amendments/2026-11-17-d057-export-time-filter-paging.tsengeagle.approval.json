@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-17-d057-export-time-filter-paging",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:f77e3eba93494387aa03fff8291d5ea319e9e6d88210ded1a98cff1eacca0817",
+  "reviewed_commit": "d153592a7d35965a7438cd4f1680f8946aec0e12",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFkAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAghihX/R\nq3C2qycCcVhx0LkVTeSw7MEttHzTwijS611dYAAAATc3NoOmxhdy1hbWVuZG1lbnQtMgAA\nAA1sYXctYW1lbmRtZW50AAAAAAAAAAZzaGE1MTIAAABnAAAAGnNrLXNzaC1lZDI1NTE5QG\n9wZW5zc2guY29tAAAAQLhOW+34rIsHr1Y7UlX9pwaGE1jieojoxm4SKiBLH1gi3pU+f1wR\nrdGsH9UYJyHV++fOHox5gmIrYyLOgiHGRAcFAAAALA==\n-----END SSH SIGNATURE-----\n"
+}
