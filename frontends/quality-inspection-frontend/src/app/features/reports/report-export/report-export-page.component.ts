@@ -202,6 +202,11 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
       .subscribe({
         next: rows => this.fileSaver.save(exportCsvFilename(startDate, endDate), buildExportCsv(rows)),
         error: error => {
+          // UI-017 §6：403 一律進入無權限狀態，並清除先前預覽的資料。
+          if (error instanceof HttpErrorResponse && error.status === 403) {
+            this.handleQueryError(error);
+            return;
+          }
           this.downloadError = error instanceof ExportDownloadError && error.reason === 'DATA_CHANGED'
             ? '資料在下載期間有變動，請重新下載'
             : '下載失敗，未產生檔案，請稍後再試';

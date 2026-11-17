@@ -434,6 +434,19 @@ describe('ReportExportPageComponent (UI-017)', () => {
       expect(text('export-download-error')).toBe('下載失敗，未產生檔案，請稍後再試');
     });
 
+    it('switches to the forbidden state and drops the preview when a download page returns 403', () => {
+      exportService.fetchAllRows.and.returnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
+      create();
+      query();
+      expect(el('export-table')).not.toBeNull();
+      button('export-download').click();
+      fixture.detectChanges();
+      expect(saver.save).not.toHaveBeenCalled();
+      expect(el('export-forbidden')).not.toBeNull();
+      expect(el('export-table')).toBeNull();
+      expect(component.result).toBeNull();
+    });
+
     it('shows progress and locks the controls while downloading', () => {
       const pending = new Subject<ExportRowView[]>();
       exportService.fetchAllRows.and.callFake((_criteria, onProgress) => {
