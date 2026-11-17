@@ -617,4 +617,114 @@ describe('RereviewPageComponent', () => {
     await fixture.whenStable();
     expect(score().disabled).withContext('重新載入完成').toBeFalse();
   });
+
+  // ---- PR #58 審查：案件詳情重新載入完成後，提交明細仍在載入時，表單與命令按鈕須持續鎖定 ----
+
+  it('keeps the form and revise button locked until the new submission detail has loaded after a revise', () => {
+    render(revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']));
+    casesService.reviseRereview.and.returnValue(of({ oldSubmissionId: 'SUB-REREVIEW-002', newSubmissionId: 'SUB-REREVIEW-003' }));
+
+    const newer = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    newer.rereviewContext!.basedOnVersion = { submissionId: 'SUB-REREVIEW-003', version: 3, status: 'SUBMITTED' };
+    const newerSubmission$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    casesService.getSubmissionDetail.and.returnValue(newerSubmission$);
+    casesService.getCaseDetail.and.returnValue(of(newer));
+
+    const answer = () => fixture.nativeElement.querySelector('[data-testid="rereview-answer-input-0"]') as HTMLInputElement;
+    const comment = () => fixture.nativeElement.querySelector('[data-testid="rereview-comment-input"]') as HTMLTextAreaElement;
+
+    getButtonByText('提交複審修正')?.click();
+    fixture.detectChanges();
+
+    expect(component.reloadPending).withContext('案件詳情已載入完成').toBeFalse();
+    expect(component.formLocked).withContext('提交明細仍在載入').toBeTrue();
+    expect(getButtonByText('提交複審修正')?.disabled).withContext('提交明細仍在載入').toBeTrue();
+    expect(getButtonByText('結案')?.disabled).withContext('提交明細仍在載入').toBeTrue();
+    getButtonByText('提交複審修正')?.click();
+    expect(casesService.reviseRereview).toHaveBeenCalledTimes(1);
+
+    newerSubmission$.next(buildSubmissionDetail({
+      submissionId: 'SUB-REREVIEW-003', revisionNo: 3, status: 'SUBMITTED',
+      answers: [{ itemId: 'ITEM-3', answerValue: 'Y' }], comment: 'newer'
+    }));
+    newerSubmission$.complete();
+    fixture.detectChanges();
+
+    expect(component.formLocked).withContext('提交明細載入完成').toBeFalse();
+    expect(getButtonByText('提交複審修正')?.disabled).withContext('提交明細載入完成').toBeFalse();
+    expect(component.formComment).toBe('newer');
+  });
+
+  it('unlocks the form when the submission detail fails to load, while keeping close disabled', () => {
+    render(revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']));
+    expect(component.formLocked).toBeFalse();
+
+    const newer = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    newer.rereviewContext!.basedOnVersion = { submissionId: 'SUB-REREVIEW-003', version: 3, status: 'SUBMITTED' };
+    casesService.getSubmissionDetail.and.returnValue(throwError(() => ({ status: 500 })));
+    component.applyCaseDetail(newer);
+    fixture.detectChanges();
+
+    expect(component.formLocked).toBeFalse();
+    expect(getButtonByText('結案')?.disabled).toBeTrue();
+  });
+
+  it('does not unlock when an older submission load resolves while a newer one is still pending', () => {
+    const older$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    const detail = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(older$);
+    render(detail);
+    expect(component.formLocked).toBeTrue();
+
+    const newer = revisionDetail(['REVISE_REREVIEW', 'CLOSE_REREVIEW']);
+    newer.rereviewContext!.basedOnVersion = { submissionId: 'SUB-REREVIEW-003', version: 3, status: 'SUBMITTED' };
+    const newer$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    casesService.getSubmissionDetail.and.returnValue(newer$);
+    component.applyCaseDetail(newer);
+    fixture.detectChanges();
+
+    older$.next(revisionBaseSubmission());
+    older$.complete();
+    fixture.detectChanges();
+    expect(component.formLocked).withContext('較舊請求已回應，較新請求仍在載入').toBeTrue();
+    expect(getButtonByText('提交複審修正')?.disabled).withContext('較新請求仍在載入').toBeTrue();
+
+    newer$.next(buildSubmissionDetail({ submissionId: 'SUB-REREVIEW-003', revisionNo: 3, status: 'SUBMITTED' }));
+    fixture.detectChanges();
+    expect(component.formLocked).toBeFalse();
+    expect(getButtonByText('結案')?.disabled).toBeFalse();
+  });
+
+  it('keeps save-draft disabled until the draft submission detail has loaded (avoids saving an empty form)', () => {
+    const draft$ = new Subject<ReturnType<typeof buildSubmissionDetail>>();
+    casesService.getSubmissionDetail.and.returnValue(draft$);
+    render(buildDetail({
+      status: 'REREVIEW_IN_PROGRESS',
+      rereviewContext: {
+        pageMode: 'EDIT_DRAFT',
+        hasDraft: true,
+        hasSubmittedBase: false,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: ['SAVE_REREVIEW_DRAFT', 'SUBMIT_REREVIEW'],
+        currentSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        editableSubmission: { submissionId: 'SUB-REREVIEW-001', version: 1, status: 'DRAFT' },
+        initialSubmissionId: 'SUB-INITIAL-001',
+        initialReviewerId: 'reviewer-1',
+        initialReviewerName: 'Dr. Initial',
+      }
+    }));
+
+    expect(getButtonByText('保存複審草稿')?.disabled).toBeTrue();
+    expect(getButtonByText('提交複審')?.disabled).toBeTrue();
+    getButtonByText('保存複審草稿')?.click();
+    expect(casesService.saveRereviewDraft).not.toHaveBeenCalled();
+
+    draft$.next(buildSubmissionDetail());
+    fixture.detectChanges();
+    expect(getButtonByText('保存複審草稿')?.disabled).toBeFalse();
+    expect(getButtonByText('提交複審')?.disabled).toBeFalse();
+  });
 });
