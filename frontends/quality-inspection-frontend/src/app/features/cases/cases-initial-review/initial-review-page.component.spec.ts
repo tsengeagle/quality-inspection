@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
-import { of } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 
 import { CaseSummaryHeaderComponent } from '../components/case-summary-header/case-summary-header.component';
 import { ModeIndicatorStripComponent } from '../components/mode-indicator-strip/mode-indicator-strip.component';
@@ -25,7 +25,8 @@ describe('InitialReviewPageComponent', () => {
       'startInitialReview',
       'saveInitialReviewDraft',
       'submitInitialReview',
-      'reviseInitialReview'
+      'reviseInitialReview',
+      'fixInitialReview'
     ]);
 
     await TestBed.configureTestingModule({
@@ -272,10 +273,10 @@ describe('InitialReviewPageComponent', () => {
     casesService.submitInitialReview.and.returnValue(of({
       submissionId: 'SUB-DRAFT-001',
       caseId: 'CASE-012',
-      caseStatus: 'PENDING_REREVIEW',
+      caseStatus: 'INITIAL_REVIEW_COMPLETED',
       status: 'SUBMITTED',
       totalScore: 90,
-      rereviewRequired: true
+      rereviewRequired: false
     }));
 
     setInputValue('[data-testid="initial-review-answer-input-0"]', 'N');
@@ -289,7 +290,9 @@ describe('InitialReviewPageComponent', () => {
       comment: 'submit from page state'
     });
     expect(casesService.submitInitialReview).toHaveBeenCalledWith('CASE-012');
-    expect(fixture.nativeElement.textContent).toContain('初審已提交，案件已送往複審。');
+    // D-054 第 3 點：提交後一律停在 INITIAL_REVIEW_COMPLETED，固定時才判斷是否進複審
+    expect(fixture.nativeElement.textContent).toContain('初審已提交，尚未固定。確認結果無誤後，請按「固定初審」。');
+    expect(fixture.nativeElement.textContent).not.toContain('送往複審');
   });
 
   it('still submits when the draft saved before submit has no changes (D-044)', () => {
@@ -313,10 +316,10 @@ describe('InitialReviewPageComponent', () => {
     casesService.submitInitialReview.and.returnValue(of({
       submissionId: 'SUB-DRAFT-001',
       caseId: 'CASE-012',
-      caseStatus: 'PENDING_REREVIEW',
+      caseStatus: 'INITIAL_REVIEW_COMPLETED',
       status: 'SUBMITTED',
       totalScore: 90,
-      rereviewRequired: true
+      rereviewRequired: false
     }));
 
     setInputValue('[data-testid="initial-review-answer-input-0"]', 'N');
@@ -330,7 +333,9 @@ describe('InitialReviewPageComponent', () => {
       comment: 'submit from page state'
     });
     expect(casesService.submitInitialReview).toHaveBeenCalledWith('CASE-012');
-    expect(fixture.nativeElement.textContent).toContain('初審已提交，案件已送往複審。');
+    // D-054 第 3 點：提交後一律停在 INITIAL_REVIEW_COMPLETED，固定時才判斷是否進複審
+    expect(fixture.nativeElement.textContent).toContain('初審已提交，尚未固定。確認結果無誤後，請按「固定初審」。');
+    expect(fixture.nativeElement.textContent).not.toContain('送往複審');
   });
 
   it('covers REVISION baseline, append-only copy, and C17 visibility', () => {
@@ -410,5 +415,195 @@ describe('InitialReviewPageComponent', () => {
     expect(fixture.nativeElement.querySelector('app-status-or-blocked-banner')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="initial-review-readonly-guard"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('app-review-command-bar')).toBeNull();
+  });
+  // ---- D-054 第 9 點：初審頁的「固定初審」按鈕 ----
+
+  function revisionDetail(allowedActions: string[], status = 'INITIAL_REVIEW_COMPLETED'): CaseDetailViewModel {
+    // 表單顯示的提交必須與固定目標（basedOnVersion）一致，按鈕才會啟用
+    casesService.getSubmissionDetail.and.returnValue(of(revisionBaseSubmission()));
+    return buildDetail({
+      status,
+      initialReviewContext: {
+        pageMode: 'REVISION',
+        hasDraft: false,
+        hasSubmittedBase: true,
+        readonly: false,
+        blocked: false,
+        blockedReason: null,
+        scoreSheetVersionId: 'SS-001',
+        allowedActions,
+        basedOnVersion: { submissionId: 'SUB-INITIAL-002', version: 2, status: 'SUBMITTED', submittedAt: '2026-04-15T09:00:00+08:00' }
+      }
+    });
+  }
+
+  function revisionBaseSubmission() {
+    return buildSubmissionDetail({
+      submissionId: 'SUB-INITIAL-002', revisionNo: 2, status: 'SUBMITTED',
+      answers: [{ itemId: 'ITEM-2', answerValue: 'N' }], comment: 'revision base'
+    });
+  }
+
+  it('shows an enabled fix button when the backend allows FIX_INITIAL_REVIEW and fixes the based-on version', () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    casesService.fixInitialReview.and.returnValue(of({
+      caseId: 'CASE-012', caseStatus: 'PENDING_REREVIEW', submissionId: 'SUB-INITIAL-002', fixedAt: '2026-11-17T01:00:00Z'
+    }));
+    const loadsBefore = casesService.getCaseDetail.calls.count();
+
+    const button = getButtonByText('固定初審');
+    expect(button).toBeDefined();
+    expect(button?.disabled).toBeFalse();
+    button?.click();
+    fixture.detectChanges();
+
+    expect(casesService.fixInitialReview).toHaveBeenCalledWith('CASE-012', 'SUB-INITIAL-002');
+    expect(fixture.nativeElement.textContent).toContain('初審已固定，案件已送往複審。');
+    expect(casesService.getCaseDetail.calls.count()).toBe(loadsBefore + 1);
+  });
+
+  it('reports a fixed review that stays for the manager when the case does not go to rereview', () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    casesService.fixInitialReview.and.returnValue(of({
+      caseId: 'CASE-012', caseStatus: 'INITIAL_REVIEW_COMPLETED', submissionId: 'SUB-INITIAL-002', fixedAt: '2026-11-17T01:00:00Z'
+    }));
+
+    getButtonByText('固定初審')?.click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('初審已固定，案件不需複審，由管理者決定後續處理。');
+  });
+
+  it('disables the fix button when the backend does not allow FIX_INITIAL_REVIEW', () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW']));
+
+    const button = getButtonByText('固定初審');
+    expect(button?.disabled).toBeTrue();
+    button?.click();
+    expect(casesService.fixInitialReview).not.toHaveBeenCalled();
+  });
+
+  it('disables the fix button while the form has unsubmitted changes', () => {
+    casesService.getSubmissionDetail.and.returnValue(of(buildSubmissionDetail({
+      submissionId: 'SUB-INITIAL-002', revisionNo: 2, status: 'SUBMITTED',
+      answers: [{ itemId: 'ITEM-2', answerValue: 'N' }]
+    })));
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+
+    setInputValue('[data-testid="initial-review-answer-input-0"]', 'Y');
+
+    const button = getButtonByText('固定初審');
+    expect(button?.disabled).toBeTrue();
+    button?.click();
+    expect(casesService.fixInitialReview).not.toHaveBeenCalled();
+  });
+
+  it('reloads the page when fixing fails, e.g. an already fixed review (D-054 第 7 點)', () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    casesService.fixInitialReview.and.returnValue(throwError(() => ({ status: 409 })));
+    const loadsBefore = casesService.getCaseDetail.calls.count();
+
+    getButtonByText('固定初審')?.click();
+    fixture.detectChanges();
+
+    expect(casesService.getCaseDetail.calls.count()).toBe(loadsBefore + 1);
+    expect(fixture.nativeElement.textContent).toContain('固定初審失敗，已重新整理頁面。');
+  });
+
+  it('shows that the initial review is fixed when the backend blocks with INITIAL_REVIEW_FIXED', () => {
+    render(buildDetail({
+      status: 'PENDING_REREVIEW',
+      initialReviewContext: {
+        pageMode: 'READONLY_BLOCKED',
+        hasDraft: false,
+        hasSubmittedBase: true,
+        readonly: true,
+        blocked: true,
+        blockedReason: 'INITIAL_REVIEW_FIXED',
+        scoreSheetVersionId: 'SS-001',
+        allowedActions: []
+      }
+    }));
+
+    expect(component.mode).toBe('READONLY_BLOCKED');
+    expect(fixture.nativeElement.textContent).toContain('初審已固定，不可再修改。');
+    expect(fixture.nativeElement.querySelector('app-review-command-bar')).toBeNull();
+  });
+  // ---- PR #56 審查：固定目標必須是畫面上已載入的版本；命令與重新載入期間鎖定表單 ----
+
+  it('keeps the fix button disabled until the based-on submission has loaded', () => {
+    const load$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    const detail = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(load$);
+    render(detail);
+
+    expect(getButtonByText('固定初審')?.disabled).toBeTrue();
+
+    load$.next(revisionBaseSubmission());
+    fixture.detectChanges();
+    expect(getButtonByText('固定初審')?.disabled).toBeFalse();
+  });
+
+  it('keeps the fix button disabled when the based-on submission fails to load', () => {
+    const detail = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(throwError(() => ({ status: 500 })));
+    render(detail);
+
+    const button = getButtonByText('固定初審');
+    expect(button?.disabled).toBeTrue();
+    button?.click();
+    expect(casesService.fixInitialReview).not.toHaveBeenCalled();
+  });
+
+  it('disables the fix button while a newer based-on version is still loading (screen shows the old one)', () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    expect(getButtonByText('固定初審')?.disabled).toBeFalse();
+
+    const newer$ = new Subject<ReturnType<typeof revisionBaseSubmission>>();
+    casesService.getSubmissionDetail.and.returnValue(newer$);
+    const newer = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    casesService.getSubmissionDetail.and.returnValue(newer$);
+    newer.initialReviewContext!.basedOnVersion = { submissionId: 'SUB-INITIAL-003', version: 3, status: 'SUBMITTED' };
+    component.applyCaseDetail(newer);
+    fixture.detectChanges();
+
+    expect(getButtonByText('固定初審')?.disabled).toBeTrue();
+    getButtonByText('固定初審')?.click();
+    expect(casesService.fixInitialReview).not.toHaveBeenCalled();
+
+    newer$.next(buildSubmissionDetail({ submissionId: 'SUB-INITIAL-003', revisionNo: 3, status: 'SUBMITTED' }));
+    fixture.detectChanges();
+    expect(getButtonByText('固定初審')?.disabled).toBeFalse();
+  });
+
+  it('locks the form while the fix command and the following reload are in flight', async () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    const fix$ = new Subject<{ caseId: string; caseStatus: string; submissionId: string; fixedAt: string }>();
+    const reload$ = new Subject<CaseDetailViewModel>();
+    casesService.fixInitialReview.and.returnValue(fix$);
+    casesService.getCaseDetail.and.returnValue(reload$);
+
+    const answer = () => fixture.nativeElement.querySelector('[data-testid="initial-review-answer-input-0"]') as HTMLInputElement;
+    const comment = () => fixture.nativeElement.querySelector('[data-testid="initial-review-comment-input"]') as HTMLTextAreaElement;
+    expect(answer().disabled).toBeFalse();
+
+    getButtonByText('固定初審')?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(answer().disabled).withContext('固定請求進行中').toBeTrue();
+    expect(comment().disabled).withContext('固定請求進行中').toBeTrue();
+
+    fix$.next({ caseId: 'CASE-012', caseStatus: 'PENDING_REREVIEW', submissionId: 'SUB-INITIAL-002', fixedAt: '2026-11-17T01:00:00Z' });
+    fix$.complete();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(answer().disabled).withContext('重新載入進行中').toBeTrue();
+    expect(getButtonByText('固定初審')?.disabled).withContext('重新載入進行中').toBeTrue();
+
+    reload$.next(revisionDetail(['REVISE_INITIAL_REVIEW']));
+    reload$.complete();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(answer().disabled).withContext('重新載入完成').toBeFalse();
   });
 });

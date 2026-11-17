@@ -218,6 +218,14 @@ interface SubmitRereviewResponseDto {
 }
 
 /** 複審結案的回應（D-053 第 2 點）。 */
+/** D-054 第 4 點：固定初審的回應；不含品質線 */
+interface FixInitialReviewResponseDto {
+  caseId: string;
+  caseStatus: string;
+  submissionId: string;
+  fixedAt: string;
+}
+
 interface CloseRereviewResponseDto {
   caseId: string;
   caseStatus: string;
@@ -435,6 +443,8 @@ export interface CommandResultViewModel {
   oldSubmissionId?: string;
   newSubmissionId?: string;
   rereviewRequired?: boolean;
+  /** 初審固定時間（UTC，D-054） */
+  fixedAt?: string;
   /** 草稿內容沒有變更，後端未寫入（D-038 的 409 NO_CHANGES）；前端視為「已是最新」（D-044 第 5 點） */
   noChanges?: boolean;
 }
@@ -593,6 +603,21 @@ export class CasesService {
         status: response.data.status,
         totalScore: response.data.totalScore,
         rereviewRequired: response.data.rereviewRequired
+      }))
+    );
+  }
+
+  /** D-054 第 1 點：固定目前有效的初審結果，不需要請求內容 */
+  fixInitialReview(caseId: string, submissionId: string): Observable<CommandResultViewModel> {
+    return this.http.post<ApiResponse<FixInitialReviewResponseDto>>(
+      `${this.baseUrl}/${caseId}/initial-review/submissions/${submissionId}/fix`,
+      {}
+    ).pipe(
+      map(response => ({
+        caseId: response.data.caseId,
+        caseStatus: response.data.caseStatus,
+        submissionId: response.data.submissionId,
+        fixedAt: response.data.fixedAt
       }))
     );
   }
