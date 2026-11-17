@@ -40,7 +40,7 @@ public class ReassignRereviewerUseCase {
     public void execute(ActorContext actor, ReassignRereviewerCommand cmd) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
         actor.requireHospitalScope(reviewCase.getHospitalId());
         // D-055 第 5 點：讀過本案完整初審的人不得受派（在變更案件之前檢查，拒絕時案件不變）。
         if (readerPort.hasRead(reviewCase.getCaseId(), cmd.getRereviewerId())) {

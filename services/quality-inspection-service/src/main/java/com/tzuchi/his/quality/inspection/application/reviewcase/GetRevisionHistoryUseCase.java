@@ -42,7 +42,7 @@ public class GetRevisionHistoryUseCase {
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
         ReviewCase reviewCase = reviewCaseRepository.findById(caseId)
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         List<ReviewSubmission> submissions = submissionRepository.findAllByCaseId(caseId);
         accessPolicy.requireAccess(actor, reviewCase, submissions);

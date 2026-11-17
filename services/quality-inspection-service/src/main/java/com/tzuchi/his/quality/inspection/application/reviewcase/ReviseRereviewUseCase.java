@@ -66,7 +66,7 @@ public class ReviseRereviewUseCase {
 
         // 2. Load ReviewCase and validate actor is the assigned rereviewer
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", cmd.getCaseId()));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
@@ -79,7 +79,7 @@ public class ReviseRereviewUseCase {
 
         // 3. Load old ReviewSubmission by submissionId
         ReviewSubmission oldSubmission = submissionRepository.findById(cmd.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewSubmission", cmd.getSubmissionId()));
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + cmd.getSubmissionId()));
 
         if (!reviewCase.getCaseId().equals(oldSubmission.getCaseId())
                 || oldSubmission.getStage() != ReviewStage.REREVIEW) {
@@ -103,7 +103,7 @@ public class ReviseRereviewUseCase {
         // 4. Load ScoreSheetDefinition via reviewCase.getScoreSheetVersionRef()
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
                 .findByVersionId(reviewCase.getScoreSheetVersionRef())
-                .orElseThrow(() -> new ResourceNotFoundException("ScoreSheetDefinition", reviewCase.getScoreSheetVersionRef()));
+                .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND", "ScoreSheetDefinition not found: " + reviewCase.getScoreSheetVersionRef()));
 
         // 5. Build raw AnswerItem list from cmd answers
         List<AnswerItem> rawItems = cmd.getAnswers().stream()
@@ -131,7 +131,7 @@ public class ReviseRereviewUseCase {
 
         // 10. Load ReviewProject and get weights from getCurrentVersion()
         ReviewProject project = projectRepository.findById(reviewCase.getProjectId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewProject", reviewCase.getProjectId()));
+                .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND", "ReviewProject not found: " + reviewCase.getProjectId()));
         ProjectVersion version = project.getCurrentVersion();
 
         // 11. Update case final score without changing its lifecycle state

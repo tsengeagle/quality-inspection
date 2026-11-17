@@ -1370,6 +1370,40 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * `SYSTEM_ADMIN` 任何狀態都不取得逐案分數。
 * 匯出不寫入初審讀取者紀錄，也不遞增案件版本。
 
+#### Response（逐案列與遮罩相關的欄位）
+
+```json
+{
+  "success": true,
+  "data": {
+    "reportType": "REVIEW_COMPLETION",
+    "rows": [
+      {
+        "caseId": "RC-001",
+        "status": "CLOSED",
+        "reviewerId": "DOC-1001",
+        "rereviewerId": "DOC-2001",
+        "initialScore": 92,
+        "finalScore": 86,
+        "maskedFields": []
+      },
+      {
+        "caseId": "RC-002",
+        "status": "PENDING_REREVIEW",
+        "reviewerId": "DOC-1002",
+        "rereviewerId": null,
+        "initialScore": null,
+        "finalScore": null,
+        "maskedFields": ["initialScore", "finalScore"]
+      }
+    ],
+    "summary": {}
+  }
+}
+```
+
+`maskedFields` 一律存在；沒有遮罩時為空陣列。被遮罩的欄位輸出 `null`，前端不得把 `null` 當成 0 分。
+
 #### Request
 
 ```json
@@ -1506,6 +1540,7 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 > - 錯誤代碼依 decision-log D-054 第 6 點：`ROLE_DENIED`、`CASE_NOT_FOUND`、`SUBMISSION_NOT_FOUND`、`HOSPITAL_SCOPE_MISMATCH`、`CASE_TERMINAL`、`INVALID_STATE_TRANSITION`（重複固定；固定後 revision；未固定就派複審或結案）、`CASE_NOT_INITIAL_REVIEW_COMPLETED`、`CONFLICT`（目標不是本案目前有效的初審結果；樂觀鎖失敗）、`SUBMISSION_NOT_SUBMITTED`、`NOT_SUBMISSION_OWNER`。
 > - 提交初審（§11）不再依品質線進複審，案件一律停在 `INITIAL_REVIEW_COMPLETED`。
 > - 案件詳情的 `allowedActions` 在可固定時加入 `FIX_INITIAL_REVIEW`。
+> - 初審已固定時，案件詳情的 `initialReviewContext.pageMode` 為 `READONLY_BLOCKED`。`blockedReason` 依序判斷，取第一個成立的：`ROLE_DENIED`（不是 `REVIEWER`）→ `NOT_ASSIGNED_REVIEWER`（不是本案初審醫師）→ `CASE_ALREADY_CLOSED` → `CASE_ALREADY_CANCELLED` → `INITIAL_REVIEW_FIXED`。所以只有通過角色與指派檢查、且案件尚未結案或取消時，已固定才回 `INITIAL_REVIEW_FIXED`；已固定後又結案或取消的案件，回的是終態代碼。
 
 
 沿用 `/api/quality-inspection/**`、`api-key` 與既有 actor context；固定為與 submit 分離的操作，路徑見上方 D-054，既有 submit 不負責固定。
