@@ -25,6 +25,13 @@ export const appRoutes: Routes = [
     loadChildren: () =>
       import('./features/cases/cases.module').then(m => m.CasesModule)
   },
+  {
+    path: 'reports',
+    canActivate: [RoleGuard, ScopeGuard, ProjectionGuard],
+    canActivateChild: [RoleGuard, ScopeGuard, ProjectionGuard],
+    loadChildren: () =>
+      import('./features/reports/reports.module').then(m => m.ReportsModule)
+  },
   { path: '**', redirectTo: 'demo' }
 ];
 
