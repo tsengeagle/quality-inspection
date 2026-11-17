@@ -24,7 +24,18 @@ class ResourceNotFoundCodeTest {
 
     private static final Path MAIN = Paths.get("src/main/java");
     private static final Pattern CALL = Pattern.compile("new\\s+ResourceNotFoundException\\(\\s*\"([^\"]*)\"\\s*,");
-    private static final Pattern CODE = Pattern.compile("[A-Z][A-Z0-9_]*NOT_FOUND");
+    /** 通用的 NOT_FOUND（api-spec §4.1），或 XXX_NOT_FOUND 形式的業務代碼。 */
+    private static final Pattern CODE = Pattern.compile("(?:[A-Z][A-Z0-9_]*_)?NOT_FOUND");
+
+    @Test
+    void codePatternAcceptsContractCodesAndRejectsEntityNames() {
+        for (String ok : List.of("NOT_FOUND", "CASE_NOT_FOUND", "SUBMISSION_NOT_FOUND", "SCORE_SHEET_NOT_FOUND")) {
+            assertThat(CODE.matcher(ok).matches()).as(ok).isTrue();
+        }
+        for (String bad : List.of("ReviewCase", "ReviewSubmission", "CASENOT_FOUND", "_NOT_FOUND", "not_found")) {
+            assertThat(CODE.matcher(bad).matches()).as(bad).isFalse();
+        }
+    }
 
     @Test
     void everyErrorCodeLiteralIsAnUpperSnakeNotFoundCode() throws IOException {
@@ -42,6 +53,6 @@ class ResourceNotFoundCodeTest {
             }
         }
         assertThat(found).as("至少要掃到既有的呼叫，避免掃描失效").hasSizeGreaterThan(20);
-        assertThat(bad).as("ResourceNotFoundException 的錯誤代碼必須是 *_NOT_FOUND").isEmpty();
+        assertThat(bad).as("ResourceNotFoundException 的錯誤代碼必須是 NOT_FOUND 或 *_NOT_FOUND").isEmpty();
     }
 }
