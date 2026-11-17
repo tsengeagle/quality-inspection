@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-17-export-request-shape",
+  "decision": "D-056",
+  "reason": "依負責人 2026-11-17 的裁決新增 D-056：匯出請求格式以程式為準。api-spec 15.2 原本把條件包在 filters 物件中，但程式的 ExportRequest 是最外層的 reportType、hospitalId、from、to（Instant），改為與程式一致，並補上欄位表：reportType 必填、目前只支援 REVIEW_COMPLETION；hospitalId 依 D-042／D-047 只有 SYSTEM_ADMIN 可縮小範圍。另如實記載程式現況：from、to 會被接收，但逐案資料列（ExportQueryService.queryRows）與統計摘要（DashboardQueryService）都沒有依時間過濾；要依哪個時間欄位過濾尚未裁決，D-056 不包含該項。本 PR 只改律法與文件，不改程式行為。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "docs/03-contracts/api-spec.md",
+    "law/"
+  ]
+}
