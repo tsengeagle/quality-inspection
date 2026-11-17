@@ -785,4 +785,41 @@ describe('InitialReviewPageComponent', () => {
     expect(component.formLocked).toBeFalse();
     expect(getButtonByText('開始初審')?.disabled).toBeFalse();
   });
+  // ---- 同一筆提交重複載入：以請求序號判斷，較舊請求的回應不得提早解鎖或寫入表單 ----
+
+  it('stays locked until the latest of two loads for the same submission responds', () => {
+    render(revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']));
+    // revisionDetail() 會重設 getSubmissionDetail 的回傳值，延遲回應須在建好兩份 detail 之後才指定
+    const first = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    const second = revisionDetail(['REVISE_INITIAL_REVIEW', 'FIX_INITIAL_REVIEW']);
+    for (const detail of [first, second]) {
+      detail.initialReviewContext!.basedOnVersion = { submissionId: 'SUB-INITIAL-003', version: 3, status: 'SUBMITTED' };
+    }
+    const newerSubmission = () => buildSubmissionDetail({
+      submissionId: 'SUB-INITIAL-003', revisionNo: 3, status: 'SUBMITTED',
+      answers: [{ itemId: 'ITEM-3', answerValue: 'Y' }], comment: 'newer'
+    });
+    const first$ = new Subject<ReturnType<typeof newerSubmission>>();
+    const second$ = new Subject<ReturnType<typeof newerSubmission>>();
+    casesService.getSubmissionDetail.and.returnValues(first$, second$);
+
+    component.applyCaseDetail(first);
+    fixture.detectChanges();
+    component.applyCaseDetail(second);
+    fixture.detectChanges();
+    expect(casesService.getSubmissionDetail).toHaveBeenCalledTimes(3);
+
+    first$.next(newerSubmission());
+    first$.complete();
+    fixture.detectChanges();
+    expect(component.formLocked).withContext('同一筆的較新請求仍在載入').toBeTrue();
+    expect(getButtonByText('提交初審修正')?.disabled).withContext('同一筆的較新請求仍在載入').toBeTrue();
+
+    second$.next(newerSubmission());
+    second$.complete();
+    fixture.detectChanges();
+    expect(component.formLocked).toBeFalse();
+    expect(getButtonByText('提交初審修正')?.disabled).toBeFalse();
+    expect(component.formSourceSubmissionId).toBe('SUB-INITIAL-003');
+  });
 });

@@ -46,7 +46,8 @@ export class InitialReviewPageComponent implements OnInit {
   reloadPending = false;
   /** 表單來源提交明細載入中；載入完成前表單內容仍是舊版，視同重新載入尚未完成 */
   submissionLoadPending = false;
-  private loadingSubmissionId?: string;
+  /** 每次發出提交明細載入就遞增；只有最新一次的回應可以寫入表單或解除鎖定 */
+  private submissionLoadSeq = 0;
   commandFeedbackMessage = '';
   commandFeedbackTone: 'info' | 'blocked' = 'info';
   formAnswers: InitialReviewAnswerState[] = [];
@@ -373,40 +374,42 @@ export class InitialReviewPageComponent implements OnInit {
     }
 
     this.submissionLoadPending = true;
-    this.loadingSubmissionId = sourceSubmissionId;
+    const seq = ++this.submissionLoadSeq;
     this.casesService.getSubmissionDetail(sourceSubmissionId).pipe(finalize(() => {
-      this.endSubmissionLoad(sourceSubmissionId);
+      this.endSubmissionLoad(seq);
     })).subscribe({
       next: detail => {
-        if (this.loadingSubmissionId !== sourceSubmissionId) {
+        if (seq !== this.submissionLoadSeq) {
           return; // 已被較新的載入或頁面狀態取代，忽略較晚的回應
         }
-        this.endSubmissionLoad(sourceSubmissionId);
+        this.endSubmissionLoad(seq);
         this.hydrateFormState(detail);
       },
       error: () => {
-        if (this.loadingSubmissionId !== sourceSubmissionId) {
+        if (seq !== this.submissionLoadSeq) {
           return; // 已被取代的載入失敗時，不重設表單也不顯示訊息
         }
-        this.endSubmissionLoad(sourceSubmissionId);
+        this.endSubmissionLoad(seq);
         this.resetFormState(sourceSubmissionId);
         this.setCommandFeedback('初審表單狀態載入失敗，僅保留最小骨架。', 'blocked');
       }
     });
   }
 
-  /** 只由最後一次發出的載入解除鎖定，避免較舊的請求提早解鎖 */
-  private endSubmissionLoad(sourceSubmissionId: string): void {
-    if (this.loadingSubmissionId === sourceSubmissionId) {
+  /**
+   * 只由最後一次發出的載入解除鎖定，避免較舊的請求提早解鎖。
+   * 以請求序號而非提交 id 判斷：同一筆提交重複載入時，較舊請求的回應也會被視為過期。
+   */
+  private endSubmissionLoad(seq: number): void {
+    if (seq === this.submissionLoadSeq) {
       this.submissionLoadPending = false;
-      this.loadingSubmissionId = undefined;
     }
   }
 
-  /** 不再需要等待任何提交明細時解除鎖定；仍在途中的回應會因 id 不符而被忽略 */
+  /** 不再需要等待任何提交明細時解除鎖定；遞增序號，讓仍在途中的回應一律被視為過期而忽略 */
   private clearSubmissionLoad(): void {
+    this.submissionLoadSeq++;
     this.submissionLoadPending = false;
-    this.loadingSubmissionId = undefined;
   }
 
   private hydrateFormState(detail: SubmissionDetailViewModel): void {
