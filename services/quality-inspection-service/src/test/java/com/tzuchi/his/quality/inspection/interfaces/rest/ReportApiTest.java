@@ -46,6 +46,7 @@ class ReportApiTest {
         e.setSourceCaseKey("SK-001");
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(status);
+        e.setCreatedAt(java.time.Instant.parse("2026-04-15T00:00:00Z")); // D-057：落在匯出的時間區間內
         caseRepo.save(e);
     }
 
@@ -67,6 +68,8 @@ class ReportApiTest {
 
         ExportRequest req = new ExportRequest();
         req.setReportType("REVIEW_COMPLETION");
+        req.setFrom(java.time.Instant.parse("2026-04-01T00:00:00Z"));
+        req.setTo(java.time.Instant.parse("2026-05-01T00:00:00Z"));
 
         mockMvc.perform(post("/reports/export")
                         .header("api-key", hmToken)
@@ -81,6 +84,8 @@ class ReportApiTest {
     void exportReport_invalidType_returns400() throws Exception {
         ExportRequest req = new ExportRequest();
         req.setReportType("INVALID");
+        req.setFrom(java.time.Instant.parse("2026-04-01T00:00:00Z"));
+        req.setTo(java.time.Instant.parse("2026-05-01T00:00:00Z"));
 
         mockMvc.perform(post("/reports/export")
                         .header("api-key", hmToken)

@@ -23,8 +23,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,13 +55,20 @@ class ExportScoreMaskingIntegrationTest {
         e.setCaseId(id); e.setBatchId("b"); e.setProjectId("p"); e.setHospitalId("H001");
         e.setStatus(status); e.setReviewerId("initial"); e.setRereviewerId(rereviewerId);
         e.setInitialReviewScore(new BigDecimal("92")); e.setFinalScore(new BigDecimal("86"));
+        e.setCreatedAt(java.time.Instant.parse("2026-04-15T00:00:00Z")); // D-057：落在匯出的時間區間內
         cases.save(e);
     }
 
     private Map<String, ExportRow> exportAs(String user, DomainRole role) {
         ActorContext actor = new ActorContext(user, user, EnumSet.of(role), Optional.of("H001"));
-        return export.export(actor, new ExportCriteria("REVIEW_COMPLETION", null, null, null)).getRows().stream()
-                .collect(Collectors.toMap(ExportRow::getCaseId, Function.identity()));
+        // D-057：逐案資料列分頁；逐頁取完所有列（每頁上限 1,000）
+        Map<String, ExportRow> all = new java.util.LinkedHashMap<>();
+        for (int page = 0; ; page++) {
+            ExportResult result = export.export(actor, new ExportCriteria("REVIEW_COMPLETION", null,
+                    java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), page, 1000));
+            result.getRows().forEach(r -> all.put(r.getCaseId(), r));
+            if (page + 1 >= result.getTotalPages()) return all;
+        }
     }
 
     private static void assertMasked(ExportRow row) {
@@ -132,8 +137,8 @@ class ExportScoreMaskingIntegrationTest {
             rows.add(new Object[]{String.format("bulk-%04d", i), i == 1150 ? 0 : 1});
         }
         jdbc.batchUpdate("insert into review_case (case_id, batch_id, project_id, hospital_id, status, rereview_required,"
-                + " initial_review_score, final_score, rereviewer_history_complete)"
-                + " values (?, 'b', 'p', 'H001', 'CLOSED', 0, 92, 86, ?)", rows);
+                + " initial_review_score, final_score, rereviewer_history_complete, created_at)"
+                + " values (?, 'b', 'p', 'H001', 'CLOSED', 0, 92, 86, ?, TIMESTAMP '2026-04-15 00:00:00')", rows);
         history.save(new RereviewerAssignmentHistoryEntity("bulk-1200", "rr1", Instant.parse("2026-01-01T00:00:00Z"), "mgr", "ASSIGN"));
 
         Map<String, ExportRow> exported = exportAs("rr1", DomainRole.AUDITOR);

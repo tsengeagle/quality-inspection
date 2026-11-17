@@ -17,7 +17,7 @@ class ExportQueryServiceTest {
     void invalidReportType_shouldThrowBadRequest() {
         ExportQueryService service = new ExportQueryService(null, null, null);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        ExportCriteria criteria = new ExportCriteria("INVALID", null, null, null);
+        ExportCriteria criteria = new ExportCriteria("INVALID", null, java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000);
 
         assertThrows(BadRequestException.class, () -> service.export(actor, criteria));
     }
@@ -26,7 +26,7 @@ class ExportQueryServiceTest {
     void reviewer_shouldThrowUnauthorized() {
         ExportQueryService service = new ExportQueryService(null, null, null);
         ActorContext actor = new ActorContext("r1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        ExportCriteria criteria = new ExportCriteria("REVIEW_COMPLETION", null, null, null);
+        ExportCriteria criteria = new ExportCriteria("REVIEW_COMPLETION", null, java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000);
 
         assertThrows(RoleDeniedException.class, () -> service.export(actor, criteria));
     }

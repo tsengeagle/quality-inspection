@@ -57,7 +57,7 @@ class ReportHospitalScopeIntegrationTest {
     @Test
     void export_managerWithoutHospitalParameter_returnsOnlyOwnHospital_D042() {
         ExportResult result = export.export(managerOf("H001"),
-                new ExportCriteria("REVIEW_COMPLETION", null, null, null));
+                new ExportCriteria("REVIEW_COMPLETION", null, java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000));
 
         assertThat(result.getRows()).extracting(ExportRow::getHospitalId).containsOnly("H001");
     }
@@ -65,7 +65,7 @@ class ReportHospitalScopeIntegrationTest {
     @Test
     void export_managerRequestingOtherHospital_returnsOnlyOwnHospital_D042() {
         ExportResult result = export.export(managerOf("H001"),
-                new ExportCriteria("REVIEW_COMPLETION", "H002", null, null));
+                new ExportCriteria("REVIEW_COMPLETION", "H002", java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000));
 
         assertThat(result.getRows()).extracting(ExportRow::getHospitalId).containsOnly("H001");
     }
@@ -92,6 +92,7 @@ class ReportHospitalScopeIntegrationTest {
         e.setProjectId("p");
         e.setHospitalId(hospitalId);
         e.setStatus(CaseStatus.PENDING_INITIAL_REVIEW);
+        e.setCreatedAt(java.time.Instant.parse("2026-04-15T00:00:00Z")); // D-057：落在匯出的時間區間內
         return e;
     }
 }
