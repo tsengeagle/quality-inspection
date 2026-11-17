@@ -756,6 +756,15 @@ page_modes:
 
 以下為 Decision Log D-031～D-033 在本頁的行為映射；領域與權限 authority 仍為 state-machine／permission-matrix。
 
-依 D-031，提交不固定、不立即進複審或結案；只有合法原提交者可對未固定結果 revision，固定後禁止。PENDING_REREVIEW／REREVIEW_IN_PROGRESS 的初審已固定，不存在初審 revision 入口。依 DD-03，僅目前有效初審結果的合法提交醫師可固定；操作 binding UNKNOWN，本輪不新增按鈕。已固定且不需複審時由 manager 正式結案。其他頁面輸出此結果時適用 D-033。
+依 D-031，提交不固定、不立即進複審或結案；只有合法原提交者可對未固定結果 revision，固定後禁止。PENDING_REREVIEW／REREVIEW_IN_PROGRESS 的初審已固定，不存在初審 revision 入口。依 DD-03，僅目前有效初審結果的合法提交醫師可固定；操作 binding 由 D-054 定案，本頁依此提供「固定初審」（PR #56）：
+
+* 顯示：`REVISION` 模式的次要按鈕；是否可按以案件詳情 `allowedActions` 的 `FIX_INITIAL_REVIEW` 為準，前端不自行判斷規則。
+* 固定目標：`basedOnVersion`（目前有效的初審結果）。畫面上必須已載入這一版，載入中、載入失敗或版本不符時不可按。
+* 表單有尚未提交的修改時不可按；命令與之後的重新載入期間鎖定表單與所有命令按鈕。
+* 成功後依回應的 `caseStatus` 提示是否已送往複審，並重新載入；失敗時重新整理畫面，以後端狀態為準（D-054 第 7 點）。
+* 固定後為 `READONLY_BLOCKED`。尚未結案或取消時 `blockedReason` 為 `INITIAL_REVIEW_FIXED`，顯示「初審已固定，不可再修改。」；已結案或取消時，後端回終態代碼（`CASE_ALREADY_CLOSED`／`CASE_ALREADY_CANCELLED`），沿用既有的終態提示（判斷順序見 api-spec 的 DD-03 節）。
+* 提交初審後的提示為「尚未固定」，不再顯示送往複審（D-054 第 3 點）。
+
+已固定且不需複審時由 manager 正式結案。其他頁面輸出此結果時適用 D-033。
 
 驗證映射：EX-041～052／TS-DA-001～012。其他角色已接受的資料政策不變；不以規格更新宣稱程式已落地。
