@@ -1,116 +1,142 @@
-<section class="export-page">
-  <header class="export-page__header">
-    <p class="export-eyebrow">UI-017 報表匯出</p>
-    <h1 class="export-title">報表匯出</h1>
-    <p class="export-copy">依案件建立時間查詢報表，預覽逐案資料與統計摘要，並可下載整個區間的 CSV。</p>
-  </header>
+<!-- GOV-BND-001：system-container + system-block 為頁面根結構；header block 放條件與主要操作。 -->
+<system-container container-type="main">
+  <system-block block-type="header" position-sticky="top">
+    <form class="panel panel-white p-3" (ngSubmit)="query()" data-testid="export-conditions">
+      <h1 class="h5 mb-3">報表匯出</h1>
 
-  <form class="export-panel export-conditions" (ngSubmit)="query()" data-testid="export-conditions">
-    <div class="export-conditions__fields">
-      <label class="export-field">
-        <span>報表類型</span>
-        <select name="reportType" [(ngModel)]="form.reportType" [disabled]="controlsLocked" data-testid="export-report-type">
-          <option *ngFor="let type of reportTypes" [value]="type.value">{{ type.label }}</option>
-        </select>
-      </label>
-
-      <label class="export-field">
-        <span>起日</span>
-        <input type="date" name="startDate" required [(ngModel)]="form.startDate"
-               [disabled]="controlsLocked" data-testid="export-start-date" />
-      </label>
-
-      <label class="export-field">
-        <span>迄日（含當天）</span>
-        <input type="date" name="endDate" required [(ngModel)]="form.endDate"
-               [disabled]="controlsLocked" data-testid="export-end-date" />
-      </label>
-
-      <label class="export-field" *ngIf="isSystemAdmin" data-testid="export-hospital">
-        <span>院區（留空為全部院區）</span>
-        <input type="text" name="hospitalId" [(ngModel)]="form.hospitalId"
-               [disabled]="controlsLocked" placeholder="全部院區" data-testid="export-hospital-input" />
-      </label>
-    </div>
-
-    <p class="export-field-error" *ngIf="!rangeValid" data-testid="export-range-error" role="alert">
-      請輸入日期區間，且起日不可晚於迄日。
-    </p>
-
-    <div class="export-actions">
-      <button type="submit" class="export-button export-button--primary"
-              [disabled]="!canQuery" data-testid="export-query">查詢</button>
-      <button type="button" class="export-button"
-              [disabled]="!canDownload" (click)="download()" data-testid="export-download">下載 CSV</button>
-      <span class="export-progress" *ngIf="downloadProgress" data-testid="export-download-progress" aria-live="polite">
-        下載中：已取得 {{ downloadProgress.done }} / {{ downloadProgress.total || '?' }} 頁
-      </span>
-    </div>
-
-    <p class="export-alert" *ngIf="downloadError" data-testid="export-download-error" role="alert">{{ downloadError }}</p>
-  </form>
-
-  <section class="export-panel" *ngIf="status === 'forbidden'" data-testid="export-forbidden" role="alert">
-    <h2>無權限</h2>
-    <p>您沒有使用報表匯出的權限。</p>
-  </section>
-
-  <ng-container *ngIf="status !== 'forbidden'">
-    <p class="export-panel export-placeholder" *ngIf="status === 'initial'" data-testid="export-initial">請按查詢</p>
-
-    <p class="export-panel export-placeholder" *ngIf="status === 'loading'" data-testid="export-loading" aria-live="polite">載入中…</p>
-
-    <p class="export-panel export-alert" *ngIf="status === 'error'" data-testid="export-error" role="alert">{{ errorMessage }}</p>
-
-    <ng-container *ngIf="status === 'loaded' && result && applied">
-      <section class="export-panel export-scope" data-testid="export-scope">
-        <span>報表類型：審查完成</span>
-        <span>日期區間：{{ applied.startDate }} ～ {{ applied.endDate }}（含迄日）</span>
-        <span>院區範圍：{{ scopeLabel }}</span>
-      </section>
-
-      <section class="export-panel" data-testid="export-summary">
-        <h2>統計摘要（整個區間）</h2>
-        <dl class="export-summary">
-          <div><dt>總案件數</dt><dd>{{ result.summary.totalCases }}</dd></div>
-          <div><dt>已結案數</dt><dd>{{ result.summary.closedCases }}</dd></div>
-          <div><dt>有複審數</dt><dd>{{ result.summary.rereviewedCases }}</dd></div>
-          <div><dt>逾期數</dt><dd>{{ result.summary.overdueCases }}</dd></div>
-          <div><dt>完成率</dt><dd>{{ percent(result.summary.completionRate) }}</dd></div>
-          <div><dt>複審率</dt><dd>{{ percent(result.summary.rereviewRate) }}</dd></div>
-          <div><dt>逾期率</dt><dd>{{ percent(result.summary.overdueRate) }}</dd></div>
-        </dl>
-      </section>
-
-      <p class="export-panel export-placeholder" *ngIf="result.totalElements === 0" data-testid="export-empty">此區間沒有案件</p>
-
-      <section class="export-panel" *ngIf="result.totalElements > 0">
-        <div class="export-table-wrap">
-          <table class="export-table" data-testid="export-table">
-            <thead>
-              <tr><th *ngFor="let column of columns" scope="col">{{ column.header }}</th></tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let row of result.rows; trackBy: trackByCaseId" data-testid="export-row">
-                <td *ngFor="let column of columns" [class.export-cell--masked]="isMaskedCell(row, column.field)">
-                  <ng-container *ngIf="column.field === 'createdAt' && row.createdAt; else plainCell">
-                    <time [attr.datetime]="row.createdAt">{{ row.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</time>
-                  </ng-container>
-                  <ng-template #plainCell>{{ cellText(row, column.field) }}</ng-template>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="d-flex flex-wrap gap-3 align-items-end">
+        <div>
+          <label class="form-label" for="export-report-type">報表類型</label>
+          <select id="export-report-type" class="form-select" name="reportType"
+                  [(ngModel)]="form.reportType" [disabled]="controlsLocked" data-testid="export-report-type">
+            <option *ngFor="let type of reportTypes" [value]="type.value">{{ type.label }}</option>
+          </select>
         </div>
 
-        <nav class="export-pagination" data-testid="export-pagination" aria-label="分頁">
-          <button type="button" class="export-button" [disabled]="!hasPreviousPage || controlsLocked"
-                  (click)="goToPage(result.page - 1)" data-testid="export-prev-page">上一頁</button>
-          <span>第 {{ result.page + 1 }} / {{ result.totalPages }} 頁，共 {{ result.totalElements }} 筆</span>
-          <button type="button" class="export-button" [disabled]="!hasNextPage || controlsLocked"
-                  (click)="goToPage(result.page + 1)" data-testid="export-next-page">下一頁</button>
-        </nav>
-      </section>
+        <div>
+          <label class="form-label" for="export-start-date">起日</label>
+          <input id="export-start-date" type="date" class="form-control" name="startDate" required
+                 [(ngModel)]="form.startDate" [disabled]="controlsLocked" data-testid="export-start-date" />
+        </div>
+
+        <div>
+          <label class="form-label" for="export-end-date">迄日（含當天）</label>
+          <input id="export-end-date" type="date" class="form-control" name="endDate" required
+                 [(ngModel)]="form.endDate" [disabled]="controlsLocked" data-testid="export-end-date" />
+        </div>
+
+        <div *ngIf="isSystemAdmin" data-testid="export-hospital">
+          <label class="form-label" for="export-hospital-id">院區（留空為全部院區）</label>
+          <input id="export-hospital-id" type="text" class="form-control" name="hospitalId"
+                 [(ngModel)]="form.hospitalId" [disabled]="controlsLocked" placeholder="全部院區"
+                 data-testid="export-hospital-input" />
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+          <button type="submit" class="btn btn-primary" [disabled]="!canQuery" data-testid="export-query">查詢</button>
+          <button type="button" class="btn btn-outline-primary" [disabled]="!canDownload"
+                  (click)="download()" data-testid="export-download">下載 CSV</button>
+          <span class="text-muted small" *ngIf="downloadProgress" data-testid="export-download-progress" aria-live="polite">
+            下載中：已取得 {{ downloadProgress.done }} / {{ downloadProgress.total || '?' }} 頁
+          </span>
+        </div>
+      </div>
+
+      <p class="text-danger small mt-2 mb-0" *ngIf="!rangeValid" data-testid="export-range-error" role="alert">
+        請輸入日期區間，且起日不可晚於迄日。
+      </p>
+      <p class="text-danger small mt-2 mb-0" *ngIf="downloadError" data-testid="export-download-error" role="alert">
+        {{ downloadError }}
+      </p>
+    </form>
+  </system-block>
+
+  <system-block block-type="main">
+    <div class="panel panel-white p-3" *ngIf="status === 'forbidden'" data-testid="export-forbidden" role="alert">
+      <h2 class="h6">無權限</h2>
+      <p class="mb-0">您沒有使用報表匯出的權限。</p>
+    </div>
+
+    <ng-container *ngIf="status !== 'forbidden'">
+      <!-- 尚未查詢：查詢提示型空狀態（DESIGN-components §13，Empty-2.svg） -->
+      <div class="panel panel-white p-3" *ngIf="status === 'initial'">
+        <div class="flex-center text-center py-3">
+          <div>
+            <img class="h-10rem" src="assets/img/Empty-2.svg" alt="請查詢">
+            <p class="text-muted mt-2 mb-0" data-testid="export-initial">請按查詢</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel panel-white p-3" *ngIf="status === 'loading'">
+        <p class="text-muted mb-0" data-testid="export-loading" aria-live="polite">載入中…</p>
+      </div>
+
+      <div class="panel panel-white p-3" *ngIf="status === 'error'">
+        <p class="text-danger mb-0" data-testid="export-error" role="alert">{{ errorMessage }}</p>
+      </div>
+
+      <ng-container *ngIf="status === 'loaded' && result && applied">
+        <div class="panel panel-white p-3 mb-3">
+          <div class="d-flex flex-wrap gap-4 small" data-testid="export-scope">
+            <span>報表類型：審查完成</span>
+            <span>日期區間：{{ applied.startDate }} ～ {{ applied.endDate }}（含迄日）</span>
+            <span>院區範圍：{{ scopeLabel }}</span>
+          </div>
+
+          <div class="mt-3" data-testid="export-summary">
+            <h2 class="h6">統計摘要（整個區間）</h2>
+            <dl class="export-summary mb-0">
+              <div><dt class="text-muted">總案件數</dt><dd>{{ result.summary.totalCases }}</dd></div>
+              <div><dt class="text-muted">已結案數</dt><dd>{{ result.summary.closedCases }}</dd></div>
+              <div><dt class="text-muted">有複審數</dt><dd>{{ result.summary.rereviewedCases }}</dd></div>
+              <div><dt class="text-muted">逾期數</dt><dd>{{ result.summary.overdueCases }}</dd></div>
+              <div><dt class="text-muted">完成率</dt><dd>{{ percent(result.summary.completionRate) }}</dd></div>
+              <div><dt class="text-muted">複審率</dt><dd>{{ percent(result.summary.rereviewRate) }}</dd></div>
+              <div><dt class="text-muted">逾期率</dt><dd>{{ percent(result.summary.overdueRate) }}</dd></div>
+            </dl>
+          </div>
+        </div>
+
+        <div class="panel panel-white p-3">
+          <!-- 查詢結果為零：無資料型空狀態（DESIGN-components §13，Empty.svg） -->
+          <div class="flex-center text-center py-3" *ngIf="result.totalElements === 0">
+            <div>
+              <img class="h-10rem" src="assets/img/Empty.svg" alt="無資料">
+              <p class="text-muted mt-2 mb-0" data-testid="export-empty">此區間沒有案件</p>
+            </div>
+          </div>
+
+          <ng-container *ngIf="result.totalElements > 0">
+            <div class="table-responsive">
+              <table class="table table-custom table-sm table-borderless table-hover-border" data-testid="export-table">
+                <thead>
+                  <tr><th *ngFor="let column of columns" scope="col">{{ column.header }}</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of result.rows; trackBy: trackByCaseId" data-testid="export-row">
+                    <td *ngFor="let column of columns" class="text-nowrap"
+                        [class.text-muted]="isMaskedCell(row, column.field)">
+                      <ng-container *ngIf="column.field === 'createdAt' && row.createdAt; else plainCell">
+                        <time [attr.datetime]="row.createdAt">{{ row.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</time>
+                      </ng-container>
+                      <ng-template #plainCell>{{ cellText(row, column.field) }}</ng-template>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <nav class="d-flex flex-wrap gap-3 align-items-center mt-3" data-testid="export-pagination" aria-label="分頁">
+              <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!hasPreviousPage || controlsLocked"
+                      (click)="goToPage(result.page - 1)" data-testid="export-prev-page">上一頁</button>
+              <span class="small">第 {{ result.page + 1 }} / {{ result.totalPages }} 頁，共 {{ result.totalElements }} 筆</span>
+              <button type="button" class="btn btn-sm btn-outline-secondary" [disabled]="!hasNextPage || controlsLocked"
+                      (click)="goToPage(result.page + 1)" data-testid="export-next-page">下一頁</button>
+            </nav>
+          </ng-container>
+        </div>
+      </ng-container>
     </ng-container>
-  </ng-container>
-</section>
+  </system-block>
+</system-container>

@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { BehaviorSubject, Subject, of, throwError } from 'rxjs';
@@ -82,6 +83,7 @@ describe('ReportExportPageComponent (UI-017)', () => {
     await TestBed.configureTestingModule({
       declarations: [ReportExportPageComponent],
       imports: [FormsModule],
+      schemas: [CUSTOM_ELEMENTS_SCHEMA],
       providers: [
         { provide: ReportExportService, useValue: exportService },
         { provide: CsvFileSaver, useValue: saver },
@@ -91,6 +93,30 @@ describe('ReportExportPageComponent (UI-017)', () => {
   });
 
   afterEach(() => jasmine.clock().uninstall());
+
+  describe('page composition (GOV-BND-001, design language §7)', () => {
+    it('uses system-container with header and main blocks as the page root', () => {
+      create();
+      const root = fixture.nativeElement.firstElementChild as HTMLElement;
+      expect(root.tagName.toLowerCase()).toBe('system-container');
+      expect(root.getAttribute('container-type')).toBe('main');
+      const blocks = Array.from(root.children).map(b => `${b.tagName.toLowerCase()}[${b.getAttribute('block-type')}]`);
+      expect(blocks).toEqual(['system-block[header]', 'system-block[main]']);
+      expect(root.querySelector('system-block[block-type="header"] [data-testid="export-conditions"]')).not.toBeNull();
+    });
+
+    it('uses table-custom for the result table', () => {
+      create();
+      query();
+      expect(el('export-table')?.classList).toContain('table-custom');
+    });
+
+    it('renders the illustration-based empty state for the initial prompt', () => {
+      create();
+      const container = el('export-initial')?.closest('.flex-center');
+      expect(container?.querySelector('img')?.getAttribute('src')).toBe('assets/img/Empty-2.svg');
+    });
+  });
 
   describe('conditions', () => {
     it('defaults to the previous full month and does not query until asked', () => {
@@ -210,8 +236,30 @@ describe('ReportExportPageComponent (UI-017)', () => {
       create();
       query();
       expect(text('export-empty')).toBe('此區間沒有案件');
+      expect(el('export-empty')?.closest('.flex-center')?.querySelector('img')?.getAttribute('src'))
+        .toBe('assets/img/Empty.svg');
       expect(el('export-summary')).not.toBeNull();
       expect(button('export-download').disabled).toBeTrue();
+    });
+
+    it('re-enables download once the conditions differ from the empty query', () => {
+      exportService.fetchPage.and.returnValue(of(pageResult({ rows: [], totalElements: 0, totalPages: 0 })));
+      actor.setRole('SYSTEM_ADMIN');
+      create();
+      query();
+      expect(button('export-download').disabled).toBeTrue();
+
+      component.form.startDate = '2026-09-01';
+      fixture.detectChanges();
+      expect(button('export-download').disabled).toBeFalse();
+
+      component.form.startDate = '2026-10-01';
+      fixture.detectChanges();
+      expect(button('export-download').disabled).toBeTrue();
+
+      component.form.hospitalId = 'H002';
+      fixture.detectChanges();
+      expect(button('export-download').disabled).toBeFalse();
     });
 
     it('shows the backend message on 400', () => {

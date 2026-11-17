@@ -1,149 +1,19 @@
-.export-page {
-  padding: 20px;
-  display: grid;
-  gap: 16px;
-}
-
-.export-page__header,
-.export-panel {
-  padding: 16px 20px;
-  border: 1px solid var(--qi-border-subtle);
-  border-radius: 12px;
-  background: var(--qi-surface-base);
-}
-
-.export-eyebrow {
-  margin: 0 0 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--qi-text-secondary);
-}
-
-.export-title {
-  margin: 0;
-  font-size: 24px;
-}
-
-.export-copy {
-  margin: 8px 0 0;
-  color: var(--qi-text-secondary);
-}
-
-.export-conditions {
-  display: grid;
-  gap: 12px;
-}
-
-.export-conditions__fields {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 16px;
-}
-
-.export-field {
-  display: grid;
-  gap: 4px;
-  font-size: 14px;
-
-  input,
-  select {
-    min-width: 160px;
-    padding: 6px 8px;
-  }
-}
-
-.export-field-error,
-.export-alert {
-  margin: 0;
-  color: #b42318;
-}
-
-.export-actions,
-.export-pagination {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-}
-
-.export-pagination {
-  margin-top: 12px;
-}
-
-.export-button {
-  padding: 6px 16px;
-  border: 1px solid var(--qi-border-subtle);
-  border-radius: 8px;
-  background: var(--qi-surface-base);
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  &--primary {
-    color: #fff;
-    background: #1d4ed8;
-    border-color: #1d4ed8;
-  }
-}
-
-.export-progress {
-  font-size: 14px;
-  color: var(--qi-text-secondary);
-}
-
-.export-placeholder {
-  margin: 0;
-  color: var(--qi-text-secondary);
-}
-
-.export-scope {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  font-size: 14px;
-}
+// GOV-CSS-001：不得硬寫色碼；版面與顏色優先使用 shell 提供的 utility class 與 CSS 變數。
 
 .export-summary {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 12px;
-  margin: 12px 0 0;
 
   dt {
-    font-size: 12px;
-    color: var(--qi-text-secondary);
+    font-size: 0.75rem;
+    font-weight: normal;
   }
 
   dd {
     margin: 4px 0 0;
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 700;
+    color: var(--bs-body-color);
   }
-}
-
-.export-table-wrap {
-  overflow-x: auto;
-}
-
-.export-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-
-  th,
-  td {
-    padding: 8px;
-    border-bottom: 1px solid var(--qi-border-subtle);
-    text-align: left;
-    white-space: nowrap;
-  }
-}
-
-.export-cell--masked {
-  color: var(--qi-text-secondary);
-  font-style: italic;
 }

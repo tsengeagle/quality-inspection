@@ -96,9 +96,12 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
     return this.rangeValid && !this.controlsLocked;
   }
 
+  /** 只有「目前表單條件」查過且為零筆時才停用下載；條件改了就不沿用舊結果（UI-017 §6）。 */
   get canDownload(): boolean {
-    const emptyResult = this.status === 'loaded' && this.result?.totalElements === 0;
-    return this.rangeValid && !this.controlsLocked && !emptyResult;
+    const knownEmpty = this.status === 'loaded'
+      && this.result?.totalElements === 0
+      && this.formMatchesApplied();
+    return this.rangeValid && !this.controlsLocked && !knownEmpty;
   }
 
   get scopeLabel(): string {
@@ -123,7 +126,7 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
     if (!this.canQuery) {
       return;
     }
-    const hospitalId = this.isSystemAdmin ? this.form.hospitalId.trim() : '';
+    const hospitalId = this.currentHospitalId();
     this.applied = {
       startDate: this.form.startDate,
       endDate: this.form.endDate,
@@ -146,7 +149,7 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
     }
     const startDate = this.form.startDate;
     const endDate = this.form.endDate;
-    const hospitalId = this.isSystemAdmin ? this.form.hospitalId.trim() : '';
+    const hospitalId = this.currentHospitalId();
     const criteria = this.buildCriteria(hospitalId);
 
     this.downloading = true;
@@ -191,6 +194,17 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
 
   trackByCaseId(_index: number, row: ExportRowView): string {
     return row.caseId;
+  }
+
+  private currentHospitalId(): string {
+    return this.isSystemAdmin ? this.form.hospitalId.trim() : '';
+  }
+
+  private formMatchesApplied(): boolean {
+    return !!this.applied
+      && this.applied.startDate === this.form.startDate
+      && this.applied.endDate === this.form.endDate
+      && this.applied.hospitalId === this.currentHospitalId();
   }
 
   private buildCriteria(hospitalId: string): ExportCriteria {
