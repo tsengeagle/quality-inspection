@@ -363,13 +363,13 @@ export class InitialReviewPageComponent implements OnInit {
     const sourceSubmissionId = this.resolveFormSourceSubmissionId();
 
     if (!sourceSubmissionId) {
-      this.abandonSubmissionLoad();
+      this.clearSubmissionLoad();
       this.resetFormState();
       return;
     }
 
     if (this.formSourceSubmissionId === sourceSubmissionId && this.formStateLoaded) {
-      this.abandonSubmissionLoad();
+      this.clearSubmissionLoad();
       return;
     }
 
@@ -379,15 +379,17 @@ export class InitialReviewPageComponent implements OnInit {
       this.endSubmissionLoad(seq);
     })).subscribe({
       next: detail => {
-        if (!this.endSubmissionLoad(seq)) {
-          return;
+        if (seq !== this.submissionLoadSeq) {
+          return; // 已被較新的載入或頁面狀態取代，忽略較晚的回應
         }
+        this.endSubmissionLoad(seq);
         this.hydrateFormState(detail);
       },
       error: () => {
-        if (!this.endSubmissionLoad(seq)) {
-          return;
+        if (seq !== this.submissionLoadSeq) {
+          return; // 已被取代的載入失敗時，不重設表單也不顯示訊息
         }
+        this.endSubmissionLoad(seq);
         this.resetFormState(sourceSubmissionId);
         this.setCommandFeedback('初審表單狀態載入失敗，僅保留最小骨架。', 'blocked');
       }
@@ -395,19 +397,17 @@ export class InitialReviewPageComponent implements OnInit {
   }
 
   /**
-   * 只有最新一次發出的載入可以解除鎖定；回傳 false 表示這是過期請求，其回應須忽略。
-   * 以序號而非提交 id 判斷，同一筆提交重複載入時，較舊的請求也不會提早解鎖。
+   * 只由最後一次發出的載入解除鎖定，避免較舊的請求提早解鎖。
+   * 以請求序號而非提交 id 判斷：同一筆提交重複載入時，較舊請求的回應也會被視為過期。
    */
-  private endSubmissionLoad(seq: number): boolean {
-    if (seq !== this.submissionLoadSeq) {
-      return false;
+  private endSubmissionLoad(seq: number): void {
+    if (seq === this.submissionLoadSeq) {
+      this.submissionLoadPending = false;
     }
-    this.submissionLoadPending = false;
-    return true;
   }
 
-  /** 已不需要仍在進行的載入（頁面不需表單來源，或畫面已是目前版本）：解除鎖定，晚到的回應一律忽略 */
-  private abandonSubmissionLoad(): void {
+  /** 不再需要等待任何提交明細時解除鎖定；遞增序號，讓仍在途中的回應一律被視為過期而忽略 */
+  private clearSubmissionLoad(): void {
     this.submissionLoadSeq++;
     this.submissionLoadPending = false;
   }
