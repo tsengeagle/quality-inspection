@@ -2086,3 +2086,26 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 ### Mapping
 
 `docs/02-ddd/permission-matrix.md` 與 `docs/03-contracts/api-spec.md` 的「D-035 歷史身份 Fail-closed 讀取契約」、api-spec 的指派／改派複審醫師與錯誤代碼表；`docs/03-contracts/persistence-model.md`；實作以建構 PR 落地（Flyway migration、指派兩個 use case、`ReviewReadAccessPolicy`、三個完整讀取入口的讀取者紀錄、匯出逐案分數遮罩）。
+
+---
+
+## D-056 — 匯出請求的格式以程式為準
+
+### Status
+
+`accepted`（2026-11-17，依負責人裁決）
+
+### Decision
+
+1. `POST /reports/export` 的請求條件直接放在最外層：`reportType`（必填）、`hospitalId`、`from`、`to`，不包在 `filters` 物件中。api-spec 15.2 依此修正，與程式的 `ExportRequest` 一致。
+2. 院區範圍不變，依 D-042、D-047。
+3. `from`、`to` 的現況如實記載：程式會接收，但逐案資料列與統計摘要都沒有依時間過濾。要依哪個時間欄位過濾（例如抽選時間、指派時間或結案時間）尚未裁決，本決策不包含。
+
+### Relationship / Evidence
+
+- 落差在 PR #57 審閱時發現：api-spec 15.2 的請求範例使用 `filters` 物件，程式則是最外層欄位（`ExportRequest`）；`ExportQueryService.queryRows` 與 `DashboardQueryService` 都只使用院區與專案條件。
+- 只修正文件，不改程式行為。
+
+### Mapping
+
+`docs/03-contracts/api-spec.md` 15.2「匯出統計報表」的 Request。
