@@ -29,7 +29,7 @@ public class GetCaseAssignmentContextUseCase {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
 
         AssignmentCaseSnapshotView snapshot = queryPort.findAssignmentSnapshotById(caseId)
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         actor.requireHospitalScope(snapshot.getHospitalId());
 

@@ -36,10 +36,10 @@ public class GetSubmissionDetailUseCase {
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
         SubmissionDetailView view = queryPort.findDetailById(submissionId)
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewSubmission", submissionId));
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + submissionId));
 
         accessPolicy.requireAccess(actor, caseQueryPort.findDetailById(view.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", view.getCaseId())));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + view.getCaseId())));
         if (actor.hasRole(DomainRole.REREVIEWER) && "REREVIEW".equals(view.getStage())
                 && !actor.getUserId().equals(view.getReviewerId())) {
             throw new AccessDeniedException("Cannot read another rereviewer's submission content");

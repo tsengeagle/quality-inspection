@@ -36,7 +36,7 @@ public class GetRereviewRevisionHistoryUseCase {
         String caseId = query.getCaseId();
 
         ReviewCase reviewCase = reviewCaseRepository.findById(caseId)
-                .orElseThrow(() -> new ResourceNotFoundException("ReviewCase", caseId));
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
         actor.requireReadScope(reviewCase.getHospitalId());
 
         // Any authenticated role can query — visibility enforced at API/UI layer
