@@ -1479,7 +1479,7 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ### `GET /review-cases/{caseId}/revision-history`
 
-路徑依 D-058（原寫 `revisions`）。複審專用的 `GET /review-cases/{caseId}/rereview-revisions` 不在 api-spec 中：它沒有角色檢查，是否保留與開放對象待裁決（D-058 第 7 點）。
+路徑依 D-058（原寫 `revisions`）。複審歷程也由本 API 提供。原本的複審專用端點 `GET /review-cases/{caseId}/rereview-revisions` 沒有角色檢查，已依 D-059 移除。
 
 #### 權限
 

@@ -80,7 +80,7 @@
 | 2 | UI-017 匯出頁的查詢與下載按鈕，沒有「持有報表角色」的判斷（UI-015 在 #71 已補） | 前端缺陷，已合併 | 併入第 1 項一起處理 |
 | 3 | domain 內 15 處無參數的 `LocalDateTime.now()`（`ReviewCase` 6 處、`ReviewSubmission` 9 處）：用伺服器預設時區，且繞過注入的 `Clock` | 架構債 | 在 ARCH-02 凍結基線內；`closedAt` 因此在匯出頁標示為伺服器時間。改為 UTC `Instant` 需先裁決 |
 | 4 | api-spec 的路徑與程式不一致 | 契約漂移 | 2026-11-18 已逐一核對（只核對方法與路徑）：見 `docs/review/api-spec-path-reconciliation-2026-11-18.md`。前端呼叫的端點後端都有；9 組同一動作路徑不同、8 個後端端點 api-spec 沒有記載；D-022 的路徑樣式與程式及 D-053／D-054 衝突。2026-11-18 負責人裁決採選項 A：D-058（以程式為準，修正 D-022 的路徑樣式），api-spec 與測試、前端文件同步 |
-| 4a | `GET /review-cases/{caseId}/rereview-revisions` 沒有角色檢查：院區範圍內的任何角色（含只應取得 metadata 的 `SYSTEM_ADMIN`）都能讀到複審的 `totalScore` 與 `comment`。目前沒有前端使用 | 權限缺口 | D-058 第 7 點列為待裁決，未寫入 api-spec |
+| 4a | `GET /review-cases/{caseId}/rereview-revisions` 沒有角色檢查：院區範圍內的任何角色（含只應取得 metadata 的 `SYSTEM_ADMIN`）都能讀到複審的 `totalScore` 與 `comment`。目前沒有前端使用 | 權限缺口 | 2026-11-18 以測試證實（4 個情境全紅，`revision-history` 同樣情境全綠）；D-059 裁決移除，程式由後續建構 PR 落地 |
 | 4b | 評分表列表、章節查詢的回應：D-050 第 7 點規定 `{ items }`、`{ scoreSheetId, sections }`，程式直接回傳陣列 | 程式與裁決不符 | D-058 第 6 點：api-spec 依 D-050，程式待後續建構 PR 修正 |
 | 5 | standalone 模式沒有 Bootstrap 樣式、空狀態插圖不會載入（shell 提供的資產，依 GOV-CSS-002／GOV-BND-003 不另外載入） | 開發／demo 體驗 | 待負責人決定 |
 | 6 | 「無權限」區塊不是共用元件（UI-015、UI-017 各寫一份） | 前端重用 | 待負責人決定 |
@@ -97,7 +97,7 @@
 
 依序：
 
-1. 合併 D-058 的修法 PR；接著裁決第五節第 4a 項（`rereview-revisions` 的權限），並以建構 PR 修正第 4b 項（評分表查詢的回應格式）。
+1. 合併 D-059 的修法 PR，再以建構 PR 移除 `rereview-revisions`（第五節第 4a 項，先寫測試）；之後以建構 PR 修正第 4b 項（評分表查詢的回應格式）。
 2. 專案與規則管理（UI-001～005）：補上流程的起點。先寫頁面規格，再實作前端。UI-005 需要先補版本清單 API（見第二節）。
 3. 身分就緒（第五節第 1、2 項）：確認 shell 行為後開始。
 4. 之後是 UI-008、UI-016、時間欄位的裁決，以及 standalone 模式的決定。

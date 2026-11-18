@@ -2169,7 +2169,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
    - `GET /sampling-batches/{batchId}/export`：限 `HOSPITAL_MANAGER`，本院（依所屬專案的院區）。
    - `GET /score-sheets/{scoreSheetId}/version`：角色與院區依 D-050 第 7 點。
 6. **評分表列表與章節查詢，依 D-050 第 7 點，不以程式為準。** `GET /score-sheets`、`GET /score-sheets/{scoreSheetId}/sections` 的路徑以程式為準，但回應依 D-050 第 7 點：列表回傳 `{ items }`、章節回傳 `{ scoreSheetId, sections }`。現行程式直接回傳陣列，與 D-050 不一致，列為待修的程式缺口，由後續的建構 PR 處理，本決策不改程式。
-7. **不納入本決策：`GET /review-cases/{caseId}/rereview-revisions`。** `GetRereviewRevisionHistoryUseCase` 沒有角色檢查（程式註解寫「Any authenticated role can query — visibility enforced at API/UI layer」，但 API 層沒有檢查），院區範圍內的任何角色都能讀到複審的 `totalScore` 與 `comment`，包括只應取得 metadata 的 `SYSTEM_ADMIN`。這是權限缺口，不能以程式為準寫進 api-spec；是否保留這支端點、該開放哪些角色，需另行裁決。目前沒有前端使用。
+7. **不納入本決策：`GET /review-cases/{caseId}/rereview-revisions`。** `GetRereviewRevisionHistoryUseCase` 沒有角色檢查（程式註解寫「Any authenticated role can query — visibility enforced at API/UI layer」，但 API 層沒有檢查），院區範圍內的任何角色都能讀到複審的 `totalScore` 與 `comment`，包括只應取得 metadata 的 `SYSTEM_ADMIN`。這是權限缺口，不能以程式為準寫進 api-spec；是否保留這支端點、該開放哪些角色，需另行裁決。目前沒有前端使用。（已由 D-059 裁決：移除。）
 
 ### Relationship / Evidence
 
@@ -2188,3 +2188,38 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - 更新路徑樣式的規則：`docs/06-frontend/frontend-test-scenarios.md` 的 G-01／G-02、`docs/07-design/ui-design-decisions.md` 的 O2-A；`docs/06-frontend/frontend-review-gate-pending-items.md` 的 O2 分析加註以 D-058 為準。
 - 不改：`docs/superpowers/`、`docs/review/` 的舊計畫與報告（歷史紀錄）；`docs/06-frontend/` 的 `ready-pages-*`、`wave-backend-dependency-inventory.md`、`sampling-route-module-map-addendum.md` 等規劃與交接文件，其中多數路徑是當時提議、程式從未實作的端點，不屬於本次的路徑差異；UI-014 §11.3「可後補」的 compare API。
 - 程式不變；第 6 點的回應格式與第 7 點的權限缺口由後續 PR 處理。
+
+---
+
+## D-059 — 移除 `GET /review-cases/{caseId}/rereview-revisions`
+
+### Status
+
+`accepted`（2026-11-18，依負責人裁決：移除。處理 D-058 第 7 點）
+
+### Decision
+
+1. **移除端點。** 刪除 `GET /review-cases/{caseId}/rereview-revisions` 與其 use case（`GetRereviewRevisionHistoryUseCase`、`GetRereviewRevisionHistoryQuery`）。不提供轉址或別名；移除後呼叫該路徑視為不存在的資源。
+2. **複審歷程一律經 `revision-history`。** `GET /review-cases/{caseId}/revision-history`（api-spec 13.2）已回傳初審與複審兩個階段的歷程，並經 `ReviewReadAccessPolicy` 檢查：角色、院區、指派範圍、多重角色拒絕、歷史複審醫師排除與讀取紀錄（D-055 第 5 點）、內容遮罩（`SYSTEM_ADMIN` 只取得 metadata；REREVIEWER 只看得到自己的複審內容）。
+3. **以測試鎖定 `revision-history` 對複審資料的保護。** 建構 PR 須包含下列測試，且移除前先確認它們成立：
+   - `SYSTEM_ADMIN` 讀到的複審 `totalScore`、`comment` 為 `null`（D-010）。
+   - 同院、未被指派到本案的 REVIEWER 被拒絕。
+   - 同院、不是本案複審醫師的 REREVIEWER 被拒絕。
+   - 多重角色帳號被拒絕。
+4. **不在本決策範圍。** `revision-history` 的 `hasExceptionEntry` 仍依 D-021「CLOSED 後原複審醫師可 revision」的例外計算，該例外已被 D-032 撤銷；如何處理此旗標另行決定。
+
+### Relationship / Evidence
+
+- **缺口**：`GetRereviewRevisionHistoryUseCase` 只檢查院區（`requireReadScope`），程式註解寫「Any authenticated role can query — visibility enforced at API/UI layer」，但 API 層沒有檢查；前端也沒有使用這支端點。
+- **證據（2026-11-18，本機以 JDK 17 執行，測試未提交）**：以第 3 點的四個情境為預期，
+  - 對 `rereview-revisions`：4 個全部失敗。`SYSTEM_ADMIN` 取得複審分數 3（預期 `null`）；未指派的 REVIEWER、其他 REREVIEWER、多重角色帳號都沒有被拒絕。
+  - 對 `revision-history`：4 個全部通過。
+- **來源**：B4 設計（`docs/superpowers/specs/2026-04-10-b4-rereview-operations-design.md` §6.9）要求「Apply visibility rules per permission matrix」，實作沒有做。B3c 設計的 `GetRevisionHistoryUseCase` 從第一版起就讀出案件所有階段的 submission，複審歷程一直是它的子集。2026-11-09（D-035、D-036）與 2026-11-16（D-055）的權限加固只套用在 `revision-history`；2026-11-12（D-042、D-047）只為 `rereview-revisions` 補了院區檢查。
+- **權限矩陣**只有 `viewRevisionHistory (UI-014)` 一列，沒有複審歷程的獨立權限，這支端點的存取規則沒有出處。
+- 另立一支複審專用端點的原因，設計文件沒有記載；若是為了 D-021 的 CLOSED 複審 revision 例外，該例外已被 D-032 撤銷。
+
+### Mapping
+
+- `docs/03-contracts/api-spec.md` 13.2：說明改為「已依 D-059 移除」。
+- `docs/harness/05-current-state.md` 第五節第 4a 項、第七節第 1 項。
+- 程式由後續建構 PR 落地：先寫「該路徑已不存在」與第 3 點的測試，再刪除 controller 方法、use case、query 與其測試，並更新 `RereviewApiTest`、`ResourceNotFoundErrorCodeApiTest` 中對這支端點的呼叫。
