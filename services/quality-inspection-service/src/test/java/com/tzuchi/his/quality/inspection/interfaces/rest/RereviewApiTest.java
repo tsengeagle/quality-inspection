@@ -354,14 +354,19 @@ class RereviewApiTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("CASE_TERMINAL"));
 
-        // Step 11: Get rereview revisions
-        mockMvc.perform(get(BASE + "/" + CASE_ID + "/rereview-revisions")
+        // Step 11: 複審歷程由 revision-history 提供（D-059 第 2 點）
+        mockMvc.perform(get(BASE + "/" + CASE_ID + "/revision-history")
                         .header("api-key", hmToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
-                .andExpect(jsonPath("$.data.submissions").isArray())
-                .andExpect(jsonPath("$.data.submissions.length()").value(greaterThanOrEqualTo(2)));
+                .andExpect(jsonPath("$.data.submissions[?(@.stage == 'REREVIEW')]",
+                        org.hamcrest.Matchers.hasSize(greaterThanOrEqualTo(2))));
+
+        // Step 12: 原本的複審專用端點已移除（D-059 第 1 點）
+        mockMvc.perform(get(BASE + "/" + CASE_ID + "/rereview-revisions")
+                        .header("api-key", hmToken))
+                .andExpect(status().isNotFound());
     }
 
     // --- TEST 2: CLOSE WITHOUT REREVIEW ---

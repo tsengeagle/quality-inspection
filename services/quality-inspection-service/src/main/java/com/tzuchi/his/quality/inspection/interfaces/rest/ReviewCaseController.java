@@ -7,7 +7,6 @@ import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.reviewcase.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
-import com.tzuchi.his.quality.inspection.application.reviewcase.query.GetRereviewRevisionHistoryQuery;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentBootstrapView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateView;
@@ -53,7 +52,6 @@ public class ReviewCaseController {
     private final ReviseRereviewUseCase reviseRereviewUseCase;
     private final CloseRereviewUseCase closeRereviewUseCase;
     private final FixInitialReviewUseCase fixInitialReviewUseCase;
-    private final GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase;
     private final ListReviewCasesUseCase listReviewCasesUseCase;
     private final GetReviewCaseDetailUseCase getReviewCaseDetailUseCase;
         private final GetCaseAssignmentContextUseCase getCaseAssignmentContextUseCase;
@@ -79,7 +77,6 @@ public class ReviewCaseController {
                                  SubmitRereviewUseCase submitRereviewUseCase,
                                  ReviseRereviewUseCase reviseRereviewUseCase,
                                  CloseRereviewUseCase closeRereviewUseCase,
-                                 GetRereviewRevisionHistoryUseCase getRereviewRevisionHistoryUseCase,
                                  ListReviewCasesUseCase listReviewCasesUseCase,
                                  GetReviewCaseDetailUseCase getReviewCaseDetailUseCase,
                                  GetCaseAssignmentContextUseCase getCaseAssignmentContextUseCase,
@@ -106,7 +103,6 @@ public class ReviewCaseController {
         this.reviseRereviewUseCase = reviseRereviewUseCase;
         this.closeRereviewUseCase = closeRereviewUseCase;
         this.fixInitialReviewUseCase = fixInitialReviewUseCase;
-        this.getRereviewRevisionHistoryUseCase = getRereviewRevisionHistoryUseCase;
         this.listReviewCasesUseCase = listReviewCasesUseCase;
         this.getReviewCaseDetailUseCase = getReviewCaseDetailUseCase;
                 this.getCaseAssignmentContextUseCase = getCaseAssignmentContextUseCase;
@@ -451,22 +447,5 @@ public class ReviewCaseController {
                 result.getNewSubmissionId(), result.getOldSubmissionId(),
                 result.getRevisionNo(), result.getTotalScore(),
                 result.getStatus(), result.getStage(), result.getCaseId())));
-    }
-
-    @GetMapping("/{caseId}/rereview-revisions")
-    public ResponseEntity<ApiResponse<RevisionHistoryResponse>> getRereviewRevisionHistory(
-            @CurrentActor ActorContext actor,
-            @PathVariable String caseId) {
-        GetRereviewRevisionHistoryQuery query = new GetRereviewRevisionHistoryQuery();
-        query.setCaseId(caseId);
-        RevisionHistoryView view = getRereviewRevisionHistoryUseCase.execute(actor, query);
-        List<SubmissionSummaryDto> dtos = view.getEntries().stream()
-                .map(e -> new SubmissionSummaryDto(
-                        e.getSubmissionId(), e.getStage(), e.getReviewerId(),
-                        e.getStatus(), e.getRevisionNo(), e.getTotalScore(),
-                        e.getComment(), e.getSubmittedAt(), e.getSupersededBySubmissionId()))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(ApiResponse.ok(
-                new RevisionHistoryResponse(view.getCaseId(), dtos, view.isHasExceptionEntry())));
     }
 }
