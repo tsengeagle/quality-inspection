@@ -15,3 +15,9 @@ spring:
     database-platform: com.tzuchi.his.quality.inspection.infrastructure.persistence.H2OracleCompatibleDialect
     hibernate:
       ddl-auto: validate
+
+# HTTP contract trial (B-1, observation; docs/harness/13-http-contract-options.md): every Spring test context's
+# auto-configured MockMvc hands each response to the observer in acceptance/http/. Report only, never blocks.
+context:
+  initializer:
+    classes: com.tzuchi.his.quality.inspection.acceptance.http.HttpObservationInitializer
