@@ -2223,3 +2223,5 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/03-contracts/api-spec.md` 13.2：說明改為「已依 D-059 移除」。
 - `docs/harness/05-current-state.md` 第五節第 4a 項、第七節第 1 項。
 - 程式由後續建構 PR 落地：先寫「該路徑已不存在」與第 3 點的測試，再刪除 controller 方法、use case、query 與其測試，並更新 `RereviewApiTest`、`ResourceNotFoundErrorCodeApiTest` 中對這支端點的呼叫。
+
+<!-- 及格線第 2 項驗證用（04-definition-of-enough.md）：修改裁決但沒有核准簽章。此 PR 不合併。 -->

@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-18-gate-probe-unsigned",
+  "decision": "none",
+  "reason": "及格線第 2 項（04-definition-of-enough.md）的驗證用修法：紀錄完整，但刻意不附核准簽章，確認 law-check 判定未通過且 main 的必要檢查使合併無法進行。此 PR 驗證後關閉，不合併。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/"
+  ]
+}
