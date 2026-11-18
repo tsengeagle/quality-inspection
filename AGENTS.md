@@ -445,6 +445,18 @@ Demo launcher / Playwright / preflight / e2e 最小 SOP。
 
 ## 5. Inspection Order
 
+### 5.0 動到問題側之前：先查涵蓋清單（D-060）
+
+後端的 `domain`、`application`、`interfaces`（HTTP 契約）、`reporting` 是問題側。動手之前先查 `law/coverage.txt`：
+
+| 範圍的狀態 | 怎麼做 |
+|---|---|
+| `legislated` | 照 `specs/` 的規格與範例實作，`law-check` 照常判決 |
+| `grandfathered`（暫准） | 先停下來，向負責人說明「這裡沒有可執行的律法」，請負責人決定：先立法，或在暫准範圍內照現有權威文件實作。`law-check` 會通過，但報告列為提醒 |
+| 不在清單內 | 先停下來。這是未立法的新範圍，`law-check` 會判為未通過。要先立法，或以修法把它列進清單（需要負責人簽章） |
+
+前端規格也屬於問題側，但目前尚未納入清單（D-060 第 2 點）。
+
 ### 5.1 新需求、規則釐清、架構討論
 
 1. `docs/01-requirements/0_品質審查系統規格草案.md`

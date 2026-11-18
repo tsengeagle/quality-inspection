@@ -2223,3 +2223,42 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/03-contracts/api-spec.md` 13.2：說明改為「已依 D-059 移除」。
 - `docs/harness/05-current-state.md` 第五節第 4a 項、第七節第 1 項。
 - 程式由後續建構 PR 落地：先寫「該路徑已不存在」與第 3 點的測試，再刪除 controller 方法、use case、query 與其測試，並更新 `RereviewApiTest`、`ResourceNotFoundErrorCodeApiTest` 中對這支端點的呼叫。
+
+---
+
+## D-060 — 未立法的問題側先停下來：問題側涵蓋清單
+
+### Status
+
+`accepted`（2026-11-18，依負責人裁決：採「擋新增」；問題側包含前端規格，但先完成後端 harness，前端之後再納入）
+
+### Decision
+
+1. **問題側涵蓋清單。** 新增 `law/coverage.txt`（屬於 `law/`，類別是 gate）。清單把問題側的程式路徑對應到兩種狀態：
+   - `legislated`（已立法）：指向 `specs/` 底下的規格目錄，規格目錄必須存在。
+   - `grandfathered`（未立法但暫准）：本裁決生效時已存在、但沒有可執行律法的範圍。
+2. **問題側的邊界。** 目前只含後端：`domain`、`application`、`interfaces`（HTTP 契約）、`reporting`。`infrastructure` 與建置設定不算。前端頁面行為與前端規格也屬於問題側，但依負責人裁決，待後端 harness 完成後另行納入，納入時另立裁決或修訂本裁決。
+3. **判決（擋新增）。** `law-check` 對每個 PR 判斷問題側裡新增或修改的檔案：
+   - 符合 `legislated` 的範圍：照常判決。
+   - 符合 `grandfathered` 的範圍：通過，但報告列為「未立法範圍的修改」。在 GitHub 上另外顯示為警告。
+   - 不符合任何一行：**未通過**。這是未立法的新範圍，要先立法，或以修法把它列進清單（需要簽章）。
+   - 刪除程式不擋。清單一律讀合併目標分支（base）上的版本，PR 不能在同一個 PR 裡替自己的新範圍開門。
+4. **給 AI 的指示。** 動到 `grandfathered` 或清單以外的問題側之前，AI 先停下來，向負責人說明「這裡沒有可執行的律法」，並請負責人決定：先立法、以修法列為暫准，或在暫准範圍內照現有權威文件實作。寫在 `AGENTS.md` 與 `CLAUDE.md`。
+5. **暫准範圍只減不增。** 每立法一個 aggregate，就把它從 `grandfathered` 改為 `legislated`。把新範圍加為 `grandfathered` 需要修法紀錄與簽章，並在紀錄的 `reason` 說明為什麼不先立法。
+
+### Relationship / Evidence
+
+- **起因**：2026-11-18 發現的 3 個漏網缺陷（`docs/harness/12-escaped-defects.md` E-01～E-03）都落在可執行律法照不到的地方。原本計畫先拿少量 aggregate 驗證 harness，之後的實作逐漸延伸到未立法的範圍，但沒有任何機制讓這件事被注意到。
+- **為什麼不直接擋所有未立法範圍**：生效時問題側共 256 個檔案，已立法只有 50 個（review-project、score-sheet），全擋會讓所有工作停擺。做法與 ArchUnit 的凍結基線相同：既有的列為暫准，只擋新增。
+- **擋不到的**：
+  - 已立法 aggregate 的介面層缺口：範例只執行到 use case 層（E-03）。為了讓提醒照得到，這些 aggregate 的 controller 與 dto 列為暫准。
+  - 修改裁決後，暫准範圍內的程式漂移（E-02）。這要靠擴大立法範圍。
+  - 暫准範圍內的新增檔案只提醒、不擋。
+- **實作**：判決程式 `harness-core/law_check.py` 0.4.0，以清冊的 `@coverage` 指示啟用；測試在 `harness-core/tests/test_law_check.py` 的 `CoverageTest`（13 個）。
+
+### Mapping
+
+- `law/coverage.txt`、`law/manifest.txt`（`@coverage`）、`law/README.md`
+- `harness-core/law_check.py`、`harness-core/tests/test_law_check.py`、`harness-core/README.md`、`harness-core/VERSION`
+- `AGENTS.md`、`CLAUDE.md`
+- `docs/harness/03-harness-plan.md` 第六節、`docs/harness/12-escaped-defects.md`、`docs/harness/05-current-state.md` 第七節
