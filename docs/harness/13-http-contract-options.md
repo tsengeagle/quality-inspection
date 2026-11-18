@@ -103,7 +103,7 @@ C 是合理的備案：如果負責人判斷 HTTP 層的缺陷成本低（前端
 
 端點的歸屬規則：**端點屬於它呼叫的 use case 所在的規格目錄**，不看 URL 前綴。
 
-立法後 `coverage.txt` 的對應：`ApiResponse`、`GlobalExceptionHandler`、`ActorContextArgumentResolver` 由共用層改為 `legislated`；各 controller 與它的 dto 隨 aggregate 改。
+立法後 `coverage.txt` 的對應：`ApiResponse`、`GlobalExceptionHandler` 由共用層改為 `legislated`；各 controller 與它的 dto 隨 aggregate 改。（2026-11-18 更正：原本也列了 `ActorContextArgumentResolver`，但契約沒有規定操作者怎麼傳進來，不能算已立法。見 `14-d061-draft.md`。）
 
 ### 試做的已知副作用
 
@@ -176,7 +176,7 @@ B-1 的資料來自建構者的測試。弱點與目前的配套：
 
 ### 試做中發現的事
 
-- **api-spec §4.1 寫 `UNAUTHORIZED`（401），程式回 `MISSING_API_KEY`、`INVALID_TOKEN`**（`ApiKeyAuthFilter`）。共用層依 api-spec 只列 `UNAUTHORIZED`。這次的全套測試沒有在評分表端點上觀察到 401，所以報告沒有列出；只要有測試打到，就會報「錯誤代碼沒有定義」。要以裁決決定哪一邊為準。
+- **api-spec §4.1 寫 `UNAUTHORIZED`（401），程式回 `MISSING_API_KEY`、`INVALID_TOKEN`**（`ApiKeyAuthFilter`）。共用層依 api-spec 只列 `UNAUTHORIZED`。這次的全套測試沒有在評分表端點上觀察到 401，所以報告沒有列出；只要有測試打到，就會報「錯誤代碼沒有定義」。要以裁決決定哪一邊為準。（2026-11-18 裁決：程式照 D-023 改回 `UNAUTHORIZED`，見 `14-d061-draft.md` 第六節。）
 - api-spec §8.4（評分表詳情）沒有寫回應的形狀。契約先採程式現況（與列表的一筆相同），並在 `http.yaml` 註明待確認。
 
 ### 試做的限制
@@ -189,6 +189,6 @@ B-1 的資料來自建構者的測試。弱點與目前的配套：
 
 1. 規則 6 改適用範圍（`http.yaml` 允許 HTTP 詞彙），新增 `kind: http`、`kind: http-common`。
 2. 閘門：報告有問題就不通過；報告必須存在，而且是本次執行產生的（W-6）；`build.gradle` 宣告輸入。
-3. `coverage.txt`：`ApiResponse`、`GlobalExceptionHandler`、`ActorContextArgumentResolver` 與 score-sheet 的 controller、dto 改為 `legislated`。
+3. `coverage.txt`：`ApiResponse`、`GlobalExceptionHandler` 與 score-sheet 的 dto 改為 `legislated`（controller 與請求 dto 見 `14-d061-draft.md` Q-3）。
 4. W-7、W-9、W-10 要不要做。
 5. 401 的錯誤代碼（上面「發現的事」第 1 點）以哪一邊為準。
