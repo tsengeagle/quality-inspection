@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-18-d060-coverage-gate",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:09bf37972e5b918ccb60f992e56eefe14a24e3fda34274222f30f78e3e8b6d64",
+  "reviewed_commit": "2a9347166594dfe06923f796178fe03e891b2036",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFkAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAghihX/R\nq3C2qycCcVhx0LkVTeSw7MEttHzTwijS611dYAAAATc3NoOmxhdy1hbWVuZG1lbnQtMgAA\nAA1sYXctYW1lbmRtZW50AAAAAAAAAAZzaGE1MTIAAABnAAAAGnNrLXNzaC1lZDI1NTE5QG\n9wZW5zc2guY29tAAAAQD6WNK4f6EWK6ht4n4Jk21UKcCdLLTWFM0HU/SWz1+d6d9zRhqV7\nqACPw1m/+dxfyEY710fgZWM2IQEV+DxAaQkFAAAAPw==\n-----END SSH SIGNATURE-----\n"
+}

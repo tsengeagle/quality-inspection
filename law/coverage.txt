@@ -1,0 +1,52 @@
+# 問題側涵蓋清單（D-060）。本檔是律法（gate，位於 law/ 底下），修改需要修法紀錄與簽章。
+# 判決程式讀 base 上的版本；格式見 harness-core/README.md「問題側涵蓋清單」。
+#
+#   legislated     已立法：有 specs/ 底下的規格與可執行範例
+#   grandfathered  未立法但暫准：D-060 啟用時已存在的範圍。照常通過，law-check 報告列為提醒
+#   清單以外       問題側的新範圍：law-check 未通過。要先立法，或以修法把它列進本檔
+#
+# 問題側的邊界（D-060 第 2 點）：後端的 domain、application、interfaces（HTTP 契約）、reporting。
+# 前端規格也屬於問題側，但依負責人 2026-11-18 的裁決，待後端 harness 完成後再納入。
+#
+# 注意：已立法的 aggregate，範例只執行到 use case 層；它們的 HTTP 介面（controller、dto）仍列為暫准（漏網紀錄 E-03）。
+
+@problem-side services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/
+@problem-side services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/
+@problem-side services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/
+@problem-side services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/
+
+# ---- 已立法 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/project/                  legislated  specs/review-project/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/project/             legislated  specs/review-project/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/scoresheet/               legislated  specs/score-sheet/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/scoresheet/          legislated  specs/score-sheet/
+
+# ---- 暫准：aggregate ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/               grandfathered  ReviewCase（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/          grandfathered  ReviewCase（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/                 grandfathered  SamplingBatch（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/            grandfathered  SamplingBatch（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/audit/               grandfathered  稽核查詢（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/                       grandfathered  報表與儀表板（未立法）
+
+# ---- 暫准：跨 aggregate 的共用部分 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/                   grandfathered  domain 共用（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/package-info.java         grandfathered  domain 共用（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/              grandfathered  application 共用：角色、院區、讀取政策（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/package-info.java    grandfathered  application 共用（未立法）
+
+# ---- 暫准：HTTP 介面。逐一列出 controller，新增 controller 會被擋下 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/config/                          grandfathered  HTTP 設定（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/package-info.java               grandfathered  HTTP 共用（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/                        grandfathered  HTTP 請求與回應格式（未立法，含已立法 aggregate 的格式，見 E-03）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ActorContextArgumentResolver.java  grandfathered  HTTP 共用（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/CurrentActor.java           grandfathered  HTTP 共用（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/BadRequestException.java    grandfathered  HTTP 共用（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/GlobalExceptionHandler.java grandfathered  HTTP 錯誤格式（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewProjectController.java  grandfathered  ReviewProject 的 HTTP 介面（use case 已立法、HTTP 未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ScoreSheetController.java   grandfathered  ScoreSheet 的 HTTP 介面（use case 已立法、HTTP 未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewCaseController.java   grandfathered  ReviewCase 的 HTTP 介面（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SubmissionController.java   grandfathered  ReviewCase 的 HTTP 介面（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SamplingController.java     grandfathered  SamplingBatch 的 HTTP 介面（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/AuditController.java        grandfathered  稽核查詢的 HTTP 介面（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReportController.java       grandfathered  報表的 HTTP 介面（未立法）

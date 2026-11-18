@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-18-d060-coverage-gate",
+  "decision": "D-060",
+  "reason": "依負責人 2026-11-18 的裁決（採擋新增；問題側含前端規格但先完成後端），新增 D-060：問題側涵蓋清單。起因是 2026-11-18 的 3 個漏網缺陷都落在可執行律法照不到的地方（docs/harness/12-escaped-defects.md），而且實作延伸到未立法範圍時沒有任何機制提醒。新增 law/coverage.txt（問題側 256 個檔案：已立法 50、暫准 206，生效時沒有漏列）；清冊加上 @coverage；判決程式 law_check.py 升為 0.4.0：問題側新增或修改的檔案不在清單內就未通過，暫准範圍通過但列為提醒並在 GitHub Actions 輸出警告，清單讀 base，刪除不擋。測試先寫（CoverageTest 13 個，實作前 10 個失敗），實作後 harness-core 112 個測試全部通過；以 3 種 mutation 驗證測試會抓到判決被弄壞。AGENTS.md 與 CLAUDE.md 加上 AI 先停下來詢問的指示。同步 law/README、harness-core/README 與 docs/harness（03、05、12）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/",
+    "harness-core/",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ]
+}

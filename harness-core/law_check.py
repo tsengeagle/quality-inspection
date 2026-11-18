@@ -79,6 +79,7 @@ class Manifest:
         self.approval_schemes = []      # 接受哪些簽章方案；空的代表不要求核准簽章
         self.approvers = {}             # 方案 -> 核准者清單在 repo 裡的路徑
         self.approvals_required = 1
+        self.coverage = None            # 問題側涵蓋清單在 repo 裡的路徑；None 代表不檢查
         for number, raw in enumerate(text.splitlines(), 1):
             line = raw.strip()
             if not line or line.startswith("#"):
@@ -101,6 +102,8 @@ class Manifest:
                 if not value.isdigit() or int(value) < 1:
                     raise NotEvaluated("清冊第 %d 行：@approvals-required 必須是正整數" % number)
                 self.approvals_required = int(value)
+            elif key == "@coverage":
+                self.coverage = value
             elif key.startswith("@"):
                 raise NotEvaluated("清冊第 %d 行有不認得的指示：%s" % (number, key))
             elif value not in CLASSES:
@@ -126,6 +129,81 @@ class Manifest:
 
     def allowed_alongside(self, path):
         return any(regex.match(path) for regex in self.allowed_with_amendment)
+
+
+COVERAGE_STATUSES = {"legislated", "grandfathered"}
+
+
+class Coverage:
+    """問題側涵蓋清單：哪些程式路徑是問題側，各自已立法或暫准。
+
+    格式（# 開頭是註解）：
+        @problem-side <路徑樣式>                 問題側的範圍，可以有多行
+        <路徑樣式>  legislated     <規格目錄>     已立法：規格目錄必須存在於 base
+        <路徑樣式>  grandfathered  <說明>         未立法但暫准：照常通過，報告列為提醒
+    路徑樣式的寫法與律法清冊相同；一個路徑符合多行時以最後一行為準。
+    問題側裡新增或修改的檔案，若不符合任何一行，判為未通過：要先立法，或以修法把它列進清單。
+    """
+
+    def __init__(self, text):
+        self.roots = []
+        self.entries = []               # (樣式, regex, 狀態, 規格目錄或說明)
+        for number, raw in enumerate(text.splitlines(), 1):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("@"):
+                parts = line.split()
+                if len(parts) != 2 or parts[0] != "@problem-side":
+                    raise NotEvaluated("涵蓋清單第 %d 行有不認得的指示：%s" % (number, raw))
+                self.roots.append(glob_to_regex(parts[1]))
+                continue
+            parts = line.split(None, 2)
+            if len(parts) != 3 or parts[1] not in COVERAGE_STATUSES:
+                raise NotEvaluated("涵蓋清單第 %d 行格式錯誤（應為：路徑樣式 legislated|grandfathered 規格目錄或說明）：%s"
+                                   % (number, raw))
+            self.entries.append((parts[0], glob_to_regex(parts[0]), parts[1], parts[2].strip()))
+        if not self.roots:
+            raise NotEvaluated("涵蓋清單沒有 @problem-side 指示，無從判斷哪些是問題側")
+
+    def is_problem_side(self, path):
+        return any(regex.match(path) for regex in self.roots)
+
+    def lookup(self, path):
+        found = None
+        for entry in self.entries:
+            if entry[1].match(path):
+                found = entry
+        return found
+
+
+def judge_coverage(repo, base, start, head, coverage_path):
+    """回傳 (檢查項目清單, 提醒清單)。檢查項目是 (名稱, 是否成立, 說明)；提醒是 (說明, 路徑)。
+
+    清單讀 base 上的版本：PR 不能在同一個 PR 裡替自己的新範圍開門。
+    只看新增與修改的檔案；刪除程式不擋。
+    """
+    text = show(repo, base, coverage_path)
+    if text is None:
+        raise NotEvaluated("清冊指定了涵蓋清單 %s，但 base（%s）上沒有這個檔案" % (coverage_path, base[:12]))
+    coverage = Coverage(text)
+    outside, missing_specs, reminders = [], [], []
+    for status, path in changed_files(repo, start, head):
+        if status == "D" or not coverage.is_problem_side(path):
+            continue
+        entry = coverage.lookup(path)
+        if entry is None:
+            outside.append(path)
+        elif entry[2] == "grandfathered":
+            reminders.append((entry[3], path))
+        else:
+            spec_dir = entry[3].rstrip("/")
+            if not git(repo, "ls-tree", "-d", base, "--", spec_dir).stdout.strip():
+                missing_specs.append("%s（%s）" % (path, entry[3]))
+    checks = [("問題側的修改都在涵蓋清單內", not outside,
+               "不在清單內：%s。這是未立法的新範圍：先立法，或以修法把它列進 %s" % ("、".join(outside), coverage_path)),
+              ("已立法範圍指向的規格目錄存在", not missing_specs, "base 上沒有：" + "、".join(missing_specs))]
+    return checks, reminders
 
 
 def changed_files(repo, start, head):
@@ -308,6 +386,12 @@ def check_approvals(repo, base, head, manifest, record_id, digest, approval_path
 
 def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
     """回傳 (是否通過, 報告行的清單)。"""
+    passed, report, _ = evaluate_with_reminders(repo, base, head, manifest_path)
+    return passed, report
+
+
+def evaluate_with_reminders(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
+    """回傳 (是否通過, 報告行的清單, 未立法範圍的提醒清單 [(說明, 路徑)])。"""
     report = []
     manifest_text = show(repo, base, manifest_path)
     if manifest_text is None:
@@ -347,6 +431,15 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
 
     report.append("比較範圍：%s..%s（清冊取自 %s）" % (start[:12], head_sha[:12], base[:12]))
     report.append("")
+
+    coverage_checks, reminders = [], []
+    if manifest.coverage:
+        coverage_checks, reminders = judge_coverage(repo, base, start, head_sha, manifest.coverage)
+    if reminders:
+        report.append("未立法範圍的修改（提醒：這些範圍沒有可執行的律法，閘門只擋得住測試寫到的部分）：")
+        for label, path in reminders:
+            report.append("  - [%s] %s" % (label, path))
+        report.append("")
     if exempt:
         report.append("免修法的基線修改（只刪除行）：")
         report.extend("  - %s" % p for p in exempt)
@@ -354,8 +447,15 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
 
     if not needs_amendment and not records and not approvals:
         report.append("分類：建構 PR（沒有需要修法紀錄的律法修改）")
-        report.append("結果：通過")
-        return True, report
+        failed = [(name, detail) for name, ok, detail in coverage_checks if not ok]
+        if coverage_checks:
+            report.append("")
+            report.append("檢查項目：")
+            for name, ok, detail in coverage_checks:
+                report.append("  [%s] %s%s" % ("通過" if ok else "未通過", name, "" if ok else "　— " + detail))
+            report.append("")
+        report.append("結果：%s" % ("未通過" if failed else "通過"))
+        return not failed, report, reminders
 
     report.append("分類：修法 PR")
     if needs_amendment:
@@ -363,7 +463,7 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
         for path, law_class, note in needs_amendment:
             report.append("  - [%s] %s%s" % (law_class, path, "　← " + note if note else ""))
 
-    checks = []     # (名稱, 是否成立, 說明)
+    checks = list(coverage_checks)     # (名稱, 是否成立, 說明)
 
     added_records = [p for s, p in records if s == "A"]
     changed_records += [p for st, p in approvals if st != "A"]
@@ -458,7 +558,7 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
         report.append("")
     passed = all(ok for _, ok, _ in checks)
     report.append("結果：%s" % ("未通過" if not passed else "通過（結構檢查）" if not_evaluated else "通過"))
-    return passed, report
+    return passed, report, reminders
 
 
 def use_utf8_output():
@@ -481,13 +581,17 @@ def main(argv=None):
                         help="律法清冊在 repo 裡的路徑（預設：%s）" % DEFAULT_MANIFEST_PATH)
     args = parser.parse_args(argv)
     try:
-        passed, report = evaluate(args.repo, args.base, args.head, args.manifest)
+        passed, report, reminders = evaluate_with_reminders(args.repo, args.base, args.head, args.manifest)
     except NotEvaluated as error:
         print("修法檢查：無法評估 — %s" % error)
         print("無法評估不算通過。")
         return EXIT_NOT_EVALUATED
     print("修法檢查")
     print("\n".join(report))
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        # 讓提醒出現在 PR 的檢查結果頁，不必打開記錄才看得到
+        for label, path in reminders:
+            print("::warning title=未立法範圍::%s：%s" % (label, path))
     return EXIT_PASS if passed else EXIT_FAIL
 
 

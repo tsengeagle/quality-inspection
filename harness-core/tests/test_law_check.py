@@ -801,5 +801,147 @@ law/allowed_signers    gate
         self.assertIn("簽的是另一份內容", report)
 
 
+COVERAGE_MANIFEST = MANIFEST + "@coverage law/coverage.txt\n"
+
+COVERAGE = """\
+@problem-side src/domain/
+@problem-side src/api/
+
+src/domain/project/        legislated     specs/project/
+src/domain/case/           grandfathered  案件（未立法）
+src/api/ProjectApi.java    grandfathered  專案的 HTTP 介面
+"""
+
+
+class CoverageTest(RepoCase):
+    """問題側涵蓋清單：已立法的照常、暫准的提醒、清單以外的新範圍擋下。"""
+
+    def setUp(self):
+        super().setUp()
+        self.git("checkout", "-q", "main")
+        self.write({
+            "law/manifest.txt": COVERAGE_MANIFEST,
+            "law/coverage.txt": COVERAGE,
+            "specs/project/rules.yaml": "rules: []\n",
+            "src/domain/project/Project.java": "class Project {}\n",
+            "src/domain/case/Case.java": "class Case {}\n",
+            "src/api/ProjectApi.java": "class ProjectApi {}\n",
+            "src/infra/Db.java": "class Db {}\n",
+        })
+        self.base = self.commit("coverage base")
+        self.git("checkout", "-q", "-B", "change")
+
+    def test_change_in_a_legislated_area_passes_without_reminder(self):
+        passed, report = self.judge({"src/domain/project/Project.java": "class Project { int x; }\n"})
+        self.assertTrue(passed, report)
+        self.assertNotIn("未立法範圍的修改", report)
+
+    def test_change_in_a_grandfathered_area_passes_with_a_reminder(self):
+        passed, report = self.judge({"src/domain/case/Case.java": "class Case { int x; }\n",
+                                     "src/api/ProjectApi.java": "class ProjectApi { int y; }\n"})
+        self.assertTrue(passed, report)
+        self.assertIn("未立法範圍的修改", report)
+        self.assertIn("案件（未立法）", report)
+        self.assertIn("專案的 HTTP 介面", report)
+        self.assertIn("src/domain/case/Case.java", report)
+
+    def test_new_file_in_a_grandfathered_directory_passes_with_a_reminder(self):
+        passed, report = self.judge({"src/domain/case/CaseNote.java": "class CaseNote {}\n"})
+        self.assertTrue(passed, report)
+        self.assertIn("未立法範圍的修改", report)
+
+    def test_problem_side_file_outside_the_coverage_list_fails(self):
+        passed, report = self.judge({"src/domain/sampling/Batch.java": "class Batch {}\n"})
+        self.assertFalse(passed, report)
+        self.assertIn("問題側的修改都在涵蓋清單內", report)
+        self.assertIn("src/domain/sampling/Batch.java", report)
+
+    def test_new_file_next_to_a_listed_single_file_fails(self):
+        passed, report = self.judge({"src/api/CaseApi.java": "class CaseApi {}\n"})
+        self.assertFalse(passed, report)
+        self.assertIn("src/api/CaseApi.java", report)
+
+    def test_deleting_problem_side_code_is_not_blocked(self):
+        self.git("checkout", "-q", "main")
+        self.write({"src/domain/legacy/Old.java": "class Old {}\n"})
+        self.base = self.commit("unlisted legacy file")
+        self.git("checkout", "-q", "-B", "change")
+        passed, report = self.judge({"src/domain/legacy/Old.java": None})
+        self.assertTrue(passed, report)
+
+    def test_files_outside_the_problem_side_are_not_judged(self):
+        passed, report = self.judge({"src/infra/Db.java": "class Db { int x; }\n",
+                                     "src/infra/Cache.java": "class Cache {}\n"})
+        self.assertTrue(passed, report)
+        self.assertNotIn("未立法範圍的修改", report)
+
+    def test_coverage_list_is_read_from_base(self):
+        # PR 自己在清單加一行，不能讓同一個 PR 的新範圍過關（還會因為改了律法而需要修法紀錄）
+        passed, report = self.judge({
+            "law/coverage.txt": COVERAGE + "src/domain/sampling/  grandfathered  抽選\n",
+            "src/domain/sampling/Batch.java": "class Batch {}\n"})
+        self.assertFalse(passed, report)
+        self.assertIn("src/domain/sampling/Batch.java", report)
+
+    def test_legislated_entry_must_point_to_an_existing_spec(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/coverage.txt": COVERAGE + "src/domain/score/  legislated  specs/score/\n",
+                    "src/domain/score/Score.java": "class Score {}\n"})
+        self.base = self.commit("broken coverage")
+        self.git("checkout", "-q", "-B", "change")
+        passed, report = self.judge({"src/domain/score/Score.java": "class Score { int x; }\n"})
+        self.assertFalse(passed, report)
+        self.assertIn("specs/score/", report)
+
+    def test_missing_coverage_file_is_not_evaluated(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/coverage.txt": None})
+        self.base = self.commit("coverage removed")
+        self.git("checkout", "-q", "-B", "change")
+        self.write({"src/infra/Db.java": "class Db { int x; }\n"})
+        head = self.commit("change")
+        with self.assertRaises(check.NotEvaluated):
+            check.evaluate(self.repo, self.base, head)
+
+    def test_malformed_coverage_line_is_not_evaluated(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/coverage.txt": COVERAGE + "src/domain/x/  maybe  something\n"})
+        self.base = self.commit("bad status")
+        self.git("checkout", "-q", "-B", "change")
+        self.write({"src/infra/Db.java": "class Db { int x; }\n"})
+        head = self.commit("change")
+        with self.assertRaises(check.NotEvaluated):
+            check.evaluate(self.repo, self.base, head)
+
+    def test_coverage_list_without_problem_side_roots_is_not_evaluated(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/coverage.txt": "src/domain/project/  legislated  specs/project/\n"})
+        self.base = self.commit("no roots")
+        self.git("checkout", "-q", "-B", "change")
+        self.write({"src/infra/Db.java": "class Db { int x; }\n"})
+        head = self.commit("change")
+        with self.assertRaises(check.NotEvaluated):
+            check.evaluate(self.repo, self.base, head)
+
+    def test_reminders_become_github_warnings_on_actions(self):
+        self.write({"src/domain/case/Case.java": "class Case { int x; }\n"})
+        head = self.commit("change")
+        import io, contextlib
+        out = io.StringIO()
+        old = os.environ.get("GITHUB_ACTIONS")
+        os.environ["GITHUB_ACTIONS"] = "true"
+        try:
+            with contextlib.redirect_stdout(out):
+                code = check.main(["--repo", self.repo, "--base", self.base, "--head", head])
+        finally:
+            if old is None:
+                del os.environ["GITHUB_ACTIONS"]
+            else:
+                os.environ["GITHUB_ACTIONS"] = old
+        self.assertEqual(code, check.EXIT_PASS, out.getvalue())
+        self.assertIn("::warning title=未立法範圍::", out.getvalue())
+        self.assertIn("src/domain/case/Case.java", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()
