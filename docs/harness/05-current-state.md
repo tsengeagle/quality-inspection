@@ -46,7 +46,7 @@
 
 | 閘門 | 在 CI | 這次的結果 |
 |---|:-:|---|
-| 後端 `./gradlew check`（Linux、Windows） | ✓ `backend-check` | 2026-11-18 晚間本機（`2feb5bf`，JDK 17，`cleanTest check`）：1223 次測試執行，以 JUnit 報告的類別加方法名稱計為 930 個測試方法；失敗 0、跳過 0，已知失敗清單為空。含 ArchUnit 與凍結基線。同日早上記錄的「958 個測試方法」計算方式不同，兩個數字不能直接比較 |
+| 後端 `./gradlew check`（Linux、Windows） | ✓ `backend-check` | 2026-11-18 晚間本機（`2feb5bf`，JDK 17，`cleanTest check`）：1223 次測試執行；建置的測試閘門回報「執行 957 個測試方法」，失敗 0、跳過 0，已知失敗清單為空。含 ArchUnit 與凍結基線。比早上的 958 少 1：#83 刪除了只驗證 `hasExceptionEntry` 的單元測試。（#86 曾寫成「930 個方法、口徑不同」，那是另外用 JUnit 報告去重的數字；閘門的數字以 CI 紀錄為準，例如 #87 的 run 44345483626） |
 | 修法判決 `law-check`、`law-selftest` | ✓ | — |
 | 規格格式 `spec-check` | ✓ | `specs/review-project`、`specs/score-sheet` |
 | 前端 typecheck、Karma、Playwright | ✓ `frontend-check`（#72） | 2026-11-18 晚間本機（`2feb5bf`）：typecheck 通過；單元測試 221 個通過（#83 刪除 4 個例外入口測試、新增 1 個）；E2E 18 個通過、3 個 demo 流程 skip。同日早上在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip。GitHub 上：#72 的 PR（`76cbd79`）結果相同；合併後 `main` 的第一次執行（`6c055e8`，run 44293068034）通過 |
@@ -110,7 +110,8 @@
 接下來先回到 harness 本身（`03-harness-plan.md`）：
 
 1. 更新 `03-harness-plan.md` 的現況。第三節 P4、P6、P9 和第六節仍寫「尚未設為必要檢查」，但 2026-11-18 起已是必要檢查（第八節）。
-2. 在 PR 上實際驗一次 `04-definition-of-enough.md` 的及格線四項。#77 只驗證了 `frontend-check` 紅燈時不能合併；`law-check` 紅燈（例如沒有簽章的修法）時不能合併，還沒有實際驗證。
+2. 在 PR 上實際驗一次 `04-definition-of-enough.md` 的及格線四項：2026-11-18 第 1、2、4 項在 PR 上驗證通過（#87、#88、#89）；第 3 項沒有另開 PR，仍只有 2026-11-13 的本機驗證紀錄（`03-harness-plan.md` 第六節）。
+3. 「未立法的問題側先停下來」的機制：待負責人裁決（`03-harness-plan.md` 第六節）。
 
 之後再回到專案工作，依序：
 

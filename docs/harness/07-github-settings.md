@@ -54,6 +54,9 @@ GitHub 不允許 PR 的作者核准自己的 PR。目前 CODEOWNERS 只有一個
 | 日期 | 項目 | PR | 做法 | 結果 |
 |---|---|---|---|---|
 | 2026-11-18 | 第 3 項（用 `frontend-check` 驗證） | #77（驗證後關閉，未合併） | ruleset `main*` 改為 Active 後，開一個 PR 新增必定失敗的單元測試，`frontend-check` 失敗（`TOTAL: 1 FAILED, 224 SUCCESS`），其餘必要檢查通過 | 通過：負責人（repo 管理員）的 PR 頁面顯示「Required checks failing」「1 required failing」，合併按鈕無法使用。ruleset 原本是 `disabled`，所以先前紅燈下仍可合併；改為 Active 後生效。`check` 本身失敗的情況沒有另外驗證，機制相同 |
+| 2026-11-18 | 第 1 項 | #87（驗證後關閉，未合併） | 在 `interfaces/rest` 直接使用 `infrastructure` 的類別 | 通過：`check` 失敗（ARCH-01、ARCH-04 不在已知失敗清單上），`mergeable_state: blocked` |
+| 2026-11-18 | 第 2 項（改用簽章驗證） | #88（驗證後關閉，未合併、未簽章） | 修改 `decision-log.md`，附完整修法紀錄但不附簽章 | 通過：`law-check` 只有簽章一項未通過，`mergeable_state: blocked`。形式是簽章加必要檢查，不是 code owner 核准（第二節） |
+| 2026-11-18 | 第 3 項（`check` 失敗的情況） | #87、#89 | 見上一列與 `03-harness-plan.md` 第六節 | 通過：`check` 失敗時 `mergeable_state: blocked`（由 API 讀取，沒有另外看頁面） |
 
 ## 四、必要檢查本身壞掉時的處置 SOP
 
