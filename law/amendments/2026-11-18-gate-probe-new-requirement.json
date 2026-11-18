@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-18-gate-probe-new-requirement",
+  "decision": "none",
+  "reason": "及格線第 4 項（04-definition-of-enough.md）的驗證用修法：在 specs/review-project 新增假想規則 RP-CRT-04 與一個範例，不改程式，確認驗收（AcceptanceExamplesTest）紅燈使 check 失敗。刻意不附簽章，law-check 也會失敗。此 PR 驗證後關閉，不合併。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/review-project/",
+    "law/"
+  ]
+}

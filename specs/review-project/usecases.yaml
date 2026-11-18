@@ -85,6 +85,12 @@ usecases:
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
         source: [{ decision: D-040 }]
         status: decided
+      # 及格線第 4 項驗證用的假想規則（04-definition-of-enough.md）：程式沒有實作，此 PR 不合併。
+      - id: RP-CRT-04
+        when: name 超過 20 個字
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-040 }]
+        status: decided
     success:
       output:
         - { name: projectId, type: id }

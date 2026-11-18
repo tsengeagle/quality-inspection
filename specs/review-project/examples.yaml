@@ -99,6 +99,15 @@ examples:
             initialReviewWeight: "0.50"
             rereviewWeight: "0.50"
 
+  # 及格線第 4 項驗證用：對應假想規則 RP-CRT-04，程式沒有實作，驗收必須紅。
+  - name: rejects_a_project_name_longer_than_20_characters
+    basis: [RP-CRT-04]
+    when:
+      run: CreateReviewProject
+      as: manager_h1
+      input: { name: "門診品質審查門診品質審查門診品質審查門診品", medicalRecordTypes: [OUTPATIENT] }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
   - name: rejects_create_by_a_non_manager
     basis: [RP-G-01]
     derived_from: [TS-PV-002]
