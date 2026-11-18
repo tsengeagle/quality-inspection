@@ -32,12 +32,15 @@
 | 3 | 11.3 `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`（L1059） | `POST /review-cases/{caseId}/initial-review/submit`（**沒有** `submissionId`） | ✓ 後端路徑 |
 | 4 | 11.4 `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`（L1085） | `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise` | ✓ 後端路徑 |
 | 5 | 12.1 `POST /review-cases/{caseId}/rereview/start`（L1138） | `POST /review-cases/{caseId}/start-rereview` | ✓ 後端路徑 |
-| 6 | 12.3 `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`（L1160） | `POST /review-cases/{caseId}/rereview/submit`（**沒有** `submissionId`） | ✓ 後端路徑 |
+| 6 | 12.3 `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`（L1160） | `POST /review-cases/{caseId}/rereview/submit`（路徑沒有 `submissionId`，但 request body 的 `submissionId` 為必填） | ✓ 後端路徑 |
 | 7 | 12.4 `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`（L1172） | `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise` | ✓ 後端路徑 |
 | 8 | 13.1 `GET /review-cases/{caseId}/submissions/{submissionId}`（L1223） | `GET /review-submissions/{submissionId}` | ✓ 後端路徑 |
 | 9 | 13.2 `GET /review-cases/{caseId}/revisions`（L1257） | `GET /review-cases/{caseId}/revision-history`（另有 `GET .../rereview-revisions`，見第四節） | ✓ 後端路徑 |
 
-第 3、6 組不只是路徑寫法不同：api-spec 要求呼叫端帶 `submissionId`，後端由案件自己找出目前的 submission。
+第 3、6 組的 `submissionId` 位置不同，兩者行為也不一樣：
+
+- 第 3 組（初審提交）：路徑與 body 都沒有 `submissionId`，後端由案件取得目前的 submission。
+- 第 6 組（複審提交）：路徑沒有，但 `SubmitRereviewRequest.submissionId` 是 `@NotBlank` 必填，`SubmitRereviewUseCase` 以它載入並驗證是否為目前版本。**修正 api-spec 時不能把它拿掉**，只是從路徑移到 body。
 
 ## 四、後端有、api-spec 完全沒有記載（8 個）
 
@@ -52,7 +55,12 @@
 | `GET /score-sheets/{id}/sections` | 評分表的段落 | — |
 | `GET /score-sheets/{id}/version` | 評分表目前版本（UI-005 需要的「版本清單」不是這支，見 `05-current-state.md` 第二節） | — |
 
-這 8 個都沒有前端在用。api-spec 沒有記載，代表它們的 request／response、權限、錯誤代碼都只存在程式裡（與 2026-11-12 快照「15 支 use case、28 個錯誤代碼只存在程式裡」是同一類問題，本次未逐一對照該清單）。
+這 8 個都沒有前端在用。本次確認的只是 **api-spec 沒有記載它們的路徑**，不代表契約都沒有定義：
+
+- `GET /score-sheets`、`/score-sheets/{id}/sections`、`/score-sheets/{id}/version`：D-050 第 7 點已裁決讀取角色（`SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR`）與院區範圍，並規定列表與章節的回應格式。補寫 api-spec 時要依 D-050。
+- 其餘 5 個：在 `decision-log.md` 中搜尋不到這些路徑字串。是否有裁決以其他名稱（例如 use case 名稱）定義其行為，本次沒有逐一核對；補寫 api-spec 前要先查。
+
+2026-11-12 快照列出「15 支 use case、28 個錯誤代碼只存在程式裡」，本次未逐一對照該清單。
 
 ## 五、與裁決的衝突（需要負責人裁決）
 
