@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-18-http-contract-trial",
+  "decision": "none",
+  "reason": "依負責人 2026-11-18 的決定（HTTP 契約採選項 B；比對器以 B-1 觀察方式；比對器放在 acceptance/；先在 spec-draft 試做 score-sheet），試做 HTTP 契約，尚未立裁決（D-061 待試做結果後起草）。新增 spec-draft/http-common.yaml（跨 aggregate 的共用層：外殼、錯誤分類對應狀態碼、通用錯誤碼）與 spec-draft/score-sheet/http.yaml（7 個端點）。新增比對器 acceptance/http/：以 application-test.yml 的 context.initializer.classes 掛進每個 Spring 測試 context，記錄每次 MockMvc 回應，JVM 結束時寫報告；只列出、不擋。測試先寫（HttpContractEvaluatorTest 23 個，實作前編譯失敗），實作後通過；後端全套 981 個方法、1247 次執行、0 失敗；現行程式 71 次契約範圍內的觀察問題 0；mutation：把 #85 之前的陣列回應放回去時列出 6 個問題（E-03 會被抓到）；不打 HTTP 時列出 7 個端點都沒有成功觀察。說明見 docs/harness/13-http-contract-options.md。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "spec-draft/",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/",
+    "services/quality-inspection-service/src/test/resources/application-test.yml"
+  ]
+}

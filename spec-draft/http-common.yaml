@@ -1,0 +1,42 @@
+spec_version: 1
+kind: http-common
+# HTTP 契約的共用層（試做）。範圍與位置見 docs/harness/13-http-contract-options.md 第八節。
+# 這一層跨 aggregate：回應外殼、錯誤分類對應的狀態碼、不屬於任何 use case 的錯誤代碼。
+# 比對器：services/quality-inspection-service/src/test/java/.../acceptance/http/（B-1：觀察）。
+#
+# 形狀的寫法：對應表是封閉物件（多或少欄位都算違反）；只有一個元素的清單是陣列；
+# 純量型別 id、text、int、decimal、boolean、enum <名稱>，結尾加 ? 表示可以是 null（要加引號）；
+# 字面值 'null'、'true'、'false' 要加引號；$data 代表端點的 data 形狀。
+
+# 正式部署的前綴（api-spec §3.1）。測試直接打 controller 路徑時沒有前綴，比對前會先去掉。
+base_path: /api/quality-inspection
+
+# api-spec §3.5。程式（Jackson 預設）會輸出值為 null 的欄位，所以 meta 與 error 都列出來。
+envelope:
+  success:
+    success: 'true'
+    data: $data
+    meta: 'null'
+    error: 'null'
+  error:
+    success: 'false'
+    data: 'null'
+    meta: 'null'
+    error:
+      code: text
+      message: 'text?'
+
+# 規格格式 v1 規則 7：錯誤代碼只寫分類，分類對應到哪個狀態碼由這裡決定。
+# 依據：api-spec §4.1（通用錯誤碼）與 §4.2（業務錯誤碼各自的狀態碼與這張表一致）。
+status_by_category:
+  denied: 403
+  not_found: 404
+  invalid_input: 400
+  conflict: 409
+  rule_violation: 422
+
+# 不屬於任何 use case 的錯誤代碼（api-spec §4.1）。INTERNAL_ERROR（500）刻意不列：契約範圍內不應觀察到它。
+transport_codes:
+  - { code: BAD_REQUEST,  status: 400 }
+  - { code: UNAUTHORIZED, status: 401 }
+  - { code: CONFLICT,     status: 409 }

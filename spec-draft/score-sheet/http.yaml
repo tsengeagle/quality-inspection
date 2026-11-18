@@ -1,0 +1,82 @@
+spec_version: 1
+kind: http
+aggregate: ScoreSheetDefinition
+# ScoreSheetDefinition 的 HTTP 契約（試做）。共用層在 spec-draft/http-common.yaml。
+# 每個端點屬於它呼叫的 use case 所在的規格目錄（specs/score-sheet/usecases.yaml）。
+# 綁定評分表（POST /review-projects/{projectId}/bind-score-sheet）屬於 review-project，不在這裡。
+# 錯誤代碼與分類讀 specs/score-sheet/usecases.yaml，列舉讀 specs/score-sheet/model.yaml。
+# 路徑以程式為準（D-058）。
+
+endpoints:
+
+  - usecase: CreateScoreSheetDraft
+    method: POST
+    path: /score-sheets
+    success:                       # api-spec §8.1
+      status: 201
+      data: { scoreSheetId: id }
+
+  - usecase: UpdateScoreSheetDraft
+    method: PUT
+    path: /score-sheets/{scoreSheetId}
+    success:                       # api-spec §8.2
+      status: 200
+      data: 'null'
+
+  - usecase: PublishScoreSheetVersion
+    method: POST
+    path: /score-sheets/{scoreSheetId}/publish
+    success:                       # api-spec §8.3；路徑依 D-058
+      status: 200
+      data: { scoreSheetVersionId: id }
+
+  - usecase: GetScoreSheetDetail
+    method: GET
+    path: /score-sheets/{scoreSheetId}
+    success:                       # api-spec §8.4 沒有寫回應；與列表的一筆相同（程式現況，待確認）
+      status: 200
+      data: &summary
+        scoreSheetId: id
+        projectId: id
+        status: enum ScoreSheetStatus
+        version: int
+        sectionCount: int
+        itemCount: int
+
+  - usecase: ListScoreSheetSummaries
+    method: GET
+    path: /score-sheets
+    success:                       # api-spec §8.5；D-050 第 7 點：{ items }（E-03）
+      status: 200
+      data:
+        items: [ *summary ]
+
+  - usecase: GetScoreSheetSections
+    method: GET
+    path: /score-sheets/{scoreSheetId}/sections
+    success:                       # api-spec §8.6；D-050 第 7 點：{ scoreSheetId, sections }（E-03）
+      status: 200
+      data:
+        scoreSheetId: id
+        sections:
+          - sectionId: id
+            title: text
+            items:
+              - itemId: id
+                code: text
+                title: text
+                scoreType: enum ScoreType
+                maxScore: decimal
+                weight: decimal
+                requiredRule: enum RequiredRule
+                conditionExpression: 'text?'
+
+  - usecase: GetScoreSheetVersion
+    method: GET
+    path: /score-sheets/{scoreSheetId}/version
+    success:                       # api-spec §8.7；未發布時 scoreSheetVersionId 為 null（D-050 第 1 點）
+      status: 200
+      data:
+        version: int
+        published: boolean
+        scoreSheetVersionId: 'id?'
