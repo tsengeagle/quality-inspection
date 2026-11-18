@@ -2,7 +2,7 @@
 
 這份文件是時間點快照。之後狀況改變時，更新本檔並修改標題日期。
 
-- 快照時間點：`main` 的 `6f1303f`（PR #71 合併後），2026-11-18。
+- 快照時間點：`main` 的 `6f1303f`（PR #71 合併後），2026-11-18；第一、三節另補上之後合併的 #72、#74（`main` 的 `6c055e8`）。
 - 本次改寫了第一到第九節；2026-11-12 版的內容在 git 歷史（本檔在 `6f1303f` 的版本）。2026-11-12 版列出、但這次沒有重新核對的項目，集中在第九節，沒有刪除。
 - 第十節是 2026-11-13～14 的閘門建置紀錄，原樣保留。
 - 數字都是這次實際執行或查詢的結果；「未驗證」的就寫未驗證。
@@ -11,9 +11,10 @@
 
 | PR | 內容 | 狀態 |
 |---|---|---|
-| #72 | 修法：新增 `frontend-check`，在 CI 執行前端 typecheck、單元測試、E2E | 開啟中。等 CI、審查與負責人簽章 |
+| #72 | 修法：新增 `frontend-check`，在 CI 執行前端 typecheck、單元測試、E2E | 已合併（`6c055e8`） |
+| #74 | 修法：登記第二支實體金鑰（YubiKey 5 Nano）為核准者 tsengeagle 的備援；核准者指引補上 Windows 注意事項 | 已合併 |
 
-其餘 PR 都已合併或關閉。合併一律用 merge commit；修法 PR 需要負責人以 SSH 金鑰對內容雜湊簽章（`law/README.md`）。
+除了本快照所在的 PR，其餘 PR 都已合併或關閉。合併一律用 merge commit；修法 PR 需要負責人以 SSH 金鑰對內容雜湊簽章（`law/README.md`）。
 
 ## 二、頁面進度
 
@@ -39,7 +40,7 @@
 | 後端 `./gradlew check`（Linux、Windows） | ✓ `backend-check` | 2026-11-18 本機：958 個測試方法，失敗 0，已知失敗清單為空，跳過 0。含 ArchUnit 與凍結基線 |
 | 修法判決 `law-check`、`law-selftest` | ✓ | — |
 | 規格格式 `spec-check` | ✓ | `specs/review-project`、`specs/score-sheet` |
-| 前端 typecheck、Karma、Playwright | **✗（#72 補上，合併後生效）** | 2026-11-18 在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip。#72 的 `frontend-check` 在 GitHub 上（`76cbd79`，`ubuntu-24.04`）結果相同 |
+| 前端 typecheck、Karma、Playwright | ✓ `frontend-check`（#72） | 2026-11-18 在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip。GitHub 上：#72 的 PR（`76cbd79`）結果相同；合併後 `main` 的第一次執行（`6c055e8`，run 44293068034）通過 |
 | Oracle | ✗ | V1～V5 與 Hibernate validate 在 Oracle XE 21c 驗證過（PR #55）。V6、SERIALIZABLE 匯出、儀表板的單一聚合查詢沒有在 Oracle 上跑過。負責人決定暫不加入 CI |
 | hosted（shell）模式 | ✗ | 從未驗證 |
 
@@ -94,11 +95,10 @@
 
 依序：
 
-1. 合併 #72（前端進 CI）。
-2. 逐一核對第五節第 4 項的 api-spec 路徑。先做，避免之後的前端照錯的路徑實作。
-3. 專案與規則管理（UI-001～005）：補上流程的起點。先寫頁面規格，再實作前端。
-4. 身分就緒（第五節第 1、2 項）：確認 shell 行為後開始。
-5. 之後是 UI-008、UI-016、時間欄位的裁決，以及 standalone 模式的決定。
+1. 逐一核對第五節第 4 項的 api-spec 路徑。先做，避免之後的前端照錯的路徑實作。
+2. 專案與規則管理（UI-001～005）：補上流程的起點。先寫頁面規格，再實作前端。UI-005 需要先補版本清單 API（見第二節）。
+3. 身分就緒（第五節第 1、2 項）：確認 shell 行為後開始。
+4. 之後是 UI-008、UI-016、時間欄位的裁決，以及 standalone 模式的決定。
 
 ## 八、尚未驗證的事
 
@@ -106,7 +106,8 @@
 - 前端 E2E 都以 mock API 執行；standalone 模式固定為 `HOSPITAL_MANAGER`，其他角色只由單元測試涵蓋。
 - V6、SERIALIZABLE 匯出、儀表板聚合查詢在 Oracle 上的行為。
 - api-gateway 是否另外擋院區（2026-11-12 即列為未確認，這次沒有重新核對）。
-- `frontend-check` 只在 #72 的 PR 上跑過；合併後在 `main` 上的執行尚未發生。runner 固定 `ubuntu-24.04`，因為 `ubuntu-latest`（26.04）不被 lockfile 的 Playwright 1.59.1 支援。
+- `frontend-check` 沒有設為必要檢查。`check`、`law-check`、`law-selftest` 依 `03-harness-plan.md` 也尚未設為必要檢查；這次沒有在 GitHub 的設定頁重新核對。runner 固定 `ubuntu-24.04`，因為 `ubuntu-latest`（26.04）不被 lockfile 的 Playwright 1.59.1 支援。
+- 第二支實體金鑰（#74）尚未在 GitHub 上簽過修法。
 
 ## 九、2026-11-12 快照遺留的項目
 
