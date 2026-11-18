@@ -13,7 +13,10 @@ permissions:
 jobs:
   check:
     name: frontend-check
-    runs-on: ubuntu-latest
+    # 固定 ubuntu-24.04：ubuntu-latest 已是 26.04，lockfile 鎖定的 Playwright 1.59.1 不支援
+    # （PR #72 第一次執行：Playwright does not support chromium on ubuntu26.04-x64）。
+    # 升級 Playwright 時再一起改回 ubuntu-latest。
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     defaults:
       run:
