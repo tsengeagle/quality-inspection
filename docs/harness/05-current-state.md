@@ -17,11 +17,12 @@
 
 ## 二、頁面進度
 
-17 頁中，10 頁有頁面規格也有前端；缺的 7 頁，後端 API 都已存在。
+17 頁中，10 頁有頁面規格也有前端。缺的 7 頁中，6 頁的後端 API 已存在；UI-005 只有「目前版本」的 API，缺頁面需要的版本清單。
 
 | 模組 | 頁面 | 頁面規格 | 前端 | 後端 API |
 |---|---|:-:|:-:|:-:|
-| 專案與規則管理 | UI-001 專案列表、UI-002 專案詳情、UI-003 專案編輯、UI-004 評分表管理、UI-005 版本檢視 | ✗ | ✗ | ✓ `/review-projects`、`/score-sheets` |
+| 專案與規則管理 | UI-001 專案列表、UI-002 專案詳情、UI-003 專案編輯、UI-004 評分表管理 | ✗ | ✗ | ✓ `/review-projects`、`/score-sheets` |
+| | UI-005 版本檢視 | ✗ | ✗ | 部分：只有 `GET /review-projects/{projectId}/version`、`GET /score-sheets/{id}/version`，回傳目前版本。頁面清冊要的 project／score sheet 版本清單沒有 API（清冊本身寫「建議後續補 version query API」） |
 | 抽選作業 | UI-006 抽選執行、UI-007 批次列表 | ✓ | ✓ | ✓ |
 | | UI-008 批次詳情 | ✗ | ✗（沒有 `batches/:batchId` route） | ✓ `GET /sampling-batches/{batchId}` |
 | 案件與審查作業 | UI-009 案件列表～UI-014 revision 歷程 | ✓ | ✓ | ✓ |
