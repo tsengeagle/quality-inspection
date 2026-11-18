@@ -42,11 +42,11 @@ class ScoreSheetApiTest {
         String admin = TestTokenFactory.systemAdminToken();
 
         mockMvc.perform(get(SS_BASE).header("api-key", admin).param("hospitalId", "H001"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items", hasSize(1)));
         mockMvc.perform(get(SS_BASE).header("api-key", admin).param("hospitalId", "H002"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(0)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items", hasSize(0)));
         mockMvc.perform(get(SS_BASE).header("api-key", hmToken).param("hospitalId", "H002"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items", hasSize(1)));
     }
 
     private String createProject() throws Exception {
@@ -206,7 +206,9 @@ class ScoreSheetApiTest {
         mockMvc.perform(get(SS_BASE)
                         .header("api-key", hmToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)));
+                // D-050 第 7 點：列表回傳 { items }
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].scoreSheetId").exists());
     }
 
     @Test
@@ -217,7 +219,7 @@ class ScoreSheetApiTest {
         mockMvc.perform(get(SS_BASE)
                         .header("api-key", saToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(jsonPath("$.data.items", hasSize(1)));
     }
 
     // --- DETAIL ---
@@ -269,9 +271,11 @@ class ScoreSheetApiTest {
         mockMvc.perform(get(SS_BASE + "/" + ssId + "/sections")
                         .header("api-key", hmToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].sectionId").value("sec1"))
-                .andExpect(jsonPath("$.data[0].items", hasSize(1)));
+                // D-050 第 7 點：章節回傳 { scoreSheetId, sections }
+                .andExpect(jsonPath("$.data.scoreSheetId").value(ssId))
+                .andExpect(jsonPath("$.data.sections", hasSize(1)))
+                .andExpect(jsonPath("$.data.sections[0].sectionId").value("sec1"))
+                .andExpect(jsonPath("$.data.sections[0].items", hasSize(1)));
     }
 
     @Test
@@ -282,7 +286,9 @@ class ScoreSheetApiTest {
 
         mockMvc.perform(get(SS_BASE + "/" + ssId + "/sections")
                         .header("api-key", saToken))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.scoreSheetId").value(ssId))
+                .andExpect(jsonPath("$.data.sections").isArray());
     }
 
     // --- ENUM VALIDATION ---

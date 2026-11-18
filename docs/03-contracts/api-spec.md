@@ -606,8 +606,6 @@ Accept: application/json
 }
 ```
 
-> 程式現況（D-058 第 6 點）：`data` 直接是陣列，沒有包在 `items` 中，與 D-050 不一致，待後續修正程式。
-
 ---
 
 ## 8.6 查詢評分表章節
@@ -646,8 +644,6 @@ Accept: application/json
   }
 }
 ```
-
-> 程式現況（D-058 第 6 點）：`data` 直接是章節陣列，沒有 `scoreSheetId`，與 D-050 不一致，待後續修正程式。
 
 ---
 
