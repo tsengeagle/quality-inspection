@@ -260,6 +260,26 @@ class ScoreSheetApiTest {
                 .andExpect(jsonPath("$.data.published").value(false));
     }
 
+    @Test
+    void version_afterPublish_returnsPublishedVersionId() throws Exception {
+        // D-050 第 1 點：發布後 scoreSheetVersionId 有值，且與發布回傳的相同
+        String projectId = createProject();
+        String ssId = createScoreSheet(projectId);
+        addSectionToSheet(ssId);
+        MvcResult published = mockMvc.perform(post(SS_BASE + "/" + ssId + "/publish")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andReturn();
+        String versionId = objectMapper.readTree(published.getResponse().getContentAsString())
+                .at("/data/scoreSheetVersionId").asText();
+
+        mockMvc.perform(get(SS_BASE + "/" + ssId + "/version")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.published").value(true))
+                .andExpect(jsonPath("$.data.scoreSheetVersionId").value(versionId));
+    }
+
     // --- SECTIONS ---
 
     @Test
@@ -289,6 +309,37 @@ class ScoreSheetApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.scoreSheetId").value(ssId))
                 .andExpect(jsonPath("$.data.sections").isArray());
+    }
+
+    @Test
+    void sections_conditionalItem_returnsConditionExpression() throws Exception {
+        // requiredRule 為 CONDITIONAL 的題目，章節查詢要回傳 conditionExpression（api-spec §8.6）
+        String projectId = createProject();
+        String ssId = createScoreSheet(projectId);
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("itemId", "i1");
+        item.put("code", "C01");
+        item.put("title", "Conditional item");
+        item.put("scoreType", "FIXED");
+        item.put("maxScore", 10);
+        item.put("weight", 1);
+        item.put("requiredRule", "CONDITIONAL");
+        item.put("conditionExpression", "visitType == 'ER'");
+        Map<String, Object> section = new LinkedHashMap<>();
+        section.put("sectionId", "sec1");
+        section.put("title", "General");
+        section.put("items", List.of(item));
+        mockMvc.perform(put(SS_BASE + "/" + ssId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("addSections", List.of(section)))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(SS_BASE + "/" + ssId + "/sections")
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.sections[0].items[0].requiredRule").value("CONDITIONAL"))
+                .andExpect(jsonPath("$.data.sections[0].items[0].conditionExpression").value("visitType == 'ER'"));
     }
 
     // --- ENUM VALIDATION ---
