@@ -1,113 +1,171 @@
-# 專案現況（2026-11-12）
+# 專案現況（2026-11-18）
 
 這份文件是時間點快照。之後狀況改變時，更新本檔並修改標題日期。
 
-## 一、版本控制
+- 快照時間點：`main` 的 `6f1303f`（PR #71 合併後），2026-11-18；第一、三節另補上之後合併的 #72、#74（`main` 的 `6c055e8`）。
+- 本次改寫了第一到第九節；2026-11-12 版的內容在 git 歷史（本檔在 `6f1303f` 的版本）。2026-11-12 版列出、但這次沒有重新核對的項目，集中在第九節，沒有刪除。
+- 第十節是 2026-11-13～14 的閘門建置紀錄，原樣保留。
+- 數字都是這次實際執行或查詢的結果；「未驗證」的就寫未驗證。
 
-2026-11-13 更新（本節以外仍是 2026-11-12 的快照）：
+## 一、版本控制與進行中的 PR
 
-- `fix/imp01-submission-integrity` 的 12 個 commit 已由 PR #5 以 rebase 方式併入 `origin/main`（2026-11-12）。內容相同，commit 編號不同。
-- 本目錄的文件在 `main` 上，接在 PR #5 之後。
-- 2026-11-12 推送之前，`origin/main` 停在 2026-04-21，七個月的工作只存在本機。
+| PR | 內容 | 狀態 |
+|---|---|---|
+| #72 | 修法：新增 `frontend-check`，在 CI 執行前端 typecheck、單元測試、E2E | 已合併（`6c055e8`） |
+| #74 | 修法：登記第二支實體金鑰（YubiKey 5 Nano）為核准者 tsengeagle 的備援；核准者指引補上 Windows 注意事項 | 已合併 |
 
-## 二、測試
+除了本快照所在的 PR，其餘 PR 都已合併或關閉。合併一律用 merge commit；修法 PR 需要負責人以 SSH 金鑰對內容雜湊簽章（`law/README.md`）。
 
-`./gradlew test`（JDK 17；`build.gradle` 宣告 Java 11）：**812 個測試，14 個失敗，全部是已知原因**。
+## 二、頁面進度
 
-| 失敗 | 數量 | 原因 |
-|---|---:|---|
-| `UpdatedAtContractIntegrationTest` | 12 | D-037、D-038 尚未實作，屬於先寫的測試 |
-| `SubmitRereviewUseCaseTest`、`RereviewApiTest` | 2 | 測試要求複審提交不結案（D-032），程式仍直接結案 |
+17 頁中，10 頁有頁面規格也有前端。缺的 7 頁中，6 頁的後端 API 已存在；UI-005 只有「目前版本」的 API，缺頁面需要的版本清單。
 
-前端沒有跑過測試。
+| 模組 | 頁面 | 頁面規格 | 前端 | 後端 API |
+|---|---|:-:|:-:|:-:|
+| 專案與規則管理 | UI-001 專案列表、UI-002 專案詳情、UI-003 專案編輯、UI-004 評分表管理 | ✗ | ✗ | ✓ `/review-projects`、`/score-sheets` |
+| | UI-005 版本檢視 | ✗ | ✗ | 部分：只有 `GET /review-projects/{projectId}/version`、`GET /score-sheets/{id}/version`，回傳目前版本。頁面清冊要的 project／score sheet 版本清單沒有 API（清冊本身寫「建議後續補 version query API」） |
+| 抽選作業 | UI-006 抽選執行、UI-007 批次列表 | ✓ | ✓ | ✓ |
+| | UI-008 批次詳情 | ✗ | ✗（沒有 `batches/:batchId` route） | ✓ `GET /sampling-batches/{batchId}` |
+| 案件與審查作業 | UI-009 案件列表～UI-014 revision 歷程 | ✓ | ✓ | ✓ |
+| 查詢與報表 | UI-015 Dashboard | ✓（#70） | ✓（#71） | ✓ |
+| | UI-016 稽核查詢 | ✗ | ✗ | ✓ `/audit-trails`、`/lifecycle` |
+| | UI-017 報表匯出 | ✓（#68） | ✓（#69） | ✓ |
 
-本次新增的測試基礎設定：
+前端 route：`/sampling/*`、`/cases/*`、`/reports/dashboard`、`/reports/export`、`/demo`。整個「專案與規則管理」沒有前端，專案與評分表目前只能透過 API 建立。
 
-- 測試專用 profile（`application-test.yml`）：每個測試環境有自己的空 H2 資料庫，不載入示範資料。原因是測試原本跑在預設的 `local` profile，示範資料的 seed 造成 3 個筆數不符的失敗。
-- `ReviewCaseQueryApiTest` 原本暗中依賴示範用的醫師名單，改成自己準備資料。
+## 三、驗證閘門
 
-## 三、本次寫入的決策
+| 閘門 | 在 CI | 這次的結果 |
+|---|:-:|---|
+| 後端 `./gradlew check`（Linux、Windows） | ✓ `backend-check` | 2026-11-18 本機：958 個測試方法，失敗 0，已知失敗清單為空，跳過 0。含 ArchUnit 與凍結基線 |
+| 修法判決 `law-check`、`law-selftest` | ✓ | — |
+| 規格格式 `spec-check` | ✓ | `specs/review-project`、`specs/score-sheet` |
+| 前端 typecheck、Karma、Playwright | ✓ `frontend-check`（#72） | 2026-11-18 在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip。GitHub 上：#72 的 PR（`76cbd79`）結果相同；合併後 `main` 的第一次執行（`6c055e8`，run 44293068034）通過 |
+| Oracle | ✗ | V1～V5 與 Hibernate validate 在 Oracle XE 21c 驗證過（PR #55）。V6、SERIALIZABLE 匯出、儀表板的單一聚合查詢沒有在 Oracle 上跑過。負責人決定暫不加入 CI |
+| hosted（shell）模式 | ✗ | 從未驗證 |
 
-詳細內容以 `docs/01-requirements/decision-log.md` 為準，此處只列摘要。
+2026-11-12 時的 14 個已知失敗（D-037、D-038、D-032 未實作）已全數轉綠，清單已清空。
 
-| 決策 | 摘要 |
+## 四、近期的裁決與修法
+
+詳細內容以 `docs/01-requirements/decision-log.md` 為準。
+
+| 裁決 | 摘要 |
 |---|---|
-| D-037、D-038 | `updatedAt` 契約；相同內容重送回 409 `NO_CHANGES`。經本人確認 |
-| D-039 | 專案三個狀態；停用後可再啟用；草稿不能停用；重複操作回成功但不發 event |
-| D-040 | 院區取自登入者；名稱可重複；病歷類型至少一個；已發布後更新回 409；版本號規則 |
-| D-041 | 綁定的是評分表版本，發布前必須已綁定 |
-| D-042 | 院區一律取自登入者，適用範圍擴及專案與所有查詢、匯出 |
-| D-043 | `AUDITOR` 可讀專案詳情，回傳 11 個欄位 |
-| D-044 | 無變更的比較方式；前端把 `NO_CHANGES` 當成已是最新 |
-| D-045 | 併發改採樂觀鎖。因資料庫與 migration 工具未定，標為無法落地 |
-| D-046 | 品質線在草稿可為空，發布時必填，整數 1 到 10（暫定）；D-031 的 null 分支保留 |
-| D-047 | `SYSTEM_ADMIN` 讀取一律跨院區；權重和品質線走同一個輸入管道，數值規則維持 D-020 |
+| D-048 | 後端採 DDD 加 CQRS；查詢經 application 的查詢埠 |
+| D-049 | 已發布版本再次發布的錯誤代碼；更新草稿時沒給的權重回預設 |
+| D-050 | 評分表的版本、建立、更新、發布與查詢 |
+| D-051 | `REVIEWER`／`REREVIEWER` 不能讀取專案與抽選批次 |
+| D-052 | 備援核准金鑰的修法（PR #33）破例以人工審查取代簽章 |
+| D-053 | 複審結案命令的 API 與錯誤代碼 |
+| D-054 | 初審固定的 API 與錯誤代碼 |
+| D-055 | 以複審指派歷史證明「不是歷史複審醫師」；匯出逐案分數的遮罩 |
+| D-056 | 匯出請求格式以程式為準 |
+| D-057 | 匯出依案件建立時間過濾、區間必填、逐案資料列分頁；儀表板區間選填 |
 
-## 四、spec-draft
+2026-11-16～17 的修法紀錄（`law/amendments/`）：Flyway 導入（step1、step3）、D-055 複審指派歷史、D-054／D-055 文件同步、匯出請求格式、D-057、UI-017 頁面規格（#68）、UI-015 頁面規格（#70）。
 
-- `spec-draft/review-project/`：52 條 `decided`、1 條 `proposed`（RP-PUB-01 的錯誤代碼）。
-- 只涵蓋 ReviewProject 一個 aggregate 的 6 支 use case。
-- 還沒有執行器，範例不能跑。
+後端本輪的重點變更：
 
-## 五、本次修改的程式
+- Flyway migration V1～V6；V6 新增 `review_case.created_at`。
+- 匯出在 SERIALIZABLE 交易中讀取，摘要與資料列是同一份快照。
+- 儀表板以單一聚合查詢算出 4 個數字（#67）。
+- 找不到資源時回 `*_NOT_FOUND` 錯誤代碼（#59）。
 
-九支 use case 補上院區範圍檢查（D-042、D-047）：
+## 五、已知缺口與技術債
 
-| Use case | 修法 |
-|---|---|
-| 改派複審醫師、抽選預覽、匯出抽選結果 | 載入後檢查登入者院區 |
-| 抽選批次詳情、案件生命週期、複審修訂歷程 | 同上，`SYSTEM_ADMIN` 例外 |
-| 案件列表、稽核軌跡列表、抽選批次列表 | 院區一律取登入者的；`SYSTEM_ADMIN` 可用參數縮小範圍 |
+| # | 項目 | 類型 | 狀態 |
+|---|---|---|---|
+| 1 | 身分就緒：hosted 模式下 shell 分別送出使用者、角色清單、目前角色（`TOPIC_USER_INFO`、`TOPIC_USER_ROLES`、`TOPIC_CURR_ROLE`），切換身分的中間狀態可能是「新使用者＋舊角色」。UI-015 已在身分未解析或不持有報表角色時停用查詢，但這個中間狀態仍會通過 | 前端共用層（`core/actor-context`） | 需先確認 shell 送出事件的順序、有沒有「切換完成」的訊號（PR #71 Copilot 第三則意見） |
+| 2 | UI-017 匯出頁的查詢與下載按鈕，沒有「持有報表角色」的判斷（UI-015 在 #71 已補） | 前端缺陷，已合併 | 併入第 1 項一起處理 |
+| 3 | domain 內 15 處無參數的 `LocalDateTime.now()`（`ReviewCase` 6 處、`ReviewSubmission` 9 處）：用伺服器預設時區，且繞過注入的 `Clock` | 架構債 | 在 ARCH-02 凍結基線內；`closedAt` 因此在匯出頁標示為伺服器時間。改為 UTC `Instant` 需先裁決 |
+| 4 | api-spec 的路徑與程式不一致：13.2 `/revisions` vs 程式 `/revision-history`；13.1 `/review-cases/{caseId}/submissions/{id}` vs `/review-submissions/{id}`；11.3 提交的路徑 | 契約漂移 | 盤點時看到，**尚未逐一核對** |
+| 5 | standalone 模式沒有 Bootstrap 樣式、空狀態插圖不會載入（shell 提供的資產，依 GOV-CSS-002／GOV-BND-003 不另外載入） | 開發／demo 體驗 | 待負責人決定 |
+| 6 | 「無權限」區塊不是共用元件（UI-015、UI-017 各寫一份） | 前端重用 | 待負責人決定 |
+| 7 | UI-015 的「評分分布」不在範圍內：API 沒有分數欄位 | 功能 | 需先裁決後端契約與遮罩規則 |
+| 8 | 正式環境是否使用 Hibernate `validate` | 維運 | 負責人決定延後 |
 
-連帶修改：
+## 六、待負責人決定
 
-- `ActorContext` 新增 `requireReadScope`、`readScopeHospitalId`。
-- `ReviewReadAccessPolicy` 原本連 `SYSTEM_ADMIN` 也檢查院區，已依 D-047 放寬。這是盲審防護的程式，值得人工複看。
-- 抽選批次沒有自己的院區欄位，改成透過所屬專案的院區過濾。
+- 第五節第 1 項：shell 的事件順序（需要 shell 負責人提供）。
+- 第五節第 3、5、6、7、8 項。
+- Oracle 驗證是否加入 CI（目前決定暫不加入）。
 
-## 六、待人決定
+## 七、建議的下一步
 
-| 題目 | 現有建議 |
-|---|---|
-| 唯一的 law 已裁決放在 `/specs`；格式、與 `decision-log` 的關係、`docs/` 與 `openspec/` 的去留仍待定 | 見 `03-harness-plan.md` 第二節 |
-| 正式資料庫與 migration 工具 | 無依據可建議；D-045 與「測試跑真實資料庫」都卡在這裡 |
-| RP-PUB-01：對已發布版本再次發布的錯誤代碼 | 409，與現行測試一致 |
-| 初審總分的量尺 | 文件範例的品質線是 80，與 D-046 的 1 到 10 不一致，需確認總分是幾分制 |
-| `REVIEWER`、`REREVIEWER` 能否看專案 | 先不開放 |
-| 綁定時是否要求評分表版本存在且已發布 | 要求 |
-| 參考 repo 的授權條款 | 複製腳本或文件前先確認 |
-| D-037 的原始決策日期 | 不明，目前只加註「2026-11-12 再次確認」 |
+依序：
 
-## 七、程式與決策不符之處
-
-- D-039：程式把停用當終點；重複啟用仍發 event。
-- D-041：程式綁定的是評分表 id，且到啟用時才檢查。
-- D-043：程式拒絕 `AUDITOR` 讀專案詳情。
-- D-046、D-047：品質線與權重沒有任何輸入管道，正常操作建出的專案品質線是 null。
-- D-031、D-032、D-034、DD-03：已接受但尚未實作。「固定」「結案」的 use case 名稱與 API 在文件裡仍是 `UNKNOWN`，要先補設計。
-- D-037、D-038：尚未實作（對應 12 個紅燈測試）。
-- `GetRereviewRevisionHistoryUseCase` 沒有角色檢查，任何角色都可查。本次只補了院區。
-- D-042 在報表與匯出的缺口：2026-11-14 以 `ReportHospitalScopeIntegrationTest` 對真實資料庫確認（H001 的 `HOSPITAL_MANAGER` 看得到 H002 的資料），同日修正：`DashboardQueryService` 與 `ExportQueryService` 改用 `actor.readScopeHospitalId(...)`，四個測試轉綠並從 `known-test-failures.txt` 移除。這是止血；兩支服務仍在 `reporting`，依 D-048 之後要搬進 `application` 的查詢側。api-gateway 是否另外擋，仍未確認。
+1. 逐一核對第五節第 4 項的 api-spec 路徑。先做，避免之後的前端照錯的路徑實作。
+2. 專案與規則管理（UI-001～005）：補上流程的起點。先寫頁面規格，再實作前端。UI-005 需要先補版本清單 API（見第二節）。
+3. 身分就緒（第五節第 1、2 項）：確認 shell 行為後開始。
+4. 之後是 UI-008、UI-016、時間欄位的裁決，以及 standalone 模式的決定。
 
 ## 八、尚未驗證的事
 
-- 抽選批次列表的院區過濾，只有單元測試驗到參數傳遞，沒有對真實資料庫跑過跨院區的案例。
-- api-gateway 是否另外擋院區，不清楚。
-- 前端從未測試。前端是否把 `NO_CHANGES` 當成已是最新（D-044），未確認。
-- `design-implementation-gap-2026-11-11.md` 未經人工複核。集合比對的部分可信度較高；「決策是否落地」只確認了存在，沒驗證行為。
-- 本機的建置環境與宣告不一致：宣告 Java 11，實際用 17 跑。Spring Boot 2.7 已停止維護。
+- hosted（shell）模式從未實際執行：版面、`system-container`／`system-block` 的呈現、身分切換。
+- 前端 E2E 都以 mock API 執行；standalone 模式固定為 `HOSPITAL_MANAGER`，其他角色只由單元測試涵蓋。
+- V6、SERIALIZABLE 匯出、儀表板聚合查詢在 Oracle 上的行為。
+- api-gateway 是否另外擋院區（2026-11-12 即列為未確認，這次沒有重新核對）。
+- `frontend-check` 沒有設為必要檢查。`check`、`law-check`、`law-selftest` 依 `03-harness-plan.md` 也尚未設為必要檢查；這次沒有在 GitHub 的設定頁重新核對。runner 固定 `ubuntu-24.04`，因為 `ubuntu-latest`（26.04）不被 lockfile 的 Playwright 1.59.1 支援。
+- 第二支實體金鑰（#74）尚未在 GitHub 上簽過修法。
 
-## 九、已知的結構問題
+## 九、2026-11-12 快照遺留的項目
 
-取自 gap 報告，數字是報告當時的統計。
+以下逐條列出 2026-11-12 版第六到第九節的**全部**項目，保留當時的數字。標「已處理」或「仍成立」的附上這次的依據；其餘這次**沒有重新核對**，不代表仍成立或已解決。
 
-- 沒有 CI（`.github/` 底下沒有 workflows）、沒有 lint。
-- 沒有 migration、沒有樂觀鎖、索引為 0，測試只跑 H2。
-- 3 處分層違規；12 個檔案直接取系統時間或亂數 id；15 處 `IllegalArgumentException`。
-- 68 個 `EX-` 範例與 97 個 `TS-` 情境，在測試中的引用數是 0。
-- 15 支 use case、28 個錯誤代碼只存在程式裡，文件沒有。
+### 原第六節：待人決定
 
-## 十、harness 進度
+| 項目（2026-11-12 原文摘要） | 這次的狀態 |
+|---|---|
+| 唯一的 law 放在 `/specs`；格式、與 `decision-log` 的關係、`docs/` 與 `openspec/` 的去留仍待定 | 部分處理：`specs/` 已有格式 v1（`10-spec-format.md`），含 `review-project`、`score-sheet`。與 `decision-log` 的關係、`openspec/` 的去留未重新核對 |
+| 正式資料庫與 migration 工具 | 已處理：Oracle 與 Flyway（D-045、PR #55） |
+| RP-PUB-01：對已發布版本再次發布的錯誤代碼 | 已處理：D-049 |
+| 初審總分的量尺（範例品質線 80 與 D-046 的 1～10 不一致） | 未重新核對 |
+| `REVIEWER`、`REREVIEWER` 能否看專案 | 已處理：D-051 |
+| 綁定時是否要求評分表版本存在且已發布 | 未重新核對（相關裁決 D-041、D-050） |
+| 參考 repo 的授權條款 | 未重新核對 |
+| D-037 的原始決策日期 | 未重新核對 |
+
+### 原第七節：程式與決策不符之處
+
+| 項目（2026-11-12 原文摘要） | 這次的狀態 |
+|---|---|
+| D-039：程式把停用當終點；重複啟用仍發 event | 未重新核對 |
+| D-041：程式綁定評分表 id，且到啟用時才檢查 | 未重新核對 |
+| D-043：程式拒絕 `AUDITOR` 讀專案詳情 | 未重新核對 |
+| D-046、D-047：品質線與權重沒有輸入管道 | 未重新核對 |
+| D-031、D-032、D-034、DD-03 已接受但未實作；「固定」「結案」的 use case 與 API 仍是 `UNKNOWN` | 部分處理：複審結案（D-053）與初審固定（D-054）已定案並實作；D-032 的紅燈測試已轉綠。D-031、D-034、DD-03 未重新核對 |
+| D-037、D-038 未實作（12 個紅燈測試） | 已處理：已知失敗清單已清空 |
+| `GetRereviewRevisionHistoryUseCase` 沒有角色檢查 | 未重新核對 |
+| D-042 在報表與匯出的缺口（2026-11-14 已止血）；兩支服務仍在 `reporting`，依 D-048 之後要搬進 `application` 的查詢側 | 仍成立：`DashboardQueryService`、`ExportQueryService` 仍在 `reporting` 套件（ARCH-05 過渡規則：只能依賴 `application.common`）。api-gateway 是否另外擋，未重新核對 |
+
+### 原第八節：尚未驗證的事
+
+| 項目（2026-11-12 原文摘要） | 這次的狀態 |
+|---|---|
+| 抽選批次列表的院區過濾，沒有對真實資料庫跑過跨院區案例 | 未重新核對 |
+| api-gateway 是否另外擋院區 | 未重新核對（同第八節） |
+| 前端從未測試 | 已處理：見第三節 |
+| 前端是否把 `NO_CHANGES` 當成已是最新（D-044） | 未重新核對 |
+| `design-implementation-gap-2026-11-11.md` 未經人工複核 | 未重新核對 |
+| 宣告 Java 11、實際用 17；Spring Boot 2.7 已停止維護 | 未重新核對 |
+
+### 原第九節：已知的結構問題（數字是 gap 報告當時的統計）
+
+| 項目（2026-11-12 原文摘要） | 這次的狀態 |
+|---|---|
+| 沒有 CI（`.github/` 底下沒有 workflows）、沒有 lint | CI 已處理（第三節）；lint 仍未設定 |
+| 沒有 migration、沒有樂觀鎖 | 已處理：Flyway V1～V6、D-045 樂觀鎖 |
+| 索引為 0 | 部分處理：V5 新增 2 個、V6 新增 1 個索引。其餘查詢是否需要索引未重新核對 |
+| 測試只跑 H2 | 仍成立：CI 只跑 H2；Oracle 只在 PR #55 手動驗證過 V1～V5 |
+| 3 處分層違規；12 個檔案直接取系統時間或亂數 id；15 處 `IllegalArgumentException` | 仍在 ArchUnit 凍結基線內（只擋新增），數字未重新統計。其中 domain 取系統時間的部分見第五節第 3 項 |
+| 68 個 `EX-` 範例與 97 個 `TS-` 情境在測試中的引用數是 0 | 未重新核對（之後有驗收範例的執行器，見 `11-example-runner.md`） |
+| 15 支 use case、28 個錯誤代碼只存在程式裡，文件沒有 | 未重新核對 |
+
+## 十、harness 進度（2026-11-13～14 的建置紀錄）
+
+本節保留 2026-11-13～14 建立閘門時的紀錄，其他文件以「第十節」引用。之後閘門的現況見第三節。
+
 
 2026-11-13：P1 的閘門已建立，路徑都在 `services/quality-inspection-service/` 底下。同日接著做了 P6 的檔案部分與 P2，見本節末尾「P6 與 P2」。下一步是在 GitHub 上設定 main 的保護規則，然後是 P10。
 
