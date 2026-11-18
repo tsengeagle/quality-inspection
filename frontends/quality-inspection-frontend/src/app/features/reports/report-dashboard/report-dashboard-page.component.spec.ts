@@ -293,6 +293,9 @@ describe('ReportDashboardPageComponent (UI-015)', () => {
       create();
       expect(dashboardService.fetchSummary).not.toHaveBeenCalled();
       expect(text('dashboard-idle')).toBe('請按查詢');
+      expect(button('dashboard-query').disabled).toBeTrue();
+      component.query();
+      expect(dashboardService.fetchSummary).not.toHaveBeenCalled();
 
       actor.setContext({ userId: 'U-1', hospitalId: 'H001', roles: ['HOSPITAL_MANAGER'], currentRole: 'HOSPITAL_MANAGER' });
       fixture.detectChanges();
@@ -307,6 +310,9 @@ describe('ReportDashboardPageComponent (UI-015)', () => {
       expect(dashboardService.fetchSummary).toHaveBeenCalledTimes(1);
       expect(component.summary).toBeNull();
       expect(text('dashboard-idle')).toBe('請按查詢');
+      expect(button('dashboard-query').disabled).toBeTrue();
+      component.query();
+      expect(dashboardService.fetchSummary).toHaveBeenCalledTimes(1);
     });
 
     it('does not re-query with an invalid range after the identity changes', () => {

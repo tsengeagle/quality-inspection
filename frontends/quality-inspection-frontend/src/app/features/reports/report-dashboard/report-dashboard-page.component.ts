@@ -73,6 +73,8 @@ export class ReportDashboardPageComponent implements OnInit, OnDestroy {
   form: DashboardForm = { startDate: '', endDate: '', projectId: '', hospitalId: '' };
 
   isSystemAdmin = false;
+  /** 目前 context 已解析且持有報表角色；手動與自動查詢都以此為前提。 */
+  reportAuthorized = false;
   status: DashboardPageStatus = 'idle';
   summary: DashboardSummary | null = null;
   errorMessage = '';
@@ -124,7 +126,7 @@ export class ReportDashboardPageComponent implements OnInit, OnDestroy {
 
   get canQuery(): boolean {
     const state = this.rangeState;
-    return (state === 'none' || state === 'valid') && !this.controlsLocked;
+    return this.reportAuthorized && (state === 'none' || state === 'valid') && !this.controlsLocked;
   }
 
   get rangeLabel(): string {
@@ -197,6 +199,7 @@ export class ReportDashboardPageComponent implements OnInit, OnDestroy {
    */
   private applyActorContext(context: ActorContext): void {
     this.isSystemAdmin = this.accessControlService.hasAnyRole('SYSTEM_ADMIN', context);
+    this.reportAuthorized = this.canAutoQuery(context);
     const key = JSON.stringify([
       context.userId, context.hospitalId, context.currentRole, [...context.roles].sort()
     ]);
@@ -217,7 +220,7 @@ export class ReportDashboardPageComponent implements OnInit, OnDestroy {
     if (first || changed) {
       // hosted 模式下 shell 的使用者、角色清單、目前角色是分開送達的：
       // 身分尚未解析完成、或不持有報表角色時不送查詢，等下一次 context 更新再查。
-      if (this.canAutoQuery(context)) {
+      if (this.reportAuthorized) {
         this.query();
       } else {
         this.status = 'idle';
