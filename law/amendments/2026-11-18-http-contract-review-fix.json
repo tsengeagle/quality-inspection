@@ -1,0 +1,9 @@
+{
+  "id": "2026-11-18-http-contract-review-fix",
+  "decision": "none",
+  "reason": "修正 2026-11-18-http-contract-trial（#93）的比對器，回應 #93 的 review（Copilot 2 項、Codex 1 項；#93 在修正推上去之前已合併）。(1) 契約形狀無效時（例如 [] 或未加引號的 true），JsonShape.check 不再丟例外而是記為無法比對；HttpContractReport 在比對中斷時仍寫出本次結果並判為不符合，不會留下上一次的報告。(2) 比對用的 ObjectMapper 啟用 FAIL_ON_TRAILING_TOKENS，本文不是單一 JSON 文件時列為問題。測試先寫：新增 3 個（HttpContractEvaluatorTest 2 個、HttpContractReportTest 1 個），修正前 2 個 ClassCastException、1 個沒有抓到；修正後通過。後端全套 984 個方法、1250 次執行、0 失敗；現行程式的報告仍為契約範圍內 71 次觀察、問題 0。試做仍只列出、不擋。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/"
+  ]
+}

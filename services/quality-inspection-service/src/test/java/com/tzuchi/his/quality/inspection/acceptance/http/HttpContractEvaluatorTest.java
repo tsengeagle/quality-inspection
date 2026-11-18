@@ -287,4 +287,26 @@ class HttpContractEvaluatorTest {
         assertTrue(c.loadProblems().stream().anyMatch(p -> p.contains("重複的端點 GET /things/{}")),
                 c.loadProblems().toString());
     }
+
+    // ---------- Copilot review（#93）----------
+
+    @Test
+    void trailingJsonAfterTheBodyIsAViolation() {
+        HttpContractEvaluator e = fullyCovered(contract());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, GOOD_THING + "[]"));
+        assertProblem(e, "GET /things/{thingId}");
+        assertProblem(e, "回應不是單一 JSON 文件");
+    }
+
+    @Test
+    void invalidShapesAreLoadProblemsAndObservingNeverThrows() {
+        String broken = HTTP.replace("      data: { thingId: id, parts: [ { partId: id } ] }", "      data: { thingId: id, parts: [] }")
+                .replace("count: int", "count: true");
+        HttpContract c = contract(broken, USECASES);
+        assertTrue(c.loadProblems().stream().anyMatch(p -> p.contains("陣列的形狀必須剛好一個元素")), c.loadProblems().toString());
+        assertTrue(c.loadProblems().stream().anyMatch(p -> p.contains("形狀必須是對應表、清單或字串")), c.loadProblems().toString());
+        HttpContractEvaluator e = fullyCovered(c);
+        e.observe(new HttpObservation("GET", "/things/T1/parts", 200, GOOD_PARTS));
+        assertTrue(e.problems().containsAll(c.loadProblems()), e.problems().toString());
+    }
 }

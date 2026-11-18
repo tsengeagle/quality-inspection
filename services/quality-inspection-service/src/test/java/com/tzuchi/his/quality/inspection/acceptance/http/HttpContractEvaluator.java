@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.acceptance.http;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -24,7 +25,8 @@ import java.util.Set;
  */
 public final class HttpContractEvaluator {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    /** 本文必須剛好是一個 JSON 文件：Jackson 2.x 預設不檢查第一個根值之後還有沒有東西。 */
+    private static final ObjectMapper JSON = new ObjectMapper().enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
 
     private final HttpContract contract;
     private final Map<String, Integer> problems = new LinkedHashMap<>();   // 問題 -> 次數
@@ -56,7 +58,7 @@ public final class HttpContractEvaluator {
             body = null;
         }
         if (body == null || body.isMissingNode()) {
-            add(where + "：回應不是 JSON");
+            add(where + "：回應不是單一 JSON 文件");
             return;
         }
         List<String> out = new ArrayList<>();
