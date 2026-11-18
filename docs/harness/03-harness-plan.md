@@ -74,20 +74,20 @@
 
 ## 三、十條義務對照
 
-現況欄是 2026-11-12 的狀況。
+現況欄是 2026-11-12 的狀況；P1、P4、P6、P9、P10 於 2026-11-18 更新（必要檢查生效、及格線在 PR 上驗證，見第六節「及格線的驗證紀錄」）。
 
 | 義務 | 在本專案用什麼落實 | 現況 |
 |---|---|---|
-| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋；CI 尚未設為必要檢查。證據見 `05-current-state.md` 第十節 |
+| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋。2026-11-18：`check` 是 `main` 的必要檢查；#87 在 PR 上手寫分層違規，`check` 失敗（ARCH-01、ARCH-04），PR 無法合併 |
 | P2 manifestation | 每條架構規則配一個故意違規的樣本 | 2026-11-13：ARCH-01 到 ARCH-04 都有違規樣本與合規對照；把四條規則改成永遠通過後，樣本測試全部失敗。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄 |
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
-| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ `harness-core/law_check.py` 會擋修法 PR 夾帶程式修改；`law-check` 已在 GitHub 上判決過建構 PR（#10）與修法 PR（#11、#15）。尚未設為必要檢查，紅燈仍可合併 |
+| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ `harness-core/law_check.py` 會擋修法 PR 夾帶程式修改；`law-check` 已在 GitHub 上判決過建構 PR（#10）與修法 PR（#11、#15）。2026-11-18 起是必要檢查，紅燈不能合併（#88） |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
-| P6 tradition-bearer | 修法要有負責人的簽章；核准者清單讀合併目標分支上的版本 | ⚠️ 2026-11-14 啟用並驗收：沒有簽章的修法被 `law-check` 擋下，負責人用 YubiKey 簽章後通過（PR #15）。限制：`law-check` 尚未設為必要檢查，紅燈仍可合併；只登記了一把金鑰；簽章只證明持有金鑰的人同意，不證明看過內容。CODEOWNERS 只保留形式（`07-github-settings.md` 第二節） |
+| P6 tradition-bearer | 修法要有負責人的簽章；核准者清單讀合併目標分支上的版本 | ⚠️ 2026-11-14 啟用並驗收：沒有簽章的修法被 `law-check` 擋下，負責人用 YubiKey 簽章後通過（PR #15）。2026-11-18：`law-check` 是必要檢查；#88 的修法紀錄完整但沒有簽章，`law-check` 只有簽章一項未通過，PR 無法合併。核准者登記了兩支實體金鑰上的三把金鑰（第二支尚未在 GitHub 上簽過修法）。限制：簽章只證明持有金鑰的人同意，不證明看過內容。CODEOWNERS 只保留形式（`07-github-settings.md` 第二節） |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
 | P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
-| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 2026-11-14 已裁決：三項必要檢查、不留繞過權限；GitHub 上的設定尚未確認完成。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
-| P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | 有範例，還不能執行 |
+| P9 scaffolding | CI 檢查設為必要，不可跳過 | 2026-11-18：ruleset `main*` 生效，`check`、`law-check`、`law-selftest`、`frontend-check` 為必要檢查，分支須與 `main` 同步，只允許 merge commit；紅燈時 repo 管理員也不能合併（#77 驗證 `frontend-check`；#87、#88、#89 由 API 看到 `mergeable_state: blocked`）。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
+| P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | ⚠️ 範例可執行（`11-example-runner.md`）：2026-11-18 共 74 個（review-project 38、score-sheet 36），全部通過；#89 新增規則與範例、不改程式，`check` 失敗。只涵蓋 2 個 aggregate，且只執行到 use case 層，HTTP 回應格式不在範例內（見 `12-escaped-defects.md`） |
 
 之後每加一個機制就更新這張表。寫不出證據的列標 ⚠️，照實留著。
 
@@ -144,7 +144,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 ## 六、分期與進度
 
-狀態欄是 2026-11-14 傍晚的狀況（PR #15 合併之後）。之後每完成一期就更新這張表。
+狀態欄是 2026-11-14 傍晚的狀況（PR #15 合併之後），第 2、4 期與下方兩張表於 2026-11-18 更新。之後每完成一期就更新這張表。
 
 主線共 7 期。先做 P1、P6、P2，其他義務都建立在它們上面。第 2 期原本是「CODEOWNERS 加 branch protection」；單人 repo 無法自我核准（見 `07-github-settings.md` 第二節），改由修法機制取代，拆成 4 個子期（設計見 `08-legislation-design.md`）。
 
@@ -157,14 +157,14 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
 | 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
 | 3 | 每條規則配一組違規樣本 | P2 | 完成，已進 `main`（PR #7、#8） |
-| 4 | 讓 `specs/*/examples.yaml` 變成可執行的測試 | P10 | 執行器完成（2026-11-15，`11-example-runner.md`）。ReviewProject 30 個範例 2 個通過，28 個列入已知失敗清單；後續由建構 PR 逐一變綠 |
+| 4 | 讓 `specs/*/examples.yaml` 變成可執行的測試 | P10 | 執行器完成（2026-11-15，`11-example-runner.md`）。2026-11-18：74 個範例全部通過，已知失敗清單為空。未涵蓋的 aggregate（ReviewCase、抽選、稽核、報表）沒有範例 |
 | 5 | 維護義務對照表（本文件第三節） | 全部 | 持續進行 |
 | 6 | 把在地傳統寫成模式語言：先挑一支範本 use case，為它涉及的每個模式補齊準則、範本、禁則 | P3 | 未動工。D-048 的 CQRS 閘門規則屬於這一期。這是 P3 的主體，不是可有可無的便利功能 |
 | 7 | 「AI 依規格逐步產生程式」的工作流程（相當於 `/execute-uc`） | — | 未動工，排在最後。論文把工作流程歸在律法，它決定生成的順序；harness 只負責在閘門沒過時不讓它結束 |
 
-接下來的順序（2026-11-14 的建議，尚未裁決）：
+接下來的順序（2026-11-14 的建議，尚未裁決；2026-11-18 更新各項狀態）：
 
-1. 把 `check`、`law-check`、`law-selftest` 設為必要檢查。沒有這一步，簽章機制只有「看得見」，沒有「擋得住」。
+1. 把 `check`、`law-check`、`law-selftest` 設為必要檢查：已完成（2026-11-18，另加 `frontend-check`）。
 2. 登記備援金鑰：已完成（2026-11-15 同一支金鑰上的 resident 金鑰；2026-11-18 第二支實體金鑰，PR #74）。
 3. 盤點律法清冊：已盤點（`09-law-inventory.md`），缺口尚未補進清冊。2026-11-14 裁決：測試與規格要列為律法，但要等 `/specs` 格式完整、問題側規格穩定之後才生效。
 4. 把 `harness-core/` 拆成獨立的 repo，接著做 2-3（GitLab）。
@@ -175,13 +175,45 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 項目 | 狀態 |
 |---|---|
 | 合併 PR #6、PR #7 | 完成（2026-11-14）。PR #7 當時合併進了 `harness/p1-gate` 而不是 `main`，由 PR #8 補進；PR #9 是三項修正 |
-| GitHub 設定：把 `check`、`law-check`、`law-selftest` 設為必要檢查，不留繞過權限，禁止 force push | 2026-11-14 已裁決，要手動做。步驟在 `07-github-settings.md` 第一節；檢查本身壞掉時的處置在第四節 |
+| GitHub 設定：把 `check`、`law-check`、`law-selftest` 設為必要檢查，不留繞過權限，禁止 force push | 已完成（2026-11-18，#75、#78、#79；另加 `frontend-check`）。步驟在 `07-github-settings.md` 第一節；檢查本身壞掉時的處置在第四節 |
 | `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 格式 v1 已定（2026-11-15，`specs/README.md`，決定見 `10-spec-format.md`），由 `spec-check` 機械檢查。ReviewProject 2026-11-15 升格到 `specs/review-project/`（裁決 D-049） |
 | `reporting` 搬進 `application` 的查詢側（D-048） | 未動工 |
 | 測試分級：本機跑快的，CI 跑全套 | P7，未排期 |
 | 一組不交給建構者的獨立測試 | 未排期 |
 | 正式資料庫與 migration 工具 | 未決定。卡住樂觀鎖（D-045）與「測試跑真實資料庫」 |
-| 驗證 harness 本身（`04-definition-of-enough.md` 的及格線四項） | 第 1 項（手寫違規 CI 紅燈）本機通過，尚未在 PR 上做；第 2 項（改 law 沒有核准就無法合併）**只達成一部分**：PR #15 驗證了「沒有簽章時 `law-check` 判定未通過、簽章後通過」，形式是簽章而不是 code owner 核准；但 `law-check` 還不是必要檢查，紅燈仍可合併，所以「無法合併」這個要求還沒達成，要等必要檢查與不留繞過權限的設定生效並實際試過一次；第 3 項（弄壞偵測器樣本失敗）本機通過；第 4 項（改需求、不改程式，驗收變紅）本機通過（2026-11-15，`11-example-runner.md` 第三節），尚未在 PR 上做 |
+| 驗證 harness 本身（`04-definition-of-enough.md` 的及格線四項） | 2026-11-18 四項都已在 PR 上驗證，見下方「及格線的驗證紀錄」。第 2 項的形式是簽章加必要檢查，不是 code owner 核准 |
+
+### 及格線的驗證紀錄（2026-11-18）
+
+三個驗證用 PR 都以 `main` 的 `3fa719e` 為基礎，本機先重現失敗再推送，記錄結果後關閉，未合併、未簽章。
+
+| 項 | PR | 做法 | `check` | `law-check` | 合併狀態 | 結論 |
+|---|---|---|---|---|---|---|
+| 1 手寫違規 | #87 | 在 `interfaces/rest` 新增類別，直接使用 `infrastructure.id.UuidIdGenerator` | 失敗：`ArchitectureRulesTest#arch01LayerDependencies`、`LayerImportRuleTest#arch04_mainSourcesMatchFrozenBaseline` 不在已知失敗清單上（Linux 與 Windows 都失敗） | 通過（建構 PR） | `blocked` | 通過 |
+| 2 改律法沒有核准 | #88 | 修改 `decision-log.md`，附格式完整的修法紀錄，不附簽章 | 通過 | 失敗：其餘 9 項通過，只有「有 1 個有效的核准簽章：有效 0 個」未通過 | `blocked` | 通過 |
+| 3 弄壞偵測器 | — | 沒有另開 PR；2026-11-13 本機驗證過（`05-current-state.md` 第十節），樣本測試在每次 `check` 都執行 | — | — | — | 沿用本機紀錄 |
+| 4 改需求不改程式 | #89 | 在 `specs/review-project` 新增假想規則 `RP-CRT-04`（名稱超過 20 字要拒絕）與一個範例 | 失敗：`AcceptanceExamplesTest#review-project/rejects_a_project_name_longer_than_20_characters` 不在已知失敗清單上 | 失敗（`specs/` 是律法，沒有簽章；不是本項驗證的對象） | `blocked` | 通過 |
+
+限制：
+
+- 合併狀態是由 GitHub API 讀到的 `mergeable_state`，沒有另外開 PR 頁面看合併按鈕。#77 曾在頁面上確認紅燈時按鈕無法使用。
+- 及格線只證明「最小可用」。之後的指標是漏網率（`04-definition-of-enough.md` 第二節），漏網紀錄見 `12-escaped-defects.md`。
+
+### 待裁決：未立法的問題側先停下來（2026-11-18 提案）
+
+起因：2026-11-18 發現的 3 個缺陷都落在可執行律法照不到的地方（`12-escaped-defects.md`）。原本的計畫是先拿少量 aggregate 驗證 harness，但之後的實作逐漸延伸到未立法的範圍，而且沒有任何機制提醒這件事。
+
+提案：
+
+| 元件 | 內容 | 類別 |
+|---|---|---|
+| 涵蓋清單 | 程式路徑對應到 aggregate，標記「已立法」或「未立法（暫准）」。現有未立法範圍全部列為暫准，之後每立法一個 aggregate 就移除 | 律法（gate），修改要簽章 |
+| 判決 | PR 改到暫准範圍：通過，報告列出「本 PR 改了未立法的 X」；改到清單以外的新範圍：失敗，要先立法或以修法把它加進清單 | 閘門 |
+| AI 指示 | 動到未立法的問題側之前先停下來，向負責人說明「這裡沒有律法，要先立法，還是暫准實作」 | 傳統（2-4 期） |
+
+待負責人決定：要不要做；強度（只提醒，或擋新增，提案是擋新增）；「問題側」的邊界（提案：`domain`、`application`、`interfaces` 的 REST 契約；前端頁面行為目前由 `docs/05-ui` 規範，是否納入待定）。
+
+這個機制擋不到的：已立法 aggregate 的介面層缺口（範例只到 use case 層），以及 `/specs` 以外的裁決變更。前者要把回應格式納入範例或另做比對閘門；後者要靠擴大立法範圍。
 
 2-2 的簽章方案：判決程式做成可抽換，核准檔帶 `scheme` 欄位，每種方案一個驗證器。已實作並啟用的是「SSH 簽章加實體金鑰」。其次是「X.509 加自然人憑證」，要先查證憑證內的個資、到期與廢止、命令列環境三件事；OpenPGP 視需要；檔案金鑰不建議當核准用。
 
