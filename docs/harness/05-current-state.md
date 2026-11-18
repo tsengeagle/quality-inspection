@@ -3,6 +3,7 @@
 這份文件是時間點快照。之後狀況改變時，更新本檔並修改標題日期。
 
 - 快照時間點：`main` 的 `6f1303f`（PR #71 合併後），2026-11-18；第一、三節另補上之後合併的 #72、#74（`main` 的 `6c055e8`）。
+- 同日晚間更新：第一、三、五、七、九節更新到 `main` 的 `2feb5bf`（PR #85 合併後），反映 #75～#85。第二節（頁面進度）沒有變化。
 - 本次改寫了第一到第九節；2026-11-12 版的內容在 git 歷史（本檔在 `6f1303f` 的版本）。2026-11-12 版列出、但這次沒有重新核對的項目，集中在第九節，沒有刪除。
 - 第十節是 2026-11-13～14 的閘門建置紀錄，原樣保留。
 - 數字都是這次實際執行或查詢的結果；「未驗證」的就寫未驗證。
@@ -13,6 +14,14 @@
 |---|---|---|
 | #72 | 修法：新增 `frontend-check`，在 CI 執行前端 typecheck、單元測試、E2E | 已合併（`6c055e8`） |
 | #74 | 修法：登記第二支實體金鑰（YubiKey 5 Nano）為核准者 tsengeagle 的備援；核准者指引補上 Windows 注意事項 | 已合併 |
+| #75、#78、#79 | 必要檢查加入 `frontend-check`；記錄必要檢查的驗收結果（#77：驗證用，未合併）；ruleset 只允許 merge commit | 已合併 |
+| #76 | api-spec 路徑核對報告（`docs/review/api-spec-path-reconciliation-2026-11-18.md`） | 已合併 |
+| #80 | 修法：D-058，api-spec 路徑以程式為準，D-022 部分取代 | 已合併 |
+| #81 | 修法：D-059，移除 `GET /review-cases/{caseId}/rereview-revisions` | 已合併 |
+| #82 | 建構：移除 `rereview-revisions` 端點，並以測試鎖定 `revision-history` 對複審資料的保護 | 已合併（`b8cd894`） |
+| #83 | 建構：移除 D-032 已撤銷的 CLOSED 複審例外入口（後端 `hasExceptionEntry`、前端 C22 例外按鈕） | 已合併（`3a42cde`） |
+| #84 | 文件：16 份前端規劃、UI、設計文件標記例外入口已撤銷並已自程式移除 | 已合併（`31555aa`） |
+| #85 | 建構：評分表列表、章節查詢的回應依 D-050 第 7 點包成物件 | 已合併（`2feb5bf`） |
 
 除了本快照所在的 PR，其餘 PR 都已合併或關閉。合併一律用 merge commit；修法 PR 需要負責人以 SSH 金鑰對內容雜湊簽章（`law/README.md`）。
 
@@ -37,10 +46,10 @@
 
 | 閘門 | 在 CI | 這次的結果 |
 |---|:-:|---|
-| 後端 `./gradlew check`（Linux、Windows） | ✓ `backend-check` | 2026-11-18 本機：958 個測試方法，失敗 0，已知失敗清單為空，跳過 0。含 ArchUnit 與凍結基線 |
+| 後端 `./gradlew check`（Linux、Windows） | ✓ `backend-check` | 2026-11-18 晚間本機（`2feb5bf`，JDK 17，`cleanTest check`）：1223 次測試執行，以 JUnit 報告的類別加方法名稱計為 930 個測試方法；失敗 0、跳過 0，已知失敗清單為空。含 ArchUnit 與凍結基線。同日早上記錄的「958 個測試方法」計算方式不同，兩個數字不能直接比較 |
 | 修法判決 `law-check`、`law-selftest` | ✓ | — |
 | 規格格式 `spec-check` | ✓ | `specs/review-project`、`specs/score-sheet` |
-| 前端 typecheck、Karma、Playwright | ✓ `frontend-check`（#72） | 2026-11-18 在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip。GitHub 上：#72 的 PR（`76cbd79`）結果相同；合併後 `main` 的第一次執行（`6c055e8`，run 44293068034）通過 |
+| 前端 typecheck、Karma、Playwright | ✓ `frontend-check`（#72） | 2026-11-18 晚間本機（`2feb5bf`）：typecheck 通過；單元測試 221 個通過（#83 刪除 4 個例外入口測試、新增 1 個）；E2E 18 個通過、3 個 demo 流程 skip。同日早上在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip。GitHub 上：#72 的 PR（`76cbd79`）結果相同；合併後 `main` 的第一次執行（`6c055e8`，run 44293068034）通過 |
 | Oracle | ✗ | V1～V5 與 Hibernate validate 在 Oracle XE 21c 驗證過（PR #55）。V6、SERIALIZABLE 匯出、儀表板的單一聚合查詢沒有在 Oracle 上跑過。負責人決定暫不加入 CI |
 | hosted（shell）模式 | ✗ | 從未驗證 |
 
@@ -79,9 +88,10 @@
 | 1 | 身分就緒：hosted 模式下 shell 分別送出使用者、角色清單、目前角色（`TOPIC_USER_INFO`、`TOPIC_USER_ROLES`、`TOPIC_CURR_ROLE`），切換身分的中間狀態可能是「新使用者＋舊角色」。UI-015 已在身分未解析或不持有報表角色時停用查詢，但這個中間狀態仍會通過 | 前端共用層（`core/actor-context`） | 需先確認 shell 送出事件的順序、有沒有「切換完成」的訊號（PR #71 Copilot 第三則意見） |
 | 2 | UI-017 匯出頁的查詢與下載按鈕，沒有「持有報表角色」的判斷（UI-015 在 #71 已補） | 前端缺陷，已合併 | 併入第 1 項一起處理 |
 | 3 | domain 內 15 處無參數的 `LocalDateTime.now()`（`ReviewCase` 6 處、`ReviewSubmission` 9 處）：用伺服器預設時區，且繞過注入的 `Clock` | 架構債 | 在 ARCH-02 凍結基線內；`closedAt` 因此在匯出頁標示為伺服器時間。改為 UTC `Instant` 需先裁決 |
-| 4 | api-spec 的路徑與程式不一致 | 契約漂移 | 2026-11-18 已逐一核對（只核對方法與路徑）：見 `docs/review/api-spec-path-reconciliation-2026-11-18.md`。前端呼叫的端點後端都有；9 組同一動作路徑不同、8 個後端端點 api-spec 沒有記載；D-022 的路徑樣式與程式及 D-053／D-054 衝突。2026-11-18 負責人裁決採選項 A：D-058（以程式為準，修正 D-022 的路徑樣式），api-spec 與測試、前端文件同步 |
-| 4a | `GET /review-cases/{caseId}/rereview-revisions` 沒有角色檢查：院區範圍內的任何角色（含只應取得 metadata 的 `SYSTEM_ADMIN`）都能讀到複審的 `totalScore` 與 `comment`。目前沒有前端使用 | 權限缺口 | 2026-11-18 以測試證實（4 個情境全紅，`revision-history` 同樣情境全綠）；D-059 裁決移除，程式由後續建構 PR 落地 |
-| 4b | 評分表列表、章節查詢的回應：D-050 第 7 點規定 `{ items }`、`{ scoreSheetId, sections }`，程式直接回傳陣列 | 程式與裁決不符 | D-058 第 6 點：api-spec 依 D-050，程式待後續建構 PR 修正 |
+| 4 | api-spec 的路徑與程式不一致 | 契約漂移 | 2026-11-18 已逐一核對（只核對方法與路徑）：見 `docs/review/api-spec-path-reconciliation-2026-11-18.md`。前端呼叫的端點後端都有；9 組同一動作路徑不同、8 個後端端點 api-spec 沒有記載；D-022 的路徑樣式與程式及 D-053／D-054 衝突。已處理：2026-11-18 負責人裁決採選項 A，D-058（以程式為準，修正 D-022 的路徑樣式），api-spec 與測試、前端文件同步（#80） |
+| 4a | `GET /review-cases/{caseId}/rereview-revisions` 沒有角色檢查：院區範圍內的任何角色（含只應取得 metadata 的 `SYSTEM_ADMIN`）都能讀到複審的 `totalScore` 與 `comment`。目前沒有前端使用 | 權限缺口 | 已處理：2026-11-18 以測試證實（4 個情境全紅，`revision-history` 同樣情境全綠）；D-059 裁決移除（#81）；#82 移除端點，並新增 4 個測試鎖定 `revision-history` 的保護 |
+| 4b | 評分表列表、章節查詢的回應：D-050 第 7 點規定 `{ items }`、`{ scoreSheetId, sections }`，程式直接回傳陣列 | 程式與裁決不符 | 已處理：#85（先改 5 個測試、修改前全紅）。`decision-log.md` D-058 第 6 點的文字仍描述修正前的狀態，屬裁決，未改 |
+| 4c | `revision-history` 的 `hasExceptionEntry`：案件 CLOSED 且查看者是原複審醫師時為 `true`，前端據此顯示 D-032 已撤銷的「前往複審修正（例外）」入口 | 程式與裁決不符 | 已處理：#83 移除後端欄位與前端 C22 例外按鈕；#84 同步 16 份文件。共用的 `StatusOrBlockedBannerComponent` 仍保留 `exception-amber` 樣式，目前沒有頁面使用 |
 | 5 | standalone 模式沒有 Bootstrap 樣式、空狀態插圖不會載入（shell 提供的資產，依 GOV-CSS-002／GOV-BND-003 不另外載入） | 開發／demo 體驗 | 待負責人決定 |
 | 6 | 「無權限」區塊不是共用元件（UI-015、UI-017 各寫一份） | 前端重用 | 待負責人決定 |
 | 7 | UI-015 的「評分分布」不在範圍內：API 沒有分數欄位 | 功能 | 需先裁決後端契約與遮罩規則 |
@@ -95,12 +105,18 @@
 
 ## 七、建議的下一步
 
-依序：
+2026-11-18 晚間：第五節第 4～4c 項處理完畢後，實作暫告一段落。`main` 的四項必要檢查全綠，沒有進行中的建構工作；剩下的項目都是新功能，或要等裁決或外部資訊。
 
-1. 合併 D-059 的修法 PR，再以建構 PR 移除 `rereview-revisions`（第五節第 4a 項，先寫測試）；之後以建構 PR 修正第 4b 項（評分表查詢的回應格式）。
-2. 專案與規則管理（UI-001～005）：補上流程的起點。先寫頁面規格，再實作前端。UI-005 需要先補版本清單 API（見第二節）。
-3. 身分就緒（第五節第 1、2 項）：確認 shell 行為後開始。
-4. 之後是 UI-008、UI-016、時間欄位的裁決，以及 standalone 模式的決定。
+接下來先回到 harness 本身（`03-harness-plan.md`）：
+
+1. 更新 `03-harness-plan.md` 的現況。第三節 P4、P6、P9 和第六節仍寫「尚未設為必要檢查」，但 2026-11-18 起已是必要檢查（第八節）。
+2. 在 PR 上實際驗一次 `04-definition-of-enough.md` 的及格線四項。#77 只驗證了 `frontend-check` 紅燈時不能合併；`law-check` 紅燈（例如沒有簽章的修法）時不能合併，還沒有實際驗證。
+
+之後再回到專案工作，依序：
+
+1. 專案與規則管理（UI-001～005）：補上流程的起點。先寫頁面規格，再實作前端。UI-005 需要先補版本清單 API（見第二節）。
+2. 身分就緒（第五節第 1、2 項）：確認 shell 行為後開始。
+3. 之後是 UI-008、UI-016、時間欄位的裁決，以及 standalone 模式的決定。
 
 ## 八、尚未驗證的事
 
@@ -138,7 +154,7 @@
 | D-046、D-047：品質線與權重沒有輸入管道 | 未重新核對 |
 | D-031、D-032、D-034、DD-03 已接受但未實作；「固定」「結案」的 use case 與 API 仍是 `UNKNOWN` | 部分處理：複審結案（D-053）與初審固定（D-054）已定案並實作；D-032 的紅燈測試已轉綠。D-031、D-034、DD-03 未重新核對 |
 | D-037、D-038 未實作（12 個紅燈測試） | 已處理：已知失敗清單已清空 |
-| `GetRereviewRevisionHistoryUseCase` 沒有角色檢查 | 未重新核對 |
+| `GetRereviewRevisionHistoryUseCase` 沒有角色檢查 | 已處理：2026-11-18 以測試證實後，依 D-059 移除端點與 use case（#82），見第五節第 4a 項 |
 | D-042 在報表與匯出的缺口（2026-11-14 已止血）；兩支服務仍在 `reporting`，依 D-048 之後要搬進 `application` 的查詢側 | 仍成立：`DashboardQueryService`、`ExportQueryService` 仍在 `reporting` 套件（ARCH-05 過渡規則：只能依賴 `application.common`）。api-gateway 是否另外擋，未重新核對 |
 
 ### 原第八節：尚未驗證的事
