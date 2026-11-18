@@ -372,19 +372,19 @@ page specs 雖已有 response 草稿，但還沒有正式形成跨頁共享的�
 
 - `GET /review-cases`
 - `GET /review-cases/{caseId}`
-- `GET /review-cases/{caseId}/revisions`
+- `GET /review-cases/{caseId}/revision-history`
 - `POST /review-cases/{caseId}/assign-reviewer`
 - `POST /review-cases/{caseId}/reassign-reviewer`
 - `POST /review-cases/{caseId}/assign-rereviewer`
 - `POST /review-cases/{caseId}/reassign-rereviewer`
 - `POST /review-cases/{caseId}/initial-review/start`
 - `POST /review-cases/{caseId}/initial-review/draft`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`
-- `POST /review-cases/{caseId}/rereview/start`
+- `POST /review-cases/{caseId}/initial-review/submit`
+- `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise`
+- `POST /review-cases/{caseId}/start-rereview`
 - `POST /review-cases/{caseId}/rereview/draft`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
+- `POST /review-cases/{caseId}/rereview/submit`
+- `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise`
 
 ### 完成後才能更穩地做什麼
 

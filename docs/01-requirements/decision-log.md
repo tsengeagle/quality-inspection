@@ -820,7 +820,9 @@ ProjectVersion 中存儲 `initialReviewWeight` 與 `rereviewWeight`，默認各 
 
 ### Status
 
-`accepted`
+`accepted`（部分取代）
+
+> 部分被 D-058 取代：路徑樣式改為 stage 在前（`/review-cases/{caseId}/{stage}/...`），提交命令的路徑不帶 `submissionId`，並保留 `GET /review-submissions/{submissionId}`。保留 case-rooted、command 一律使用 `POST`。下列為歷史決策原文。
 
 ### Category
 
@@ -2141,3 +2143,43 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 ### Mapping
 
 `docs/03-contracts/api-spec.md` 15.1、15.2；`docs/03-contracts/persistence-model.md` 5.12；實作以建構 PR 落地（V6 migration、案件建立時寫入時間、匯出與儀表板的過濾與驗證、分頁）。
+
+---
+
+## D-058 — API 路徑以程式為準：修正 D-022 的路徑樣式
+
+### Status
+
+`accepted`（2026-11-18，依負責人裁決：採 `docs/review/api-spec-path-reconciliation-2026-11-18.md` 第五節的選項 A）
+
+### Decision
+
+1. **路徑樣式。** Review workflow 的命令與查詢以案件為根、stage 在前：
+   - 對案件「目前」的提交或 submission 下命令：`/review-cases/{caseId}/{stage}/{action}`，例如 `POST /review-cases/{caseId}/initial-review/submit`。
+   - 對特定 submission 下命令：`/review-cases/{caseId}/{stage}/submissions/{submissionId}/{action}`，例如 `.../initial-review/submissions/{submissionId}/revise`、`.../rereview/submissions/{submissionId}/close`（D-053）、`.../initial-review/submissions/{submissionId}/fix`（D-054）。
+   - command 一律使用 `POST`（沿用 D-022）。
+2. **提交命令的 `submissionId`。**
+   - 初審提交 `POST /review-cases/{caseId}/initial-review/submit`：路徑與 body 都不帶 `submissionId`，由案件取得目前的 submission。
+   - 複審提交 `POST /review-cases/{caseId}/rereview/submit`：路徑不帶，request body 的 `submissionId` 為必填（`SubmitRereviewRequest`，`@NotBlank`），用來確認提交的是目前版本。
+3. **submission 詳情。** 保留 `GET /review-submissions/{submissionId}`，撤銷 D-022 對它的廢除。院區與角色檢查經由 submission 所屬的案件進行（`GetSubmissionDetailUseCase` 以所屬案件呼叫 `ReviewReadAccessPolicy.requireAccess`），D-022「以 caseId 強化院區驗證」的目的由此滿足。
+4. **api-spec 依程式改寫的 9 支。** 8.3 `POST /score-sheets/{scoreSheetId}/publish`、10.8 `POST /review-cases/{caseId}/initial-review/return`、11.3、11.4、12.1 `POST /review-cases/{caseId}/start-rereview`、12.3、12.4、13.1、13.2 `GET /review-cases/{caseId}/revision-history`。只改路徑，以及第 2 點的 `submissionId` 位置與複審提交的 request body；各節的其他內容（權限、限制、其他欄位）維持原文，本決策沒有重新核對。
+5. **api-spec 補上 5 支只存在程式的端點，以程式為準。**（連同第 6 點的 2 支，共補上 7 支。）
+   - `POST /review-cases/{caseId}/close-without-rereview`、`POST /review-cases/{caseId}/send-to-rereview`：限 `HOSPITAL_MANAGER`，本院；案件須為 `INITIAL_REVIEW_COMPLETED` 且初審已固定（D-031）。
+   - `POST /review-cases/{caseId}/reopen`：限 `HOSPITAL_MANAGER`，本院；`RETURNED` → `PENDING_INITIAL_REVIEW`。只用於退回初審之後，不是重開 `CLOSED` 案件（D-005、D-032 不受影響）。
+   - `GET /sampling-batches/{batchId}/export`：限 `HOSPITAL_MANAGER`，本院（依所屬專案的院區）。
+   - `GET /score-sheets/{scoreSheetId}/version`：角色與院區依 D-050 第 7 點。
+6. **評分表列表與章節查詢，依 D-050 第 7 點，不以程式為準。** `GET /score-sheets`、`GET /score-sheets/{scoreSheetId}/sections` 的路徑以程式為準，但回應依 D-050 第 7 點：列表回傳 `{ items }`、章節回傳 `{ scoreSheetId, sections }`。現行程式直接回傳陣列，與 D-050 不一致，列為待修的程式缺口，由後續的建構 PR 處理，本決策不改程式。
+7. **不納入本決策：`GET /review-cases/{caseId}/rereview-revisions`。** `GetRereviewRevisionHistoryUseCase` 沒有角色檢查（程式註解寫「Any authenticated role can query — visibility enforced at API/UI layer」，但 API 層沒有檢查），院區範圍內的任何角色都能讀到複審的 `totalScore` 與 `comment`，包括只應取得 metadata 的 `SYSTEM_ADMIN`。這是權限缺口，不能以程式為準寫進 api-spec；是否保留這支端點、該開放哪些角色，需另行裁決。目前沒有前端使用。
+
+### Relationship / Evidence
+
+- 差異的來源與比對方法見 `docs/review/api-spec-path-reconciliation-2026-11-18.md`（PR #76）：以腳本比對 api-spec、後端 controller、前端 service，前端呼叫的 27 個端點後端都有。
+- D-022 的理由「實作已以 case-rooted paths 通過測試」與現在的實作不符；之後的 D-053、D-054 已採用 stage 在前的樣式。本決策讓裁決、api-spec 與程式一致，做法與 D-056「匯出請求格式以程式為準」相同。
+- 第 6 點：D-050 的位階高於程式現況，所以 api-spec 依 D-050；D-050 的 Relationship 本來就記載「現行程式與本決策的差異……尚未修改」。
+- 第 7 點：2026-11-12 的現況快照已列出「`GetRereviewRevisionHistoryUseCase` 沒有角色檢查」，本次確認仍成立。
+
+### Mapping
+
+- `docs/03-contracts/api-spec.md`：8.3、10.8、11.3、11.4、12.1、12.3、12.4、13.1、13.2，以及新增的 8.5～8.7、9.7、10.9～10.11。
+- 同步路徑字串（只改路徑與參數欄）：`docs/04-testing/test-scenarios.md`、`docs/04-testing/specification-by-example.md`、`docs/06-frontend/ui-api-binding-matrix.md`、`docs/06-frontend/frontend-design-roadmap.md`。`docs/superpowers/`、`docs/review/` 的舊計畫與報告是歷史紀錄，不改。
+- 程式不變；第 6 點的回應格式與第 7 點的權限缺口由後續 PR 處理。

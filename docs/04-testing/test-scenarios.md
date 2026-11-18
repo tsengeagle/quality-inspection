@@ -480,7 +480,7 @@ score=threshold=80。
 - case status = `PENDING_REREVIEW`
 
 ### Steps
-1. 呼叫 `POST /review-cases/{caseId}/rereview/start`
+1. 呼叫 `POST /review-cases/{caseId}/start-rereview`
 
 ### Expected
 - case status -> `REREVIEW_IN_PROGRESS`
@@ -533,7 +533,7 @@ SUBMITTED、未固定、未 CLOSED，具資格不等於結案；RereviewComplete
 - case status != `CANCELLED`
 
 ### Steps
-1. 呼叫 `POST /review-submissions/{submissionId}/initial-review/revise`
+1. 呼叫 `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise`
 
 ### Expected
 - 建立新 submission
@@ -574,7 +574,7 @@ SUBMITTED、未固定、未 CLOSED，具資格不等於結案；RereviewComplete
 - case status != `CANCELLED`
 
 ### Steps
-1. 呼叫 `POST /review-submissions/{submissionId}/rereview/revise`
+1. 呼叫 `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise`
 
 ### Expected
 - 建立新 revision
@@ -723,7 +723,7 @@ SUBMITTED、未固定、未 CLOSED，具資格不等於結案；RereviewComplete
 - actor 具有合法查詢權限
 
 ### Steps
-1. 呼叫 `GET /review-cases/{caseId}/revisions`
+1. 呼叫 `GET /review-cases/{caseId}/revision-history`
 2. 比對 revision history 與 latest submission pointer
 3. 驗證排序與狀態標示
 
@@ -1301,7 +1301,7 @@ level:
 - 已對同一 submission 做至少一次 revision
 
 ### Steps
-1. 查 `GET /review-cases/{caseId}/revisions`
+1. 查 `GET /review-cases/{caseId}/revision-history`
 
 ### Expected
 - 顯示 revisionNo 1, 2, ...

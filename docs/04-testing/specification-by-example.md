@@ -197,7 +197,7 @@ mapping:
   application:
     - ReviseInitialReviewUseCase
   api:
-    - POST /review-submissions/{submissionId}/initial-review/revise
+    - POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise
   tests:
     - TS-RV-001
     - TS-RV-007
@@ -246,7 +246,7 @@ mapping:
   application:
     - ReviseInitialReviewUseCase
   api:
-    - POST /review-submissions/{submissionId}/initial-review/revise
+    - POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise
   tests:
     - TS-RV-002
 ```
@@ -288,7 +288,7 @@ mapping:
   application:
     - ReviseRereviewUseCase
   api:
-    - POST /review-submissions/{submissionId}/rereview/revise
+    - POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise
   tests:
     - TS-RV-003
 ```
@@ -338,8 +338,8 @@ mapping:
     - ReviseInitialReviewUseCase
     - ReviseRereviewUseCase
   api:
-    - POST /review-submissions/{id}/initial-review/revise
-    - POST /review-submissions/{id}/rereview/revise
+    - POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise
+    - POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise
   tests:
     - TS-RV-005
 ```
@@ -908,7 +908,7 @@ mapping:
   application:
     - StartRereviewUseCase
   api:
-    - POST /review-cases/{caseId}/rereview/start
+    - POST /review-cases/{caseId}/start-rereview
   tests:
     - TS-NG-002
 ```
@@ -1478,7 +1478,7 @@ mapping:
   application:
     - GetRevisionHistoryUseCase
   api:
-    - GET /review-cases/{caseId}/revisions
+    - GET /review-cases/{caseId}/revision-history
   tests:
     - TS-RV-009
     - TS-RV-010
@@ -1593,7 +1593,7 @@ mapping:
     - reviewer self scope
   api:
     - GET /review-cases
-    - GET /review-submissions
+    - GET /review-submissions/{submissionId}
   tests:
     - TS-PM-007
 ```
@@ -1809,7 +1809,7 @@ mapping:
     - scope-bound query behavior
   api:
     - GET /review-cases
-    - GET /review-submissions
+    - GET /review-submissions/{submissionId}
   tests:
     - TS-QR-001
     - TS-PM-007
@@ -1867,7 +1867,7 @@ mapping:
   api:
     - GET /review-cases/{caseId}
     - GET /review-cases/{caseId}/lifecycle
-    - GET /review-cases/{caseId}/revisions
+    - GET /review-cases/{caseId}/revision-history
   tests:
     - TS-QR-002
 ```
