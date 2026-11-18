@@ -19,6 +19,9 @@ import java.util.regex.Pattern;
  *       {@code enum <名稱>}，結尾加 {@code ?} 表示可以是 null；字面值 {@code null}、{@code true}、{@code false}；
  *       {@code $data} 只能出現在共用層的外殼，代表端點的 data 形狀。</li>
  * </ul>
+ *
+ * <p>形狀無效時 {@link #validate} 記為載入問題；{@link #check} 不丟例外，只把該位置記為無法比對，
+ * 報告才能照常寫出本次的結果。</p>
  */
 final class JsonShape {
 
@@ -121,6 +124,10 @@ final class JsonShape {
                 out.add(path + "：預期陣列，實際是" + kind(node));
                 return;
             }
+            if (((List<?>) shape).size() != 1) {
+                out.add(path + "：契約的陣列形狀無效（見載入問題），無法比對");
+                return;
+            }
             if (node.size() > 0) {
                 arraysSeen.add(norm);
             }
@@ -128,6 +135,10 @@ final class JsonShape {
             for (int i = 0; i < node.size(); i++) {
                 check(element, node.get(i), path + "[" + i + "]", norm + "[]", dataShape, enums, out, arraysSeen);
             }
+            return;
+        }
+        if (!(shape instanceof String)) {
+            out.add(path + "：契約的形狀無效（見載入問題），無法比對");
             return;
         }
         String s = (String) shape;

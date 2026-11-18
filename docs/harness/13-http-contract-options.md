@@ -130,7 +130,7 @@ C 是合理的備案：如果負責人判斷 HTTP 層的缺陷成本低（前端
 |---|---|---|
 | `spec-draft/http-common.yaml` | spec（律法） | 共用層：外殼、`status_by_category`、`transport_codes`（依 api-spec §3.5、§4.1、§4.2） |
 | `spec-draft/score-sheet/http.yaml` | spec（律法） | 7 個端點，一個 use case 一個 |
-| `services/.../acceptance/http/` | gate（律法） | 比對器：`HttpContract`（載入）、`JsonShape`（形狀）、`HttpContractEvaluator`（比對與涵蓋）、`HttpObservationRecorder`、`HttpObservationInitializer`、`HttpContractReport`；測試 `HttpContractEvaluatorTest`（23 個）、`HttpContractFilesTest`（1 個） |
+| `services/.../acceptance/http/` | gate（律法） | 比對器：`HttpContract`（載入）、`JsonShape`（形狀）、`HttpContractEvaluator`（比對與涵蓋）、`HttpObservationRecorder`、`HttpObservationInitializer`、`HttpContractReport`；測試 `HttpContractEvaluatorTest`（25 個）、`HttpContractFilesTest`（1 個）、`HttpContractReportTest`（1 個） |
 | `services/.../src/test/resources/application-test.yml` | gate（律法） | `context.initializer.classes` 掛上觀察器 |
 
 觀察器用 Spring Boot 的 `context.initializer.classes` 掛進每一個測試 context，在每次 MockMvc 請求後記錄結果。JVM 結束時寫 `build/reports/http-contract/report.txt`。**試做階段只列出、不擋**，處理方式與 `spec-check` 對 `spec-draft/` 相同。
@@ -142,11 +142,20 @@ C 是合理的備案：如果負責人判斷 HTTP 層的缺陷成本低（前端
 | # | 驗證 | 結果 |
 |---|---|---|
 | V-1 | 先紅：比對器還沒實作時跑 `HttpContractEvaluatorTest` | 編譯失敗（類別不存在） |
-| V-2 | 比對器單元測試 | 23/23 通過 |
-| V-3 | 後端全套 `./gradlew cleanTest check`（JDK 17） | BUILD SUCCESSFUL；閘門回報 981 個方法（原 957 + 新增 24），1247 次執行，0 失敗，0 跳過 |
+| V-2 | 比對器單元測試 | 27/27 通過（含 #93 review 補的 3 個，見下方「review 修正」） |
+| V-3 | 後端全套 `./gradlew cleanTest check`（JDK 17） | BUILD SUCCESSFUL；閘門回報 984 個方法（原 957 + 新增 27），1250 次執行，0 失敗，0 跳過 |
 | V-4 | 全套跑完的報告 | 觀察 617 次，契約範圍內 71 次（成功 57、失敗 14），**問題 0**。觀察到的 14 次錯誤回應，狀態碼都符合錯誤分類 |
 | V-5 | mutation 1：在本機把 #85 之前的寫法放回去（列表與章節直接回傳陣列），只跑 `ScoreSheetApiTest` | 問題 6：兩個端點的 `$.data：預期物件，實際是陣列`，另有 3 個陣列從未非空（元素沒比對過）。**E-03 會被抓到**。程式已還原 |
 | V-6 | mutation 2：只跑不打 HTTP 的測試（`AcceptanceExamplesTest`） | 觀察 0 次，問題 7：每個端點都是「沒有觀察到任何成功回應」 |
+
+### review 修正（#93，Copilot）
+
+| 意見 | 核對 | 修正 | 驗證 |
+|---|---|---|---|
+| 形狀寫錯（例如 `[]`、沒加引號的 `true`）時，比對會丟例外，報告中止而留下上一次的結果 | 成立：`JsonShape.check` 的轉型與 `get(0)`；`writeQuietly` 吃掉例外後不寫檔 | `check` 不再丟例外，該位置記為無法比對；報告在比對中斷時仍寫出本次結果，判為不符合 | 先紅：2 個測試 `ClassCastException`；修正後通過 |
+| 本文在第一個 JSON 之後還有東西（例如多一個 `[]`）時仍判為符合 | 成立：Jackson 2.13.5 預設不檢查 | 啟用 `FAIL_ON_TRAILING_TOKENS`，列為「回應不是單一 JSON 文件」 | 先紅：問題清單為空；修正後通過 |
+
+契約有載入問題時，仍照常比對回應（不略過）：載入問題本身就會讓結果判為不符合，比對結果則保留給除錯用。
 
 ### B-1 的弱點與配套
 
