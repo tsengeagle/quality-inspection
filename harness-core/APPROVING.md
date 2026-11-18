@@ -30,7 +30,9 @@ which ssh-keygen      # 應該指向 Homebrew 的路徑；若不是，開一個�
 
 ### Windows 注意事項
 
-Windows 上用系統內建的 OpenSSH（`C:\Windows\System32\OpenSSH\`）。它不直接存取 USB 金鑰，而是透過 Windows 的 WebAuthn，所以每次產生金鑰或簽章都會跳出「Windows 安全性：選擇要儲存金鑰的位置」的視窗。這個視窗是系統的安全機制，關不掉，也不要設法繞過。
+Windows 上用 Win32-OpenSSH。官方的 [FIDO/U2F 說明](https://github.com/PowerShell/Win32-OpenSSH/wiki/FIDO---U2F-usage)寫明 **8.9.0.0 以上**才支援實體金鑰；Windows 內建的版本（`C:\Windows\System32\OpenSSH\`）可能低於這個門檻。是否可用以下面的探測指令成功為準。探測失敗、或 `ssh -V` 低於 8.9 時，依官方的[安裝說明](https://github.com/PowerShell/Win32-OpenSSH/wiki/Install-Win32-OpenSSH)用 `winget install "openssh preview"` 安裝新版，開一個新的視窗再探測一次。官方說明的範例只用 `ecdsa-sk`；`ed25519-sk` 已於 2026-11-18 在負責人的 Windows 上實測可用，探測失敗時可改用 `ecdsa-sk`。
+
+Win32-OpenSSH 不直接存取 USB 金鑰，而是透過 Windows 的 WebAuthn，所以每次產生金鑰或簽章都會跳出「Windows 安全性：選擇要儲存金鑰的位置」的視窗。這個視窗是系統的安全機制，關不掉，也不要設法繞過。
 
 | 要注意的事 | 怎麼做 |
 |---|---|
@@ -38,7 +40,7 @@ Windows 上用系統內建的 OpenSSH（`C:\Windows\System32\OpenSSH\`）。它�
 | 選單裡有 1Password 等通行金鑰提供者，容易誤選 | 可以在 Windows 設定 → 帳戶 → 通行金鑰 → 進階選項，或 1Password 自己的設定裡，關閉它作為通行金鑰提供者。不關也可以，只要每次都選對 |
 | 文件裡的 `/tmp/...` | Windows 通常沒有這個目錄。改用 `$env:TEMP\...` |
 | 文件裡的 `~/.ssh/...` | PowerShell 不一定會替外部程式展開 `~`，核准工具也不會展開。改寫成 `$HOME\.ssh\...` |
-| 用到的 `ssh-keygen` 不是系統內建的那一個 | 核准工具呼叫的是 PATH 裡的第一個 `ssh-keygen`。用 `Get-Command ssh-keygen` 確認指向 `C:\Windows\System32\OpenSSH\`；裝了 Git for Windows 等工具時，PATH 可能先找到別的版本 |
+| 用到的 `ssh-keygen` 不是探測成功的那一個 | 核准工具呼叫的是 PATH 裡的第一個 `ssh-keygen`。用 `Get-Command ssh-keygen` 看它的路徑，`ssh -V` 看版本（8.9 以上）。裝了 Git for Windows 或另裝新版 OpenSSH 時，PATH 可能先找到別的版本；要確定 PATH 第一個找到的，就是探測成功的那一個 |
 | 以系統管理員身分開啟 PowerShell | 不需要。用一般權限的視窗即可 |
 
 確認能不能用實體金鑰（PowerShell）：
@@ -49,10 +51,18 @@ ssh-keygen -t ed25519-sk -f "$env:TEMP\sk-probe"    # 跳出視窗時選「安�
 Remove-Item "$env:TEMP\sk-probe*"
 ```
 
-第二節以後的指令，在 PowerShell 裡把 `~/.ssh/` 換成 `$HOME\.ssh\`、`python3` 換成 `python`。例如：
+第二節以後的指令，在 PowerShell 裡把 `~/.ssh/` 換成 `$HOME\.ssh\`、`python3` 換成 `python`。`rm -f` 在 PowerShell 裡不能用（`-f` 同時可能是 `-Filter` 或 `-Force`），改用 `Remove-Item`。例如：
 
 ```powershell
+# 第二節：產生金鑰
 ssh-keygen -t ed25519-sk -O application=ssh:law-amendment -C "law-amendment <你的名稱>" -f "$HOME\.ssh\law_amendment_sk"
+
+# 第二節：確認把手檔綁在這把實體金鑰上
+"probe" | Out-File -Encoding ascii "$env:TEMP\probe.txt"
+ssh-keygen -Y sign -f "$HOME\.ssh\law_amendment_sk" -n law-amendment "$env:TEMP\probe.txt"
+Remove-Item -Force -ErrorAction SilentlyContinue -Path "$env:TEMP\probe.txt", "$env:TEMP\probe.txt.sig"
+
+# 第四節：簽章
 python -I harness-core/law_approve.py --head origin/$BRANCH --signer <核准者名稱> --key "$HOME\.ssh\law_amendment_sk"
 ```
 
@@ -89,7 +99,7 @@ rm -f /tmp/probe.txt /tmp/probe.txt.sig
 | 插著**這把**金鑰，碰一下 | 簽章成功，產生 `probe.txt.sig` |
 | 改插另一把金鑰，或不插金鑰 | 簽章失敗 |
 
-兩項都符合預期才算完成。Windows 上路徑的寫法見第一節的「Windows 注意事項」。
+兩項都符合預期才算完成。Windows 上請改用第一節「Windows 注意事項」裡的 PowerShell 版本。
 
 ## 三、把公鑰登記進專案（只做一次，之後更換金鑰時再做）
 
