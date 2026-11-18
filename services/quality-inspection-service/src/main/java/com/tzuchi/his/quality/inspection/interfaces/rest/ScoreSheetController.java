@@ -119,10 +119,10 @@ public class ScoreSheetController {
     public ResponseEntity<?> list(@CurrentActor ActorContext actor,
                                   @RequestParam(required = false) String hospitalId) {
         List<ScoreSheetSummary> summaries = listUseCase.execute(actor, hospitalId).getItems();
-        List<ScoreSheetSummaryResponse> response = summaries.stream()
+        List<ScoreSheetSummaryResponse> items = summaries.stream()
                 .map(this::toSummaryResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return ResponseEntity.ok(ApiResponse.ok(new ScoreSheetListResponse(items))); // D-050 第 7 點：{ items }
     }
 
     @GetMapping("/{id}")
@@ -146,11 +146,12 @@ public class ScoreSheetController {
     @GetMapping("/{id}/sections")
     public ResponseEntity<?> sections(@CurrentActor ActorContext actor,
                                        @PathVariable("id") String scoreSheetId) {
-        List<ScoreSheetSection> sections = sectionsUseCase.execute(actor, scoreSheetId).getSections();
-        List<ScoreSheetSectionResponse> response = sections.stream()
+        ScoreSheetSectionsView view = sectionsUseCase.execute(actor, scoreSheetId);
+        List<ScoreSheetSectionResponse> sections = view.getSections().stream()
                 .map(this::toSectionResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        // D-050 第 7 點：{ scoreSheetId, sections }
+        return ResponseEntity.ok(ApiResponse.ok(new ScoreSheetSectionsResponse(view.getScoreSheetId(), sections)));
     }
 
     // --- Mapping helpers ---
