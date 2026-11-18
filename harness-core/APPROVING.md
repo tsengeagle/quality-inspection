@@ -28,6 +28,34 @@ brew install openssh
 which ssh-keygen      # 應該指向 Homebrew 的路徑；若不是，開一個新的終端機視窗再試
 ```
 
+### Windows 注意事項
+
+Windows 上用系統內建的 OpenSSH（`C:\Windows\System32\OpenSSH\`）。它不直接存取 USB 金鑰，而是透過 Windows 的 WebAuthn，所以每次產生金鑰或簽章都會跳出「Windows 安全性：選擇要儲存金鑰的位置」的視窗。這個視窗是系統的安全機制，關不掉，也不要設法繞過。
+
+| 要注意的事 | 怎麼做 |
+|---|---|
+| 視窗列出好幾個選項（1Password、此 Windows 裝置、手機、安全性金鑰） | **一定選「安全性金鑰」**，再碰一下金鑰。選其他項目的話，產生的憑證不在實體金鑰裡，不符合這份文件的前提 |
+| 選單裡有 1Password 等通行金鑰提供者，容易誤選 | 可以在 Windows 設定 → 帳戶 → 通行金鑰 → 進階選項，或 1Password 自己的設定裡，關閉它作為通行金鑰提供者。不關也可以，只要每次都選對 |
+| 文件裡的 `/tmp/...` | Windows 通常沒有這個目錄。改用 `$env:TEMP\...` |
+| 文件裡的 `~/.ssh/...` | PowerShell 不一定會替外部程式展開 `~`，核准工具也不會展開。改寫成 `$HOME\.ssh\...` |
+| 用到的 `ssh-keygen` 不是系統內建的那一個 | 核准工具呼叫的是 PATH 裡的第一個 `ssh-keygen`。用 `Get-Command ssh-keygen` 確認指向 `C:\Windows\System32\OpenSSH\`；裝了 Git for Windows 等工具時，PATH 可能先找到別的版本 |
+| 以系統管理員身分開啟 PowerShell | 不需要。用一般權限的視窗即可 |
+
+確認能不能用實體金鑰（PowerShell）：
+
+```powershell
+ssh -V
+ssh-keygen -t ed25519-sk -f "$env:TEMP\sk-probe"    # 跳出視窗時選「安全性金鑰」，碰一下金鑰；問密碼時直接按 Enter
+Remove-Item "$env:TEMP\sk-probe*"
+```
+
+第二節以後的指令，在 PowerShell 裡把 `~/.ssh/` 換成 `$HOME\.ssh\`、`python3` 換成 `python`。例如：
+
+```powershell
+ssh-keygen -t ed25519-sk -O application=ssh:law-amendment -C "law-amendment <你的名稱>" -f "$HOME\.ssh\law_amendment_sk"
+python -I harness-core/law_approve.py --head origin/$BRANCH --signer <核准者名稱> --key "$HOME\.ssh\law_amendment_sk"
+```
+
 ## 二、產生核准用的金鑰（只做一次）
 
 ```bash
@@ -47,6 +75,21 @@ ssh-keygen -t ed25519-sk -O application=ssh:law-amendment -C "law-amendment <你
 | `~/.ssh/law_amendment_sk.pub` | 公鑰 | 可以，要登記進專案 |
 
 **建議準備第二把實體金鑰當備援**，用同樣的指令產生另一組檔案（檔名換掉），兩把公鑰都登記。只有一把而遺失的話，就沒有人能核准修法，包含「更換核准者」這個修法本身。
+
+產生之後，確認把手檔真的綁在那把實體金鑰上（備援金鑰尤其要做，平常不會用到它，壞了也不會發現）：
+
+```bash
+echo probe > /tmp/probe.txt
+ssh-keygen -Y sign -f ~/.ssh/law_amendment_sk -n law-amendment /tmp/probe.txt
+rm -f /tmp/probe.txt /tmp/probe.txt.sig
+```
+
+| 測試 | 預期結果 |
+|---|---|
+| 插著**這把**金鑰，碰一下 | 簽章成功，產生 `probe.txt.sig` |
+| 改插另一把金鑰，或不插金鑰 | 簽章失敗 |
+
+兩項都符合預期才算完成。Windows 上路徑的寫法見第一節的「Windows 注意事項」。
 
 ## 三、把公鑰登記進專案（只做一次，之後更換金鑰時再做）
 
@@ -174,6 +217,8 @@ PR 上的 `law-check` 會自動重跑。通過時報告會出現「核准者：<
 | 報告寫「reviewed_commit 的內容不是簽章簽的那一份」 | 核准檔的 `reviewed_commit` 被改過 | 不要手改核准檔；重新核准 |
 | `git diff` 什麼都沒顯示 | 分頁器離開後畫面被清掉；或 `$BRANCH` 沒有設定 | 用 `--no-pager`；`echo $BRANCH` 確認變數 |
 | 碰了金鑰仍顯示 `invalid format` 或簽章失敗 | 常見是 FIDO2 PIN 輸入錯誤 | 用 `ykman fido info` 看剩餘嘗試次數，確認 PIN 後重試 |
+| Windows 上跳出「選擇要儲存金鑰的位置」 | 系統內建的 OpenSSH 透過 Windows 的 WebAuthn 使用金鑰 | 選「安全性金鑰」再碰金鑰。見第一節的「Windows 注意事項」 |
+| Windows 上簽章失敗，而 `--key` 寫的是 `~/.ssh/...` | `~` 可能沒有被展開，`ssh-keygen` 找不到把手檔 | 改成 `"$HOME\.ssh\law_amendment_sk"` |
 
 ## 五、要知道的事
 

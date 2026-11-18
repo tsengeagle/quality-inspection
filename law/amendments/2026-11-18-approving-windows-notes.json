@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-18-approving-windows-notes",
+  "decision": "none",
+  "reason": "核准者指引（harness-core/APPROVING.md）補上 Windows 注意事項，不改任何判決規則或程式。負責人 2026-11-18 在 Windows 上登記第二把 YubiKey 時，系統內建 OpenSSH 透過 WebAuthn 跳出「選擇要儲存金鑰的位置」視窗，原文件沒有說明。新增內容：第一節說明這個視窗不能關閉也不應繞過、必須選「安全性金鑰」（選 1Password 或此 Windows 裝置會讓憑證不在實體金鑰裡）、/tmp 與 ~ 在 PowerShell 的替代寫法（law_approve.py 把 --key 原樣交給 ssh-keygen，不展開 ~）、用 Get-Command 確認 ssh-keygen 來源、不需要系統管理員權限；第二節新增產生金鑰後的驗證步驟（插著該金鑰簽章成功、換金鑰或不插則失敗），備援金鑰尤其要做；常見問題表新增兩列 Windows 情況。只改文件。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "harness-core/APPROVING.md",
+    "law/"
+  ]
+}
