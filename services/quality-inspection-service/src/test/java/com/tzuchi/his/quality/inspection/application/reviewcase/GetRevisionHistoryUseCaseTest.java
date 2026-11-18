@@ -128,19 +128,6 @@ class GetRevisionHistoryUseCaseTest {
                 () -> useCase.execute(noRole, CASE_ID));
     }
 
-    @Test
-    void getHistory_hasExceptionEntry_falseWhenCaseNotClosed() {
-        // Case is PENDING (not CLOSED) — hasExceptionEntry must be false
-        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(
-                "sub-1", CASE_ID, REREVIEWER_ID);
-        sub.submit();
-        submissionRepo.save(sub);
-
-        RevisionHistoryView view = useCase.execute(rereviewer(), CASE_ID);
-
-        assertFalse(view.isHasExceptionEntry());
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {"before", "progress", "submitted", "closed"})
     void initialHistoryRemainsBlindThroughoutRereviewLifecycle(String phase) {

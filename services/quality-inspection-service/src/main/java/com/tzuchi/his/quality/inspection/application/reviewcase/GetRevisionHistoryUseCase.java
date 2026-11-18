@@ -5,13 +5,10 @@ import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryEntry;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryView;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,14 +49,6 @@ public class GetRevisionHistoryUseCase {
                         .thenComparing(ReviewSubmission::getRevisionNo))
                 .collect(Collectors.toList());
 
-        boolean isClosed = CaseStatus.CLOSED == reviewCase.getStatus();
-        boolean isOriginalRereviewer = sorted.stream()
-                .anyMatch(s -> s.getStage() == ReviewStage.REREVIEW
-                        && (s.getStatus() == SubmissionStatus.SUBMITTED
-                                || s.getStatus() == SubmissionStatus.SUPERSEDED)
-                        && actor.getUserId().equals(s.getReviewerId()));
-        boolean hasExceptionEntry = isClosed && isOriginalRereviewer;
-
         List<RevisionHistoryEntry> entries = sorted.stream()
                 .map(s -> new RevisionHistoryEntry(
                         s.getSubmissionId(), s.getStage().name(), s.getReviewerId(),
@@ -68,6 +57,6 @@ public class GetRevisionHistoryUseCase {
                         accessPolicy.canReadContent(actor, s.getStage().name(), s.getReviewerId()) ? s.getComment() : null, s.getSubmittedAt(), s.getSupersededBySubmissionId()))
                 .collect(Collectors.toList());
 
-        return new RevisionHistoryView(caseId, entries, hasExceptionEntry);
+        return new RevisionHistoryView(caseId, entries);
     }
 }

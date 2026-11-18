@@ -31,7 +31,6 @@ import { LifecycleProgressRegionComponent } from './case-detail/components/lifec
 // Wave 3 — C-12 revision-history child components
 import { RevisionTimelineComponent } from './revision-history/components/revision-timeline/revision-timeline.component';
 import { RevisionCompareSummaryComponent } from './revision-history/components/revision-compare-summary/revision-compare-summary.component';
-import { RevisionNavActionZoneComponent } from './revision-history/components/revision-nav-action-zone/revision-nav-action-zone.component';
 
 @NgModule({
   declarations: [
@@ -62,8 +61,7 @@ import { RevisionNavActionZoneComponent } from './revision-history/components/re
     LifecycleProgressRegionComponent, // C11
     // Wave 3 — C-12: RevisionHistoryPage child components
     RevisionTimelineComponent,        // C20
-    RevisionCompareSummaryComponent,  // C21
-    RevisionNavActionZoneComponent    // C22
+    RevisionCompareSummaryComponent   // C21
   ],
   imports: [
     CommonModule,

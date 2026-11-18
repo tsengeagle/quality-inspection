@@ -10,7 +10,6 @@ import { StatusOrBlockedBannerComponent } from '../components/status-or-blocked-
 import { CasesService, RevisionHistoryViewModel } from '../services/cases.service';
 import { RevisionHistoryPageComponent } from './revision-history-page.component';
 import { RevisionCompareSummaryComponent } from './components/revision-compare-summary/revision-compare-summary.component';
-import { RevisionNavActionZoneComponent } from './components/revision-nav-action-zone/revision-nav-action-zone.component';
 import { RevisionTimelineComponent } from './components/revision-timeline/revision-timeline.component';
 
 function buildVm(overrides: Partial<RevisionHistoryViewModel> = {}): RevisionHistoryViewModel {
@@ -19,7 +18,6 @@ function buildVm(overrides: Partial<RevisionHistoryViewModel> = {}): RevisionHis
     status: 'REREVIEW_IN_PROGRESS',
     actorRole: 'REREVIEWER',
     projectionType: 'FULL',
-    hasExceptionEntry: false,
     revisions: [
       {
         submissionId: 'SUB-1',
@@ -91,8 +89,7 @@ describe('RevisionHistoryPageComponent', () => {
         ModeIndicatorStripComponent,
         ProjectionNoticeBannerComponent,
         RevisionTimelineComponent,
-        RevisionCompareSummaryComponent,
-        RevisionNavActionZoneComponent
+        RevisionCompareSummaryComponent
       ],
       providers: [
         { provide: ActivatedRoute, useValue: activatedRouteStub },
@@ -117,7 +114,7 @@ describe('RevisionHistoryPageComponent', () => {
     expect(component.mode).toBe('FULL_HISTORY');
     expect(component.stageTab).toBe('ALL');
     expect(component.showMetadataOnlyNotice).toBeFalse();
-    expect(component.hasExceptionEntry).toBeFalse();
+    expect(fixture.nativeElement.querySelector('app-revision-nav-action-zone')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('完整歷程');
     expect(fixture.nativeElement.textContent).toContain('Diff 比較區塊');
     expect(fixture.nativeElement.textContent).toContain('版本選擇互動尚未定案；目前採固定差異摘要檢視。');
@@ -128,33 +125,21 @@ describe('RevisionHistoryPageComponent', () => {
 
     expect(component.mode).toBe('METADATA_HISTORY');
     expect(component.showMetadataOnlyNotice).toBeTrue();
-    expect(component.hasExceptionEntry).toBeFalse();
     expect(fixture.nativeElement.textContent).toContain('詳細差異內容不適用於此視角。');
     expect(fixture.nativeElement.querySelector('app-revision-nav-action-zone')).toBeNull();
   });
 
-  it('shows the exception entry only when all three conditions are met', () => {
-    render(buildVm({ status: 'CLOSED', hasExceptionEntry: true }));
+  it('shows only the read-only terminal banner on a CLOSED case, without any exception entry (D-032)', () => {
+    // 舊版後端曾回傳 hasExceptionEntry: true；D-032 撤銷 CLOSED 複審 revision 例外後，前端不得再依此顯示入口
+    const legacyResponse = { ...buildVm({ status: 'CLOSED' }), hasExceptionEntry: true };
+    render(legacyResponse);
 
     expect(component.mode).toBe('READONLY_TERMINAL');
-    expect(component.hasExceptionEntry).toBeTrue();
-    expect(component.bannerTone).toBe('exception-amber');
-
-    const button = fixture.nativeElement.querySelector('app-revision-nav-action-zone button');
-    expect(button?.getAttribute('type')).toBe('button');
-    expect(fixture.nativeElement.querySelector('button[type="submit"]')).toBeNull();
-  });
-
-  it('does not show the exception entry when the case is not CLOSED', () => {
-    render(buildVm({ status: 'OPEN', hasExceptionEntry: true }));
-
-    expect(component.hasExceptionEntry).toBeFalse();
-  });
-
-  it('does not show the exception entry when backend truth is false', () => {
-    render(buildVm({ status: 'CLOSED', hasExceptionEntry: false }));
-
-    expect(component.hasExceptionEntry).toBeFalse();
+    expect(component.bannerTone).toBe('info');
+    expect(component.bannerMessage).toBe('此案件處於終止狀態，僅可檢視歷程。');
+    expect(fixture.nativeElement.querySelector('app-revision-nav-action-zone')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('前往複審修正');
+    expect(fixture.nativeElement.textContent).not.toContain('例外');
   });
 
   it('persists the stage tab through query params', () => {
@@ -188,13 +173,5 @@ describe('RevisionHistoryPageComponent', () => {
     render(buildVm({ actorRole: 'MANAGER' }));
 
     expect(component.stageTab).toBe('ALL');
-  });
-
-  it('navigates to rereview from C22 as a navigate-only action', () => {
-    render(buildVm({ status: 'CLOSED', hasExceptionEntry: true }));
-
-    component.navigateToRereview();
-
-    expect(router.navigate).toHaveBeenCalledWith(['/cases', 'CASE-014', 'rereview']);
   });
 });

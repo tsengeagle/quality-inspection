@@ -16,8 +16,7 @@ export type RevisionStageTab = 'ALL' | 'INITIAL_ONLY' | 'REREVIEW_ONLY';
 /** C-11 — UI-014 RevisionHistoryPageComponent
  *  3-mode: FULL_HISTORY / METADATA_HISTORY / READONLY_TERMINAL
  *  HR-1: METADATA_HISTORY → C21 顯示 "詳細差異內容不適用於此視角"
- *  HR-2: C22 必須是 outlined warning-tone button，不能 fixed
- *  hasExceptionEntry: CLOSED + originalRereviewer + baseSubmission → 顯示 C22 navigate button */
+ *  READONLY_TERMINAL：只顯示唯讀提示。D-032 撤銷 CLOSED 複審 revision 例外，本頁不提供任何修正入口 */
 @Component({
   selector: 'app-revision-history-page',
   templateUrl: './revision-history-page.component.html',
@@ -35,14 +34,11 @@ export class RevisionHistoryPageComponent implements OnInit {
   modeLabel = '';
 
   showBanner = false;
-  bannerTone: 'blocked' | 'exception-amber' | 'info' = 'info';
+  bannerTone: 'info' = 'info';
   bannerMessage = '';
 
   /** HR-1: METADATA_HISTORY → diff 不適用訊息 */
   showMetadataOnlyNotice = false;
-
-  /** HR-2 / exception entry: CLOSED + originalRereviewer + baseSubmission */
-  hasExceptionEntry = false;
 
   private hasExplicitStageTab = false;
 
@@ -107,15 +103,11 @@ export class RevisionHistoryPageComponent implements OnInit {
   }
 
   private _applyMode(): void {
-    const d = this.vm;
-
     switch (this.mode) {
       case 'FULL_HISTORY':
         this.modeLabel = '完整歷程';
         this.showMetadataOnlyNotice = false;
         this.showBanner = false;
-        // hasExceptionEntry: CLOSED + originalRereviewer + baseSubmission（FULL_HISTORY 不符，不顯示）
-        this.hasExceptionEntry = false;
         break;
 
       case 'METADATA_HISTORY':
@@ -123,18 +115,14 @@ export class RevisionHistoryPageComponent implements OnInit {
         // HR-1
         this.showMetadataOnlyNotice = true;
         this.showBanner = false;
-        this.hasExceptionEntry = false;
         break;
 
       case 'READONLY_TERMINAL':
         this.modeLabel = '唯讀歷程（終止狀態）';
         this.showMetadataOnlyNotice = false;
-        this.hasExceptionEntry = !!d?.hasExceptionEntry;
         this.showBanner = true;
-        this.bannerTone = this.hasExceptionEntry ? 'exception-amber' : 'info';
-        this.bannerMessage = this.hasExceptionEntry
-          ? '此案件已結案，但符合例外複審修正導頁條件。'
-          : '此案件處於終止狀態，僅可檢視歷程。';
+        this.bannerTone = 'info';
+        this.bannerMessage = '此案件處於終止狀態，僅可檢視歷程。';
         break;
     }
   }
@@ -146,10 +134,5 @@ export class RevisionHistoryPageComponent implements OnInit {
       queryParams: { stageTab: tab },
       queryParamsHandling: 'merge'
     });
-  }
-
-  /** C22: exception mode → 前往複審作業頁（HR-2: navigate-only） */
-  navigateToRereview(): void {
-    this.router.navigate(['/cases', this.caseId, 'rereview']);
   }
 }
