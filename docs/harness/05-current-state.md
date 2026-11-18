@@ -76,7 +76,7 @@
 |---|---|---|---|
 | 1 | 身分就緒：hosted 模式下 shell 分別送出使用者、角色清單、目前角色（`TOPIC_USER_INFO`、`TOPIC_USER_ROLES`、`TOPIC_CURR_ROLE`），切換身分的中間狀態可能是「新使用者＋舊角色」。UI-015 已在身分未解析或不持有報表角色時停用查詢，但這個中間狀態仍會通過 | 前端共用層（`core/actor-context`） | 需先確認 shell 送出事件的順序、有沒有「切換完成」的訊號（PR #71 Copilot 第三則意見） |
 | 2 | UI-017 匯出頁的查詢與下載按鈕，沒有「持有報表角色」的判斷（UI-015 在 #71 已補） | 前端缺陷，已合併 | 併入第 1 項一起處理 |
-| 3 | domain 內 10 處 `LocalDateTime.now()`（`ReviewCase`、`ReviewSubmission`）：用伺服器預設時區，且繞過注入的 `Clock` | 架構債 | 在 ARCH-02 凍結基線內；`closedAt` 因此在匯出頁標示為伺服器時間。改為 UTC `Instant` 需先裁決 |
+| 3 | domain 內 15 處無參數的 `LocalDateTime.now()`（`ReviewCase` 6 處、`ReviewSubmission` 9 處）：用伺服器預設時區，且繞過注入的 `Clock` | 架構債 | 在 ARCH-02 凍結基線內；`closedAt` 因此在匯出頁標示為伺服器時間。改為 UTC `Instant` 需先裁決 |
 | 4 | api-spec 的路徑與程式不一致：13.2 `/revisions` vs 程式 `/revision-history`；13.1 `/review-cases/{caseId}/submissions/{id}` vs `/review-submissions/{id}`；11.3 提交的路徑 | 契約漂移 | 盤點時看到，**尚未逐一核對** |
 | 5 | standalone 模式沒有 Bootstrap 樣式、空狀態插圖不會載入（shell 提供的資產，依 GOV-CSS-002／GOV-BND-003 不另外載入） | 開發／demo 體驗 | 待負責人決定 |
 | 6 | 「無權限」區塊不是共用元件（UI-015、UI-017 各寫一份） | 前端重用 | 待負責人決定 |
