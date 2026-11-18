@@ -153,7 +153,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 1 | CI 跑 `./gradlew check`、ArchUnit、已知失敗清單 | P1 | 完成，已進 `main`（PR #6） |
 | 2 | 律法保護 | P6、P4 | 進行中。2-1、2-2 的主要部分已完成並啟用；2-3、2-4 未動工 |
 | 2-1 | 清冊、判決程式、GitHub 接法（不驗簽章） | | 完成，已進 `main`（PR #7、#8、#9）。`law-check` 在 GitHub 上的執行紀錄見 `08-legislation-design.md` 第十一節 |
-| 2-2 | 把核心搬進 `harness-core/`；簽章核准，支援多種簽章方案 | | **主要部分完成並已啟用**（PR #12 到 #15）。修法要有負責人用實體金鑰的簽章才會通過，完整流程已在 GitHub 上驗收（PR #15）。未完成：備援金鑰只登記了同一支實體金鑰上的 resident 金鑰（2026-11-15），防換電腦、不防金鑰遺失；第二支實體金鑰尚未登記；SSH 以外的簽章方案（OpenPGP、自然人憑證）；把 `harness-core/` 拆成獨立的 repo |
+| 2-2 | 把核心搬進 `harness-core/`；簽章核准，支援多種簽章方案 | | **主要部分完成並已啟用**（PR #12 到 #15）。修法要有負責人用實體金鑰的簽章才會通過，完整流程已在 GitHub 上驗收（PR #15）。備援金鑰：同一支實體金鑰上的 resident 金鑰（2026-11-15，防換電腦）；第二支實體金鑰 YubiKey 5 Nano（2026-11-18，防金鑰遺失，PR #74，尚未在 GitHub 上用它簽過修法）。未完成：SSH 以外的簽章方案（OpenPGP、自然人憑證）；把 `harness-core/` 拆成獨立的 repo |
 | 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
 | 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
 | 3 | 每條規則配一組違規樣本 | P2 | 完成，已進 `main`（PR #7、#8） |
@@ -165,7 +165,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 接下來的順序（2026-11-14 的建議，尚未裁決）：
 
 1. 把 `check`、`law-check`、`law-selftest` 設為必要檢查。沒有這一步，簽章機制只有「看得見」，沒有「擋得住」。
-2. 登記備援金鑰。
+2. 登記備援金鑰：已完成（2026-11-15 同一支金鑰上的 resident 金鑰；2026-11-18 第二支實體金鑰，PR #74）。
 3. 盤點律法清冊：已盤點（`09-law-inventory.md`），缺口尚未補進清冊。2026-11-14 裁決：測試與規格要列為律法，但要等 `/specs` 格式完整、問題側規格穩定之後才生效。
 4. 把 `harness-core/` 拆成獨立的 repo，接著做 2-3（GitLab）。
 5. 第 4 期：讓驗收範例可以執行。
