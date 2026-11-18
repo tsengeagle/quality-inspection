@@ -1,6 +1,6 @@
 # HTTP 契約如何立法：選項比較（待裁決）
 
-> 狀態：**提案，待負責人裁決**。本文件不是權威文件，也不改律法、不改程式。裁決後記為 D-061，再依裁決另開修法 PR。
+> 狀態：**Q-1 已裁決採 B**（負責人，2026-11-18），先在 `spec-draft/` 試做 score-sheet。Q-2 的結論見第八節；其餘待裁決。本文件不是權威文件，也不改律法、不改程式。裁決後記為 D-061，再依裁決另開修法 PR。
 > 起因：`docs/handoffs/2026-11-18-harness-coverage-gate.md` 第 D-1、G-1、H-1 項。
 > 撰寫時的基準：`main` = `6c80640`。
 
@@ -76,3 +76,48 @@ C 是合理的備案：如果負責人判斷 HTTP 層的缺陷成本低（前端
 - B 的閘門尚未實作；「E-03 會被擋下」是依設計推演（INFERENCE），第五節第 1 步才會驗證。
 - A 的靜態比對能力是推估，沒有試做。
 - request 欄位與 query 參數在 api-spec 與程式之間的差異從未核對（F-2 只核對路徑）。
+
+## 八、契約檔的範圍與位置（Q-2，2026-11-18 補）
+
+負責人的方向：位置依契約檔的範圍決定。盤點結果：**契約有兩層，範圍不同，所以分兩處放**。
+
+### 範圍盤點（基準 `3dde90b`）
+
+| 內容 | 誰用 | 範圍 | 證據 |
+|---|---|---|---|
+| 回應外殼 `{ success, data, meta, error{code,message} }` | 全部 52 個端點 | **跨 aggregate** | `dto/ApiResponse.java`；api-spec §3.5 |
+| 錯誤分類 → 狀態碼 | 全部 | **跨 aggregate** | `GlobalExceptionHandler.java`（依例外類別給 400/403/404/409/422）；規則 7 說這張表在實作端 |
+| 共用錯誤代碼（`ROLE_DENIED`、`HOSPITAL_SCOPE_MISMATCH`、`VALIDATION_ERROR`…） | 兩個已立法規格都重複定義 | **跨 aggregate** | `specs/*/usecases.yaml` 的 `error_codes` |
+| 操作者怎麼傳進來、base path、時間格式 | 全部 | **跨 aggregate** | `ActorContextArgumentResolver.java`；api-spec §3.1～3.4 |
+| 端點、請求欄位、回應的 `data` 形狀 | 單一 use case | **aggregate 內** | score-sheet 7 支 use case 對 7 個端點，一對一 |
+| `POST /review-projects/{id}/bind-score-sheet` | `BindScoreSheetToProject` | 屬於 **review-project**（use case 所在的規格），不是 URL 看起來的 score-sheet | `ReviewProjectController.java` L99；`specs/review-project/usecases.yaml` |
+| 報表、稽核、送審查詢 | 跨多個 aggregate 的讀取 | 沒有單一 aggregate 擁有 | `ReportController`、`AuditController`、`SubmissionController`；目前全部暫准 |
+
+### 位置
+
+| 層 | 正式位置 | 試做位置 | 理由 |
+|---|---|---|---|
+| 共用層 | `specs/http-common.yaml`（`specs/` 根目錄的單一檔案） | `spec-draft/http-common.yaml` | 跨 aggregate 的東西只寫一次，否則每立法一個 aggregate 就多一份副本（F-4）。不能做成 `specs/http/` 子目錄：`spec_lint` 把 `specs/` 的每個子目錄當成 aggregate 檢查（`spec_lint.py` L362），會被擋下 |
+| aggregate 層 | `specs/<aggregate>/http.yaml` | `spec-draft/score-sheet/http.yaml` | 立法、升格、`coverage.txt` 改 `legislated` 都是以 aggregate 為單位；契約跟著規格目錄一起升格 |
+| 跨 aggregate 的讀取 | 這些查詢立法時自成一個規格目錄（例如 reporting），`http.yaml` 跟著它 | 不在本次試做範圍 | 沒有單一擁有者；硬塞進某個 aggregate 會讓那個 aggregate 的修法牽動別人 |
+
+端點的歸屬規則：**端點屬於它呼叫的 use case 所在的規格目錄**，不看 URL 前綴。
+
+立法後 `coverage.txt` 的對應：`ApiResponse`、`GlobalExceptionHandler`、`ActorContextArgumentResolver` 由共用層改為 `legislated`；各 controller 與它的 dto 隨 aggregate 改。
+
+### 試做的已知副作用
+
+- `spec-draft/score-sheet/` 只放 `http.yaml`，`spec-check` 的 `--report-only` 會列出「缺少 model.yaml」等 3 項。只列出、不擋；正式升格到 `specs/score-sheet/` 時不會發生。
+- `spec-draft/` 是律法（`law/manifest.txt` 的 `spec` 類），試做 PR 本身就是修法 PR，需要修法紀錄與負責人簽章。
+
+### 尚待決定：閘門怎麼取得「實際回應」（Q-5）
+
+| | B-1：觀察 | B-2：以 HTTP 重跑範例 |
+|---|---|---|
+| 做法 | 測試期間攔截所有 HTTP 回應，逐一以契約驗證；契約裡每個端點至少要被觀察到一次成功，沒觀察到算未通過 | `http.yaml` 寫出 use case ↔ 端點、輸入 ↔ 路徑／query／body 的對應，執行器把 `examples.yaml` 改走 HTTP 再跑一遍 |
+| 資料從哪裡來 | 建構者的 API 測試（非律法） | 律法的範例 |
+| 是否是翻譯表（F-4、F-5） | 否：契約只描述端點與形狀 | **是**：每支 use case 一筆對應，score-sheet 的六相位更新要逐欄對應 |
+| 擋得住 E-03 | 是（只要有任何測試打到該端點） | 是 |
+| 弱點 | 建構者測試若只打錯誤路徑，成功形狀就沒被驗；以「至少一次成功」補 | 維護成本、與 README「不維護翻譯表」的目標衝突 |
+
+建議 B-1。
