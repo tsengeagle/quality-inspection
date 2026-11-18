@@ -1,7 +1,7 @@
 # Harness 建置筆記
 
 本目錄記錄「依 MGD 精神為本專案建立 harness」的討論結論、計畫與現況。
-內容整理自 2026-11-11 至 2026-11-12 的工作 session。
+內容整理自 2026-11-11 起的工作 session；`03`、`05` 的狀態最近一次更新是 2026-11-18（PR #71 之後）。
 
 ## 文件定位
 
@@ -29,10 +29,10 @@
 | `02-ezddd-java-lessons.md` | ezddd-java 踩過的坑、能力限制、哪些值得學 |
 | `03-harness-plan.md` | 本專案的 harness 計畫：義務對照、搬與不搬、工具、順序 |
 | `04-definition-of-enough.md` | 怎麼判斷 harness 做得夠不夠 |
-| `05-current-state.md` | 2026-11-12 的專案現況、待決事項、未驗證事項 |
+| `05-current-state.md` | 2026-11-18 的專案現況（PR #16 到 #71）、待決事項、未驗證事項；附錄保留 2026-11-13 的閘門驗證紀錄 |
 | `06-paper-digest.md` | MGD 兩篇原文的逐節重點整理，含出處與授權 |
 | `07-github-settings.md` | GitHub 端要手動做的設定（main 的保護規則、必要檢查）與驗收方式 |
-| `08-legislation-design.md` | 修法機制的設計草稿：律法清冊、修法紀錄、簽章核准、CI 判決規則；涵蓋 GitHub 與 GitLab、多種 AI 工具。待審，尚未實作 |
+| `08-legislation-design.md` | 修法機制的設計草稿：律法清冊、修法紀錄、簽章核准、CI 判決規則；涵蓋 GitHub 與 GitLab、多種 AI 工具。GitHub 的部分 2026-11-14 已啟用（第十一節）；GitLab 與各 AI 工具的部分未動工 |
 | `09-law-inventory.md` | 律法清冊的盤點：方法、缺口、裁決（測試與規格延後列入）、未裁決的項目 |
 | `10-spec-format.md` | 規格格式 v1 的決定與理由；對 ReviewProject 草稿的試跑結果 |
 | `11-example-runner.md` | 第 4 期：驗收範例的執行器。設計決定、驗證、第一次執行的結果 |
@@ -46,7 +46,7 @@
 
 1. 在本 repo 的根目錄開 Claude Code session，不要在參考 repo 開。
 2. 第一句話請 AI 讀 `docs/harness/README.md` 和 `05-current-state.md`。
-3. 下一步見 `03-harness-plan.md` 的「建議順序」。
+3. 下一步見 `03-harness-plan.md` 第六節的「接下來的順序」。
 
 ## Repo 之間的關係
 

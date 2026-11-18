@@ -1,6 +1,6 @@
 # 本專案的 harness 計畫
 
-狀態：計畫。2026-11-13 起動工，進度見 `05-current-state.md` 第十節。工具選擇是討論中的建議，不是既有文件規定的做法。
+狀態：計畫。2026-11-13 起動工，進度見 `05-current-state.md`。第二、三、六、七節的狀態欄 2026-11-18 依 PR #71 之後的現況更新。工具選擇是討論中的建議，不是既有文件規定的做法。
 
 ## 一、三個前提的修正
 
@@ -52,13 +52,13 @@
 
 | 配套 | 狀態 | 建議 |
 |---|---|---|
-| `/specs` 的格式 | 未定 | 沿用 `spec-draft/README.md` 的七條格式規則 |
-| `spec-draft/` 的內容何時進 `/specs` | 未定 | 不直接改名搬移。`spec-draft/` 是 AI 轉換的草稿，留作待審區；一個 aggregate 通過下方的升格條件後才搬進 `/specs` |
+| `/specs` 的格式 | 已定（2026-11-15）：格式 v1，見 `specs/README.md`、`10-spec-format.md`，由 `spec-check` 檢查 | 沿用 `spec-draft/README.md` 的七條格式規則 |
+| `spec-draft/` 的內容何時進 `/specs` | 已執行：ReviewProject（PR #21）、ScoreSheet（PR #40）已升格，`spec-draft/` 已清空 | 不直接改名搬移。`spec-draft/` 是 AI 轉換的草稿，留作待審區；一個 aggregate 通過下方的升格條件後才搬進 `/specs` |
 | `decision-log.md` 與 `/specs` 的關係 | 未定 | `decision-log` 是裁決紀錄（為什麼），`/specs` 是現行規則（是什麼）。每條規則的 `source` 指向決策編號；兩者不一致視為缺陷，以 `decision-log` 為準並修正 `/specs` |
 | `docs/02-ddd` 到 `docs/04-testing` | 未定 | 某個 aggregate 轉進 `/specs` 之後，`docs/` 對應章節降為說明，開頭加註「規則以 `/specs` 為準」 |
-| `openspec/` | 未定 | 目前是空的。只當修法流程用，或拿掉。它底下也有一個 `specs` 目錄，容易和 `/specs` 混淆 |
-| 各處的權威定義 | 未改 | `AGENTS.md`、`.ai/governance/authority-sources.md`、`.github/copilot-instructions.md`、`.github/instructions/docs.instructions.md`、`docs/README.md` 都還寫著 `docs/` 是權威中心。不改的話，AI 工具會繼續把 `docs/` 當 law |
-| `spec-draft/README.md` 的狀態聲明 | 未改 | 目前寫「草稿，不是 authority」 |
+| `openspec/` | 未定（2026-11-18：只剩 `config.yaml`） | 目前是空的。只當修法流程用，或拿掉。它底下也有一個 `specs` 目錄，容易和 `/specs` 混淆 |
+| 各處的權威定義 | 未改（2026-11-18 確認：這幾份與 `CLAUDE.md` 都沒有提到 `/specs`） | `AGENTS.md`、`.ai/governance/authority-sources.md`、`.github/copilot-instructions.md`、`.github/instructions/docs.instructions.md`、`docs/README.md` 都還寫著 `docs/` 是權威中心。不改的話，AI 工具會繼續把 `docs/` 當 law |
+| `spec-draft/README.md` 的狀態聲明 | 已改：註明兩個 aggregate 已升格，本文件只留作試作紀錄 | 目前寫「草稿，不是 authority」 |
 
 未轉換的 aggregate 在轉換完成前，仍以 `docs/` 為準。這段過渡期要在 `/specs` 的 README 寫明哪些 aggregate 已轉換。
 
@@ -70,24 +70,26 @@
 4. 範例的 `basis` 全部指向 `decided` 的規則。
 5. 升格由 PR 完成，核准人是 law 的負責人。
 
+2026-11-18 補註：`review-project` 已於 2026-11-15 升格（PR #21，RP-PUB-01 由 D-049 裁決），`score-sheet` 之後也已升格（PR #40，2026-11-16 合併）。兩次升格都經修法 PR 簽章核准；第 3 項「人逐條讀過」是否做到，修法紀錄沒有記載。
+
 `review-project` 的現況（2026-11-12）：第 1 項差一條（RP-PUB-01）；第 3 項未做。人裁決過的只有 `OPEN-QUESTIONS.md` 的題目；原本就標為 `decided` 的規則、全部範例，以及 AI 依裁決同步的修改，都沒有經過人工審閱。
 
 ## 三、十條義務對照
 
-現況欄是 2026-11-12 的狀況。
+現況欄是 2026-11-18 的狀況（PR #71 之後）。
 
 | 義務 | 在本專案用什麼落實 | 現況 |
 |---|---|---|
-| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋；CI 尚未設為必要檢查。證據見 `05-current-state.md` 第十節 |
-| P2 manifestation | 每條架構規則配一個故意違規的樣本 | 2026-11-13：ARCH-01 到 ARCH-04 都有違規樣本與合規對照；把四條規則改成永遠通過後，樣本測試全部失敗。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄 |
+| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 閘門與 CI 已建立，本機驗證過會擋（`05-current-state.md` 附錄 A）。2026-11-18：本機 `./gradlew check` 1225 個測試 0 失敗，已知失敗清單已清空；GitHub 上 PR #71 合併後 `main` 的 `backend-check` 通過。⚠️ 必要檢查是否已設定未確認（repo 已是 public，見 `05-current-state.md` 第一節）。前端沒有 CI |
+| P2 manifestation | 每條架構規則配一個故意違規的樣本 | ARCH-01 到 ARCH-05 都有違規樣本與合規對照（ARCH-05 隨 D-048 加入）；ARCH-01 到 04 改成永遠通過後，樣本測試全部失敗（2026-11-13）。驗收執行器有自身的測試（26 個）。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄 |
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
-| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ `harness-core/law_check.py` 會擋修法 PR 夾帶程式修改；`law-check` 已在 GitHub 上判決過建構 PR（#10）與修法 PR（#11、#15）。尚未設為必要檢查，紅燈仍可合併 |
+| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ `harness-core/law_check.py` 會擋修法 PR 夾帶程式修改；`law-check` 已在 GitHub 上判決過建構 PR 與修法 PR；例如 UI-015 的頁面規格（#70，修法）與實作（#71，建構）分成兩個 PR。是否所有修法都與程式分開，沒有逐一核對。是否為必要檢查未確認 |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
-| P6 tradition-bearer | 修法要有負責人的簽章；核准者清單讀合併目標分支上的版本 | ⚠️ 2026-11-14 啟用並驗收：沒有簽章的修法被 `law-check` 擋下，負責人用 YubiKey 簽章後通過（PR #15）。限制：`law-check` 尚未設為必要檢查，紅燈仍可合併；只登記了一把金鑰；簽章只證明持有金鑰的人同意，不證明看過內容。CODEOWNERS 只保留形式（`07-github-settings.md` 第二節） |
+| P6 tradition-bearer | 修法要有負責人的簽章；核准者清單讀合併目標分支上的版本 | ⚠️ 2026-11-14 啟用並驗收：沒有簽章的修法被 `law-check` 擋下，負責人用 YubiKey 簽章後通過（PR #15）。到 2026-11-18 共 30 筆修法紀錄，唯一的破例是 D-052（PR #33）。限制：`law-check` 是否為必要檢查未確認；備援金鑰和原本的金鑰在同一支實體金鑰上；簽章只證明持有金鑰的人同意，不證明看過內容。CODEOWNERS 只保留形式（`07-github-settings.md` 第二節） |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
-| P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
-| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 2026-11-14 已裁決：三項必要檢查、不留繞過權限；GitHub 上的設定尚未確認完成。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
-| P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | 有範例，還不能執行 |
+| P8 residue of judgment | `specs/*/OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有（原在 `spec-draft/`，隨升格移到 `specs/`） |
+| P9 scaffolding | CI 檢查設為必要，不可跳過 | ⚠️ 2026-11-14 已裁決：三項必要檢查、不留繞過權限。D-052 記載當時免費私有 repo 不會強制執行；2026-11-18 repo 已是 public，GitHub 上的設定是否完成仍未確認。閘門內部：被跳過的測試、沒有測試原始碼的執行、測試套件本身出錯（PR #37）都會失敗 |
+| P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | 執行器已上線（PR #23）。2026-11-18：ReviewProject 與 ScoreSheet 共 74 個範例全部通過。`docs/04-testing` 的 `EX-`、`TS-` 被測試引用的數量未重新統計；前後端的 API 契約沒有機械化的核對 |
 
 之後每加一個機制就更新這張表。寫不出證據的列標 ⚠️，照實留著。
 
@@ -144,31 +146,31 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 ## 六、分期與進度
 
-狀態欄是 2026-11-14 傍晚的狀況（PR #15 合併之後）。之後每完成一期就更新這張表。
+狀態欄是 2026-11-18 的狀況（PR #71 合併之後）。之後每完成一期就更新這張表。
 
 主線共 7 期。先做 P1、P6、P2，其他義務都建立在它們上面。第 2 期原本是「CODEOWNERS 加 branch protection」；單人 repo 無法自我核准（見 `07-github-settings.md` 第二節），改由修法機制取代，拆成 4 個子期（設計見 `08-legislation-design.md`）。
 
 | 期 | 內容 | 對應義務 | 狀態 |
 |---|---|---|---|
 | 1 | CI 跑 `./gradlew check`、ArchUnit、已知失敗清單 | P1 | 完成，已進 `main`（PR #6） |
-| 2 | 律法保護 | P6、P4 | 進行中。2-1、2-2 的主要部分已完成並啟用；2-3、2-4 未動工 |
+| 2 | 律法保護 | P6、P4 | 進行中。2-1、2-2 的主要部分已完成並啟用；2-3、2-4 未動工（2026-11-18 確認：沒有 `.gitlab-ci.yml`） |
 | 2-1 | 清冊、判決程式、GitHub 接法（不驗簽章） | | 完成，已進 `main`（PR #7、#8、#9）。`law-check` 在 GitHub 上的執行紀錄見 `08-legislation-design.md` 第十一節 |
 | 2-2 | 把核心搬進 `harness-core/`；簽章核准，支援多種簽章方案 | | **主要部分完成並已啟用**（PR #12 到 #15）。修法要有負責人用實體金鑰的簽章才會通過，完整流程已在 GitHub 上驗收（PR #15）。未完成：備援金鑰只登記了同一支實體金鑰上的 resident 金鑰（2026-11-15），防換電腦、不防金鑰遺失；第二支實體金鑰尚未登記；SSH 以外的簽章方案（OpenPGP、自然人憑證）；把 `harness-core/` 拆成獨立的 repo |
 | 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
 | 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
 | 3 | 每條規則配一組違規樣本 | P2 | 完成，已進 `main`（PR #7、#8） |
-| 4 | 讓 `specs/*/examples.yaml` 變成可執行的測試 | P10 | 執行器完成（2026-11-15，`11-example-runner.md`）。ReviewProject 30 個範例 2 個通過，28 個列入已知失敗清單；後續由建構 PR 逐一變綠 |
+| 4 | 讓 `specs/*/examples.yaml` 變成可執行的測試 | P10 | 執行器完成（2026-11-15，`11-example-runner.md`）。當時 ReviewProject 30 個範例 2 個通過。2026-11-18：ReviewProject 與 ScoreSheet 共 74 個範例全部通過，已知失敗清單已清空 |
 | 5 | 維護義務對照表（本文件第三節） | 全部 | 持續進行 |
-| 6 | 把在地傳統寫成模式語言：先挑一支範本 use case，為它涉及的每個模式補齊準則、範本、禁則 | P3 | 未動工。D-048 的 CQRS 閘門規則屬於這一期。這是 P3 的主體，不是可有可無的便利功能 |
+| 6 | 把在地傳統寫成模式語言：先挑一支範本 use case，為它涉及的每個模式補齊準則、範本、禁則 | P3 | 未動工。D-048 的 CQRS 閘門規則屬於這一期；其中過渡期的 ARCH-05 已上線。這是 P3 的主體，不是可有可無的便利功能 |
 | 7 | 「AI 依規格逐步產生程式」的工作流程（相當於 `/execute-uc`） | — | 未動工，排在最後。論文把工作流程歸在律法，它決定生成的順序；harness 只負責在閘門沒過時不讓它結束 |
 
-接下來的順序（2026-11-14 的建議，尚未裁決）：
+接下來的順序（2026-11-14 的建議，尚未裁決；2026-11-18 補上各項現況）：
 
-1. 把 `check`、`law-check`、`law-selftest` 設為必要檢查。沒有這一步，簽章機制只有「看得見」，沒有「擋得住」。
-2. 登記備援金鑰。
-3. 盤點律法清冊：已盤點（`09-law-inventory.md`），缺口尚未補進清冊。2026-11-14 裁決：測試與規格要列為律法，但要等 `/specs` 格式完整、問題側規格穩定之後才生效。
-4. 把 `harness-core/` 拆成獨立的 repo，接著做 2-3（GitLab）。
-5. 第 4 期：讓驗收範例可以執行。
+1. 把 `check`、`law-check`、`law-selftest` 設為必要檢查。沒有這一步，簽章機制只有「看得見」，沒有「擋得住」。2026-11-18：repo 已是 public，設定是否完成未確認。
+2. 登記備援金鑰。2026-11-15 完成（PR #33，D-052），但在同一支實體金鑰上；第二支實體金鑰未登記。
+3. 盤點律法清冊：已盤點（`09-law-inventory.md`）。2026-11-18：`specs/`、`spec-draft/` 已列為 `spec`，驗收執行器的目錄已列為 `gate`（PR #22）；其餘測試未列入。
+4. 把 `harness-core/` 拆成獨立的 repo，接著做 2-3（GitLab）。未動工。
+5. 第 4 期：讓驗收範例可以執行。2026-11-15 完成（PR #23）。
 
 不在這 7 期裡、但已經提到的工作：
 
@@ -177,10 +179,11 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 合併 PR #6、PR #7 | 完成（2026-11-14）。PR #7 當時合併進了 `harness/p1-gate` 而不是 `main`，由 PR #8 補進；PR #9 是三項修正 |
 | GitHub 設定：把 `check`、`law-check`、`law-selftest` 設為必要檢查，不留繞過權限，禁止 force push | 2026-11-14 已裁決，要手動做。步驟在 `07-github-settings.md` 第一節；檢查本身壞掉時的處置在第四節 |
 | `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 格式 v1 已定（2026-11-15，`specs/README.md`，決定見 `10-spec-format.md`），由 `spec-check` 機械檢查。ReviewProject 2026-11-15 升格到 `specs/review-project/`（裁決 D-049） |
-| `reporting` 搬進 `application` 的查詢側（D-048） | 未動工 |
+| `reporting` 搬進 `application` 的查詢側（D-048） | 未動工（2026-11-18 確認：`DashboardQueryService`、`ExportQueryService` 仍在 `reporting`） |
 | 測試分級：本機跑快的，CI 跑全套 | P7，未排期 |
+| 前端的 CI（型別檢查、單元測試、e2e） | 未排期。2026-11-18 手動執行：型別檢查、單元測試、e2e 的預設與 live 流程都通過，demo 模式沒有執行。四個 workflow 都不跑前端 |
 | 一組不交給建構者的獨立測試 | 未排期 |
-| 正式資料庫與 migration 工具 | 未決定。卡住樂觀鎖（D-045）與「測試跑真實資料庫」 |
+| 正式資料庫與 migration 工具 | 2026-11-16 已裁決（D-045）：Oracle 19c 加 Flyway，V1 到 V6 已上線，案件已有樂觀鎖。測試仍跑 H2 的 Oracle 相容模式，不是真實資料庫 |
 | 驗證 harness 本身（`04-definition-of-enough.md` 的及格線四項） | 第 1 項（手寫違規 CI 紅燈）本機通過，尚未在 PR 上做；第 2 項（改 law 沒有核准就無法合併）**只達成一部分**：PR #15 驗證了「沒有簽章時 `law-check` 判定未通過、簽章後通過」，形式是簽章而不是 code owner 核准；但 `law-check` 還不是必要檢查，紅燈仍可合併，所以「無法合併」這個要求還沒達成，要等必要檢查與不留繞過權限的設定生效並實際試過一次；第 3 項（弄壞偵測器樣本失敗）本機通過；第 4 項（改需求、不改程式，驗收變紅）本機通過（2026-11-15，`11-example-runner.md` 第三節），尚未在 PR 上做 |
 
 2-2 的簽章方案：判決程式做成可抽換，核准檔帶 `scheme` 欄位，每種方案一個驗證器。已實作並啟用的是「SSH 簽章加實體金鑰」。其次是「X.509 加自然人憑證」，要先查證憑證內的個資、到期與廢止、命令列環境三件事；OpenPGP 視需要；檔案金鑰不建議當核准用。
@@ -201,7 +204,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 |---|---|---|
 | 裁決 `proposed` 規則並寫回 `decision-log` | 最大，只有人能做 | ReviewProject 的 6 支 use case 已裁決完；全系統約 49 支 |
 | ArchUnit 加驗收範例的執行器 | 中 | |
-| 違規樣本；測試改跑真實資料庫與 migration | 中 | 目前是 H2 加 `ddl-auto`；卡在資料庫與 migration 工具未定 |
+| 違規樣本；測試改跑真實資料庫與 migration | 中 | 2026-11-18：migration 已由 Flyway 管理，測試改用 H2 的 Oracle 相容模式；測試仍不是跑真實資料庫 |
 | 挑一支範本 use case 寫成 pattern 文件 | 中 | |
 | 清掉凍結基線裡的舊違規 | 小，持續做 | |
 | 驗證 harness 本身 | 每輪都會找到問題 | 用沒看過答案的 agent 從乾淨 repo 照文件做 |
