@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-18-frontend-ci",
+  "decision": "none",
+  "reason": "新增閘門，不對應任何裁決：.github/workflows/frontend-check.yml 在每個 PR 與 main 的 push 上執行前端的型別檢查（npm run typecheck）、單元測試（npm run test:unit:ci，以 ChromeHeadless 執行）與 E2E（npm run test:e2e，Playwright 依 lockfile 版本安裝 Chromium）。原因：既有 CI（backend-check、law-check、law-selftest、spec-check）都不執行前端，前端 PR（#56、#58、#60、#69、#71 等）的測試證據只來自本機執行，合併後也沒有任何閘門擋住前端退化。指令與本機、AI 使用的 npm script 相同（frontend-ui.instructions.md §5），依前端模組自己的 lockfile 安裝；demo／preflight／live 流程需要 QI_PLAYWRIGHT_FLOW 與真實後端，未設定時自行 skip。與 backend-check 相同不設 paths 篩選，之後可設為必要檢查。驗證：在乾淨的 checkout 以 CI=true 依序執行 npm ci、typecheck、unit（224 個通過）、e2e（18 通過、3 個 demo 流程 skip）；另外分別放入失敗的單元測試、型別錯誤與失敗的 E2E，三個步驟都以非零結束。只新增 workflow，不改任何程式、測試或其他閘門。另依 PR #72 在 GitHub 上的第一次執行：npm ci、typecheck、單元測試（224 個）都通過，但 ubuntu-latest 已是 Ubuntu 26.04，lockfile 鎖定的 Playwright 1.59.1 不支援（Playwright does not support chromium on ubuntu26.04-x64），安裝瀏覽器失敗；改為固定 runs-on: ubuntu-24.04，不升級 Playwright（升級會改 lockfile，超出本次範圍）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    ".github/workflows/frontend-check.yml",
+    "law/"
+  ]
+}

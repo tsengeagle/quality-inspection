@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-18-approving-windows-notes",
+  "decision": "none",
+  "reason": "核准者指引（harness-core/APPROVING.md）補上 Windows 注意事項，不改任何判決規則或程式。負責人 2026-11-18 在 Windows 上登記第二把 YubiKey 時，系統內建 OpenSSH 透過 WebAuthn 跳出「選擇要儲存金鑰的位置」視窗，原文件沒有說明。新增內容：第一節說明這個視窗不能關閉也不應繞過、必須選「安全性金鑰」（選 1Password 或此 Windows 裝置會讓憑證不在實體金鑰裡）、/tmp 與 ~ 在 PowerShell 的替代寫法（law_approve.py 把 --key 原樣交給 ssh-keygen，不展開 ~）、用 Get-Command 確認 ssh-keygen 來源、不需要系統管理員權限；第二節新增產生金鑰後的驗證步驟（插著該金鑰簽章成功、換金鑰或不插則失敗），備援金鑰尤其要做；常見問題表新增兩列 Windows 情況，這部分只改文件。另在同一筆修法登記第二支實體金鑰：在 law/allowed_signers 為核准者 tsengeagle 新增 YubiKey 5 Nano（韌體 5.4.3）上的非 resident ed25519-sk 金鑰，application=ssh:law-amendment，指紋 SHA256:rS7z3tq+vz0s6m6qBkFARIy3QIa1I2bswzGsapguxM4，公鑰由負責人本人於 2026-11-18 在 Windows 上產生並提供。起因：既有兩把（2026-11-14、2026-11-15 登記）都在同一支 YubiKey 5C NFC 上，防換電腦、不防金鑰遺失（docs/harness/03-harness-plan.md 列為未完成）。驗證：負責人用新金鑰簽一段測試訊息，以 OpenSSH 9.6 的 ssh-keygen -Y verify 驗章通過；訊息改一個字元、namespace 不同、只用 main 上既有的核准者清單，三個反向案例都失敗。核准者清單讀的是合併目標分支上的版本，所以本筆修法要用既有的 5C NFC 金鑰簽章；新金鑰在合併後才生效，生效後第一次修法建議改用它簽章，確認在 GitHub 上通過。docs/harness/03-harness-plan.md 與 05-current-state.md 同步。依 PR #74 的 Copilot 審查補正：Win32-OpenSSH 官方 FIDO/U2F 說明寫明 8.9.0.0 以上才支援實體金鑰，改為註明版本門檻與官方升級方式（winget install \"openssh preview\"），以探測成功為準，不再一律要求系統內建路徑；PowerShell 的 rm -f 有參數歧義，補上第二節驗證步驟的完整 PowerShell 寫法。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "harness-core/APPROVING.md",
+    "law/"
+  ]
+}

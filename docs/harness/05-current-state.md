@@ -230,5 +230,5 @@ CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的�
 |---|---|
 | ARCH-01 的依賴方向 | 2026-11-14 已裁決（D-048）：採 DDD 加 CQRS，查詢經過 `application` 的查詢埠。過渡期 `reporting` 只能依賴 `application.common`（新增 ARCH-05，含樣本，植入違規後失敗）；`infrastructure` 不得依賴 `reporting` |
 | 單人 repo 的 code owner 核准 | 2026-11-14 已裁決：只保留形式，不啟用強制核准。見 `07-github-settings.md` 第二節 |
-| 修法機制 | 2026-11-14 啟用：修法要有修法紀錄，加上負責人用實體金鑰對內容雜湊的簽章，`law-check` 才會通過。完整流程已在 GitHub 上驗收（PR #15）。核心在 `harness-core/`（0.2.0，50 個測試）。尚未設為必要檢查；只有一把金鑰。紀錄見 `08-legislation-design.md` 第十一節，分期見 `03-harness-plan.md` 第六節 |
+| 修法機制 | 2026-11-14 啟用：修法要有修法紀錄，加上負責人用實體金鑰對內容雜湊的簽章，`law-check` 才會通過。完整流程已在 GitHub 上驗收（PR #15）。核心在 `harness-core/`（0.2.0，50 個測試）。尚未設為必要檢查。核准者 tsengeagle 登記了兩支實體金鑰上的三把金鑰（第二支 YubiKey 5 Nano 於 2026-11-18 登記，PR #74）。紀錄見 `08-legislation-design.md` 第十一節，分期見 `03-harness-plan.md` 第六節 |
 | 閘門訊息的編碼 | `build.gradle` 的中文訊息在非 UTF-8 的終端機顯示成問號（本次的雲端環境就是）。GitHub 的 runner 是否正常，未確認 |

@@ -1,0 +1,62 @@
+name: frontend-check
+
+# 前端的型別檢查、單元測試與 E2E。與 backend-check 相同，不設 paths 篩選：
+# 之後要把這個檢查設為必要檢查，被篩掉的必要檢查會永遠停在等待中。
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: frontend-check
+    # 固定 ubuntu-24.04：ubuntu-latest 已是 26.04，lockfile 鎖定的 Playwright 1.59.1 不支援
+    # （PR #72 第一次執行：Playwright does not support chromium on ubuntu26.04-x64）。
+    # 升級 Playwright 時再一起改回 ubuntu-latest。
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontends/quality-inspection-frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontends/quality-inspection-frontend/package-lock.json
+
+      # 依 frontend 模組自己的 lockfile 安裝（不是 repo 根目錄的 package-lock.json）
+      - run: npm ci
+
+      # 與開發者、AI 在本機跑的是同一組 npm script（frontend-ui.instructions.md §5）
+      - name: typecheck
+        run: npm run typecheck
+
+      # karma.conf.js 預設 browsers 是 Chrome（有畫面）；CI 沒有顯示器，改用 ChromeHeadless
+      - name: unit
+        run: npm run test:unit:ci -- --browsers=ChromeHeadless
+
+      # Playwright 版本由 lockfile 決定，安裝對應版本的 Chromium 與系統相依套件
+      - name: install playwright chromium
+        run: ./node_modules/.bin/playwright install --with-deps chromium
+
+      # demo／preflight／live 流程需要 QI_PLAYWRIGHT_FLOW 與真實後端，未設定時會自行 skip
+      - name: e2e
+        run: npm run test:e2e
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-reports
+          path: |
+            frontends/quality-inspection-frontend/coverage
+            frontends/quality-inspection-frontend/playwright-report
+            frontends/quality-inspection-frontend/test-results
+          if-no-files-found: warn

@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-18-approving-windows-notes",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:0c4f49c40d2d1a656756cd694b7cb69070ce11f5f0c77c343366bc085e2aa388",
+  "reviewed_commit": "b78dda2683aa635c560cc0f210bf87f4568ceea7",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFkAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAghihX/R\nq3C2qycCcVhx0LkVTeSw7MEttHzTwijS611dYAAAATc3NoOmxhdy1hbWVuZG1lbnQtMgAA\nAA1sYXctYW1lbmRtZW50AAAAAAAAAAZzaGE1MTIAAABnAAAAGnNrLXNzaC1lZDI1NTE5QG\n9wZW5zc2guY29tAAAAQNWVyEZ3+R+UwkaRJaF/B+KZwLGhWiXiwlFcc4ipaVM+7pk/h8UV\nMDqVm8W98s9nTUCTGIZnUnhNzZDZnLGAsgAFAAAAMA==\n-----END SSH SIGNATURE-----\n"
+}

@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-18-frontend-ci",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:e4c544cdd7b39c4fd8508e271fd85ac9c45c8a8e537a7565b9d3c68f93fd6adb",
+  "reviewed_commit": "76cbd796eb62285bc09d40053c57633f09cdecb9",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFkAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAghihX/R\nq3C2qycCcVhx0LkVTeSw7MEttHzTwijS611dYAAAATc3NoOmxhdy1hbWVuZG1lbnQtMgAA\nAA1sYXctYW1lbmRtZW50AAAAAAAAAAZzaGE1MTIAAABnAAAAGnNrLXNzaC1lZDI1NTE5QG\n9wZW5zc2guY29tAAAAQCy7VSqjjRA30bYAZAih5LMxwmEHeWFibzI91M4nz4C8IHDF/VzC\nc+H7Ta38PKQi3/fbtTKPCZXxsIoKDH1lig0FAAAANA==\n-----END SSH SIGNATURE-----\n"
+}
