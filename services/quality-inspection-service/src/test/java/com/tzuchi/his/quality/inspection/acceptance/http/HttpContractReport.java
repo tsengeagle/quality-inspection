@@ -33,7 +33,11 @@ final class HttpContractReport {
         Path specs = Paths.get(System.getProperty("acceptance.specs.dir", "../../specs")).toAbsolutePath().normalize();
         Path draft = Paths.get(System.getProperty("acceptance.specdraft.dir", "../../spec-draft")).toAbsolutePath().normalize();
         Path out = Paths.get(System.getProperty("http.contract.report", "build/reports/http-contract/report.txt"));
-        List<HttpObservation> observations = HttpObservationRecorder.snapshot();
+        write(draft, specs, out, HttpObservationRecorder.snapshot());
+    }
+
+    /** 契約壞掉、比對中途出錯時，仍寫出本次的報告（結果為不符合），不會留下上一次的報告。 */
+    static void write(Path draft, Path specs, Path out, List<HttpObservation> observations) throws IOException {
 
         StringBuilder text = new StringBuilder("HTTP 契約報告（B-1：觀察）\n");
         text.append("觀察到的 HTTP 交換：").append(observations.size()).append('\n');
@@ -44,8 +48,14 @@ final class HttpContractReport {
         } else {
             HttpContract contract = HttpContract.load(common, draft, specs);
             HttpContractEvaluator evaluator = new HttpContractEvaluator(contract);
-            observations.forEach(evaluator::observe);
-            List<String> problems = evaluator.problems();
+            List<String> problems;
+            try {
+                observations.forEach(evaluator::observe);
+                problems = evaluator.problems();
+            } catch (RuntimeException e) {
+                problems = new java.util.ArrayList<>(contract.loadProblems());
+                problems.add("比對中斷，本次結果不完整：" + e);
+            }
             text.append("\n== ").append(draft).append("（試做，只列出）\n");
             text.append("契約端點 ").append(contract.endpoints().size())
                     .append("，契約範圍內的觀察 ").append(evaluator.observed()).append('\n');
