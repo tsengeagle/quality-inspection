@@ -29,7 +29,7 @@
 | `02-ezddd-java-lessons.md` | ezddd-java 踩過的坑、能力限制、哪些值得學 |
 | `03-harness-plan.md` | 本專案的 harness 計畫：義務對照、搬與不搬、工具、順序 |
 | `04-definition-of-enough.md` | 怎麼判斷 harness 做得夠不夠 |
-| `05-current-state.md` | 2026-11-12 的專案現況、待決事項、未驗證事項 |
+| `05-current-state.md` | 2026-11-18 的專案現況：頁面進度、驗證閘門、已知缺口、待決事項、建議的下一步、未驗證事項 |
 | `06-paper-digest.md` | MGD 兩篇原文的逐節重點整理，含出處與授權 |
 | `07-github-settings.md` | GitHub 端要手動做的設定（main 的保護規則、必要檢查）與驗收方式 |
 | `08-legislation-design.md` | 修法機制的設計草稿：律法清冊、修法紀錄、簽章核准、CI 判決規則；涵蓋 GitHub 與 GitLab、多種 AI 工具。待審，尚未實作 |
