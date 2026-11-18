@@ -52,7 +52,7 @@
 | 決策ID | 內容摘要 |
 |--------|---------|
 | **O1-C** | CLOSED + 合法 rereviewer → UI-014 顯示條件式「前往複審修正」navigate entry → 導至 UI-013 CLOSED_REVISION_EXCEPTION 模式；新提交禁止，revision 開放 |
-| **O2-A** | 所有 review workflow command API 採 case-rooted sub-resource：`/review-cases/{caseId}/submissions/{submissionId}/...`（來源：decision-log D-022） |
+| **O2-A** | 所有 review workflow command API 採 case-rooted sub-resource，stage 在前：`/review-cases/{caseId}/{stage}/...`、`/review-cases/{caseId}/{stage}/submissions/{submissionId}/{action}`（來源：decision-log D-022，路徑樣式由 D-058 修正） |
 | **O3-C** | SYSTEM_ADMIN metadata 視角採 shared base metadata whitelist + per-page extension 白名單；UI-009、UI-010、UI-014 各自維護 extension 欄位清單（來源：decision-log D-010） |
 
 ---

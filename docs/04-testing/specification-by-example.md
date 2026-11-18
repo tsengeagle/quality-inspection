@@ -1593,7 +1593,6 @@ mapping:
     - reviewer self scope
   api:
     - GET /review-cases
-    - GET /review-submissions/{submissionId}
   tests:
     - TS-PM-007
 ```
@@ -1809,7 +1808,6 @@ mapping:
     - scope-bound query behavior
   api:
     - GET /review-cases
-    - GET /review-submissions/{submissionId}
   tests:
     - TS-QR-001
     - TS-PM-007

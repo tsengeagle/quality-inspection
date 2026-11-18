@@ -2181,5 +2181,10 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 ### Mapping
 
 - `docs/03-contracts/api-spec.md`：8.3、10.8、11.3、11.4、12.1、12.3、12.4、13.1、13.2，以及新增的 8.5～8.7、9.7、10.9～10.11。
-- 同步路徑字串（只改路徑與參數欄）：`docs/04-testing/test-scenarios.md`、`docs/04-testing/specification-by-example.md`、`docs/06-frontend/ui-api-binding-matrix.md`、`docs/06-frontend/frontend-design-roadmap.md`。`docs/superpowers/`、`docs/review/` 的舊計畫與報告是歷史紀錄，不改。
+- 同步路徑字串（只改路徑與參數欄）：
+  - `docs/04-testing/test-scenarios.md`、`docs/04-testing/specification-by-example.md`
+  - `docs/05-ui/ui-page-inventory.md`、UI-010、UI-012、UI-013、UI-014 頁面規格
+  - `docs/06-frontend/ui-api-binding-matrix.md`、`frontend-design-roadmap.md`、`ui-view-model-spec.md`
+- 更新路徑樣式的規則：`docs/06-frontend/frontend-test-scenarios.md` 的 G-01／G-02、`docs/07-design/ui-design-decisions.md` 的 O2-A；`docs/06-frontend/frontend-review-gate-pending-items.md` 的 O2 分析加註以 D-058 為準。
+- 不改：`docs/superpowers/`、`docs/review/` 的舊計畫與報告（歷史紀錄）；`docs/06-frontend/` 的 `ready-pages-*`、`wave-backend-dependency-inventory.md`、`sampling-route-module-map-addendum.md` 等規劃與交接文件，其中多數路徑是當時提議、程式從未實作的端點，不屬於本次的路徑差異；UI-014 §11.3「可後補」的 compare API。
 - 程式不變；第 6 點的回應格式與第 7 點的權限缺口由後續 PR 處理。

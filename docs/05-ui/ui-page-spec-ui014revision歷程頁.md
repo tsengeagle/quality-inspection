@@ -42,8 +42,8 @@ Revision 歷程頁
 - `ReviewCase`
 
 ### 對應主要 API
-- `GET /review-cases/{caseId}/revisions`
-- `GET /review-cases/{caseId}/submissions/{submissionId}` [供詳情 / 比對時補抓，case-rooted]
+- `GET /review-cases/{caseId}/revision-history`
+- `GET /review-submissions/{submissionId}` [供詳情 / 比對時補抓，case-rooted]
 
 ---
 
@@ -579,11 +579,11 @@ detail_modes:
 
 ### 11.1 revision list
 
-* `GET /review-cases/{caseId}/revisions`
+* `GET /review-cases/{caseId}/revision-history`
 
 ### 11.2 單一 submission 詳細摘要 [可選]
 
-* `GET /review-cases/{caseId}/submissions/{submissionId}`
+* `GET /review-submissions/{submissionId}`
 
 ### 11.3 差異摘要 API [可後補]
 

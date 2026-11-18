@@ -637,7 +637,7 @@ Accept: application/json
             "scoreType": "BOOLEAN",
             "maxScore": 10,
             "weight": 1,
-            "requiredRule": "REQUIRED",
+            "requiredRule": "ALWAYS_REQUIRED",
             "conditionExpression": null
           }
         ]

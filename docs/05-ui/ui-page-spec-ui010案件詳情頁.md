@@ -45,7 +45,7 @@
 
 ### 對應主要 API
 - `GET /review-cases/{caseId}`
-- `GET /review-cases/{caseId}/revisions`
+- `GET /review-cases/{caseId}/revision-history`
 - `GET /review-cases/{caseId}/lifecycle`
 
 ---
@@ -666,7 +666,7 @@
 
 ### 11.2 revision 摘要 / 歷程
 
-* `GET /review-cases/{caseId}/revisions`
+* `GET /review-cases/{caseId}/revision-history`
 
 ### 11.3 lifecycle
 

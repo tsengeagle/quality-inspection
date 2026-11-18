@@ -122,6 +122,7 @@
 | O2-C | Dual path compatibility | 保留雙路徑（一主一別名） | 過渡成本低 | 長期增加實作與測試複雜度，易漂移 | 中 |
 
 - **recommended_option**: `O2-A`
+- **後續（2026-11-18）**：路徑樣式由 D-058 修正為 stage 在前（`/review-cases/{caseId}/{stage}/...`），並保留 `GET /review-submissions/{submissionId}`；本節下方的路徑例子是當時的分析，以 D-058 與 api-spec 為準。
 - **recommendation_reason**:
   1. 不改動既有合約 authority 可降低 integration 風險
   2. UI 應以 command semantic 建模；path 作 transport detail，不應反向主導 UI 模型

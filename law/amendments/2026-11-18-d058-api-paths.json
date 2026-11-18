@@ -1,7 +1,7 @@
 {
   "id": "2026-11-18-d058-api-paths",
   "decision": "D-058",
-  "reason": "依負責人 2026-11-18 的裁決（PR #76 核對報告第五節選項 A），新增 D-058：API 路徑以程式為準，修正 D-022 的路徑樣式（stage 在前；提交命令路徑不帶 submissionId，複審提交的 submissionId 改在 body 且必填；保留 GET /review-submissions/{submissionId}），D-022 改為部分取代。api-spec 依程式改寫 9 支端點的路徑（8.3、10.8、11.3、11.4、12.1、12.3、12.4、13.1、13.2），並補上 7 支只存在程式的端點（8.5～8.7、9.7、10.9～10.11）；各節其他內容維持原文，未重新核對。例外：評分表列表與章節查詢的回應依 D-050 第 7 點，不以程式為準（程式現況回傳陣列，列為待修）；GET /review-cases/{caseId}/rereview-revisions 沒有角色檢查，是權限缺口，不寫入 api-spec，待另行裁決。同步 04-testing 與 06-frontend 四份文件中的路徑字串與參數欄。現況快照第五節補上兩項缺口。不改任何程式。",
+  "reason": "依負責人 2026-11-18 的裁決（PR #76 核對報告第五節選項 A），新增 D-058：API 路徑以程式為準，修正 D-022 的路徑樣式（stage 在前；提交命令路徑不帶 submissionId，複審提交的 submissionId 改在 body 且必填；保留 GET /review-submissions/{submissionId}），D-022 改為部分取代。api-spec 依程式改寫 9 支端點的路徑（8.3、10.8、11.3、11.4、12.1、12.3、12.4、13.1、13.2），並補上 7 支只存在程式的端點（8.5～8.7、9.7、10.9～10.11）；各節其他內容維持原文，未重新核對。例外：評分表列表與章節查詢的回應依 D-050 第 7 點，不以程式為準（程式現況回傳陣列，列為待修）；GET /review-cases/{caseId}/rereview-revisions 沒有角色檢查，是權限缺口，不寫入 api-spec，待另行裁決。同步 04-testing 與 06-frontend 四份文件中的路徑字串與參數欄。現況快照第五節補上兩項缺口。不改任何程式。另依 PR #80 Copilot 審查：(1) 改為掃描全部現行文件，同步頁面清冊、UI-010／012／013／014 頁面規格與 ui-view-model-spec 的路徑，更新 frontend-test-scenarios 的 G-01／G-02、ui-design-decisions 的 O2-A 為 D-058 的樣式，frontend-review-gate-pending-items 的 O2 分析加註以 D-058 為準；規劃與交接文件中從未實作的提議端點、歷史紀錄不改。(2) api-spec 8.6 範例的 requiredRule 改為實際的 enum 值 ALWAYS_REQUIRED。(3) specification-by-example EX-033、EX-037 是清單情境，移除錯誤加上的 submission 詳情 mapping（原文的 GET /review-submissions 清單端點並不存在），保留 GET /review-cases。",
   "drafted_by": "claude-code",
   "paths": [
     "docs/01-requirements/decision-log.md",
@@ -11,6 +11,15 @@
     "docs/06-frontend/ui-api-binding-matrix.md",
     "docs/06-frontend/frontend-design-roadmap.md",
     "docs/harness/05-current-state.md",
+    "docs/05-ui/ui-page-inventory.md",
+    "docs/05-ui/ui-page-spec-ui010案件詳情頁.md",
+    "docs/05-ui/ui-page-spec-ui012初審作業頁.md",
+    "docs/05-ui/ui-page-spec-ui013複審作業頁.md",
+    "docs/05-ui/ui-page-spec-ui014revision歷程頁.md",
+    "docs/06-frontend/ui-view-model-spec.md",
+    "docs/06-frontend/frontend-test-scenarios.md",
+    "docs/06-frontend/frontend-review-gate-pending-items.md",
+    "docs/07-design/ui-design-decisions.md",
     "law/"
   ]
 }
