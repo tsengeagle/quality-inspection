@@ -1,6 +1,8 @@
 # Frontend Focused Review Gate — Pending Items
 
 > D-031～D-033 現行規格更新：下文 O1-C／D-021／D-027 與 CLOSED 例外修正的推薦、guard、mode、按鈕、驗收及「可實作」表格均已被 D-032 取代，僅保留歷史交接證據，禁止照其建立 CLOSED 修正入口。提交後不結案、未固定可修訂、具資格由原複審提交者正式結案並固定，CLOSED 禁止 revision／reopen。初審固定前不得進複審；複審永久盲審含衍生分數。新規格以 state-machine、permission-matrix、API 與 UI-010～014 更新為準；初審固定角色依 DD-03；初審固定的 binding／狀態表示 UNKNOWN，不構成已可實作入口；複審正式結案的 binding 與提交後狀態見 D-053。應用程式未於本輪更新。
+>
+> 2026-11-18 補註：上述「應用程式未於本輪更新」已不成立。UI-013 CLOSED 唯讀已於 PR #39 落地；UI-014 的 `hasExceptionEntry` 與 C22「前往複審修正（例外）」入口已於 PR #83 移除，CLOSED 只顯示唯讀提示。
 
 
 ## 1. 文件目的
