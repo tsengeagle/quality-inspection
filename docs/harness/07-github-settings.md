@@ -14,13 +14,13 @@
 | Require a pull request before merging | 開 | P6 |
 | Require review from Code Owners | **不開**（見第二節） | P6 |
 | Required approvals | **0**（見第二節） | P6 |
-| Require status checks to pass | 開，加入三項：`check`、`law-check`、`law-selftest` | P1、P9 |
+| Require status checks to pass | 開，加入四項：`check`、`law-check`、`law-selftest`、`frontend-check` | P1、P9 |
 | Require branches to be up to date before merging | 開 | P1 |
 | Block force pushes | 開 | P4 |
 | Require linear history | **不開**：它禁止 merge commit，而修法 PR 必須用 merge commit 合併（見下方） | P6 |
 | Bypass list（ruleset）／Do not allow bypassing the above settings（舊版規則） | **不放任何人**／勾選 | P9 |
 
-三個檢查的名稱是 job 的名稱，不是 workflow 的名稱。它們都已經在 GitHub 上跑過，會出現在可選清單裡。`law-check (post-merge)` 只在推送到 `main` 時執行，不要列為必要檢查。
+四個檢查的名稱是 job 的名稱，不是 workflow 的名稱。它們都已經在 GitHub 上跑過，會出現在可選清單裡。`frontend-check` 由 PR #72（2026-11-18）新增，執行前端的型別檢查、單元測試與 E2E；它的 workflow 名稱與 job 名稱相同。`law-check (post-merge)` 只在推送到 `main` 時執行，不要列為必要檢查。
 
 另外在 Settings → General → Pull Requests，**只勾選「Allow merge commits」**，取消「Allow squash merging」與「Allow rebase merging」。原因：核准檔記錄核准者檢查的 commit（`reviewed_commit`），squash 或 rebase 合併會產生新的 commit，被核准的 commit 不會進入 `main` 的歷史，合併後的 `law-check (post-merge)` 會失敗（2026-11-15，PR #20）。GitHub 的這個設定對整個 repo 生效，無法只限修法 PR；本 repo 從 PR #8 起都用 merge commit 合併，不影響現有做法。
 
@@ -47,6 +47,12 @@ GitHub 不允許 PR 的作者核准自己的 PR。目前 CODEOWNERS 只有一個
 1. 開一個 PR，在 `interfaces` 層直接引用 `infrastructure` 的類別。預期：`check` 紅燈，無法合併。
 2. 用非負責人的身分開一個 PR 修改 `decision-log.md`。預期：顯示需要 code owner 核准，無法合併。**依第二節的裁決，這一項目前無法驗收。**
 3. 開一個 PR，讓 `check` 失敗（例如第 1 項的修改）。預期：合併按鈕無法使用，repo 管理員也一樣。
+
+驗收紀錄：
+
+| 日期 | 項目 | PR | 做法 | 結果 |
+|---|---|---|---|---|
+| 2026-11-18 | 第 3 項（用 `frontend-check` 驗證） | #77（驗證後關閉，未合併） | ruleset `main*` 改為 Active 後，開一個 PR 新增必定失敗的單元測試，`frontend-check` 失敗（`TOTAL: 1 FAILED, 224 SUCCESS`），其餘必要檢查通過 | 通過：負責人（repo 管理員）的 PR 頁面顯示「Required checks failing」「1 required failing」，合併按鈕無法使用。ruleset 原本是 `disabled`，所以先前紅燈下仍可合併；改為 Active 後生效。`check` 本身失敗的情況沒有另外驗證，機制相同 |
 
 ## 四、必要檢查本身壞掉時的處置 SOP
 
