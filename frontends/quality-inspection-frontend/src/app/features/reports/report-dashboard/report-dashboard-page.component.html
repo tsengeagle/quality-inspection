@@ -1,0 +1,116 @@
+<!-- GOV-BND-001：system-container + system-block 為頁面根結構；header block 放條件與主要操作。 -->
+<system-container container-type="main">
+  <system-block block-type="header" position-sticky="top">
+    <form class="panel panel-white p-3" (ngSubmit)="query()" data-testid="dashboard-conditions">
+      <h1 class="h5 mb-3">Dashboard</h1>
+
+      <div class="d-flex flex-wrap gap-3 align-items-end">
+        <div>
+          <label class="form-label" for="dashboard-start-date">起日</label>
+          <input id="dashboard-start-date" type="date" class="form-control" name="startDate"
+                 [(ngModel)]="form.startDate" [disabled]="controlsLocked" data-testid="dashboard-start-date" />
+        </div>
+
+        <div>
+          <label class="form-label" for="dashboard-end-date">迄日（含當天）</label>
+          <input id="dashboard-end-date" type="date" class="form-control" name="endDate"
+                 [(ngModel)]="form.endDate" [disabled]="controlsLocked" data-testid="dashboard-end-date" />
+        </div>
+
+        <div>
+          <label class="form-label" for="dashboard-project-id">專案（留空為全部專案）</label>
+          <input id="dashboard-project-id" type="text" class="form-control" name="projectId"
+                 [(ngModel)]="form.projectId" [disabled]="controlsLocked" placeholder="全部專案"
+                 data-testid="dashboard-project-input" />
+        </div>
+
+        <div *ngIf="isSystemAdmin" data-testid="dashboard-hospital">
+          <label class="form-label" for="dashboard-hospital-id">院區（留空為全部院區）</label>
+          <input id="dashboard-hospital-id" type="text" class="form-control" name="hospitalId"
+                 [(ngModel)]="form.hospitalId" [disabled]="controlsLocked" placeholder="全部院區"
+                 data-testid="dashboard-hospital-input" />
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-secondary" [disabled]="controlsLocked"
+                  (click)="clearRange()" data-testid="dashboard-clear-range">不限期間</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!canQuery" data-testid="dashboard-query">查詢</button>
+        </div>
+      </div>
+
+      <p class="text-danger small mt-2 mb-0" *ngIf="rangeState === 'partial'" data-testid="dashboard-range-error" role="alert">
+        起迄日需同時填寫，或按「不限期間」清除兩者。
+      </p>
+      <p class="text-danger small mt-2 mb-0" *ngIf="rangeState === 'reversed'" data-testid="dashboard-range-error" role="alert">
+        請輸入正確的日期，且起日不可晚於迄日。
+      </p>
+    </form>
+  </system-block>
+
+  <system-block block-type="main">
+    <div class="panel panel-white p-3" *ngIf="status === 'forbidden'" data-testid="dashboard-forbidden" role="alert">
+      <h2 class="h6">無權限</h2>
+      <p class="mb-0">您沒有使用 Dashboard 的權限。</p>
+    </div>
+
+    <ng-container *ngIf="status !== 'forbidden'">
+      <div class="panel panel-white p-3" *ngIf="status === 'idle'">
+        <p class="text-muted mb-0" data-testid="dashboard-idle">請按查詢</p>
+      </div>
+
+      <div class="panel panel-white p-3" *ngIf="status === 'loading'">
+        <p class="text-muted mb-0" data-testid="dashboard-loading" aria-live="polite">載入中…</p>
+      </div>
+
+      <div class="panel panel-white p-3" *ngIf="status === 'error'">
+        <p class="text-danger mb-0" data-testid="dashboard-error" role="alert">{{ errorMessage }}</p>
+      </div>
+
+      <ng-container *ngIf="status === 'loaded' && summary && applied">
+        <div class="panel panel-white p-3 mb-3">
+          <div class="d-flex flex-wrap gap-4 small" data-testid="dashboard-scope">
+            <span>日期區間：{{ rangeLabel }}</span>
+            <span>專案：{{ projectLabel }}</span>
+            <span>院區範圍：{{ scopeLabel }}</span>
+          </div>
+        </div>
+
+        <div class="panel panel-white p-3 mb-3">
+          <!-- 零筆：無資料型空狀態（DESIGN-components §13，Empty.svg） -->
+          <div class="flex-center text-center py-3" *ngIf="summary.totalCases === 0">
+            <div>
+              <img class="h-10rem" src="assets/img/Empty.svg" alt="無資料">
+              <p class="text-muted mt-2 mb-0" data-testid="dashboard-empty">此條件沒有案件</p>
+            </div>
+          </div>
+
+          <ng-container *ngIf="summary.totalCases > 0">
+            <h2 class="h6">件數</h2>
+            <div class="dashboard-cards mb-3">
+              <section class="dashboard-card" *ngFor="let card of countCards" [attr.data-testid]="'dashboard-card-' + card.field">
+                <h3 class="dashboard-card__label">{{ card.label }}</h3>
+                <p class="dashboard-card__value">{{ count(card.field) }}</p>
+                <p class="text-muted small mb-0">{{ card.hint }}</p>
+              </section>
+            </div>
+
+            <h2 class="h6">比率</h2>
+            <div class="dashboard-cards">
+              <section class="dashboard-card" *ngFor="let card of rateCards" [attr.data-testid]="'dashboard-card-' + card.field">
+                <h3 class="dashboard-card__label">{{ card.label }}</h3>
+                <p class="dashboard-card__value">{{ percent(card.field) }}</p>
+                <p class="small mb-1">{{ count(card.numerator) }} / {{ count('totalCases') }}</p>
+                <p class="text-muted small mb-0">{{ card.hint }}</p>
+              </section>
+            </div>
+          </ng-container>
+        </div>
+      </ng-container>
+
+      <nav class="d-flex flex-wrap gap-2" aria-label="相關頁面">
+        <a class="btn btn-sm btn-outline-secondary" routerLink="/cases" data-testid="dashboard-link-cases">查看案件列表</a>
+        <a class="btn btn-sm btn-outline-secondary" routerLink="/reports/export" data-testid="dashboard-link-export">匯出報表</a>
+      </nav>
+    </ng-container>
+  </system-block>
+</system-container>

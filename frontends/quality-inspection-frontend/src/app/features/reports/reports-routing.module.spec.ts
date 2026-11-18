@@ -2,6 +2,7 @@ import { appRoutes } from '../../app-routing.module';
 import { ProjectionGuard } from '../../guards/projection.guard';
 import { RoleGuard } from '../../guards/role.guard';
 import { ScopeGuard } from '../../guards/scope.guard';
+import { ReportDashboardPageComponent } from './report-dashboard/report-dashboard-page.component';
 import { ReportExportPageComponent } from './report-export/report-export-page.component';
 import { reportsRoutes } from './reports-routing.module';
 
@@ -21,5 +22,12 @@ describe('reports routes', () => {
     expect(route?.data?.['roles']).toEqual(['HOSPITAL_MANAGER', 'AUDITOR', 'SYSTEM_ADMIN']);
     expect(route?.data?.['roles']).not.toContain('REVIEWER');
     expect(route?.data?.['roles']).not.toContain('REREVIEWER');
+  });
+
+  // UI-015 §1：/reports/dashboard，角色與 UI-017 相同。
+  it('maps dashboard to UI-015 for the three report roles only', () => {
+    const route = reportsRoutes.find(r => r.path === 'dashboard');
+    expect(route?.component).toBe(ReportDashboardPageComponent);
+    expect(route?.data?.['roles']).toEqual(['HOSPITAL_MANAGER', 'AUDITOR', 'SYSTEM_ADMIN']);
   });
 });
