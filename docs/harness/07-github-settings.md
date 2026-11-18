@@ -23,7 +23,7 @@
 
 四個檢查的名稱是 job 的名稱，不是 workflow 的名稱。它們都已經在 GitHub 上跑過，會出現在可選清單裡。`frontend-check` 由 PR #72（2026-11-18）新增，執行前端的型別檢查、單元測試與 E2E；它的 workflow 名稱與 job 名稱相同。`law-check (post-merge)` 只在推送到 `main` 時執行，不要列為必要檢查。
 
-另外在 Settings → General → Pull Requests，**只勾選「Allow merge commits」**，取消「Allow squash merging」與「Allow rebase merging」。原因：核准檔記錄核准者檢查的 commit（`reviewed_commit`），squash 或 rebase 合併會產生新的 commit，被核准的 commit 不會進入 `main` 的歷史，合併後的 `law-check (post-merge)` 會失敗（2026-11-15，PR #20）。GitHub 的這個設定對整個 repo 生效，無法只限修法 PR；本 repo 從 PR #8 起都用 merge commit 合併，不影響現有做法。兩處都要設：General 的勾選決定合併按鈕提供哪些選項，ruleset 的 Allowed merge methods 由伺服器端拒絕其他方式的合併，包含透過 API 的合併。
+另外在 Settings → General → Pull Requests，**只勾選「Allow merge commits」**，取消「Allow squash merging」與「Allow rebase merging」。原因：核准檔記錄核准者檢查的 commit（`reviewed_commit`），squash 或 rebase 合併會產生新的 commit，被核准的 commit 不會進入 `main` 的歷史，合併後的 `law-check (post-merge)` 會失敗（2026-11-15，PR #20）。GitHub 的這個設定對整個 repo 生效，無法只限修法 PR；本 repo 從 PR #8 起都用 merge commit 合併，不影響現有做法。兩處都要設：General 的勾選決定合併按鈕提供哪些選項，ruleset 的 Allowed merge methods 由伺服器端拒絕其他方式的合併。
 
 **2026-11-14 裁決：不留繞過權限。** 包含 repo 管理員在內，沒有人能在必要檢查未通過時合併。必要檢查本身壞掉的情況，照第四節的 SOP 處理。
 
