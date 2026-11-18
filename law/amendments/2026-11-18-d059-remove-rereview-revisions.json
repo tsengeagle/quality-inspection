@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-18-d059-remove-rereview-revisions",
+  "decision": "D-059",
+  "reason": "依負責人 2026-11-18 的裁決，新增 D-059：移除 GET /review-cases/{caseId}/rereview-revisions（處理 D-058 第 7 點）。這支端點只檢查院區，沒有角色、指派範圍與內容遮罩，前端沒有使用，權限矩陣沒有對應列；其資料是 revision-history 的子集，後者有完整的 ReviewReadAccessPolicy 保護。證據：同樣四個情境（SYSTEM_ADMIN 不得取得複審分數與評語、未指派的 REVIEWER 拒絕、其他 REREVIEWER 拒絕、多重角色拒絕），對 rereview-revisions 4 個全紅、對 revision-history 4 個全綠（本機 JDK 17，測試未提交）。D-059 規定建構 PR 須以測試鎖定 revision-history 對複審資料的保護後再移除。同步 api-spec 13.2 的說明、D-058 第 7 點的後續註記與現況快照。hasExceptionEntry 依已撤銷的 D-021 計算，不在本決策範圍。本 PR 不改程式。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/harness/05-current-state.md",
+    "law/"
+  ]
+}
