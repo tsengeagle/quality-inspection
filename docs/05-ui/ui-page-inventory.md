@@ -144,7 +144,7 @@
 - `GET /review-projects/{projectId}`
 - `POST /review-projects/{projectId}/activate`
 - `POST /review-projects/{projectId}/deactivate`
-- `POST /review-projects/{projectId}/publish-version`
+- `POST /review-projects/{projectId}/publish`
 
 ---
 
@@ -207,7 +207,7 @@
 - `ScoreSheetDefinition`
 - `POST /score-sheets`
 - `PUT /score-sheets/{scoreSheetId}`
-- `POST /score-sheets/{scoreSheetId}/publish-version`
+- `POST /score-sheets/{scoreSheetId}/publish`
 
 ---
 
@@ -395,7 +395,7 @@
 - `ReviewCase`
 - `ReviewSubmission`
 - `GET /review-cases/{caseId}`
-- `GET /review-cases/{caseId}/revisions`
+- `GET /review-cases/{caseId}/revision-history`
 - `GET /review-cases/{caseId}/lifecycle`
 
 ---
@@ -457,8 +457,8 @@
 - `ReviewSubmission`
 - `POST /review-cases/{caseId}/initial-review/start`
 - `POST /review-cases/{caseId}/initial-review/draft`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`
+- `POST /review-cases/{caseId}/initial-review/submit`
+- `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise`
 
 ---
 
@@ -488,10 +488,10 @@
 
 ### 對應 domain / API
 - `ReviewSubmission`
-- `POST /review-cases/{caseId}/rereview/start`
+- `POST /review-cases/{caseId}/start-rereview`
 - `POST /review-cases/{caseId}/rereview/draft`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
+- `POST /review-cases/{caseId}/rereview/submit`
+- `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise`
 
 ---
 
@@ -522,7 +522,7 @@
 
 ### 對應 domain / API
 - `ReviewSubmission`
-- `GET /review-cases/{caseId}/revisions`
+- `GET /review-cases/{caseId}/revision-history`
 
 ---
 

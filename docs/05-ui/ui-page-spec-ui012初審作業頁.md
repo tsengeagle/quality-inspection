@@ -42,8 +42,8 @@
 ### 對應主要 API
 - `POST /review-cases/{caseId}/initial-review/start`
 - `POST /review-cases/{caseId}/initial-review/draft`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`
+- `POST /review-cases/{caseId}/initial-review/submit`
+- `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise`
 
 ---
 
@@ -639,11 +639,11 @@ page_modes:
 
 ### 12.3 提交初審
 
-* `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
+* `POST /review-cases/{caseId}/initial-review/submit`
 
 ### 12.4 修正初審
 
-* `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`
+* `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise`
 
 ---
 

@@ -40,10 +40,10 @@
 - `ScoreSheetSnapshotRef`
 
 ### 對應主要 API
-- `POST /review-cases/{caseId}/rereview/start`
+- `POST /review-cases/{caseId}/start-rereview`
 - `POST /review-cases/{caseId}/rereview/draft`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
-- `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
+- `POST /review-cases/{caseId}/rereview/submit`
+- `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise`
 
 ---
 
@@ -576,7 +576,7 @@ READONLY_BLOCKED；禁止新提交、revision 與 reopen，不顯示例外修正
 
 ### 12.1 進入複審
 
-* `POST /review-cases/{caseId}/rereview/start`
+* `POST /review-cases/{caseId}/start-rereview`
 
 ### 12.2 保存草稿
 
@@ -584,11 +584,11 @@ READONLY_BLOCKED；禁止新提交、revision 與 reopen，不顯示例外修正
 
 ### 12.3 提交複審
 
-* `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
+* `POST /review-cases/{caseId}/rereview/submit`
 
 ### 12.4 修正複審
 
-* `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
+* `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise`
 
 ---
 

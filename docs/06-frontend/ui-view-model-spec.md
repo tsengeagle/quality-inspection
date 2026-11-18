@@ -164,7 +164,7 @@ shared_sub_models:
 ## 5.8 RevisionTimelineItemViewModel
 
 - 用於頁面：UI-014
-- 來源 API：`GET /review-cases/{caseId}/revisions`
+- 來源 API：`GET /review-cases/{caseId}/revision-history`
 - 欄位：
   - `submissionId`, `stage`, `revisionNo`, `submittedAt`, `submittedBy`, `status`
   - `isCurrentEffective`, `isSuperseded`, `projectionMode`
@@ -175,7 +175,7 @@ shared_sub_models:
 ## 5.9 RevisionDetailSummaryViewModel
 
 - 用於頁面：UI-014 detail/compare panel
-- 來源 API：`GET /review-cases/{caseId}/submissions/{submissionId}`（單版，O2-A case-rooted）
+- 來源 API：`GET /review-submissions/{submissionId}`（單版，O2-A case-rooted）
 - 欄位：
   - `mode` (`SINGLE`/`COMPARE`), `baseRevisionRef`, `targetRevisionRef`
   - `scoreDeltaSummary`, `answerChangeSummary`, `commentChangeSummary`, `attachmentChangeSummary`

@@ -224,13 +224,18 @@
 
 ## G. Command Path Truth Scenarios
 
-### G-01 case-rooted command path only (O2-A)
+### G-01 case-rooted command path only (O2-A，路徑樣式依 D-058)
 - Given command dispatch for submit/revise
 - When frontend builds endpoint
-- Then must use `/review-cases/{caseId}/submissions/{submissionId}/...`
+- Then must use case-rooted, stage 在前的路徑（D-058）：
+  - 初審提交 `/review-cases/{caseId}/initial-review/submit`（不帶 `submissionId`）
+  - 初審修正 `/review-cases/{caseId}/initial-review/submissions/{submissionId}/revise`
+  - 複審提交 `/review-cases/{caseId}/rereview/submit`（`submissionId` 在 body，必填）
+  - 複審修正 `/review-cases/{caseId}/rereview/submissions/{submissionId}/revise`
 - Level: unit, integration
 
 ### G-02 reject legacy submission-rooted path
+- 只適用於 command。查詢 submission 詳情的 `GET /review-submissions/{submissionId}` 依 D-058 第 3 點保留，不在此限。
 - Given legacy config with `/review-submissions/{submissionId}/...`
 - When executing command
 - Then client validation/test should fail fast

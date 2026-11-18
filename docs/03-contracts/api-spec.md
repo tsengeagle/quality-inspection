@@ -529,7 +529,9 @@ Accept: application/json
 
 ## 8.3 發布評分表版本
 
-### `POST /score-sheets/{scoreSheetId}/publish-version`
+### `POST /score-sheets/{scoreSheetId}/publish`
+
+路徑依 D-058（原寫 `publish-version`，程式為 `publish`）。
 
 #### 權限
 
@@ -569,6 +571,108 @@ Accept: application/json
 * `AUDITOR`
 
 評分表的章節、版本與列表查詢採相同角色；`REVIEWER`／`REREVIEWER` 不開放（D-050 第 7 點）。
+
+---
+
+## 8.5 查詢評分表列表
+
+### `GET /score-sheets`
+
+#### 權限
+
+與 8.4 相同（D-050 第 7 點）。院區依 D-042、D-047：`SYSTEM_ADMIN` 可用 `hospitalId` 縮小範圍，其他角色一律為本院。
+
+#### Query Params
+
+* `hospitalId`（選填，只有 `SYSTEM_ADMIN` 有作用）
+
+#### Response（依 D-050 第 7 點）
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "scoreSheetId": "SS-001",
+        "projectId": "PRJ-001",
+        "status": "DRAFT",
+        "version": 1,
+        "sectionCount": 3,
+        "itemCount": 12
+      }
+    ]
+  }
+}
+```
+
+> 程式現況（D-058 第 6 點）：`data` 直接是陣列，沒有包在 `items` 中，與 D-050 不一致，待後續修正程式。
+
+---
+
+## 8.6 查詢評分表章節
+
+### `GET /score-sheets/{scoreSheetId}/sections`
+
+#### 權限
+
+與 8.4 相同（D-050 第 7 點）。`SYSTEM_ADMIN` 可以讀章節與題目定義（D-050 第 7 點：D-010 的「完整評分內容」不包括題目定義）。
+
+#### Response（依 D-050 第 7 點）
+
+```json
+{
+  "success": true,
+  "data": {
+    "scoreSheetId": "SS-001",
+    "sections": [
+      {
+        "sectionId": "SEC-1",
+        "title": "病歷完整性",
+        "items": [
+          {
+            "itemId": "I1",
+            "code": "A01",
+            "title": "主訴是否記載",
+            "scoreType": "BOOLEAN",
+            "maxScore": 10,
+            "weight": 1,
+            "requiredRule": "ALWAYS_REQUIRED",
+            "conditionExpression": null
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+> 程式現況（D-058 第 6 點）：`data` 直接是章節陣列，沒有 `scoreSheetId`，與 D-050 不一致，待後續修正程式。
+
+---
+
+## 8.7 查詢評分表版本
+
+### `GET /score-sheets/{scoreSheetId}/version`
+
+#### 權限
+
+與 8.4 相同（D-050 第 7 點）。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "version": 1,
+    "published": true,
+    "scoreSheetVersionId": "SSV-001"
+  }
+}
+```
+
+未發布時 `scoreSheetVersionId` 為 `null`（D-050 第 1 點）。本 API 只回傳目前版本，不是版本清單。
 
 ---
 
@@ -734,6 +838,29 @@ Accept: application/json
 * `HOSPITAL_MANAGER`
 * `AUDITOR`：授權範圍內
 * `REVIEWER` / `REREVIEWER` 不開放（D-051）
+
+---
+
+## 9.7 匯出抽選批次結果
+
+### `GET /sampling-batches/{batchId}/export`
+
+依 D-058 第 5 點，以程式為準補上。
+
+#### 權限
+
+* `HOSPITAL_MANAGER`，且批次所屬專案為本院
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "detail": { "...": "與 9.6 批次詳情相同的內容" }
+  }
+}
+```
 
 ---
 
@@ -977,7 +1104,9 @@ Accept: application/json
 
 ## 10.8 退回初審
 
-### `POST /review-cases/{caseId}/return-initial-review`
+### `POST /review-cases/{caseId}/initial-review/return`
+
+路徑依 D-058（原寫 `return-initial-review`）。
 
 #### 權限
 
@@ -991,6 +1120,71 @@ Accept: application/json
   "reason": "需補充病歷資料"
 }
 ```
+
+---
+
+## 10.9 不送複審直接結案
+
+### `POST /review-cases/{caseId}/close-without-rereview`
+
+依 D-058 第 5 點，以程式為準補上。
+
+#### 權限
+
+* `HOSPITAL_MANAGER`，且案件為本院
+
+#### 限制
+
+* 案件須為 `INITIAL_REVIEW_COMPLETED`，否則 `409 CASE_NOT_INITIAL_REVIEW_COMPLETED`
+* 初審須已固定（D-031）
+* 結案後 `finalScore` 為初審分數，案件為 `CLOSED`
+
+#### Request
+
+無 body。
+
+---
+
+## 10.10 送複審
+
+### `POST /review-cases/{caseId}/send-to-rereview`
+
+依 D-058 第 5 點，以程式為準補上。
+
+#### 權限
+
+* `HOSPITAL_MANAGER`，且案件為本院
+
+#### 限制
+
+* 案件須為 `INITIAL_REVIEW_COMPLETED`，否則 `409 CASE_NOT_INITIAL_REVIEW_COMPLETED`
+* 初審須已固定（D-031）
+* 成功後案件為 `PENDING_REREVIEW`，接著以 10.5 指派複審醫師
+
+#### Request
+
+無 body。
+
+---
+
+## 10.11 重新開放初審
+
+### `POST /review-cases/{caseId}/reopen`
+
+依 D-058 第 5 點，以程式為準補上。只用於 10.8 退回初審之後，不是重開 `CLOSED` 案件（D-005、D-032）。
+
+#### 權限
+
+* `HOSPITAL_MANAGER`，且案件為本院
+
+#### 限制
+
+* 案件須為 `RETURNED`，否則 `409 CASE_NOT_RETURNED`
+* 成功後清除退回原因，案件為 `PENDING_INITIAL_REVIEW`
+
+#### Request
+
+無 body。
 
 ---
 
@@ -1056,7 +1250,9 @@ Accept: application/json
 
 D-031：提交不等於固定；未固定不得自動／手工進複審或結案。流向依固定結果判斷，不把本回應當作已固定或已進複審。
 
-### `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/submit`
+### `POST /review-cases/{caseId}/initial-review/submit`
+
+路徑依 D-058：不帶 `submissionId`，由案件取得目前的初審 submission；request 沒有 body。
 
 #### 權限
 
@@ -1082,7 +1278,9 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ## 11.4 修正已提交初審
 
-### `POST /review-cases/{caseId}/submissions/{submissionId}/initial-review/revise`
+### `POST /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise`
+
+路徑依 D-058（stage 在前）。
 
 #### 權限
 
@@ -1135,7 +1333,9 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ## 12.1 開始複審
 
-### `POST /review-cases/{caseId}/rereview/start`
+### `POST /review-cases/{caseId}/start-rereview`
+
+路徑依 D-058（原寫 `rereview/start`）。
 
 #### 權限
 
@@ -1157,7 +1357,26 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ## 12.3 提交複審
 
-### `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/submit`
+### `POST /review-cases/{caseId}/rereview/submit`
+
+路徑依 D-058：路徑不帶 `submissionId`，改放在 request body，且為必填（用來確認提交的是目前版本）。
+
+#### Request
+
+```json
+{
+  "submissionId": "SUB-RR-001",
+  "answers": [
+    {
+      "itemId": "I1",
+      "answerValue": true
+    }
+  ],
+  "comment": "複審意見"
+}
+```
+
+`submissionId` 必填（`@NotBlank`），缺少時回 `400`。
 
 #### 權限與結果（D-032／033）
 
@@ -1169,7 +1388,9 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ## 12.4 修正已提交複審
 
-### `POST /review-cases/{caseId}/submissions/{submissionId}/rereview/revise`
+### `POST /review-cases/{caseId}/rereview/submissions/{submissionId}/revise`
+
+路徑依 D-058（stage 在前）。
 
 #### 權限
 
@@ -1220,7 +1441,9 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ## 13.1 查詢 submission 詳情
 
-### `GET /review-cases/{caseId}/submissions/{submissionId}`
+### `GET /review-submissions/{submissionId}`
+
+路徑依 D-058 第 3 點：保留 submission 為根的查詢路徑，撤銷 D-022 對它的廢除。院區與角色檢查經由 submission 所屬的案件進行。
 
 #### 權限
 
@@ -1254,7 +1477,9 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 
 ## 13.2 查詢 revision 歷程
 
-### `GET /review-cases/{caseId}/revisions`
+### `GET /review-cases/{caseId}/revision-history`
+
+路徑依 D-058（原寫 `revisions`）。複審專用的 `GET /review-cases/{caseId}/rereview-revisions` 不在 api-spec 中：它沒有角色檢查，是否保留與開放對象待裁決（D-058 第 7 點）。
 
 #### 權限
 
