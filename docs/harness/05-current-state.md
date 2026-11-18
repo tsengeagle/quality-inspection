@@ -106,7 +106,7 @@
 - 前端 E2E 都以 mock API 執行；standalone 模式固定為 `HOSPITAL_MANAGER`，其他角色只由單元測試涵蓋。
 - V6、SERIALIZABLE 匯出、儀表板聚合查詢在 Oracle 上的行為。
 - api-gateway 是否另外擋院區（2026-11-12 即列為未確認，這次沒有重新核對）。
-- `frontend-check` 沒有設為必要檢查。`check`、`law-check`、`law-selftest` 依 `03-harness-plan.md` 也尚未設為必要檢查；這次沒有在 GitHub 的設定頁重新核對。runner 固定 `ubuntu-24.04`，因為 `ubuntu-latest`（26.04）不被 lockfile 的 Playwright 1.59.1 支援。
+- 2026-11-18 起，`check`、`law-check`、`law-selftest`、`frontend-check` 是 `main` 的必要檢查：ruleset `main*` 改為 Active，PR #77 驗證必要檢查失敗時，合併按鈕無法使用（`07-github-settings.md` 第三節）。runner 固定 `ubuntu-24.04`，因為 `ubuntu-latest`（26.04）不被 lockfile 的 Playwright 1.59.1 支援。
 - 第二支實體金鑰（#74）尚未在 GitHub 上簽過修法。
 
 ## 九、2026-11-12 快照遺留的項目
@@ -191,7 +191,7 @@
 - 只引用另一層的編譯期常數，而且不寫 import、直接用完整類別名稱。有 import 的情況已由 ARCH-04 擋下（`ActorContextArgumentResolver` 引用 `ApiKeyAuthFilter` 已在 ARCH-04 的基線裡）。常數 `ACTOR_CONTEXT_ATTR` 較合理的落點是 `application.common`。
 - ARCH-02、ARCH-03 以外的寫法：`new Date()`、`Clock.systemUTC()`、`IllegalArgumentException` 的子類別、JDK 內部丟出的 `IllegalArgumentException`、反射。
 - 清單、基線、規則本身被改。這要等 P6。
-- CI 還不是必要檢查，紅燈仍可合併。這也屬於 P6。
+- 2026-11-18 起，CI 是必要檢查，紅燈不能合併（PR #77 驗證）。這也屬於 P6。
 
 三條規則的依據是 `03-harness-plan.md` 第六節和 gap 報告 §3.7；ARCH-01 的依賴方向是依 backend `README.md` §6.1 的層責任推定的。`decision-log.md` 裡沒有對應的裁決。
 
@@ -231,5 +231,5 @@ CI 用 JDK 17，與本機實際執行的版本一致；`build.gradle` 宣告的�
 |---|---|
 | ARCH-01 的依賴方向 | 2026-11-14 已裁決（D-048）：採 DDD 加 CQRS，查詢經過 `application` 的查詢埠。過渡期 `reporting` 只能依賴 `application.common`（新增 ARCH-05，含樣本，植入違規後失敗）；`infrastructure` 不得依賴 `reporting` |
 | 單人 repo 的 code owner 核准 | 2026-11-14 已裁決：只保留形式，不啟用強制核准。見 `07-github-settings.md` 第二節 |
-| 修法機制 | 2026-11-14 啟用：修法要有修法紀錄，加上負責人用實體金鑰對內容雜湊的簽章，`law-check` 才會通過。完整流程已在 GitHub 上驗收（PR #15）。核心在 `harness-core/`（0.2.0，50 個測試）。尚未設為必要檢查。核准者 tsengeagle 登記了兩支實體金鑰上的三把金鑰（第二支 YubiKey 5 Nano 於 2026-11-18 登記，PR #74）。紀錄見 `08-legislation-design.md` 第十一節，分期見 `03-harness-plan.md` 第六節 |
+| 修法機制 | 2026-11-14 啟用：修法要有修法紀錄，加上負責人用實體金鑰對內容雜湊的簽章，`law-check` 才會通過。完整流程已在 GitHub 上驗收（PR #15）。核心在 `harness-core/`（0.2.0，50 個測試）。2026-11-18 起是必要檢查。核准者 tsengeagle 登記了兩支實體金鑰上的三把金鑰（第二支 YubiKey 5 Nano 於 2026-11-18 登記，PR #74）。紀錄見 `08-legislation-design.md` 第十一節，分期見 `03-harness-plan.md` 第六節 |
 | 閘門訊息的編碼 | `build.gradle` 的中文訊息在非 UTF-8 的終端機顯示成問號（本次的雲端環境就是）。GitHub 的 runner 是否正常，未確認 |
