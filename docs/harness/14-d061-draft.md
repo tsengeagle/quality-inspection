@@ -1,6 +1,6 @@
 # D-061 草案：HTTP 契約升格為律法（待裁決）
 
-> 狀態：**草案，不是權威文件**。`decision-log.md` 第 2 節第 1 條規定只記錄已決定的事項，所以 D-061 先寫在這裡。負責人裁決第三節的題目後，再以修法寫入 `decision-log.md`。
+> 狀態：**負責人 2026-11-18 已裁決 Q-1～Q-6，全部採建議選項（A）**，見第六節。尚未寫入 `decision-log.md`；實作順序第 2 步的修法 PR 會把條文寫進去。`decision-log.md` 第 2 節第 1 條規定只記錄已決定的事項，所以裁決前的草案寫在這裡。
 > 依據：`docs/harness/13-http-contract-options.md`（選項比較、範圍與位置、score-sheet 試做結果）；#93、#95。
 > 撰寫時的基準：`main` = `168ff7d`。
 
@@ -129,3 +129,21 @@ B-1 只看回應。controller 也負責把請求對應到 use case，請求 dto 
 - Q-4 的「現有測試是否同時觀察到 null 與非 null」沒有跑過。
 - Gradle 怎麼把執行識別碼傳給報告、`doLast` 怎麼讀，沒有試做過。設計上與既有的 `known-test-failures.txt` 閘門相同，都寫在 `test` 任務的 `doLast`。
 - review-project 的契約沒有試做過。
+
+## 六、裁決紀錄（2026-11-18，負責人）
+
+| 題目 | 裁決 |
+|---|---|
+| Q-1 範圍 | A：只做 score-sheet；review-project 另開修法 PR，在同一條 D-061 下補上 |
+| Q-2 共用層的指向 | A：`law_check` 改為接受檔案，共用層指向 `specs/http-common.yaml` |
+| Q-3 請求端（W-9） | A：這次不做；controller 與請求 dto 維持暫准，之後與 W-10 一起設計 |
+| Q-4 可為 null 的欄位（W-7） | A：這次做 |
+| Q-5 401 錯誤代碼 | A：程式照 D-023 改回 `UNAUTHORIZED` |
+| Q-6 閘門的時點 | A：生效時立刻擋 |
+
+### 第 1 步（Q-5）：已實作，建構 PR
+
+- `infrastructure/security/ApiKeyAuthFilter.java`：缺少與無效的 api-key 都回 `UNAUTHORIZED`（401），差別只寫在 `message`。`infrastructure` 不是問題側（D-060 第 2 點）。
+- 方法簽章沒有改：改了的話，既有的 ARCH-01 凍結違規描述會跟著變，被當成新違規（第一次全套執行時 `arch01LayerDependencies` 失敗，已改回原簽章）。凍結基線沒有改。
+- 測試先寫：`infrastructure/security/ApiKeyAuthFilterApiTest`（2 個）。修正前 2 個都失敗（`expected:<UNAUTHORIZED> but was:<MISSING_API_KEY>`、`<INVALID_TOKEN>`），HTTP 契約試做的報告也同時列出這兩個代碼「沒有定義」。
+- 修正後，後端全套 986 個方法、1252 次執行，0 失敗。HTTP 契約報告：契約範圍內 73 次觀察（含 2 次 401），問題 0。

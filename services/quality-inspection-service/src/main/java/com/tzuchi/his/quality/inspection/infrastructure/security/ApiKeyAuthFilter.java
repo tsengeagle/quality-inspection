@@ -24,6 +24,9 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     private final TzJwtParser jwtParser;
     private final ObjectMapper objectMapper;
 
+    /** 未認證一律是 401 與 UNAUTHORIZED（D-023、api-spec §4.1）；缺少與無效的差別只寫在 message。 */
+    private static final String UNAUTHORIZED = "UNAUTHORIZED";
+
     public ApiKeyAuthFilter(TzJwtParser jwtParser, ObjectMapper objectMapper) {
         this.jwtParser = jwtParser;
         this.objectMapper = objectMapper;
@@ -35,7 +38,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         String apiKey = request.getHeader("api-key");
 
         if (apiKey == null || apiKey.isBlank()) {
-            writeError(response, "MISSING_API_KEY", "Missing api-key header");
+            writeError(response, UNAUTHORIZED, "Missing api-key header");
             return;
         }
 
@@ -43,7 +46,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             ActorContext actor = jwtParser.parse(apiKey);
             request.setAttribute(ACTOR_CONTEXT_ATTR, actor);
         } catch (JwtParseException e) {
-            writeError(response, "INVALID_TOKEN", "Invalid api-key: " + e.getMessage());
+            writeError(response, UNAUTHORIZED, "Invalid api-key: " + e.getMessage());
             return;
         }
 

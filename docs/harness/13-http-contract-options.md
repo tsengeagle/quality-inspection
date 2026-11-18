@@ -176,7 +176,7 @@ B-1 的資料來自建構者的測試。弱點與目前的配套：
 
 ### 試做中發現的事
 
-- **api-spec §4.1 寫 `UNAUTHORIZED`（401），程式回 `MISSING_API_KEY`、`INVALID_TOKEN`**（`ApiKeyAuthFilter`）。共用層依 api-spec 只列 `UNAUTHORIZED`。這次的全套測試沒有在評分表端點上觀察到 401，所以報告沒有列出；只要有測試打到，就會報「錯誤代碼沒有定義」。要以裁決決定哪一邊為準。
+- **api-spec §4.1 寫 `UNAUTHORIZED`（401），程式回 `MISSING_API_KEY`、`INVALID_TOKEN`**（`ApiKeyAuthFilter`）。共用層依 api-spec 只列 `UNAUTHORIZED`。這次的全套測試沒有在評分表端點上觀察到 401，所以報告沒有列出；只要有測試打到，就會報「錯誤代碼沒有定義」。要以裁決決定哪一邊為準。（2026-11-18 裁決：程式照 D-023 改回 `UNAUTHORIZED`，見 `14-d061-draft.md` 第六節。）
 - api-spec §8.4（評分表詳情）沒有寫回應的形狀。契約先採程式現況（與列表的一筆相同），並在 `http.yaml` 註明待確認。
 
 ### 試做的限制
