@@ -3,6 +3,8 @@
 > 交接負責人：Claude Code（本 session）。本文件只整理現況，沒有修改程式。
 > 事實的權威來源依序是：`docs/01-requirements/decision-log.md`、`docs/harness/05-current-state.md`（快照）、GitHub PR 與 CI 紀錄。本文件與它們衝突時，以它們為準。
 
+> **2026-11-18 18:20 補註（交接後的變化）**：另一個 session 的 #93（`d4a3023`）已處理本文件列的第一個下一步。負責人裁決 HTTP 契約採**選項 B**，比對器用 **B-1（觀察）**，放在 `acceptance/`；以 score-sheet 在 `spec-draft/` 試做，只列出、不擋。D-061（Q-3、Q-4 與升格條件）待試做結果後起草。現況與待決事項以 `docs/harness/13-http-contract-options.md` 為準，本文件下方的「下一步」第 1 項已過時。
+
 ---
 
 ## A. Session Overview
