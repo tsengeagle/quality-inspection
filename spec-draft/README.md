@@ -3,6 +3,7 @@
 - 狀態：**草稿，尚未經人工審核，不是 authority**。權威來源仍是 `docs/01-requirements` 到 `docs/04-testing`。
 - 2026-11-15：`ReviewProject` 已升格到 `specs/review-project/`，草稿已移除。正式的格式是 `specs/README.md` 的格式 v1；本文件只留作試作紀錄。
 - 2026-11-15：`ScoreSheetDefinition` 草稿（直接採格式 v1，Q-16～Q-23 由 D-050 裁決）已升格到 `specs/score-sheet/`，草稿已移除。
+- 2026-11-18：HTTP 契約試做（`http-common.yaml`、`score-sheet/http.yaml`），只列出、不擋。說明見 `docs/harness/13-http-contract-options.md` 第八、九節。`score-sheet/` 只有 `http.yaml`，所以 `spec-check` 會列出缺少另外 3 個檔。
 - 建立日期：2026-11-11，由 Claude Code 依現有文件轉換。
 - 範圍：`ReviewProject` 的 5 支命令與 1 支查詢。
 - 目的：試出一個機器可讀、可驗證的規格格式，並找出現有文件補不出來的地方。

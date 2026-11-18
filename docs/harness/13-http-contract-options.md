@@ -1,6 +1,6 @@
 # HTTP 契約如何立法：選項比較（待裁決）
 
-> 狀態：**Q-1 已裁決採 B**（負責人，2026-11-18），先在 `spec-draft/` 試做 score-sheet。Q-2 的結論見第八節；其餘待裁決。本文件不是權威文件，也不改律法、不改程式。裁決後記為 D-061，再依裁決另開修法 PR。
+> 狀態：負責人 2026-11-18 裁決：Q-1 採 **B**；Q-2 依範圍分兩層放（第八節）；Q-5 採 **B-1（觀察）**；Q-6 比對器放 `acceptance/`。score-sheet 的試做結果見第九節。Q-3、Q-4 與升格條件待 D-061。
 > 起因：`docs/handoffs/2026-11-18-harness-coverage-gate.md` 第 D-1、G-1、H-1 項。
 > 撰寫時的基準：`main` = `6c80640`。
 
@@ -121,3 +121,65 @@ C 是合理的備案：如果負責人判斷 HTTP 層的缺陷成本低（前端
 | 弱點 | 建構者測試若只打錯誤路徑，成功形狀就沒被驗；以「至少一次成功」補 | 維護成本、與 README「不維護翻譯表」的目標衝突 |
 
 建議 B-1。
+
+## 九、試做：score-sheet（2026-11-18）
+
+### 做了什麼
+
+| 檔案 | 類別 | 內容 |
+|---|---|---|
+| `spec-draft/http-common.yaml` | spec（律法） | 共用層：外殼、`status_by_category`、`transport_codes`（依 api-spec §3.5、§4.1、§4.2） |
+| `spec-draft/score-sheet/http.yaml` | spec（律法） | 7 個端點，一個 use case 一個 |
+| `services/.../acceptance/http/` | gate（律法） | 比對器：`HttpContract`（載入）、`JsonShape`（形狀）、`HttpContractEvaluator`（比對與涵蓋）、`HttpObservationRecorder`、`HttpObservationInitializer`、`HttpContractReport`；測試 `HttpContractEvaluatorTest`（23 個）、`HttpContractFilesTest`（1 個） |
+| `services/.../src/test/resources/application-test.yml` | gate（律法） | `context.initializer.classes` 掛上觀察器 |
+
+觀察器用 Spring Boot 的 `context.initializer.classes` 掛進每一個測試 context，在每次 MockMvc 請求後記錄結果。JVM 結束時寫 `build/reports/http-contract/report.txt`。**試做階段只列出、不擋**，處理方式與 `spec-check` 對 `spec-draft/` 相同。
+
+沒有用 `META-INF/spring.factories`。理由是 `law_check` 讀 base 的清冊，那個檔在 base 不是律法，修法 PR 夾帶它會被擋（P4）。`application-test.yml` 本來就是律法。
+
+### 驗證
+
+| # | 驗證 | 結果 |
+|---|---|---|
+| V-1 | 先紅：比對器還沒實作時跑 `HttpContractEvaluatorTest` | 編譯失敗（類別不存在） |
+| V-2 | 比對器單元測試 | 23/23 通過 |
+| V-3 | 後端全套 `./gradlew cleanTest check`（JDK 17） | BUILD SUCCESSFUL；閘門回報 981 個方法（原 957 + 新增 24），1247 次執行，0 失敗，0 跳過 |
+| V-4 | 全套跑完的報告 | 觀察 617 次，契約範圍內 71 次（成功 57、失敗 14），**問題 0**。觀察到的 14 次錯誤回應，狀態碼都符合錯誤分類 |
+| V-5 | mutation 1：在本機把 #85 之前的寫法放回去（列表與章節直接回傳陣列），只跑 `ScoreSheetApiTest` | 問題 6：兩個端點的 `$.data：預期物件，實際是陣列`，另有 3 個陣列從未非空（元素沒比對過）。**E-03 會被抓到**。程式已還原 |
+| V-6 | mutation 2：只跑不打 HTTP 的測試（`AcceptanceExamplesTest`） | 觀察 0 次，問題 7：每個端點都是「沒有觀察到任何成功回應」 |
+
+### B-1 的弱點與配套
+
+B-1 的資料來自建構者的測試。弱點與目前的配套：
+
+| # | 弱點 | 配套 | 狀態 |
+|---|---|---|---|
+| W-1 | 建構者沒寫或刪掉 API 測試，端點沒被打到 | 契約裡每個端點至少要觀察到一次成功回應；完全沒有觀察時照樣寫出報告，不留下舊報告 | 已做；V-6 驗證 |
+| W-2 | 只測錯誤路徑 | 同 W-1：只算 2xx | 已做；單元測試驗證 |
+| W-3 | 只用空集合，陣列元素的形狀沒被比對 | data 形狀裡的每個陣列至少要觀察到一次非空 | 已做；V-5 與單元測試驗證 |
+| W-4 | 建構者的斷言寫錯或刪掉 | 比對器不讀斷言，只看實際回應 | 依設計成立。V-5 時建構者的測試也同時紅了，所以「斷言刪掉仍抓得到」**沒有單獨驗證** |
+| W-5 | 測試不經過 MockMvc（直接呼叫 controller、`TestRestTemplate`） | 觀察不到就落到 W-1，判為未通過，偏向安全那一邊 | 依設計成立；目前沒有測試使用 `TestRestTemplate`（grep 0 筆） |
+| W-6 | 建構者關掉觀察器（改 `application-test.yml`、刪比對器） | 兩者都是律法，要修法與簽章 | 落點已做。**但報告不存在時目前不擋**；升格時閘門要要求「本次執行產生的報告存在」 |
+| W-7 | 可為 null 的欄位只觀察到其中一種（例如 `scoreSheetVersionId` 只看到 null） | 選項：要求 `?` 欄位 null 與非 null 都觀察到 | 未做，升格時決定 |
+| W-8 | 只驗形狀，不驗值 | 值由 use case 範例負責（已立法），兩者分工 | 設計上的分工 |
+| W-9 | 不驗請求（body、query、路徑參數的名稱） | B-1 只看回應。請求端目前只有執行器的參數名稱對應，不涵蓋 HTTP | **缺口**，待決定是否處理 |
+| W-10 | 整組資料都來自建構者，不是論文要求的獨立測試組 | 長期配套：律法擁有的少量 HTTP 冒煙請求，例如每個端點一個正常路徑，放在 `acceptance/http/`，不依賴建構者的測試 | 未做；提案 |
+
+### 試做中發現的事
+
+- **api-spec §4.1 寫 `UNAUTHORIZED`（401），程式回 `MISSING_API_KEY`、`INVALID_TOKEN`**（`ApiKeyAuthFilter`）。共用層依 api-spec 只列 `UNAUTHORIZED`。這次的全套測試沒有在評分表端點上觀察到 401，所以報告沒有列出；只要有測試打到，就會報「錯誤代碼沒有定義」。要以裁決決定哪一邊為準。
+- api-spec §8.4（評分表詳情）沒有寫回應的形狀。契約先採程式現況（與列表的一筆相同），並在 `http.yaml` 註明待確認。
+
+### 試做的限制
+
+- 報告不是 Gradle 的輸出，`build.gradle` 也沒有把 `spec-draft/` 宣告成 test 的輸入。所以**只改契約檔時，`test` 可能被判為 up-to-date 而不重跑**。試做期間請用 `cleanTest`。升格時一起修（`build.gradle` 是律法）。
+- 只在本機驗證過；CI 會在修法 PR 上跑同一組測試，但試做不擋，所以 CI 只能證明「沒有弄壞既有測試」。
+- `spec_lint` 只檢查 `model.yaml`、`usecases.yaml`、`examples.yaml`，不檢查 `http.yaml` 與 `http-common.yaml`。它們的格式由 `HttpContractFilesTest` 檢查。
+
+### 升格到 `specs/` 前要裁決（D-061）
+
+1. 規則 6 改適用範圍（`http.yaml` 允許 HTTP 詞彙），新增 `kind: http`、`kind: http-common`。
+2. 閘門：報告有問題就不通過；報告必須存在，而且是本次執行產生的（W-6）；`build.gradle` 宣告輸入。
+3. `coverage.txt`：`ApiResponse`、`GlobalExceptionHandler`、`ActorContextArgumentResolver` 與 score-sheet 的 controller、dto 改為 `legislated`。
+4. W-7、W-9、W-10 要不要做。
+5. 401 的錯誤代碼（上面「發現的事」第 1 點）以哪一邊為準。

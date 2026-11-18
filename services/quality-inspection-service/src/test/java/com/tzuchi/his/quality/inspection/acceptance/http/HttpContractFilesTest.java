@@ -1,0 +1,27 @@
+package com.tzuchi.his.quality.inspection.acceptance.http;
+
+import org.junit.jupiter.api.Test;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** repo 裡的契約檔本身要讀得進來：形狀、use case 歸屬、列舉、錯誤分類都要對得上。 */
+class HttpContractFilesTest {
+
+    private static final Path SPECS = Paths.get(System.getProperty("acceptance.specs.dir", "../../specs")).toAbsolutePath().normalize();
+    private static final Path DRAFT = Paths.get(System.getProperty("acceptance.specdraft.dir", "../../spec-draft")).toAbsolutePath().normalize();
+
+    @Test
+    void draftContractLoadsWithoutProblems() {
+        Path common = DRAFT.resolve("http-common.yaml");
+        assertTrue(Files.isRegularFile(common), common + " 不存在");
+        HttpContract contract = HttpContract.load(common, DRAFT, SPECS);
+        assertEquals(List.of(), contract.loadProblems());
+        assertEquals(7, contract.endpoints().size(), "score-sheet 的 7 支 use case 各一個端點");
+    }
+}
