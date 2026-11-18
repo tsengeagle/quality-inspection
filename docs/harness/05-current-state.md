@@ -38,7 +38,7 @@
 | 後端 `./gradlew check`（Linux、Windows） | ✓ `backend-check` | 2026-11-18 本機：958 個測試方法，失敗 0，已知失敗清單為空，跳過 0。含 ArchUnit 與凍結基線 |
 | 修法判決 `law-check`、`law-selftest` | ✓ | — |
 | 規格格式 `spec-check` | ✓ | `specs/review-project`、`specs/score-sheet` |
-| 前端 typecheck、Karma、Playwright | **✗（#72 補上）** | 2026-11-18 在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip |
+| 前端 typecheck、Karma、Playwright | **✗（#72 補上，合併後生效）** | 2026-11-18 在乾淨 checkout 以 `CI=true`：typecheck 通過；單元測試 224 個通過；E2E 18 個通過、3 個 demo 流程 skip。#72 的 `frontend-check` 在 GitHub 上（`76cbd79`，`ubuntu-24.04`）結果相同 |
 | Oracle | ✗ | V1～V5 與 Hibernate validate 在 Oracle XE 21c 驗證過（PR #55）。V6、SERIALIZABLE 匯出、儀表板的單一聚合查詢沒有在 Oracle 上跑過。負責人決定暫不加入 CI |
 | hosted（shell）模式 | ✗ | 從未驗證 |
 
@@ -105,7 +105,7 @@
 - 前端 E2E 都以 mock API 執行；standalone 模式固定為 `HOSPITAL_MANAGER`，其他角色只由單元測試涵蓋。
 - V6、SERIALIZABLE 匯出、儀表板聚合查詢在 Oracle 上的行為。
 - api-gateway 是否另外擋院區（2026-11-12 即列為未確認，這次沒有重新核對）。
-- `frontend-check` 在 GitHub runner 上的第一次執行，就是 #72 的 CI。
+- `frontend-check` 只在 #72 的 PR 上跑過；合併後在 `main` 上的執行尚未發生。runner 固定 `ubuntu-24.04`，因為 `ubuntu-latest`（26.04）不被 lockfile 的 Playwright 1.59.1 支援。
 
 ## 九、2026-11-12 快照遺留的項目
 
