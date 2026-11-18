@@ -59,7 +59,6 @@ class ResourceNotFoundErrorCodeApiTest {
                 Arguments.of("GET", "/review-cases/missing/revision-history", "reviewer", null),
                 Arguments.of("GET", "/review-cases/missing/assignment-context", "hospital_manager", null),
                 Arguments.of("GET", "/review-cases/missing/assignment-candidates?role=REREVIEWER", "hospital_manager", null),
-                Arguments.of("GET", "/review-cases/missing/rereview-revisions", "rereviewer", null),
                 Arguments.of("POST", "/review-cases/missing/close-without-rereview", "hospital_manager", null),
                 Arguments.of("POST", "/review-cases/missing/send-to-rereview", "hospital_manager", null),
                 Arguments.of("POST", "/review-cases/missing/assign-rereviewer", "hospital_manager", ASSIGN_BODY),

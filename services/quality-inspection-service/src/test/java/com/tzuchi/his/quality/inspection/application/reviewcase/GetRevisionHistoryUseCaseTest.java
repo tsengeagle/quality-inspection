@@ -169,4 +169,57 @@ class GetRevisionHistoryUseCaseTest {
         assertEquals(new BigDecimal("92"), initial.getTotalScore());
         assertEquals("private initial comment", initial.getComment());
     }
+
+    // --- D-059 第 3 點：revision-history 對複審資料的保護（取代已移除的 rereview-revisions） ---
+
+    private void seedSubmittedRereview() {
+        ReviewSubmission rereview = ReviewSubmission.createRereviewDraft("sub-r1", CASE_ID, REREVIEWER_ID);
+        rereview.updateDraft(
+                java.util.Arrays.asList(
+                        com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem
+                                .ofScored("Q001", "false", new BigDecimal("3"))),
+                new BigDecimal("3"),
+                "複審評語");
+        rereview.submit();
+        submissionRepo.save(rereview);
+    }
+
+    @Test
+    void rereviewContent_systemAdminGetsMetadataOnly_D059() {
+        seedSubmittedRereview();
+        ActorContext admin = new ActorContext("admin-1", "Admin",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+        com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryEntry entry =
+                useCase.execute(admin, CASE_ID).getEntries().stream()
+                        .filter(e -> "sub-r1".equals(e.getSubmissionId())).findFirst().orElseThrow();
+        assertNull(entry.getTotalScore(), "SYSTEM_ADMIN 只應取得 metadata（D-010）");
+        assertNull(entry.getComment(), "SYSTEM_ADMIN 只應取得 metadata（D-010）");
+    }
+
+    @Test
+    void rereviewContent_reviewerNotAssignedToCaseIsDenied_D059() {
+        seedSubmittedRereview();
+        ActorContext outsider = new ActorContext("reviewer-x", "Other Reviewer",
+                EnumSet.of(DomainRole.REVIEWER), Optional.of(HOSPITAL_ID));
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
+                () -> useCase.execute(outsider, CASE_ID));
+    }
+
+    @Test
+    void rereviewContent_otherRereviewerIsDenied_D059() {
+        seedSubmittedRereview();
+        ActorContext other = new ActorContext("rereviewer-2", "Other Rereviewer",
+                EnumSet.of(DomainRole.REREVIEWER), Optional.of(HOSPITAL_ID));
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
+                () -> useCase.execute(other, CASE_ID));
+    }
+
+    @Test
+    void rereviewContent_multiRoleActorIsDenied_D059() {
+        seedSubmittedRereview();
+        ActorContext multi = new ActorContext("user-m", "Multi",
+                EnumSet.of(DomainRole.REVIEWER, DomainRole.AUDITOR), Optional.of(HOSPITAL_ID));
+        assertThrows(com.tzuchi.his.quality.inspection.application.common.AccessDeniedException.class,
+                () -> useCase.execute(multi, CASE_ID));
+    }
 }
