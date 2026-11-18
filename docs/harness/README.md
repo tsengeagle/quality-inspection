@@ -46,7 +46,7 @@
 
 1. 在本 repo 的根目錄開 Claude Code session，不要在參考 repo 開。
 2. 第一句話請 AI 讀 `docs/harness/README.md` 和 `05-current-state.md`。
-3. 下一步見 `03-harness-plan.md` 的「建議順序」。
+3. 下一步：專案層級的工作見 `05-current-state.md` 第七節「建議的下一步」；harness 本身的建置順序見 `03-harness-plan.md` 的「建議順序」。
 
 ## Repo 之間的關係
 
