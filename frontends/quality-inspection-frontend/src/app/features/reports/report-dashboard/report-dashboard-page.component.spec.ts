@@ -12,8 +12,8 @@ import { ReportDashboardPageComponent } from './report-dashboard-page.component'
 
 class ActorContextServiceStub {
   readonly subject = new BehaviorSubject({
-    userId: 'U-1', userName: 'User', roles: ['HOSPITAL_MANAGER'] as string[],
-    currentRole: 'HOSPITAL_MANAGER' as string | null, hospitalId: 'H001'
+    userId: 'U-1' as string | null, userName: 'User' as string | null, roles: ['HOSPITAL_MANAGER'] as string[],
+    currentRole: 'HOSPITAL_MANAGER' as string | null, hospitalId: 'H001' as string | null
   });
   readonly context$ = this.subject.asObservable();
 
@@ -286,6 +286,27 @@ describe('ReportDashboardPageComponent (UI-015)', () => {
       fixture.detectChanges();
       expect(component.form.hospitalId).toBe('');
       expect(dashboardService.fetchSummary.calls.mostRecent().args[0].hospitalId).toBeUndefined();
+    });
+
+    it('does not query while the shell context is still empty (hosted mode starts unresolved)', () => {
+      actor.setContext({ userId: null, userName: null, hospitalId: null, roles: [], currentRole: null });
+      create();
+      expect(dashboardService.fetchSummary).not.toHaveBeenCalled();
+      expect(text('dashboard-idle')).toBe('請按查詢');
+
+      actor.setContext({ userId: 'U-1', hospitalId: 'H001', roles: ['HOSPITAL_MANAGER'], currentRole: 'HOSPITAL_MANAGER' });
+      fixture.detectChanges();
+      expect(dashboardService.fetchSummary).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not query for an identity without a report role, and clears the previous numbers', () => {
+      create();
+      expect(component.summary).not.toBeNull();
+      actor.setRole('REVIEWER');
+      fixture.detectChanges();
+      expect(dashboardService.fetchSummary).toHaveBeenCalledTimes(1);
+      expect(component.summary).toBeNull();
+      expect(text('dashboard-idle')).toBe('請按查詢');
     });
 
     it('does not re-query with an invalid range after the identity changes', () => {

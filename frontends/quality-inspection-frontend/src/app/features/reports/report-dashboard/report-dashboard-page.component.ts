@@ -2,11 +2,14 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subject, merge, takeUntil } from 'rxjs';
 
-import { ActorContext } from '@core/actor-context/actor-context.model';
+import { ActorContext, CanonicalActorRole } from '@core/actor-context/actor-context.model';
 import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { AccessControlService } from '@shared/access/access-control.service';
 import { isOrderedRange, previousFullMonth, toExportRange } from '../report-export/export-date-range';
 import { DashboardCriteria, DashboardSummary, ReportDashboardService } from '../services/report-dashboard.service';
+
+/** 與 route data 相同的角色（UI-015 §1）；自動查詢前再確認一次，避免在身分切換的中間狀態送出請求。 */
+const REPORT_ROLES: CanonicalActorRole[] = ['HOSPITAL_MANAGER', 'AUDITOR', 'SYSTEM_ADMIN'];
 
 export type DashboardPageStatus = 'idle' | 'loading' | 'loaded' | 'error' | 'forbidden';
 
@@ -212,8 +215,19 @@ export class ReportDashboardPageComponent implements OnInit, OnDestroy {
       }
     }
     if (first || changed) {
-      this.query();
+      // hosted 模式下 shell 的使用者、角色清單、目前角色是分開送達的：
+      // 身分尚未解析完成、或不持有報表角色時不送查詢，等下一次 context 更新再查。
+      if (this.canAutoQuery(context)) {
+        this.query();
+      } else {
+        this.status = 'idle';
+      }
     }
+  }
+
+  private canAutoQuery(context: ActorContext): boolean {
+    return this.accessControlService.isResolvedContext(context)
+      && this.accessControlService.hasAnyRole(REPORT_ROLES, context);
   }
 
   private buildCriteria(applied: AppliedQuery): DashboardCriteria {
