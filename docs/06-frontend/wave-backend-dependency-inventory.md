@@ -1,5 +1,7 @@
 # Wave 0–5 跨波次 Backend 依賴盤點 & Closure 排序建議
 
+> D-032 規格變更（2026-11-18 補註）：下文涉及 O1-C、CLOSED 例外修正入口（UI-014 C22「前往複審修正（例外）」、`hasExceptionEntry`、UI-013 `CLOSED_REVISION_EXCEPTION` 模式及其 amber 提示）的內容，已被 D-032 取代，僅保留歷史依據，不作現行可實作規則。CLOSED 不得 revision／reopen；UI-013、UI-014 在 CLOSED 只顯示唯讀提示。應用程式已對齊：UI-013 CLOSED 唯讀（PR #39）；UI-014 移除 `hasExceptionEntry` 與 C22 例外入口（PR #83）。C22 的其他導頁設計（例如返回案件詳情）不在 D-032 撤銷範圍，目前應用程式沒有實作 C22。
+
 > ⚠️ **SUPERSEDED — 本文件已被取代**  
 > 本文件的 Wave 3 / Wave 5 gap 描述均基於 2025-07 的採集基線，其中大多數 gap 已在後續實作中關閉。  
 > **現行 authority 請使用：`docs/06-frontend/frontend-backend-alignment-baseline.md`**  

@@ -1,5 +1,7 @@
 # Figma Wireframe Frame Spec — Cases Cluster P1
 
+> D-032 規格變更（2026-11-18 補註）：下文涉及 O1-C、CLOSED 例外修正入口（UI-014 C22「前往複審修正（例外）」、`hasExceptionEntry`、UI-013 `CLOSED_REVISION_EXCEPTION` 模式及其 amber 提示）的內容，已被 D-032 取代，僅保留歷史依據，不作現行可實作規則。CLOSED 不得 revision／reopen；UI-013、UI-014 在 CLOSED 只顯示唯讀提示。應用程式已對齊：UI-013 CLOSED 唯讀（PR #39）；UI-014 移除 `hasExceptionEntry` 與 C22 例外入口（PR #83）。C22 的其他導頁設計（例如返回案件詳情）不在 D-032 撤銷範圍，目前應用程式沒有實作 C22。
+
 > 本文件是可選用的 Figma translation spec。  
 > 它描述若採 Figma 時應如何轉譯既有 wireframe artifacts；不是 Figma artifact 本身。  
 > **不是 visual baseline，不是 implementation handoff，也不是預設執行方案。**

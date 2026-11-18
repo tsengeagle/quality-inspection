@@ -218,7 +218,7 @@ shared_sub_models:
 - metadata-only 與 FULL 已以 projection 欄位實現，不需拆雙 route/page model。
 
 ### Inconsistency / Gaps
-1. review gate 已批准 O1-C/O2-A/O3-C，本檔已回寫對齊；其餘差異需以 page spec 最終回寫檢核。
+1. review gate 已批准 O1-C/O2-A/O3-C，本檔已回寫對齊；其中 O1-C（CLOSED 例外修正入口）其後已被 D-032 取代，現行規則見本檔 D-032 的說明；其餘差異需以 page spec 最終回寫檢核。
 
 ---
 

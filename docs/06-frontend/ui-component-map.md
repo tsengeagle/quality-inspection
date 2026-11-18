@@ -1,5 +1,7 @@
 # UI Component Map v1 (Cases Cluster)
 
+> D-032 規格變更（2026-11-18 補註）：下文涉及 O1-C、CLOSED 例外修正入口（UI-014 C22「前往複審修正（例外）」、`hasExceptionEntry`、UI-013 `CLOSED_REVISION_EXCEPTION` 模式及其 amber 提示）的內容，已被 D-032 取代，僅保留歷史依據，不作現行可實作規則。CLOSED 不得 revision／reopen；UI-013、UI-014 在 CLOSED 只顯示唯讀提示。應用程式已對齊：UI-013 CLOSED 唯讀（PR #39）；UI-014 移除 `hasExceptionEntry` 與 C22 例外入口（PR #83）。C22 的其他導頁設計（例如返回案件詳情）不在 D-032 撤銷範圍，目前應用程式沒有實作 C22。
+
 ## 1. 文件目的
 
 本文件將 `docs/05-ui/ui-layout-archetypes.md` 定義的 layout archetypes（A1~A5）與 cases 主幹頁面結構（UI-009~UI-014）收斂為 **Structural Component Mapping baseline**。

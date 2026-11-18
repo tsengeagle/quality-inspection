@@ -113,8 +113,8 @@
 | UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供 |
 | UI-011 案件分派頁 | ✅ REAL（limited source replacement） | 命令與 query contract 維持不變；candidate lookup 已改走 persisted staff directory source |
 | UI-012 初審作業頁 | ✅ REAL | bootstrap context 已嵌入 case detail |
-| UI-013 複審作業頁 | ✅ REAL | 歷史實作：CLOSED revision exception；已不符合 D-032，應用程式待調整 |
-| UI-014 revision 歷程頁 | ✅ REAL | 歷史實作：`hasExceptionEntry` 由 backend 計算；D-032 撤銷該入口，應用程式待調整 |
+| UI-013 複審作業頁 | ✅ REAL | CLOSED 一律唯讀，沒有例外修正（D-032；PR #39 落地）。原歷史實作的 CLOSED revision exception 已移除 |
+| UI-014 revision 歷程頁 | ✅ REAL | CLOSED 只顯示唯讀提示。D-032 撤銷的 `hasExceptionEntry` 欄位與 C22 例外入口已於 PR #83 自後端與前端移除 |
 
 ---
 
