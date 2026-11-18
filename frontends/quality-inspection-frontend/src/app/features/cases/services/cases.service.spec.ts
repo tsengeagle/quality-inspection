@@ -120,6 +120,7 @@ describe('CasesService', () => {
       success: true,
       data: {
         caseId: 'CASE-014',
+        // 舊版後端曾帶此欄位；D-032 撤銷 CLOSED 複審 revision 例外，view model 不得再帶出
         hasExceptionEntry: true,
         submissions: [
           {
@@ -149,7 +150,6 @@ describe('CasesService', () => {
       status: 'CLOSED',
       actorRole: 'REREVIEWER',
       projectionType: 'FULL',
-      hasExceptionEntry: true,
       revisions: [
         {
           submissionId: 'SUB-001',

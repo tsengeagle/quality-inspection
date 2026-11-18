@@ -164,7 +164,6 @@ interface ReviewCaseDetailDto {
 interface RevisionHistoryResponseDto {
   caseId: string;
   submissions: SubmissionSummaryDto[];
-  hasExceptionEntry: boolean;
 }
 
 interface SubmissionDetailAnswerDto {
@@ -485,7 +484,6 @@ export interface RevisionHistoryViewModel {
   status: string;
   actorRole: string;
   projectionType: ProjectionType;
-  hasExceptionEntry: boolean;
   revisions: RevisionHistoryItem[];
 }
 
@@ -567,7 +565,6 @@ export class CasesService {
         status: detail.status,
         actorRole: detail.actorRole,
         projectionType: detail.projectionType,
-        hasExceptionEntry: history.data.hasExceptionEntry,
         revisions: history.data.submissions.map(item => this.mapSubmission(item))
       }))
     );

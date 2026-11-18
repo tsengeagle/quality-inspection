@@ -363,6 +363,13 @@ class RereviewApiTest {
                 .andExpect(jsonPath("$.data.submissions[?(@.stage == 'REREVIEW')]",
                         org.hamcrest.Matchers.hasSize(greaterThanOrEqualTo(2))));
 
+        // Step 11b: 已結案後，原複審醫師查歷程也不再有例外入口（D-032 撤銷 CLOSED 複審 revision 例外）
+        mockMvc.perform(get(BASE + "/" + CASE_ID + "/revision-history")
+                        .header("api-key", rereviewerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
+                .andExpect(jsonPath("$.data.hasExceptionEntry").doesNotExist());
+
         // Step 12: 原本的複審專用端點已移除（D-059 第 1 點）
         mockMvc.perform(get(BASE + "/" + CASE_ID + "/rereview-revisions")
                         .header("api-key", hmToken))

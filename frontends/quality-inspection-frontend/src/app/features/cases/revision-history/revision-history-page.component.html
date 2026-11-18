@@ -37,11 +37,3 @@
   [showMetadataOnlyNotice]="showMetadataOnlyNotice">
 </app-revision-compare-summary>
 
-<!-- C22 RevisionNavActionZone — HR-2: outlined warning-tone，不可 fixed -->
-<!-- 只在 hasExceptionEntry 時顯示：CLOSED + originalRereviewer + baseSubmission -->
-<app-revision-nav-action-zone
-  *ngIf="hasExceptionEntry"
-  [caseId]="caseId"
-  (navigateToRereview)="navigateToRereview()">
-</app-revision-nav-action-zone>
-

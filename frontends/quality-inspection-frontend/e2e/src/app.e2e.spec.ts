@@ -111,6 +111,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
         success: true,
         data: {
           caseId: 'CASE-014',
+          // 舊版後端曾帶此欄位；D-032 撤銷 CLOSED 複審 revision 例外，畫面不得再顯示入口
           hasExceptionEntry: true,
           submissions: [
             {
@@ -259,5 +260,9 @@ test.describe('frontend smoke baseline', () => {
     await expect(page.locator('.compare-summary')).toBeVisible();
     await expect(page.locator('.compare-summary')).toContainText('版本選擇互動尚未定案；目前採固定差異摘要檢視。');
     await expect(page.locator('button[type="submit"]')).toHaveCount(0);
+    // CLOSED 案件、原複審醫師：只顯示終止狀態的唯讀提示，沒有例外修正入口（D-032）
+    await expect(page.getByText('此案件處於終止狀態，僅可檢視歷程。')).toBeVisible();
+    await expect(page.locator('app-revision-nav-action-zone')).toHaveCount(0);
+    await expect(page.getByText('前往複審修正')).toHaveCount(0);
   });
 });

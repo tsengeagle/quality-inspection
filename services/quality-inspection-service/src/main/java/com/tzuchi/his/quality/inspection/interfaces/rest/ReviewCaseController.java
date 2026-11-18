@@ -294,7 +294,7 @@ public class ReviewCaseController {
                         e.getComment(), e.getSubmittedAt(), e.getSupersededBySubmissionId()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.ok(
-                new RevisionHistoryResponse(view.getCaseId(), dtos, view.isHasExceptionEntry())));
+                new RevisionHistoryResponse(view.getCaseId(), dtos)));
     }
 
     // --- B4 Rereview Endpoints ---

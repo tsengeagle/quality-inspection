@@ -7,16 +7,12 @@ public class RevisionHistoryView {
 
     private final String caseId;
     private final List<RevisionHistoryEntry> entries;
-    private final boolean hasExceptionEntry;
 
-    public RevisionHistoryView(String caseId, List<RevisionHistoryEntry> entries,
-                               boolean hasExceptionEntry) {
+    public RevisionHistoryView(String caseId, List<RevisionHistoryEntry> entries) {
         this.caseId = caseId;
         this.entries = entries;
-        this.hasExceptionEntry = hasExceptionEntry;
     }
 
     public String getCaseId() { return caseId; }
     public List<RevisionHistoryEntry> getEntries() { return entries; }
-    public boolean isHasExceptionEntry() { return hasExceptionEntry; }
 }
