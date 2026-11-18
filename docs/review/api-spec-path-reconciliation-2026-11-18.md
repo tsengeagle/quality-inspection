@@ -12,13 +12,13 @@
 
 | 來源 | 取法 | 數量 |
 |---|---|---:|
-| api-spec | `docs/03-contracts/api-spec.md` 中所有 `` `方法 /路徑` `` 形式的字串 | 47 個不重複端點，其中 `PUT /resource/{id}` 是第 6 節的寫法說明，不是端點，扣除後 46 個 |
+| api-spec | `docs/03-contracts/api-spec.md` 中所有 `` `方法 /路徑` `` 形式的字串 | 46 個不重複端點，其中 `PUT /resource/{id}` 是第 6 節的寫法說明，不是端點，扣除後 45 個 |
 | 後端 | 各 `*Controller.java` 的 `@RequestMapping` 前綴加上 `@Get/Post/Put/Patch/DeleteMapping` | 53 |
-| 前端 | `features/**/services/*.ts` 的 `http.get/post/...` 呼叫，代入各 service 的 base URL | 33 |
+| 前端 | `features/**/services/*.ts` 的 `http.get/post/...` 呼叫，代入各 service 的 base URL | 27 |
 
 ## 二、結論
 
-1. **前端呼叫的 33 個端點，後端全部都有。** 目前沒有「前端呼叫不存在的路徑」這種執行期錯誤。
+1. **前端呼叫的 27 個端點，後端全部都有。** 目前沒有「前端呼叫不存在的路徑」這種執行期錯誤。
 2. **api-spec 有、後端沒有：9 個。** 其中 9 個都在後端有對應的「同一個動作、不同路徑」（第三節）。
 3. **後端有、api-spec 沒有：17 個。** 9 個是第三節的另一半；另外 8 個在 api-spec 完全沒有記載（第四節）。
 4. **與裁決衝突：** D-022 規定的路徑樣式與程式、與之後的 D-053／D-054 都不一致；`GET /review-submissions/{id}` 是 D-022 明文廢除的路徑，後端與前端仍在使用（第五節）。
