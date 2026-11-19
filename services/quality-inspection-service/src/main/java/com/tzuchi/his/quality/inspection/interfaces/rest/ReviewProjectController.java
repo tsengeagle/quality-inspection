@@ -56,8 +56,12 @@ public class ReviewProjectController {
         String projectId = createUseCase.execute(actor, request.getName(),
                 request.getDescription(), types, request.getQualityThreshold(),
                 request.getInitialReviewWeight(), request.getRereviewWeight());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(Map.of("projectId", projectId)));
+        // api-spec §7.1：回應是 { projectId, status }。狀態由查詢取得，不在 controller 裡假設新建的狀態。
+        String status = getDetailUseCase.execute(actor, projectId).getStatus().name();
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("projectId", projectId);
+        body.put("status", status);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(body));
     }
 
     @PostMapping("/{projectId}/publish")

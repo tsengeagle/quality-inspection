@@ -47,7 +47,9 @@ class ReviewProjectApiTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.projectId").isNotEmpty());
+                .andExpect(jsonPath("$.data.projectId").isNotEmpty())
+                // api-spec §7.1：回應是 { projectId, status }，新建的專案是草稿
+                .andExpect(jsonPath("$.data.status").value("DRAFT"));
     }
 
     @Test
@@ -316,6 +318,26 @@ class ReviewProjectApiTest {
                 .andExpect(jsonPath("$.data.projectId").value(projectId))
                 .andExpect(jsonPath("$.data.name").value("Detail Test"))
                 .andExpect(jsonPath("$.data.status").value("DRAFT"));
+    }
+
+    @Test
+    void getProject_withDescription_returnsDescription() throws Exception {
+        CreateReviewProjectRequest req = new CreateReviewProjectRequest();
+        req.setName("Described");
+        req.setDescription("門診病歷品質");
+        req.setMedicalRecordTypes(Set.of("OUTPATIENT"));
+        String json = mockMvc.perform(post(BASE)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        String projectId = objectMapper.readTree(json).at("/data/projectId").asText();
+
+        mockMvc.perform(get(BASE + "/" + projectId)
+                        .header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.description").value("門診病歷品質"));
     }
 
     @Test
