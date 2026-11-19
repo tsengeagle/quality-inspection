@@ -1,0 +1,292 @@
+spec_version: 2
+kind: examples
+aggregate: CardResource
+
+# [缺口 G-07] v1.1 的 actors 固定是 user、roles、hospital（harness-core 的欄位表）。
+# 元件的「操作者」是程式（iccard、HCAAPI），沒有角色與院區。這裡改寫 program，v1.1 的欄位表會擋。
+actors:
+  iccard: { program: iccard-localserver }
+  hcaapi: { program: HCAAPI-localserver }
+
+clock: { start: "2026-11-20T09:00:00+08:00" }
+
+fixtures:
+  card_1_inserted:
+    steps:
+      - { port: CardModule.readCardNo, returns: CARD-1 }
+      - { port: CardWork.run, returns: SIG-1 }
+  faulted_after_signing:
+    note: 簽完之後關閉模組一直失敗，本行程進入異常
+    steps:
+      - use: card_1_inserted
+      - { port: CardModule.close, fails: { times: 4 } }     # Q-01：總次數未定
+      - { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+
+  prior_normal:
+    steps: []
+  prior_mismatch:
+    steps:
+      - { port: CardModule.readCardNo, returns: CARD-2 }
+  prior_login:
+    steps:
+      - { port: CardModule.login, fails: { times: 1, code: "9039" } }
+
+expectations:                       # v2 第 6 項：具名斷言
+  released_cleanly:
+    calls_include:
+      CardLock: [release]
+    facets: { resource: IDLE }
+
+examples:
+  # ---------- 一切正常 ----------
+  - name: uses_card_once
+    basis: [CG-LGN-S1, CG-LGN-S2, CG-T-01, CG-T-02, CG-INV-01, CG-INV-02]
+    given: [{ use: card_1_inserted }]
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: SUCCESS
+      output: SIG-1                 # [缺口 G-08] v1、v2 的 then 都不能比對 when 自己的輸出，只能用 observe 跑查詢
+      calls:
+        CardLock:   [openLockFile, acquire, release]
+        CardModule: [open, readCardNo, login, closeSession, close]
+        CardWork:   [run]
+      order:
+        - [CardLock.acquire, CardModule.open]       # 規則 1
+        - [CardModule.close, CardLock.release]      # 規則 2
+        - [CardModule.readCardNo, CardModule.login] # 規則 3：先比對再登入
+      facets: { resource: IDLE }
+
+  # ---------- 等待上限內等不到鎖 ----------
+  - name: busy_while_other_process_holds_the_lock
+    basis: [CG-G-03, CG-INV-03]
+    processes: [A, B]
+    given:
+      - use: card_1_inserted
+      - process: B
+        run: UseCardWithLogin
+        as: hcaapi
+        input: { pin: "1234", expectedCardNo: CARD-1 }
+        pause_at: CardWork.run      # B 持鎖、已登入，停在工作裡
+    when:
+      process: A
+      run: UseCardWithLogin
+      as: iccard
+      input: { pin: "1234", expectedCardNo: CARD-1 }
+      advance: PT15S                # [缺口 G-05] 15 秒是 iccard 的設定值；範例無法宣告設定
+    then:
+      result: REJECTED
+      code: CARD_IN_USE
+      never: [A:CardModule.open, A:CardModule.login]
+    observe:
+      - { process: A, run: GetCardLockOwner, as: iccard, input: {}, expect: { result: SUCCESS, output: { owner: HCAAPI-localserver } } }
+
+  - name: gets_the_lock_after_other_process_releases
+    basis: [CG-T-01, CG-INV-02]
+    processes: [A, B]
+    given:
+      - use: card_1_inserted
+      - { process: B, run: UseCardWithLogin, as: hcaapi, input: { pin: "1234", expectedCardNo: CARD-1 }, pause_at: CardWork.run }
+    when:
+      process: A
+      run: UseCardWithLogin
+      as: iccard
+      input: { pin: "1234", expectedCardNo: CARD-1 }
+      # [缺口 G-09] 第 12 項只能讓 B 停住、A 逾時。要表達「A 等待中、B 放鎖、A 取得」，
+      # 需要在 when 執行期間插入步驟。這裡寫成假想的 during：
+      during:
+        - advance: PT2S
+        - resume: B
+    then:
+      result: SUCCESS
+      order:
+        - [B:CardLock.release, A:CardModule.open]
+
+  # ---------- 鎖檔無法建立或開啟 ----------
+  - name: refuses_when_lock_file_is_unavailable
+    basis: [CG-G-02]
+    given:
+      - use: card_1_inserted
+      - { port: CardLock.openLockFile, fails: { times: 1 } }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: REJECTED
+      code: CARD_LOCK_UNAVAILABLE
+      never: [CardLock.acquire, CardModule.open, CardModule.login]
+
+  # ---------- 卡號與預期不符 ----------
+  - name: card_mismatch_never_sends_pin
+    basis: [CG-LGN-01, CG-INV-03]
+    given:
+      - use: card_1_inserted
+      - { port: CardModule.readCardNo, returns: CARD-2 }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: REJECTED
+      code: CARD_MISMATCH
+      calls:
+        CardModule: [open, readCardNo, close]       # Q-02：沒登入時要不要 closeSession
+        CardLock:   [openLockFile, acquire, release]
+      never: [CardModule.login, CardWork.run]
+      facets: { resource: IDLE }
+
+  # ---------- DLL 回錯誤碼 ----------
+  - name: login_error_is_not_retried
+    basis: [CG-LGN-02, CG-INV-04]
+    given:
+      - use: card_1_inserted
+      - { port: CardModule.login, fails: { times: 1, code: "9039" } }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: REJECTED
+      code: CARD_LOGIN_FAILED
+      calls:
+        CardModule: [open, readCardNo, login, closeSession, close]   # 登入只出現一次：不重試
+      never: [CardWork.run]
+      facets: { resource: IDLE }
+
+  - name: device_error_before_login_cleans_up
+    basis: [CG-LGN-03]
+    given:
+      - use: card_1_inserted
+      - { port: CardModule.readCardNo, fails: { times: 1, code: "9016" } }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: REJECTED
+      code: CARD_DEVICE_ERROR
+      never: [CardModule.login]
+      use_expect: released_cleanly  # [缺口 G-10] 具名斷言在第 6 項只能用在 observe，這裡用在 then
+
+  - name: work_failure_cleans_up
+    basis: [CG-LGN-04]
+    given:
+      - use: card_1_inserted
+      - { port: CardWork.run, fails: { times: 1 } }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: REJECTED
+      code: CARD_WORK_FAILED
+      calls_include: { CardModule: [closeSession, close], CardLock: [release] }
+
+  # ---------- 關 Session 失敗、關 Module 成功：結果不變（修飾規則，用矩陣） ----------
+  - name: close_session_failure_keeps_the_result
+    basis: [CG-INV-05]
+    matrix:
+      columns: [prior, result, code]
+      rows:
+        - [normal,   SUCCESS,  ""]
+        - [mismatch, REJECTED, CARD_MISMATCH]
+        - [login,    REJECTED, CARD_LOGIN_FAILED]
+    given:
+      - use: card_1_inserted
+      - use: "prior_${prior}"       # [缺口 G-11] 矩陣的 fixture 要能放埠的設定；第 6 項只示範了 run 步驟
+      - { port: CardModule.closeSession, fails: { times: 1 } }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: "${result}"           # [缺口 G-11] 第 6 項的 then 是固定值；結果隨列變化時要能代入
+      code: "${code}"
+      calls_include: { CardModule: [close], CardLock: [release] }
+      facets: { resource: IDLE }
+
+  # ---------- 關 Module 失敗 ----------
+  - name: close_failure_after_signing_keeps_the_signature
+    basis: [CG-LGN-05, CG-T-03, CG-INV-07]
+    given:
+      - use: card_1_inserted
+      - { port: CardModule.close, fails: { times: 4 } }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: SUCCESS
+      output: SIG-1                 # [缺口 G-08]
+      calls:
+        CardWork:   [run]           # 只簽一次，不重簽
+        CardModule: [open, readCardNo, login, closeSession, close, close, close, close]   # Q-01
+      never: [CardLock.release]
+      facets: { resource: FAULTED }
+
+  - name: close_failure_on_a_failure_path_keeps_the_original_result
+    basis: [CG-INV-06]
+    given:
+      - use: card_1_inserted
+      - { port: CardModule.readCardNo, returns: CARD-2 }
+      - { port: CardModule.close, fails: { times: 4 } }
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: REJECTED
+      code: CARD_MISMATCH
+      never: [CardLock.release, CardModule.login]
+      facets: { resource: FAULTED }
+
+  - name: faulted_process_retries_close_before_next_use
+    basis: [CG-T-05]
+    given:
+      - use: faulted_after_signing
+      - { port: CardModule.close, succeeds: true }   # [缺口 G-12] 埠只能設定 fails 與 returns；「之後恢復正常」沒有寫法
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: SUCCESS
+      # [缺口 G-13] calls 記錄的範圍沒有定義：只算 when，還是 given 也算。這裡假設只算 when
+      calls:
+        CardModule: [close, open, readCardNo, login, closeSession, close]
+      facets: { resource: IDLE }
+
+  - name: faulted_process_refuses_when_close_still_fails
+    basis: [CG-G-01, CG-INV-07]
+    given: [{ use: faulted_after_signing }]
+    when: { run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 } }
+    then:
+      result: REJECTED
+      code: CARD_RESOURCE_FAULTED
+      never: [CardModule.open, CardModule.login]
+      facets: { resource: FAULTED }
+
+  - name: faulted_process_keeps_the_lock_from_the_other
+    basis: [CG-INV-07, CG-G-03]
+    processes: [A, B]
+    given:
+      - { process: B, use: faulted_after_signing }   # [缺口 G-14] fixture 要能指定在哪個行程執行
+    when: { process: A, run: UseCardWithLogin, as: iccard, input: { pin: "1234", expectedCardNo: CARD-1 }, advance: PT15S }
+    then:
+      result: REJECTED
+      code: CARD_IN_USE
+      never: [A:CardModule.open]
+      facets: { B:resource: FAULTED, A:resource: IDLE }   # [缺口 G-15] 面向是每個行程各一份，寫法未定義
+
+  - name: recover_succeeds
+    basis: [CG-RCV-01, CG-T-04]
+    given:
+      - use: faulted_after_signing
+      - { port: CardModule.close, succeeds: true }   # [缺口 G-12]
+    when: { run: RecoverCardResource, as: iccard, input: {} }
+    then:
+      result: SUCCESS
+      calls: { CardModule: [close], CardLock: [release] }
+      facets: { resource: IDLE }
+
+  - name: recover_fails
+    basis: [CG-RCV-02]
+    given: [{ use: faulted_after_signing }]
+    when: { run: RecoverCardResource, as: iccard, input: {} }
+    then:
+      result: SUCCESS
+      never: [CardLock.release]
+      facets: { resource: FAULTED }
+
+  # ---------- 不登入的用卡（checkHCAAPI） ----------
+  - name: use_without_login_never_sends_pin
+    basis: [CG-MOD-01]
+    given: [{ use: card_1_inserted }]
+    when: { run: UseCardWithoutLogin, as: hcaapi, input: {} }
+    then:
+      result: SUCCESS
+      calls: { CardModule: [open, close], CardWork: [run], CardLock: [openLockFile, acquire, release] }
+      never: [CardModule.login]
+
+not_covered:
+  - item: 行程當掉時作業系統自動釋放鎖
+    reason: 範例無法讓行程異常結束；而且這是作業系統的行為，由實機測試 T1 負責（Q-4）
+  - item: 兩個 JVM 真的互斥
+    reason: 確定性交錯只驗證程式依規則使用鎖（Q-4），實機測試 T1、T4
+  - item: 行程崩潰後卡片停在什麼狀態（待決 G）
+    reason: 卡片的行為，不是程式的行為；實機實驗
+  - item: 同一個 JVM 重複取鎖不拋 OverlappingFileLockException（設計 §6.2）
+    reason: 這是 CardLock 埠背後實作的性質，替身換掉之後就驗證不到；屬於 CardLock 實作的單元測試

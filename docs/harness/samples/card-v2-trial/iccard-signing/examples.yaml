@@ -1,0 +1,158 @@
+spec_version: 2
+kind: examples
+aggregate: PhysicalCardSigningContext
+
+actors:
+  doctor: { program: iccard-localserver, user: doctor-1 }    # [缺口 G-07]
+
+clock: { start: "2026-11-20T09:00:00+08:00" }
+
+fixtures:
+  card_1:
+    steps:
+      - { port: card-gate.CardModule.readCardNo, returns: CARD-1 }     # [缺口 G-17] 引用 card-gate 的埠
+  verified:
+    steps:
+      - use: card_1
+      - { run: VerifyPhysicalCard, as: doctor, input: { pin: "1234" } }
+
+examples:
+  # ---------- UC-I1 驗卡 ----------
+  - name: verify_creates_context_with_card_no
+    basis: [IC-VER-S1, IC-VER-S2, IC-T-01]
+    given: [{ use: card_1 }]
+    when: { run: VerifyPhysicalCard, as: doctor, input: { pin: "1234" } }
+    then:
+      result: SUCCESS
+      calls:
+        card-gate.CardLock: [openLockFile, acquire, release]      # 一次持鎖（現在是兩輪開關）
+      calls_include:
+        card-gate.CardModule: [open, readCardNo, login, close]
+    observe:
+      - run: GetSigningContext
+        as: doctor
+        input: {}
+        expect: { result: SUCCESS, output: { state: ACTIVE, cardNo: CARD-1 } }
+
+  - name: verify_9039_does_not_create_context
+    basis: [IC-VER-01]
+    given:
+      - use: card_1
+      - { port: card-gate.CardModule.login, fails: { times: 1, code: "9039" } }
+    when: { run: VerifyPhysicalCard, as: doctor, input: { pin: "1234" } }
+    then: { result: REJECTED, code: CARD_PIN_OR_BUSY }
+    observe:
+      - { run: GetSigningContext, as: doctor, input: {}, expect: { result: SUCCESS, output: { state: NOT_SET }, absent: [cardNo] } }
+
+  - name: verify_9041_is_a_plain_login_failure
+    basis: [IC-VER-02]
+    given:
+      - use: card_1
+      - { port: card-gate.CardModule.login, fails: { times: 1, code: "9041" } }
+    when: { run: VerifyPhysicalCard, as: doctor, input: { pin: "12" } }
+    then: { result: REJECTED, code: CARD_LOGIN_FAILED }
+
+  - name: verify_9043_reports_card_locked
+    basis: [IC-VER-03]
+    given:
+      - use: card_1
+      - { port: card-gate.CardModule.login, fails: { times: 1, code: "9043" } }
+    when: { run: VerifyPhysicalCard, as: doctor, input: { pin: "1234" } }
+    then: { result: REJECTED, code: CARD_LOCKED }
+
+  # ---------- UC-I2 開立處方簽章 ----------
+  - name: sign_without_context_never_touches_the_card
+    basis: [IC-G-01]
+    when: { run: SignPrescription, as: doctor, input: { prescription: "處方 1" } }
+    then:
+      result: REJECTED
+      code: SIGNING_NOT_SET
+      never: [card-gate.CardLock.acquire]
+
+  - name: sign_after_context_expired
+    basis: [IC-G-01]
+    given:
+      - use: verified
+      - advance: P1D                # Q-02：期限長度未知，這裡先寫一天
+    when: { run: SignPrescription, as: doctor, input: { prescription: "處方 1" } }
+    then:
+      result: REJECTED
+      code: SIGNING_NOT_SET
+      never: [card-gate.CardLock.acquire]
+
+  - name: signs_a_prescription
+    basis: [IC-SGN-S1, IC-INV-02]
+    given: [{ use: verified }]
+    when: { run: SignPrescription, as: doctor, input: { prescription: "處方 1" } }
+    then:
+      result: SUCCESS
+      calls_include:
+        card-gate.CardModule: [readCardNo, login, close]
+      # [缺口 G-18] IC-INV-02「QR Code 在放鎖之後產生」驗證不到：QR Code 不是埠
+
+  - name: card_mismatch_at_signing_asks_to_verify_again
+    basis: [IC-SGN-01]
+    given:
+      - use: verified
+      - { port: card-gate.CardModule.readCardNo, returns: CARD-2 }
+    when: { run: SignPrescription, as: doctor, input: { prescription: "處方 1" } }
+    then:
+      result: REJECTED
+      code: CARD_MISMATCH
+      never: [card-gate.CardModule.login]
+    # observe 待 Q-01：簽章情境是 ACTIVE 還是 NOT_SET
+
+  - name: stops_after_9039_and_never_sends_pin_again
+    note: 驗收 T9。舊版 HCAAPI 握著 Session 時，新版 iccard 只送一次 PIN，之後停止
+    basis: [IC-SGN-02, IC-INV-01, IC-T-02]
+    given:
+      - use: verified
+      - { port: card-gate.CardModule.login, fails: { times: 1, code: "9039" } }
+      - { run: SignPrescription, as: doctor, input: { prescription: "處方 1" }, expect_result: { result: REJECTED, code: CARD_POSSIBLY_BUSY } }
+        # [缺口 G-21] given 的步驟不能斷言結果；v1 的 given 失敗會讓範例未通過，但這裡「預期被拒」是準備的一部分
+    when: { run: SignPrescription, as: doctor, input: { prescription: "處方 2" } }
+    then:
+      result: REJECTED
+      code: SIGNING_NOT_SET
+      never: [card-gate.CardModule.login]     # 第二張處方沒有送 PIN
+    observe:
+      - { run: GetSigningContext, as: doctor, input: {}, expect: { result: SUCCESS, output: { state: NOT_SET }, absent: [cardNo, certSerial] } }
+
+  - name: sign_9043_reports_card_locked_and_revokes
+    basis: [IC-SGN-03]
+    given:
+      - use: verified
+      - { port: card-gate.CardModule.login, fails: { times: 1, code: "9043" } }
+    when: { run: SignPrescription, as: doctor, input: { prescription: "處方 1" } }
+    then: { result: REJECTED, code: CARD_LOCKED }
+    observe:
+      - { run: GetSigningContext, as: doctor, input: {}, expect: { result: SUCCESS, output: { state: NOT_SET } } }
+
+  - name: waits_for_hcaapi_then_reports_busy
+    basis: [IC-SGN-04]
+    processes: [ICCARD, HCAAPI]
+    given:
+      - { process: ICCARD, use: verified }
+      - { process: HCAAPI, run: card-gate.UseCardWithLogin, as: doctor, input: { pin: "1234", expectedCardNo: CARD-1 }, pause_at: card-gate.CardWork.run }
+        # [缺口 G-22] 對方行程要執行 HCAAPI 的程式，但這份規格屬於 iccard。範例借用 card-gate 的 use case 代表「對方有取鎖」
+    when: { process: ICCARD, run: SignPrescription, as: doctor, input: { prescription: "處方 1" }, advance: PT15S }
+    then:
+      result: REJECTED
+      code: CARD_IN_USE
+      never: [ICCARD:card-gate.CardModule.open]
+
+  - name: close_failure_still_returns_the_qr_code
+    basis: [IC-SGN-05]
+    given:
+      - use: verified
+      - { port: card-gate.CardModule.close, fails: { times: 4 } }
+    when: { run: SignPrescription, as: doctor, input: { prescription: "處方 1" } }
+    then:
+      result: SUCCESS
+      facets: { card-gate.resource: FAULTED }
+
+not_covered:
+  - item: 驗卡時 9039 的提示文字（兩種可能都要說明）
+    reason: 文字內容屬於 UI，待決 N
+  - item: 調劑端驗章、行動憑證簽章不取鎖
+    reason: 不在這兩支 use case；需要時另寫，斷言 never card-gate.CardLock.acquire

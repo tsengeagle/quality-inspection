@@ -1,0 +1,126 @@
+spec_version: 2
+kind: usecases
+aggregate: CardResource
+
+error_codes:
+  # [缺口 G-03] 分類 denied／not_found／invalid_input／conflict／rule_violation 是為 HTTP 業務錯誤設計的。
+  # 「裝置回錯誤碼」不屬於任何一類，這裡勉強放 rule_violation。
+  - { code: CARD_IN_USE,            category: conflict }
+  - { code: CARD_LOCK_UNAVAILABLE,  category: rule_violation }
+  - { code: CARD_MISMATCH,          category: rule_violation }
+  - { code: CARD_LOGIN_FAILED,      category: rule_violation }
+  - { code: CARD_DEVICE_ERROR,      category: rule_violation }
+  - { code: CARD_RESOURCE_FAULTED,  category: conflict }
+  - { code: CARD_WORK_FAILED,       category: rule_violation }
+
+guards:
+  # [缺口 G-04] specs/README.md 規則 5 規定順序「角色 → 載入 → 院區範圍 → 領域規則」（D-024），是本專案專屬的。
+  # 元件沒有角色與院區；harness-core 的格式不該寫死這個順序。
+  - id: CG-G-01
+    when: 本行程的卡片資源異常，而且先再試一次關閉模組仍失敗
+    outcome: { result: REJECTED, code: CARD_RESOURCE_FAULTED }
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 行為要點" }]
+  - id: CG-G-02
+    when: 鎖檔無法建立或開啟
+    outcome: { result: REJECTED, code: CARD_LOCK_UNAVAILABLE }
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.2" }]
+  - id: CG-G-03
+    when: 等待上限內等不到鎖
+    outcome: { result: REJECTED, code: CARD_IN_USE }
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.2" }]
+    note: "[缺口 G-05] 等待上限是設定值（iccard 15 秒、HCAAPI 約 6 秒，待決 A）。v2 沒有「範例設定參數」的寫法"
+
+usecases:
+  - name: UseCardWithLogin
+    kind: command
+    summary: 取鎖 → 開模組 → 比對卡號 → 登入 → 呼叫端的工作 → 關閉 → 放鎖（withLogin）
+    input:
+      - { name: pin,            type: text, required: true }
+      - { name: expectedCardNo, type: id,   required: false, note: null 表示不比對（第一次驗卡） }
+    guards: [CG-G-01, CG-G-02, CG-G-03]
+    rules:
+      - id: CG-LGN-01
+        when: 讀到的卡號與預期不符
+        outcome: { result: REJECTED, code: CARD_MISMATCH }
+        status: decided
+        source: [{ rule: CG-INV-03 }]
+      - id: CG-LGN-02
+        when: 登入回錯誤碼（9039、9041、9043 等）
+        outcome: { result: REJECTED, code: CARD_LOGIN_FAILED }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 LOGIN_FAILED" }]
+        note: "[缺口 G-06] 元件的例外帶 errorCode，呼叫端靠它分辨 9039 與 9043。Q-5 規定拒絕只有代碼，所以範例驗證不到元件有沒有把錯誤碼交出去，只能在呼叫端（iccard）的規格驗證"
+      - id: CG-LGN-03
+        when: 開模組或讀卡號回錯誤碼
+        outcome: { result: REJECTED, code: CARD_DEVICE_ERROR }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 DEVICE_ERROR" }]
+      - id: CG-LGN-04
+        when: 呼叫端的工作失敗
+        outcome: { result: REJECTED, code: CARD_WORK_FAILED }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 WORK_FAILED" }]
+      - id: CG-LGN-05
+        when: 工作已完成，但關閉模組重試後仍失敗
+        outcome: { result: SUCCESS, facets: { resource: FAULTED } }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3 清理結果的處理" }]
+    success:
+      state:
+        - { id: CG-LGN-S1, text: 回傳工作的結果, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8" }] }
+        - { id: CG-LGN-S2, text: 卡片資源回到空閒, status: decided, source: [{ rule: CG-INV-02 }] }
+
+  - name: UseCardWithoutLogin
+    kind: command
+    summary: 取鎖 → 開模組 → 工作 → 關閉 → 放鎖；不登入、不送 PIN（withModule，checkHCAAPI 用）
+    input: []
+    guards: [CG-G-01, CG-G-02, CG-G-03]
+    rules:
+      - id: CG-MOD-01
+        when: 任何情況
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 withModule" }]
+        note: 只為了讓範例能斷言「沒有呼叫登入」；結果的種類與 UseCardWithLogin 相同
+
+  - name: RecoverCardResource
+    kind: command
+    summary: 卡片資源異常時再試一次關閉模組（tryRecover）
+    input: []
+    guards: []
+    rules:
+      - id: CG-RCV-01
+        when: 關閉模組成功
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 tryRecover" }]
+      - id: CG-RCV-02
+        when: 關閉模組仍失敗
+        outcome: { result: SUCCESS, facets: { resource: FAULTED } }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 tryRecover" }]
+
+  - name: GetCardResourceStatus
+    kind: query
+    summary: 本行程的卡片資源狀態（面向 resource 的觀察者）
+    input: []
+    guards: []
+    output:
+      status: decided
+      source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 state()" }]
+      fields:
+        - { name: resource, type: enum CardResourceState }
+
+  - name: GetCardLockOwner
+    kind: query
+    summary: 目前的佔用者（.owner 檔）。Q-5：拒絕不帶佔用者，改用這支查詢觀察
+    input: []
+    guards: []
+    output:
+      status: decided
+      source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.2 診斷資訊" }]
+      fields:
+        - { name: owner, type: "text?" }

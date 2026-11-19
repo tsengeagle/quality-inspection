@@ -1,0 +1,88 @@
+# 試寫：白板 V10 第 02 頁「共用規則與卡片資源」，照格式 v2 草案（15-spec-format-v2-draft.md 第四節）。不是律法。
+# 對象是共用元件（設計文件 §6.8 的 HcaCardGate）。每個行程各自一份狀態，不持久化。
+# 依 Q-9，這份規格屬於 iccard 的 repo；HCAAPI 引用同一個 jar。
+spec_version: 2
+kind: aggregate
+name: CardResource
+term: 卡片資源
+note: 新增的狀態只有兩個，都在行程內、不持久化。鎖不是 aggregate，也不是 use case（白板 02 頁）
+
+enums:
+  - name: CardResourceState
+    values: [IDLE, IN_USE, FAULTED]
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 ResourceState" }]
+
+transitions:
+  - { id: CG-T-01, from: IDLE,    to: IN_USE,  by: UseCardWithLogin, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3" }] }
+  - { id: CG-T-02, from: IN_USE,  to: IDLE,    by: UseCardWithLogin, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3" }] }
+  - { id: CG-T-03, from: IN_USE,  to: FAULTED, by: UseCardWithLogin, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3 清理結果的處理" }] }
+  - { id: CG-T-04, from: FAULTED, to: IDLE,    by: RecoverCardResource, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 tryRecover" }] }
+  - { id: CG-T-05, from: FAULTED, to: IDLE,    by: UseCardWithLogin, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 行為要點：先自動 tryRecover 一次" }] }
+terminal_states: []
+
+# ---- v2 第 9 項：埠 ----
+ports:
+  - name: CardLock
+    term: 卡片鎖（跨行程的檔案鎖）
+    operations:
+      - { name: openLockFile }            # 鎖檔無法建立或開啟時失敗
+      - { name: acquire, waits: true }    # 輪詢到等待上限；受時鐘控制
+      - { name: release }
+  - name: CardLockOwner
+    term: 佔用者紀錄（.owner 檔，只供顯示）
+    operations:
+      - { name: write }
+      - { name: read, returns: text }
+  - name: CardModule
+    term: 卡片模組
+    operations:
+      - { name: open }
+      - { name: readCardNo, returns: id }
+      - { name: login }                   # 會送出 PIN
+      - { name: closeSession }
+      - { name: close }
+  - name: CardWork
+    term: 呼叫端交給元件的工作（回呼）
+    note: 元件不知道簽什麼、簽幾份；呼叫端的回呼在「已登入」的區段內執行。這裡把回呼也當成埠來腳本化
+    operations:
+      - { name: run, returns: text }
+
+# ---- v2 第 11 項：面向 ----
+facets:
+  - name: resource
+    term: 卡片資源狀態
+    values: [IDLE, IN_USE, FAULTED]        # [缺口 G-01] 與 CardResourceState 重複，沒有「取自列舉」的寫法
+    observed_by: GetCardResourceStatus
+
+invariants:
+  - id: CG-INV-01
+    text: 必須先取得鎖，才能開啟卡片模組
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.1 規則 1" }]
+  - id: CG-INV-02
+    text: 卡片模組確認關閉之後，才能釋放鎖
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.1 規則 2" }]
+  - id: CG-INV-03
+    text: 對方可能持卡時不送 PIN；取鎖後先讀卡號比對，不符也不送 PIN
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3" }]
+  - id: CG-INV-04
+    text: 任何卡片模組的錯誤碼都不自動重試；唯一的重試是關閉模組
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§10 已決議第 12 項" }]
+  - id: CG-INV-05
+    text: 關閉 Session 失敗、關閉模組成功時，不改變回給呼叫端的結果，照常放鎖
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3 清理結果的處理" }]
+    note: "[缺口 G-02] 這是「不論前面是哪一種結果」的修飾規則，無法寫成只有一個結果的規則，只能寫成不變量，由矩陣範例驗證"
+  - id: CG-INV-06
+    text: 失敗路徑上關閉模組也失敗時，照樣回報原本的結果，卡片資源同時進入異常
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.8 行為要點" }]
+    note: "[缺口 G-02] 同上"
+  - id: CG-INV-07
+    text: 卡片資源異常時持鎖不放，自己也拒絕用卡；不需要任何共享狀態
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3" }]

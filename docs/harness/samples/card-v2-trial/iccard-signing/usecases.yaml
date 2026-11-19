@@ -1,0 +1,98 @@
+spec_version: 2
+kind: usecases
+aggregate: PhysicalCardSigningContext
+
+error_codes:
+  - { code: SIGNING_NOT_SET,     category: conflict }
+  - { code: CARD_PIN_OR_BUSY,    category: rule_violation, note: 驗卡時的 9039：分不出 PIN 打錯還是卡片被佔用 }
+  - { code: CARD_POSSIBLY_BUSY,  category: rule_violation, note: 開處方時的 9039：PIN 已驗證過、卡號相符 }
+  - { code: CARD_LOCKED,         category: rule_violation, note: 9043 }
+  - { code: CARD_LOGIN_FAILED,   category: rule_violation }
+  - { code: CARD_MISMATCH,       category: rule_violation }
+  - { code: CARD_IN_USE,         category: conflict }
+  # [缺口 G-20] 這幾個代碼與 card-gate 重複定義。v1 規定 code 要定義在同一份 usecases.yaml，沒有共用代碼的寫法
+
+guards:
+  - id: IC-G-01
+    when: 沒有簽章情境，或已到期
+    outcome: { result: REJECTED, code: SIGNING_NOT_SET }
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4 簽章情境的期限" }]
+
+usecases:
+  - name: VerifyPhysicalCard
+    kind: command
+    summary: UC-I1 驗卡：一次持鎖取憑證序號與卡片資料，建立簽章情境
+    input:
+      - { name: pin, type: text, required: true }
+    guards: []
+    rules:
+      - id: IC-VER-01
+        when: 登入回 9039
+        outcome: { result: REJECTED, code: CARD_PIN_OR_BUSY }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4 驗卡時的 9039" }]
+      - id: IC-VER-02
+        when: 登入回 9041
+        outcome: { result: REJECTED, code: CARD_LOGIN_FAILED }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }]
+      - id: IC-VER-03
+        when: 登入回 9043
+        outcome: { result: REJECTED, code: CARD_LOCKED }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§10 已決議第 13 項" }]
+    success:
+      state:
+        - { id: IC-VER-S1, text: 簽章情境建立，記住 PIN、憑證序號與卡號, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§10 已決議第 10 項" }] }
+        - { id: IC-VER-S2, text: 取憑證序號與卡片資料只持鎖一次、開關一次, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }] }
+
+  - name: SignPrescription
+    kind: command
+    summary: UC-I2 開立處方簽章，產生 QR Code
+    input:
+      - { name: prescription, type: text, required: true }
+    guards: [IC-G-01]
+    rules:
+      - id: IC-SGN-01
+        when: 卡號與驗卡時不同
+        outcome: { result: REJECTED, code: CARD_MISMATCH }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4 卡號比對" }]
+        note: 簽章情境要不要撤銷，設計文件沒有寫（Q-01）
+      - id: IC-SGN-02
+        when: 登入回 9039，卡號相符
+        outcome: { result: REJECTED, code: CARD_POSSIBLY_BUSY }
+        status: decided
+        source: [{ rule: IC-INV-01 }]
+      - id: IC-SGN-03
+        when: 登入回 9043
+        outcome: { result: REJECTED, code: CARD_LOCKED }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§10 已決議第 13 項" }]
+      - id: IC-SGN-04
+        when: HCAAPI 正在用卡（對方有取鎖），等待上限內等不到
+        outcome: { result: REJECTED, code: CARD_IN_USE }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4 等不到鎖" }]
+      - id: IC-SGN-05
+        when: 簽章已取得，但關閉模組失敗
+        outcome: { result: SUCCESS, facets: { card-gate.resource: FAULTED } }   # [缺口 G-17] 跨 aggregate 的面向
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.3" }]
+    success:
+      state:
+        - { id: IC-SGN-S1, text: 回傳 QR Code（由簽章值產生）, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }] }
+
+  - name: GetSigningContext
+    kind: query
+    summary: 目前的簽章情境
+    input: []
+    guards: []
+    output:
+      status: decided
+      source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }]
+      fields:
+        - { name: state,      type: enum SigningContextState }
+        - { name: certSerial, type: "text?" }
+        - { name: cardNo,     type: "id?" }
