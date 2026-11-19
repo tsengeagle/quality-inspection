@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-20-d063-review-fixes",
+  "decision": "D-063",
+  "reason": "補上 #109 獨立審查的兩個修正。#109 在修正推上前一秒合併，main 只有已簽章的版本，修正沒有進去。spec_lint.py：寫了但值是 null 的欄位不再繞過型別檢查（任意值的欄位照樣可以是 null）；有轉移或 terminal_states 卻沒有 enums 時擋下，不再靜默略過；note 的型別錯誤改由欄位表報。harness-core 測試新增 3 個。D-063 條文第 2、5 點與 Relationship、specs/README.md 第八節同步。本機確認：現有兩份規格零問題；兩項修正各自拿掉時，新的測試變紅（5 個、1 個）。VERSION 0.6.0 → 0.6.1。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/README.md",
+    "harness-core/"
+  ]
+}

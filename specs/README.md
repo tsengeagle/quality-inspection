@@ -165,6 +165,7 @@ specs/
 - 任何一層對應表都可以有 `note`。它是自由文字，不參與判決。
 - 欄位表內建在 `harness-core/spec_lint.py` 的 `FILE_SCHEMAS`。本節是同一份內容，給人看；兩者不一致時以檢查程式為準（本文件開頭）。
 - 下表只管欄位與型別。必填、引用、規則的格式由第三、四節負責。
+- 沒寫的欄位不檢查；寫了但值是 null 是問題。只有標「任意值」的欄位可以是 null。
 - 標「待改寫」的四項照樣接受，在下一次規格格式的修法中改寫（D-063 第 3 點）。
 
 **寫法說明**：
@@ -244,4 +245,4 @@ use case：
 2. **引用完整性。**
    - `guard_exceptions[].guard` 必須是同一支 use case `guards` 裡的 id。
    - `transitions[].by` 必須是同目錄 `usecases.yaml` 的 use case；`from`、`to` 都要有。
-   - 轉移的狀態與 `terminal_states` 必須都是同一個列舉的值。
+   - 轉移的狀態與 `terminal_states` 必須都是同一個列舉的值；有轉移或 `terminal_states`，就必須有 `enums`。
