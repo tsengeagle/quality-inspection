@@ -1,0 +1,23 @@
+# Test profile: each Spring context gets its own empty in-memory database.
+# The local demo data seed (@Profile("local")) is not loaded.
+# D-045 (Flyway rollout, step 3): production is Oracle 19c+, so tests run H2 in Oracle compatibility
+# mode with the Oracle dialect, and Flyway (db/migration) builds the schema; Hibernate only validates it.
+# H2OracleCompatibleDialect generates the same SQL as Oracle12cDialect; it only skips the ALL_SEQUENCES
+# lookup H2 lacks and treats NUMERIC/DECIMAL as matching integer/boolean types during validation.
+# No DB_CLOSE_DELAY: each context's database closes with its connection pool instead of piling up.
+spring:
+  datasource:
+    url: jdbc:h2:mem:${random.uuid};MODE=Oracle
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: com.tzuchi.his.quality.inspection.infrastructure.persistence.H2OracleCompatibleDialect
+    hibernate:
+      ddl-auto: validate
+
+# HTTP contract trial (B-1, observation; docs/harness/13-http-contract-options.md): every Spring test context's
+# auto-configured MockMvc hands each response to the observer in acceptance/http/. Report only, never blocks.
+context:
+  initializer:
+    classes: com.tzuchi.his.quality.inspection.acceptance.http.HttpObservationInitializer

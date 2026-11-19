@@ -13,6 +13,12 @@ spring:
       ddl-auto: none
     show-sql: false
     open-in-view: false
+    properties:
+      # D-037: case updatedAt is a UTC instant in a TIMESTAMP column without a time zone. Hibernate 5
+      # converts JDBC timestamps with the JVM default zone unless told otherwise, so a node in
+      # Asia/Taipei would store 10:00Z as 18:00 and a UTC node would read it back as 18:00Z.
+      # LocalDateTime columns are converted the same way and round-trip unchanged on every node.
+      hibernate.jdbc.time_zone: UTC
 
 quality-inspection:
   hospital-id: ${QUALITY_INSPECTION_HOSPITAL_ID:}
@@ -23,8 +29,10 @@ spring:
   config:
     activate:
       on-profile: local
+  # D-045: production is Oracle 19c+. Locally H2 runs in Oracle compatibility mode with the Oracle
+  # dialect, and Flyway (db/migration) builds the schema; Hibernate does not create or alter tables.
   datasource:
-    url: jdbc:h2:mem:quality-inspection;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:quality-inspection;MODE=Oracle;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
     username: sa
     password:
@@ -33,8 +41,9 @@ spring:
       enabled: true
       path: /h2-console
   jpa:
+    database-platform: org.hibernate.dialect.Oracle12cDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
 
 # NOTE: In production, this service sits behind the organization existing API Gateway.
