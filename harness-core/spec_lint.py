@@ -143,9 +143,14 @@ SCALAR_TYPES = {"str": ("字串", lambda v: isinstance(v, str)),
 
 
 def schema_problems(node, schema, path):
-    """依欄位表檢查，回傳 (路徑, 訊息) 的清單。只檢查欄位與型別，必填與引用由其他檢查負責。"""
-    if schema == "any" or node is None:
+    """依欄位表檢查，回傳 (路徑, 訊息) 的清單。只檢查欄位與型別，必填與引用由其他檢查負責。
+
+    沒寫的欄位不檢查；寫了但值是 null，除了任意值的欄位，一律是問題（#109 review）。
+    """
+    if schema == "any":
         return []
+    if node is None:
+        return [(path, "不可以是 null：不需要就不要寫這個欄位")]
     if isinstance(schema, str):
         label, ok = SCALAR_TYPES[schema]
         return [] if ok(node) else [(path, "必須是%s，實際是 %r" % (label, node))]
@@ -179,8 +184,8 @@ def schema_problems(node, schema, path):
                for key in node if key not in inner and key != "note"]
     if unknown:
         out.append((path, "不認得的欄位 %s" % "、".join(unknown)))
-    if "note" in node and not isinstance(node["note"], str):
-        out.append((path + ".note", "必須是字串，實際是 %r" % (node["note"],)))
+    if "note" in node:
+        out += schema_problems(node["note"], "str", "%s.note" % path if path else "note")
     for key, value in node.items():
         if key in inner:
             out += schema_problems(value, inner[key], "%s.%s" % (path, key) if path else str(key))
@@ -484,8 +489,15 @@ class Aggregate:
                     self.error(where, "缺少 %s" % key)
         terminal = [s for s in items("terminal_states") if isinstance(s, str)]
         wanted = states | set(terminal)
-        # enums 本身不合法時（已報過），列舉的核對沒有意義，略過以免連帶報錯
-        if not wanted or not isinstance(doc.get("enums"), list):
+        if not wanted:
+            return
+        if "enums" not in doc:
+            # 沒寫 enums 時欄位表不會報，要在這裡報（#109 review）
+            self.error("model.yaml", "有轉移或 terminal_states，卻沒有 enums：狀態（%s）無法核對"
+                       % "、".join(sorted(wanted)))
+            return
+        # enums 寫了但不合法時（欄位表已報過），列舉的核對沒有意義，略過以免連帶報錯
+        if not isinstance(doc["enums"], list):
             return
         owners = sorted(name for name, values in enums.items() if wanted <= values)
         if not owners:

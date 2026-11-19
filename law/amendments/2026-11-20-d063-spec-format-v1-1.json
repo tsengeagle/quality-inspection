@@ -1,7 +1,7 @@
 {
   "id": "2026-11-20-d063-spec-format-v1-1",
   "decision": "D-063",
-  "reason": "依負責人 2026-11-20 對規格格式 v2 草案 Q-1、Q-2 的裁決（照現狀補完整的欄位表，另標待改寫；A 組直接套用 v1 的檔案），新增 D-063：規格格式 v1.1。spec_lint.py 加三項檢查：封閉結構（欄位表 FILE_SCHEMAS，任何一層可有 note）、分辨不了情境的範例（given 展開 fixture 後與 when 相同、then 不同就擋）、引用完整性（guard_exceptions、transitions 的 by／from／to、terminal_states）。specs/README.md 補第八節欄位表與第六節。harness-core 測試新增 22 個，並放入 10-spec-format.md 第五節的兩份試寫草稿當回歸樣本；既有一個測試的第二個 aggregate 補上轉移指向的 use case，以符合新的引用檢查。本機確認：現有兩份規格零問題；逐一拿掉三項檢查各有測試變紅。執行器不動。VERSION 0.5.0 → 0.6.0。",
+  "reason": "依負責人 2026-11-20 對規格格式 v2 草案 Q-1、Q-2 的裁決（照現狀補完整的欄位表，另標待改寫；A 組直接套用 v1 的檔案），新增 D-063：規格格式 v1.1。spec_lint.py 加三項檢查：封閉結構（欄位表 FILE_SCHEMAS，任何一層可有 note）、分辨不了情境的範例（given 展開 fixture 後與 when 相同、then 不同就擋）、引用完整性（guard_exceptions、transitions 的 by／from／to、terminal_states）。specs/README.md 補第八節欄位表與第六節。harness-core 測試新增 25 個，並放入 10-spec-format.md 第五節的兩份試寫草稿當回歸樣本；既有一個測試的第二個 aggregate 補上轉移指向的 use case，以符合新的引用檢查。#109 的獨立審查指出兩個漏洞並在同一個 PR 修正：寫了但值是 null 的欄位繞過型別檢查（任意值的欄位除外）；沒寫 enums 時狀態的核對被靜默略過。本機確認：現有兩份規格零問題；逐一拿掉三項檢查各有測試變紅。執行器不動。VERSION 0.5.0 → 0.6.0。",
   "drafted_by": "claude-code",
   "paths": [
     "docs/01-requirements/decision-log.md",

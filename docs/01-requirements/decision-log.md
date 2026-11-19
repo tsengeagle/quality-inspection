@@ -2363,6 +2363,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
    - `specs/README.md` 第八節為三種檔案補完整的欄位表，列出每一層允許的欄位與型別。
    - 欄位表照現有規格的寫法收錄：現有規格用到的欄位全部列入，不因收錄而改寫任何規格。
    - 表上沒有的欄位、型別不符的值都是問題，擋下。
+   - 沒寫的欄位不檢查；寫了但值是 null，也是問題。只有任意值的欄位（範例的輸入與預期輸出、屬性的 `initial`）可以是 null。
    - 任何一層都可以有 `note`。它是自由文字，不參與判決。
    - 欄位表內建在 `harness-core/spec_lint.py`，不讀專案的 README，以保持 `harness-core/` 可攜。README 的欄位表是給人看的同一份內容，由人工維持一致；不一致時以檢查程式為準。
 3. **收錄但待改寫的四項。** 這四項列入欄位表並標為「待改寫」。v1.1 照樣接受，在下一次規格格式的修法中改寫：
@@ -2380,7 +2381,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
    - `guard_exceptions[].guard`：必須是同一支 use case `guards` 裡的 id。
    - `transitions[].by`：必須是同目錄 `usecases.yaml` 的 use case。
    - `transitions[].from`、`to`：都要有。
-   - 轉移的狀態與 `terminal_states`：必須都是同一個列舉的值。
+   - 轉移的狀態與 `terminal_states`：必須都是同一個列舉的值。有轉移或 `terminal_states`，就必須有 `enums`。
    - `not_covered[].rules`：等第 3 點第 4 項改寫後才核對。
 6. **回歸樣本。** `docs/harness/10-spec-format.md` 第五節的兩份試寫草稿，放進 `harness-core/tests/fixtures/spec-format-trial/` 當測試資料：
    - 嚴格版：v1 判它零問題。v1.1 要以第 4 點擋下它的兩個空洞範例。
@@ -2402,6 +2403,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
   - 現有兩份規格在 v1.1 下零問題。
   - 嚴格版另外被抓出 4 個 v1 靜默接受的結構錯誤：`enums`、`input` 寫成對應表，`success` 寫成清單。
   - 逐一拿掉三項新檢查，各有測試變紅。
+  - #109 的獨立審查指出兩個漏洞，在同一個 PR 修正：值是 null 的欄位繞過型別檢查；沒寫 `enums` 時，狀態的核對被靜默略過。
 - **相關裁決**：本裁決是格式 v2 草案的 A 組。B 組（ReviewCase 需要的寫法）、C 組（外部資源協定）待 Q-3～Q-9 裁決後另立。
 
 ### Mapping
