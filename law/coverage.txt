@@ -45,7 +45,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/CurrentActor.java           grandfathered  HTTP 共用（未立法）
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/BadRequestException.java    grandfathered  HTTP 共用（未立法）
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/GlobalExceptionHandler.java legislated     specs/http-common.yaml
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewProjectController.java  grandfathered  ReviewProject 的 HTTP 介面（use case 已立法、HTTP 未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewProjectController.java  grandfathered  ReviewProject 的 HTTP 介面（回應由 HTTP 契約涵蓋，但列表與版本查詢不在契約內；請求端未立法，D-061 Q-3）
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ScoreSheetController.java   grandfathered  ScoreSheet 的 HTTP 介面（回應由 HTTP 契約涵蓋；請求端未立法，D-061 Q-3）
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewCaseController.java   grandfathered  ReviewCase 的 HTTP 介面（未立法）
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SubmissionController.java   grandfathered  ReviewCase 的 HTTP 介面（未立法）
@@ -60,3 +60,4 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ScoreSheetSectionsResponse.java   legislated  specs/score-sheet/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ScoreSheetSectionResponse.java    legislated  specs/score-sheet/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ScoreSheetItemResponse.java       legislated  specs/score-sheet/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReviewProjectResponse.java        legislated  specs/review-project/

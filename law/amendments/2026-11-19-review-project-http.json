@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-19-review-project-http",
+  "decision": "D-061",
+  "reason": "依 D-061 第 6 點與負責人 2026-11-19 的決定（先做 review-project 的 http.yaml；只寫 use case 已在規格內的 7 個端點，列表與版本查詢另立題目），新增 specs/review-project/http.yaml：CreateReviewProject、UpdateReviewProjectDraft、PublishReviewProjectVersion、ActivateReviewProject、DeactivateReviewProject、BindScoreSheetToProject、GetReviewProjectDetail。建立的回應依 api-spec §7.1 為 { projectId, status }（#99 已修正程式）；§7.2～7.4、§7.8 沒有寫回應的，採程式現況並在檔內註明。coverage.txt：ReviewProjectResponse 改為已立法；ReviewProjectController 仍暫准（列表、版本查詢與請求端不在契約內）。HttpContractFilesTest 的端點數改為 14。specs/README.md 第七節的表格更新。docs/harness/03 記錄 D-060 在真實 PR（#99）上的提醒。驗證：#99 合併前本機以草稿試跑，修正前 2 個問題、修正後 0；本次後端全套見 PR 說明；mutation：把建立的回應改回只有 projectId 時閘門擋下。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/",
+    "law/coverage.txt",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/"
+  ]
+}

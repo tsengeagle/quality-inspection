@@ -155,4 +155,4 @@ specs/
 | aggregate | `http.yaml` | 端點 |
 |---|---|---|
 | `ScoreSheetDefinition` | `specs/score-sheet/http.yaml` | 7 |
-| `ReviewProject` | 尚未撰寫（D-061 第 6 點） | — |
+| `ReviewProject` | `specs/review-project/http.yaml` | 7（列表與版本查詢的 use case 不在規格內，沒有寫進契約） |

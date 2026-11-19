@@ -1,0 +1,47 @@
+spec_version: 1
+kind: http
+aggregate: ReviewProject
+# ReviewProject 的 HTTP 契約（D-061 第 6 點）。本檔是律法（spec）。共用層在 specs/http-common.yaml，格式見 specs/README.md 第七節。
+# 每個端點屬於它呼叫的 use case 所在的規格目錄（本目錄的 usecases.yaml）。綁定評分表雖然操作評分表，use case 在這裡。
+# 錯誤代碼與分類讀同目錄的 usecases.yaml，列舉讀同目錄的 model.yaml。路徑以程式為準（D-058）。
+# 不在本檔的端點：GET /review-projects（列表）、GET /review-projects/{projectId}/version（版本查詢）。
+# 它們的 use case 不在 usecases.yaml，依 D-061 第 1 點不能寫進契約；負責人 2026-11-19 決定另立題目。
+endpoints:
+  - usecase: CreateReviewProject
+    method: POST
+    path: /review-projects
+    success: { status: 201, data: { projectId: id, status: enum ProjectStatus } }   # api-spec §7.1（#99 起程式照此回傳）
+  - usecase: UpdateReviewProjectDraft
+    method: PUT
+    path: /review-projects/{projectId}
+    success: { status: 200, data: 'null' }          # api-spec §7.2 沒有寫回應；採程式現況
+  - usecase: PublishReviewProjectVersion
+    method: POST
+    path: /review-projects/{projectId}/publish
+    success: { status: 200, data: 'null' }          # api-spec §7.5
+  - usecase: ActivateReviewProject
+    method: POST
+    path: /review-projects/{projectId}/activate
+    success: { status: 200, data: 'null' }
+  - usecase: DeactivateReviewProject
+    method: POST
+    path: /review-projects/{projectId}/deactivate
+    success: { status: 200, data: 'null' }
+  - usecase: BindScoreSheetToProject
+    method: POST
+    path: /review-projects/{projectId}/bind-score-sheet
+    success: { status: 200, data: 'null' }          # api-spec §7.6
+  - usecase: GetReviewProjectDetail
+    method: GET
+    path: /review-projects/{projectId}
+    success:                                        # api-spec §7.8 沒有寫回應；採程式現況
+      status: 200
+      data:
+        projectId: id
+        hospitalId: id
+        name: text
+        description: 'text?'
+        status: enum ProjectStatus
+        scoreSheetVersionId: 'id?'
+        currentVersionNumber: int
+        currentVersionPublished: boolean
