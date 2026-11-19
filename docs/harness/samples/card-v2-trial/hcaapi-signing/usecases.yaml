@@ -1,0 +1,102 @@
+spec_version: 2
+kind: usecases
+aggregate: HcaApiInitialization
+
+error_codes:
+  - { code: NOT_INITIALIZED,   category: conflict }
+  - { code: CARD_IN_USE,       category: conflict }
+  - { code: CARD_MISMATCH,     category: rule_violation }
+  - { code: CARD_LOGIN_FAILED, category: rule_violation }
+  - { code: CARD_LOCKED,       category: rule_violation }
+
+guards:
+  - id: HA-G-01
+    when: 沒有初始化狀態（沒做過 initialize、已 closeModule，或先前被清除）
+    outcome: { result: REJECTED, code: NOT_INITIALIZED }
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.6 階段 1" }]
+
+usecases:
+  - name: Initialize
+    kind: command
+    summary: UC-H1。用卡一次（讀卡號 → 登入 → 取公私鑰確認可用），之後不再握著 Session；鎖外查詢設定
+    input:
+      - { name: pin, type: text, required: true }
+    guards: []
+    rules:
+      - id: HA-INI-01
+        when: 用卡失敗、卡片使用中或無法協調
+        outcome: { result: REJECTED, code: CARD_LOGIN_FAILED }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5" }]
+        note: "[缺口 G-02] 白板寫「回三種結果之一，初始化狀態清除」。三種結果是不同的代碼，這條規則的重點是「清除」，又是修飾規則"
+    success:
+      state:
+        - { id: HA-INI-S1, text: 初始化狀態建立（使用者、PIN、卡號）, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5" }] }
+        - { id: HA-INI-S2, text: 設定在放鎖之後才查詢, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5 initialize" }] }
+
+  - name: MakeSignature
+    kind: command
+    summary: UC-H2 批次簽章。鎖內逐份 ①②③，鎖外逐份 ④ 到 ⑨
+    input:
+      - { name: sheets, type: list<id>, required: true }
+    guards: [HA-G-01]
+    rules:
+      - id: HA-SIG-01
+        when: 鎖內第 N 份簽章失敗
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.6 失敗時的處理" }]
+        note: "[缺口 G-08] 回應是「第 N 份起失敗」。Q-5 讓拒絕不帶資料，所以部分成功只能寫成 SUCCESS 加輸出，但 then 不能比對輸出"
+      - id: HA-SIG-02
+        when: 鎖外第 M 份保存失敗（在 ⑦ 之前）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.6 失敗時的處理" }]
+      - id: HA-SIG-03
+        when: 鎖內第 N 份的 ① 鎖定失敗
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.6" }]
+      - id: HA-SIG-04
+        when: 卡號與初始化狀態不符
+        outcome: { result: REJECTED, code: CARD_MISMATCH }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5 換卡保護" }]
+      - id: HA-SIG-05
+        when: 保存階段中止時，同一段內未保存的文件停在鎖定（L）
+        outcome: { result: SUCCESS }
+        status: proposed
+        question: Q-01
+      - id: HA-SIG-06
+        when: 每段 K 份，簽完一段、放鎖、保存一段，再取鎖簽下一段
+        outcome: { result: SUCCESS }
+        status: proposed
+        question: Q-02
+    success:
+      state:
+        - { id: HA-SIG-S1, text: 每份文件的工作清單標為已簽（⑦）, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.6" }] }
+
+  - name: CheckHcaApi
+    kind: command
+    summary: UC-H3 用卡一次但不登入；不再作廢初始化（待決 D）
+    input: []
+    guards: []
+    rules:
+      - id: HA-CHK-01
+        when: 已初始化時執行
+        outcome: { result: SUCCESS }
+        status: proposed
+        question: Q-03
+
+  - name: CloseModule
+    kind: command
+    summary: UC-H3 不碰卡；清除初始化狀態；資源異常時再試一次關閉
+    input: []
+    guards: []
+    rules:
+      - id: HA-CLS-01
+        when: 任何情況
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5 closeModule" }]

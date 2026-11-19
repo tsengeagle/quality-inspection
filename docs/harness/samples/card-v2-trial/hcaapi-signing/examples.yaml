@@ -1,0 +1,152 @@
+spec_version: 2
+kind: examples
+aggregate: HcaApiInitialization
+
+actors:
+  doctor: { program: HCAAPI-localserver, user: doctor-1 }    # [缺口 G-07]
+
+clock: { start: "2026-11-20T09:00:00+08:00" }
+
+fixtures:
+  card_1:
+    steps:
+      - { port: card-gate.CardModule.readCardNo, returns: CARD-1 }
+      - { port: SignRegistry.isEnabled, returns: true }
+  initialized:
+    steps:
+      - use: card_1
+      - { run: Initialize, as: doctor, input: { pin: "1234" } }
+
+examples:
+  # ---------- UC-H1 初始化 ----------
+  - name: initialize_does_not_keep_the_session
+    basis: [HA-INI-S1, HA-INI-S2, HA-T-01]
+    given: [{ use: card_1 }]
+    when: { run: Initialize, as: doctor, input: { pin: "1234" } }
+    then:
+      result: SUCCESS
+      calls_include:
+        card-gate.CardModule: [open, readCardNo, login, closeSession, close]   # 之後不再握著 Session
+      order:
+        - [card-gate.CardLock.release, SignSettings.load]                    # 設定在鎖外查詢
+
+  - name: initialize_failure_leaves_no_initialization
+    basis: [HA-INI-01]
+    given:
+      - use: card_1
+      - { port: card-gate.CardModule.login, fails: { times: 1, code: "9039" } }
+    when: { run: Initialize, as: doctor, input: { pin: "1234" } }
+    then: { result: REJECTED, code: CARD_LOGIN_FAILED }
+    observe:
+      # [缺口 G-23] HCAAPI 沒有查詢初始化狀態的指令。只能用下一個命令的結果觀察，但 observe 應該只跑查詢
+      - { run: MakeSignature, as: doctor, input: { sheets: [S-1] }, expect: { result: REJECTED, code: NOT_INITIALIZED } }
+
+  # ---------- UC-H2 批次簽章 ----------
+  - name: batch_signs_inside_the_lock_and_saves_outside
+    basis: [HA-SIG-S1, HA-INV-01]
+    given: [{ use: initialized }]
+    when: { run: MakeSignature, as: doctor, input: { sheets: [S-1, S-2, S-3] } }
+    then:
+      result: SUCCESS
+      calls:
+        card-gate.CardLock: [openLockFile, acquire, release]   # 整批只取一次鎖
+        Worklist: [markSigned, markSigned, markSigned]
+      calls_include:
+        card-gate.CardWork: [run]
+      order:
+        - [card-gate.CardLock.release, Timestamp.query]        # ④ 在鎖外
+        - [SignRegistry.lock, card-gate.CardModule.close]      # ① 在鎖內
+      # [缺口 G-25] order 只比「第一次出現」還是每一次？三份文件各有 ①④，order 的語意要定義
+
+  - name: not_initialized_never_touches_the_card
+    basis: [HA-G-01]
+    when: { run: MakeSignature, as: doctor, input: { sheets: [S-1] } }
+    then:
+      result: REJECTED
+      code: NOT_INITIALIZED
+      never: [card-gate.CardLock.acquire]
+
+  - name: nth_signature_failure_saves_the_earlier_ones
+    basis: [HA-SIG-01]
+    given:
+      - use: initialized
+      - { port: card-gate.CardWork.run, fails: { on_call: 2 } }   # [缺口 G-24] on_call 只出現在第五節的對照表，第四節沒有定義
+    when: { run: MakeSignature, as: doctor, input: { sheets: [S-1, S-2, S-3] } }
+    then:
+      result: SUCCESS
+      output: { failedFrom: 2 }     # [缺口 G-08]
+      calls:
+        Worklist: [markSigned]      # 只有第 1 份保存
+      calls_include:
+        card-gate.CardModule: [close]
+        card-gate.CardLock: [release]
+
+  - name: mth_save_failure_discards_the_rest
+    basis: [HA-SIG-02]
+    given:
+      - use: initialized
+      - { port: FileServer.upload, fails: { on_call: 2 } }       # [缺口 G-24]
+    when: { run: MakeSignature, as: doctor, input: { sheets: [S-1, S-2, S-3] } }
+    then:
+      result: SUCCESS
+      output: { failedFrom: 2 }     # [缺口 G-08]
+      calls:
+        Worklist: [markSigned]
+      never: [SignRegistry.complete]   # 第 2 份起沒有到 ⑨。[缺口 G-25] 第 1 份有 ⑨，never 對整個埠的操作就錯了；要能指定第幾次
+
+  - name: registry_lock_failure_stops_like_a_signature_failure
+    basis: [HA-SIG-03]
+    given:
+      - use: initialized
+      - { port: SignRegistry.lock, fails: { on_call: 2 } }
+    when: { run: MakeSignature, as: doctor, input: { sheets: [S-1, S-2] } }
+    then:
+      result: SUCCESS
+      output: { failedFrom: 2 }     # [缺口 G-08]
+      calls: { Worklist: [markSigned] }
+      calls_include: { card-gate.CardModule: [close], card-gate.CardLock: [release] }
+
+  - name: registry_switch_off_has_no_l_or_c
+    basis: [HA-SIG-S1]
+    given:
+      - use: initialized
+      - { port: SignRegistry.isEnabled, returns: false }
+    when: { run: MakeSignature, as: doctor, input: { sheets: [S-1, S-2] } }
+    then:
+      result: SUCCESS
+      never: [SignRegistry.lock, SignRegistry.complete]
+      calls: { Worklist: [markSigned, markSigned] }
+
+  - name: card_swapped_after_initialize
+    basis: [HA-SIG-04, HA-T-03]
+    given:
+      - use: initialized
+      - { port: card-gate.CardModule.readCardNo, returns: CARD-2 }
+    when: { run: MakeSignature, as: doctor, input: { sheets: [S-1] } }
+    then:
+      result: REJECTED
+      code: CARD_MISMATCH
+      never: [card-gate.CardModule.login, Worklist.markSigned]
+
+  # ---------- UC-H3 其他指令 ----------
+  - name: close_module_clears_initialization
+    basis: [HA-CLS-01, HA-T-02]
+    given: [{ use: initialized }]
+    when: { run: CloseModule, as: doctor, input: {} }
+    then:
+      result: SUCCESS
+      never: [card-gate.CardModule.open]
+    observe:
+      - { run: MakeSignature, as: doctor, input: { sheets: [S-1] }, expect: { result: REJECTED, code: NOT_INITIALIZED } }   # [缺口 G-23]
+
+not_covered:
+  - item: callAPI 整體序列化（HA-INV-03）
+    reason: "[缺口 G-26] 第 12 項的 processes 是不同行程；同一個行程內兩條連線同時送指令，沒有寫法"
+  - item: 步驟 ⑦ 之後失敗（⑧ PDF 搬移、⑨ 登記完成）留下的不一致
+    reason: 既有行為，本設計不修（§6.6）
+  - item: 記憶體與持鎖時間、分段大小 K 的上限
+    reason: 量測（T6），不屬於規格
+  - item: updateCardinfo、specialUpdateCardinfo
+    reason: 待決 E
+  - item: 前端 socket 的逾時（待決 O）
+    reason: 前端的行為，不在 HCAAPI

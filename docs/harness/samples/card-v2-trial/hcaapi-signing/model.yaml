@@ -1,0 +1,64 @@
+# 試寫：白板 V10 第 04 頁「HCAAPI 的 use case」。不是律法。實際應放在 HCAAPI 的 repo。
+spec_version: 2
+kind: aggregate
+name: HcaApiInitialization
+term: HCAAPI 的初始化狀態
+note: 行程內的不可變物件（使用者、PIN、卡號），只會整個替換或整個清除；不寫入資料庫
+
+enums:
+  - name: InitializationState
+    values: [NOT_INITIALIZED, INITIALIZED]
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5 初始化狀態" }]
+
+transitions:
+  - { id: HA-T-01, from: NOT_INITIALIZED, to: INITIALIZED,     by: Initialize,   status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5" }] }
+  - { id: HA-T-02, from: INITIALIZED,     to: NOT_INITIALIZED, by: CloseModule,  status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5" }] }
+  - { id: HA-T-03, from: INITIALIZED,     to: NOT_INITIALIZED, by: MakeSignature, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5" }], note: 卡號不符或登入回 PIN 類錯誤 }
+terminal_states: []
+
+uses_ports_from: [card-gate]      # [缺口 G-17] 跨 repo
+
+ports:
+  - name: SignSettings
+    term: 簽章設定（時戳位址、儲存裝置、簽章憑證）
+    operations:
+      - { name: load }
+  - name: SignRegistry
+    term: 簽章登記（emr_general_sheet_sign_status）
+    operations:
+      - { name: isEnabled, returns: boolean }      # 代碼表開關（待決 M）
+      - { name: lock }                             # ① 鎖定 L
+      - { name: complete }                         # ⑨ 完成 C
+  - name: SheetSource
+    term: 待簽文件
+    operations:
+      - { name: read, returns: text }              # ②
+  - name: Timestamp
+    term: 時戳服務
+    operations:
+      - { name: query }                            # ④
+  - name: FileServer
+    term: 檔案伺服器
+    operations:
+      - { name: upload }                           # ⑤
+      - { name: exists, returns: boolean }         # ⑥
+      - { name: movePdf }                          # ⑧
+  - name: Worklist
+    term: 工作清單（emr_general_sheet_worklist）
+    operations:
+      - { name: markSigned }                       # ⑦ 成功點
+
+invariants:
+  - id: HA-INV-01
+    text: 批次簽章在鎖內只做 ①②③，④ 到 ⑨ 在放鎖之後
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.6 兩階段化之後的一致性規則" }]
+  - id: HA-INV-02
+    text: 一份文件在 ⑦ 之後即為已簽，不應重簽
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.6" }]
+  - id: HA-INV-03
+    text: callAPI 整體序列化；鎖的順序是 callAPI 鎖 → 卡片鎖
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.5" }]

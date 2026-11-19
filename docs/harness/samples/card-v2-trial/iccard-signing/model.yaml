@@ -1,0 +1,37 @@
+# 試寫：白板 V10 第 03 頁「iccard 的 use case」。不是律法。
+spec_version: 2
+kind: aggregate
+name: PhysicalCardSigningContext
+term: 實體卡簽章情境
+note: 既有：行程內記住 PIN 與憑證序號，到期即撤銷（SigningContextManager）。本設計加記卡號（已決議 F）。不持久化
+
+enums:
+  - name: SigningContextState
+    values: [NOT_SET, ACTIVE]
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }]
+
+attributes:
+  - { name: certSerial, type: text, required: true, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }] }
+  - { name: cardNo,     type: id,   required: true, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§10 已決議第 10 項" }] }
+
+transitions:
+  - { id: IC-T-01, from: NOT_SET, to: ACTIVE,  by: VerifyPhysicalCard, status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }] }
+  - { id: IC-T-02, from: ACTIVE,  to: NOT_SET, by: SignPrescription,   status: decided, source: [{ doc: docs/hca-card-mutex-design.md, section: "§10 已決議第 11 項" }], note: 9039、9043 時撤銷 }
+  # [缺口 G-19] 到期撤銷是時間造成的轉移，沒有對應的 use case（by 必須是 use case）。這裡不寫，改在範例用 advance 驗證
+terminal_states: []
+
+# [缺口 G-17] 卡片模組與卡片鎖的埠宣告在 card-gate。v2 第 9 項沒說能不能引用其他 aggregate 的埠；
+# 而 HCAAPI 的規格在另一個 repo，要引用就得跨 repo。這裡假設可以用「aggregate.埠」引用：
+uses_ports_from: [card-gate]
+
+invariants:
+  - id: IC-INV-01
+    text: 開處方時的登入回 9039、卡號也相符，就撤銷簽章情境並清除 PIN，不再自動送 PIN
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§10 已決議第 11 項" }]
+  - id: IC-INV-02
+    text: 簽章之後產生 QR Code，這一段不碰卡，在放鎖之後執行
+    status: decided
+    source: [{ doc: docs/hca-card-mutex-design.md, section: "§6.4" }]
+    note: "[缺口 G-18] QR Code 是 iccard 內部的計算，不是埠，所以「放鎖之後」無法用 order 斷言"
