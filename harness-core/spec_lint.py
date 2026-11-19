@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""spec_lint.py — 規格格式的檢查程式（格式 v1，含 D-063 的 v1.1 檢查；見 specs/README.md）。
+"""spec_lint.py — 規格格式的檢查程式（格式 v1，含 D-063 的 v1.1、D-064 的 v1.2；見 specs/README.md）。
 
 逐一檢查 <specs 目錄>/<aggregate>/ 底下的 model.yaml、usecases.yaml、examples.yaml。
 判決是確定性的：只讀檔案，不執行任何規格裡的內容。
@@ -8,6 +8,12 @@ v1.1（D-063）多了三項：
     封閉結構：每一層只允許欄位表（FILE_SCHEMAS）列出的欄位，型別也要相符；任何一層都可以有 note。
     分辨不了情境的範例：given（展開 fixture 後）與 when 相同、then 卻不同。
     引用完整性：guard_exceptions、transitions 的 by／from／to、terminal_states。
+
+v1.2（D-064）：格式裡屬於專案的部分讀 <specs 目錄>/spec-profile.yaml，不寫死在這裡。
+    actor_fields、usecase_actor_fields：操作者允許的欄位。
+    error_categories：錯誤分類允許的值。
+    guard_order：guard 順序的說明，只給人看，不檢查順序。
+    檔案不存在或缺少任何一項，判為無法評估，不使用預設值。
 
 用法：
     python3 spec_lint.py [--repo .] [--specs specs] [--manifest law/manifest.txt]
@@ -36,7 +42,7 @@ except ImportError:      # pragma: no cover
 SPEC_VERSION = 1
 KINDS = {"model.yaml": "aggregate", "usecases.yaml": "usecases", "examples.yaml": "examples"}
 RESULTS = {"SUCCESS", "REJECTED"}
-CATEGORIES = {"denied", "not_found", "invalid_input", "conflict", "rule_violation"}
+PROFILE_NAME = "spec-profile.yaml"
 ID_PATTERN = re.compile(r"^[A-Z]{2,}-[A-Z0-9]+-[A-Z0-9]+$")
 SOURCE_KINDS = {"decision", "design_decision", "doc", "example", "scenario", "rule"}
 DEFAULT_MANIFEST = "law/manifest.txt"
@@ -99,7 +105,7 @@ OUTCOME = _map({"result": "str", "code": "str", "no_change": "bool"})
 INPUT_FIELD = _ruled({"name": "str", "type": "str", "required": "bool"})
 USECASE = _map({
     "name": "str", "kind": ("enum", USECASE_KINDS), "summary": "str",
-    "actor": _map({"roles": _list("str")}),
+    "actor": ("profile", "usecase_actor_fields"),                 # 欄位來自設定檔（D-064）
     "input": _list(INPUT_FIELD),
     "input_note": "str",                                          # input_note（待改寫）
     "guards": _list("str"),
@@ -128,7 +134,7 @@ OBSERVE_STEP = _map(dict(STEP_FIELDS, expect=_map({"result": ("enum", RESULTS), 
                                                      "output": ("named", "any")})))
 EXAMPLES_SCHEMA = _map({
     "spec_version": "int", "kind": "str", "aggregate": "str",
-    "actors": ("named", _map({"user": "str", "roles": _list("str"), "hospital": "str"})),
+    "actors": ("named", ("profile", "actor_fields")),              # 欄位來自設定檔（D-064）
     "fixtures": ("named", _map({"steps": _list(STEP), "needs": _list("str")})),
     "examples": _list(_map({
         "name": "str", "basis": _list("str"), "derived_from": _list("str"), "needs": _list("str"),
@@ -137,6 +143,70 @@ EXAMPLES_SCHEMA = _map({
     "not_covered": _list(_map({"rules": _list("str"), "item": "str", "reason": "str"})),
 })
 FILE_SCHEMAS = {"model.yaml": MODEL_SCHEMA, "usecases.yaml": USECASES_SCHEMA, "examples.yaml": EXAMPLES_SCHEMA}
+
+# ---------- 專案設定檔（D-064）----------
+#
+# 操作者的欄位只能用這兩種型別；與欄位表的詞彙相同。
+PROFILE_FIELD_TYPES = {"str": "str", "str_list": _list("str")}
+PROFILE_SCHEMA = _map({
+    "kind": "str", "profile_version": "int",
+    "actor_fields": ("named", ("enum", set(PROFILE_FIELD_TYPES))),
+    "usecase_actor_fields": ("named", ("enum", set(PROFILE_FIELD_TYPES))),
+    "error_categories": _list("str"),
+    "guard_order": _map({"text": "str", "source": _list(_map({"decision": "str"}))}),
+})
+PROFILE_REQUIRED = ("actor_fields", "usecase_actor_fields", "error_categories", "guard_order")
+
+
+def resolve_profile(node, profile):
+    """把欄位表裡的 ("profile", 項目) 換成設定檔決定的封閉對應表。"""
+    if isinstance(node, str):
+        return node
+    kind, inner = node
+    if kind == "profile":
+        return _map({field: PROFILE_FIELD_TYPES[t] for field, t in profile[inner].items()})
+    if kind in ("list", "named"):
+        return (kind, resolve_profile(inner, profile))
+    if kind == "map":
+        return (kind, {key: resolve_profile(value, profile) for key, value in inner.items()})
+    return node
+
+
+def load_profile(specs_dir, decision_log_text):
+    path = os.path.join(specs_dir, PROFILE_NAME)
+    if not os.path.isfile(path):
+        raise NotEvaluated("找不到 %s；格式裡屬於專案的部分（操作者、錯誤分類）沒有定義，不使用預設值（D-064）" % PROFILE_NAME)
+    try:
+        doc = yaml.safe_load(read(path))
+    except yaml.YAMLError as error:
+        raise NotEvaluated("%s 讀不進來：%s" % (PROFILE_NAME, str(error).splitlines()[0]))
+    if not isinstance(doc, dict):
+        raise NotEvaluated("%s 的最上層必須是對應表" % PROFILE_NAME)
+    problems = ["%s %s" % (where or "最上層", message) for where, message in schema_problems(doc, PROFILE_SCHEMA, "")]
+    if doc.get("kind") != "spec-profile":
+        problems.append("kind 必須是 spec-profile，實際是 %r" % (doc.get("kind"),))
+    if doc.get("profile_version") != 1:
+        problems.append("profile_version 必須是 1，實際是 %r" % (doc.get("profile_version"),))
+    for key in PROFILE_REQUIRED:
+        if key not in doc:
+            problems.append("缺少 %s" % key)
+    for key in ("actor_fields", "usecase_actor_fields", "error_categories"):
+        if key in doc and not doc[key]:
+            problems.append("%s 不可以是空的" % key)
+    categories = doc.get("error_categories")
+    if isinstance(categories, list) and len(set(map(str, categories))) != len(categories):
+        problems.append("error_categories 有重複的值")
+    guard_order = doc.get("guard_order")
+    if isinstance(guard_order, dict):
+        if not isinstance(guard_order.get("text"), str) or not guard_order["text"]:
+            problems.append("guard_order 必須有 text")
+        for item in guard_order.get("source") or []:
+            key = item.get("decision") if isinstance(item, dict) else None
+            if isinstance(key, str) and not heading_exists(decision_log_text, key):
+                problems.append("guard_order 的出處 %s 不在決策紀錄裡" % key)
+    if problems:
+        raise NotEvaluated("%s 不合法：%s" % (PROFILE_NAME, "；".join(problems)))
+    return doc
 SCALAR_TYPES = {"str": ("字串", lambda v: isinstance(v, str)),
                 "int": ("整數", lambda v: isinstance(v, int) and not isinstance(v, bool)),
                 "bool": ("布林", lambda v: isinstance(v, bool))}
@@ -270,6 +340,9 @@ class Context:
                     self.forbidden.append(re.compile(line, re.IGNORECASE))
                 except re.error as error:
                     raise NotEvaluated("forbidden-vocabulary.txt 第 %d 行不是合法的正規表示式：%s" % (number, error))
+        self.profile = load_profile(specs_dir, self.decision_log)
+        self.categories = set(self.profile["error_categories"])
+        self.schemas = {name: resolve_profile(schema, self.profile) for name, schema in FILE_SCHEMAS.items()}
 
 
 class Aggregate:
@@ -327,7 +400,7 @@ class Aggregate:
                 self.error(name, "spec_version 必須是 %d，實際是 %r" % (SPEC_VERSION, doc.get("spec_version")))
             if doc.get("kind") != kind:
                 self.error(name, "kind 必須是 %s，實際是 %r" % (kind, doc.get("kind")))
-            for where, message in schema_problems(doc, FILE_SCHEMAS[name], ""):
+            for where, message in schema_problems(doc, self.ctx.schemas[name], ""):
                 self.error("%s %s" % (name, where or "最上層"), message)
             self.docs[name] = doc
         questions = os.path.join(self.path, "OPEN-QUESTIONS.md")
@@ -429,9 +502,9 @@ class Aggregate:
             if not isinstance(entry, dict) or not isinstance(entry.get("code"), str) or not entry["code"]:
                 self.error("usecases.yaml error_codes", "每一項必須有字串的 code")
                 continue
-            if entry.get("category") not in CATEGORIES:
+            if entry.get("category") not in self.ctx.categories:
                 self.error("usecases.yaml error_codes %s" % entry["code"],
-                           "category 必須是 %s 其中一種" % "、".join(sorted(CATEGORIES)))
+                           "category 必須是 %s 其中一種（%s）" % ("、".join(sorted(self.ctx.categories)), PROFILE_NAME))
             self.error_codes.add(entry["code"])
         for guard in self.as_list("usecases.yaml guards", doc.get("guards")):
             if isinstance(guard, dict) and isinstance(guard.get("id"), str):
@@ -683,7 +756,7 @@ def lint(repo, specs_dir_rel, report_only, manifest_rel=DEFAULT_MANIFEST, design
         report.append("%s（%s）：規則 %d 條，問題 %d 個" % (agg.label, mode, len(agg.rules), len(agg.errors)))
         report.extend("  [問題] %s" % e for e in agg.errors)
         report.extend("  [列出] %s" % n for n in agg.notes)
-    header = ["規格檢查（格式 v%d，含 v1.1 的檢查）" % SPEC_VERSION,
+    header = ["規格檢查（格式 v%d，含 v1.1、v1.2 的檢查）" % SPEC_VERSION,
               "評估的 aggregate：%d 個要擋下、%d 個只列出" % (strict_count, len(aggregates) - strict_count)]
     if not strict_count:
         header.append("注意：%s 底下還沒有任何 aggregate，擋下的檢查沒有評估到任何東西" % specs_dir_rel)

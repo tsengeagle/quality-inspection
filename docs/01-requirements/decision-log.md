@@ -2411,3 +2411,59 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `specs/README.md` 第六、八節
 - `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`、`harness-core/tests/fixtures/spec-format-trial/`
 - 後續：第 3 點的四項改寫；格式 v2.0（B 組）、v2.1（C 組）另立裁決
+
+## D-064 — 規格格式 v1.2：專案設定檔，harness-core 不再寫死本專案的操作者、錯誤分類與 guard 順序
+
+### Status
+
+`accepted`（2026-11-20，依負責人對格式 v2 草案第十二節三點的裁決：設定檔用 `specs/spec-profile.yaml`；沒有設定檔不給預設值；不核對 `status_by_category`）
+
+### Decision
+
+1. **專案設定檔。**
+   - 新增 `specs/spec-profile.yaml`，寫下規格格式裡屬於專案的部分。`spec_lint` 從規格目錄讀它，與 `forbidden-vocabulary.txt` 相同。
+   - 這個檔案在 `specs/` 底下，依律法清冊屬於規格類，修改要修法紀錄。
+   - 檔案不存在、讀不進來、缺少下面任何一項或內容不合法，`spec_lint` 判為無法評估，不使用預設值。預設值會讓本專案的假設以另一種形式留在 `harness-core/`。
+   - 設定檔本身也是封閉結構：`kind: spec-profile`、`profile_version: 1`，加上第 2～4 點的四項。
+2. **操作者的欄位（G-07）。**
+   - `actor_fields`：`examples.yaml` 的 `actors` 每一項允許的欄位與型別。
+   - `usecase_actor_fields`：`usecases.yaml` 的 `actor` 允許的欄位與型別。
+   - 型別只有 `str`（字串）、`str_list`（字串清單）兩種；兩項都不可以是空的。
+   - 欄位表的其他部分不變，仍然封閉：設定檔沒列的欄位照樣擋下。
+   - 本專案照現狀：`actor_fields` 是 `user`、`roles`（字串清單）、`hospital`；`usecase_actor_fields` 是 `roles`（字串清單）。
+3. **錯誤分類（G-03）。**
+   - `error_categories`：`error_codes[].category` 允許的值，不可以是空的，不可重複。
+   - 本專案照現狀列五種：`denied`、`not_found`、`invalid_input`、`conflict`、`rule_violation`。
+   - `specs/README.md` 規則 7 改寫成「`category` 只能是設定檔列出的值」；「分類對應 HTTP 狀態碼」的說明移到第七節（HTTP 契約）。
+   - 不核對 `http-common.yaml` 的 `status_by_category` 是否涵蓋每一種分類：那是 D-061 的範圍。
+4. **guard 的順序（G-04）。**
+   - `specs/README.md` 規則 5 改寫成「`guards` 的順序就是檢查的順序」，順序的依據改由設定檔的 `guard_order` 引用，不再寫死 D-024。
+   - `guard_order` 有 `text`（必填）與 `source`（`decision` 的清單）。`source` 的裁決必須存在於決策紀錄。
+   - `spec_lint` 不檢查順序，與現狀相同；`guard_order` 只給人看。本專案寫「角色 → 載入 → 院區範圍 → 領域規則」，出處 D-024。
+5. **不變的部分。**
+   - 規格檔仍寫 `spec_version: 1`，現有規格一個字都不改。
+   - 執行器（`acceptance/`）不動：它本來就是本專案的程式，依本專案的操作者建立使用者；它只讀含 `examples.yaml` 的目錄，不受新檔案影響。
+   - 範例的語法、引用完整性、分辨不了情境的範例，都與 D-063 相同。
+6. **驗證。**
+   - 現有規格在 v1.2 下維持零問題。
+   - 另一個專案的設定檔（操作者 `program`、`user`，分類含 `device_error`）接受自己的寫法，並擋下它沒列的欄位與分類；本專案的設定檔仍然擋下 `program`。
+   - 拿掉設定檔、拿掉其中任何一項、或內容不合法，判為無法評估。
+   - `harness-core/VERSION` 升為 0.7.0。
+7. **順序。** 一個修法 PR：`decision-log.md`、`specs/README.md`、`specs/spec-profile.yaml`、`harness-core/spec_lint.py` 與它的測試、`harness-core/VERSION`、修法紀錄。不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：`docs/harness/15-spec-format-v2-draft.md` 第十一節的缺口二。依 Q-9，卡片規格放在 iccard 的 repo 並安裝 `harness-core/`；G-07 不改，iccard 寫 `program` 就被擋。
+- **起草時多查到的一處**：use case 的 `actor` 也寫死只能有 `roles`，一併納入第 2 點。
+- **前例**：D-063 第 2 點要求欄位表內建在 `harness-core/` 以保持可攜。本裁決把欄位表裡屬於專案的部分移出來，其餘照舊內建。決策紀錄的位置讀律法清冊的 `@decision-log`、禁用詞彙讀 `specs/forbidden-vocabulary.txt`，都是同樣的做法。
+- **實作時的驗證**（2026-11-20）：
+  - 現有兩份規格零問題。
+  - harness-core 測試 147 個全部通過（需要 PyYAML）。
+  - 把錯誤分類改回寫死、或把操作者欄位改回寫死，新的測試各有 2 個變紅。
+- **相關裁決**：D-024（guard 順序，內容不變，改由設定檔引用）、D-061（`status_by_category`）、D-063（欄位表）。
+
+### Mapping
+
+- `specs/spec-profile.yaml`、`specs/README.md` 第二、三、六、七、八、九節
+- `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`、`harness-core/VERSION`
+- 後續：缺口一的語法（v2.1 前補進格式 v2 草案第四節）；格式 v2.0、v2.1
