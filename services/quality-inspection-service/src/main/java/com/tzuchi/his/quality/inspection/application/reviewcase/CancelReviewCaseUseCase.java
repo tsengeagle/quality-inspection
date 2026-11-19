@@ -9,6 +9,8 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseCancelledEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
@@ -16,11 +18,14 @@ public class CancelReviewCaseUseCase {
 
     private final ReviewCaseRepository repository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public CancelReviewCaseUseCase(ReviewCaseRepository repository,
-                                    DomainEventPublisher eventPublisher) {
+                                    DomainEventPublisher eventPublisher,
+                                    Clock clock) {
         this.repository = repository;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     public void execute(ActorContext actor, String caseId, String reason) {
@@ -32,7 +37,7 @@ public class CancelReviewCaseUseCase {
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
 
-        reviewCase.cancel(reason);
+        reviewCase.cancel(reason, LocalDateTime.now(clock));
         repository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseCancelledEvent(

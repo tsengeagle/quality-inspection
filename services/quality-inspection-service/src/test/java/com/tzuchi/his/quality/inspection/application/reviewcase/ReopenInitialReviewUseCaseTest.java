@@ -102,7 +102,7 @@ class ReopenInitialReviewUseCaseTest {
     @Test
     void execute_notReturned_shouldThrow() {
         ReviewCase rc = ReviewCase.createFromSampling("c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", DUE);
+        rc.assignReviewer("reviewer-1", DUE, LocalDateTime.now());
         repository.save(rc); // PENDING_INITIAL_REVIEW
 
         assertThrows(DomainStateConflictException.class,

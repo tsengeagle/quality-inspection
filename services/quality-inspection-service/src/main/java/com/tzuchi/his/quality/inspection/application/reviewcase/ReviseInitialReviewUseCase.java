@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
@@ -35,17 +37,20 @@ public class ReviseInitialReviewUseCase {
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
+    private final Clock clock;
 
     public ReviseInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                        ReviewSubmissionRepository submissionRepository,
                                        ScoreSheetRepository scoreSheetRepository,
                                        DomainEventPublisher eventPublisher,
-                                       ScoreCalculationService scoreCalculationService) {
+                                       ScoreCalculationService scoreCalculationService,
+                                       Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
+        this.clock = clock;
     }
 
     public RevisionResult execute(ActorContext actor, String caseId, String submissionId,
@@ -103,12 +108,13 @@ public class ReviseInitialReviewUseCase {
 
         // Create new revision
         String newSubmissionId = UUID.randomUUID().toString();
+        LocalDateTime now = LocalDateTime.now(clock);
         ReviewSubmission newSubmission = ReviewSubmission.createRevision(
                 newSubmissionId, oldSubmission, result.getScoredAnswers(),
-                result.getTotalScore(), comment);
+                result.getTotalScore(), comment, now);
 
         // Mark old as superseded
-        oldSubmission.markSuperseded(newSubmissionId);
+        oldSubmission.markSuperseded(newSubmissionId, now);
 
         // Update case's final score (no status change)
         reviewCase.recordInitialReviewRevision(submissionId, newSubmissionId, result.getTotalScore());

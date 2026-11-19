@@ -143,35 +143,38 @@ public class ReviewCase {
 
     // --- B3a Domain Methods ---
 
-    public void assignReviewer(String reviewerId, LocalDateTime dueAt) {
+    public void assignReviewer(String reviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
         if (this.status != CaseStatus.SELECTED_PENDING_ASSIGNMENT) {
             throw new DomainStateConflictException("CASE_NOT_PENDING_ASSIGNMENT",
                     "Cannot assign reviewer: case status is " + this.status);
         }
         Objects.requireNonNull(reviewerId, "reviewerId must not be null");
-        this.reviewerAssignment = new ReviewerAssignment(reviewerId, LocalDateTime.now());
+        Objects.requireNonNull(assignedAt, "assignedAt must not be null");
+        this.reviewerAssignment = new ReviewerAssignment(reviewerId, assignedAt);
         this.dueAt = dueAt;
         this.status = CaseStatus.PENDING_INITIAL_REVIEW;
     }
 
-    public void reassignReviewer(String newReviewerId, LocalDateTime dueAt) {
+    public void reassignReviewer(String newReviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
         if (this.status != CaseStatus.PENDING_INITIAL_REVIEW) {
             throw new DomainStateConflictException("CASE_NOT_PENDING_INITIAL_REVIEW",
                     "Cannot reassign reviewer: case status is " + this.status);
         }
         Objects.requireNonNull(newReviewerId, "newReviewerId must not be null");
-        this.reviewerAssignment = new ReviewerAssignment(newReviewerId, LocalDateTime.now());
+        Objects.requireNonNull(assignedAt, "assignedAt must not be null");
+        this.reviewerAssignment = new ReviewerAssignment(newReviewerId, assignedAt);
         this.dueAt = dueAt;
     }
 
-    public void cancel(String reason) {
+    public void cancel(String reason, LocalDateTime cancelledAt) {
         if (this.status == CaseStatus.CLOSED || this.status == CaseStatus.CANCELLED) {
             throw new DomainStateConflictException("CASE_TERMINAL",
                     "Cannot cancel: case is in terminal status " + this.status);
         }
         Objects.requireNonNull(reason, "cancel reason must not be null");
+        Objects.requireNonNull(cancelledAt, "cancelledAt must not be null");
         this.cancelReason = reason;
-        this.cancelledAt = LocalDateTime.now();
+        this.cancelledAt = cancelledAt;
         this.status = CaseStatus.CANCELLED;
     }
 
@@ -273,14 +276,15 @@ public class ReviewCase {
 
     // --- B4 Domain Methods ---
 
-    public void closeWithoutRereview() {
+    public void closeWithoutRereview(LocalDateTime closedAt) {
         if (this.status != CaseStatus.INITIAL_REVIEW_COMPLETED) {
             throw new DomainStateConflictException("CASE_NOT_INITIAL_REVIEW_COMPLETED",
                     "Can only close-without-rereview from INITIAL_REVIEW_COMPLETED. Current: " + this.status);
         }
         requireInitialReviewFixed();
+        Objects.requireNonNull(closedAt, "closedAt must not be null");
         this.finalScore = this.initialReviewScore;
-        this.closedAt = LocalDateTime.now();
+        this.closedAt = closedAt;
         this.status = CaseStatus.CLOSED;
     }
 
@@ -293,7 +297,7 @@ public class ReviewCase {
         this.status = CaseStatus.PENDING_REREVIEW;
     }
 
-    public void assignRereviewer(String rereviewerId, LocalDateTime dueAt) {
+    public void assignRereviewer(String rereviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
         if (this.status != CaseStatus.PENDING_REREVIEW) {
             throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
                     "Can only assign rereviewer in PENDING_REREVIEW. Current: " + this.status);
@@ -304,11 +308,12 @@ public class ReviewCase {
             throw new DomainRuleViolationException("REREVIEWER_SAME_AS_REVIEWER",
                     "Re-reviewer must not be the same person as the initial reviewer (D-017)");
         }
-        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, LocalDateTime.now());
+        Objects.requireNonNull(assignedAt, "assignedAt must not be null");
+        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, assignedAt);
         this.rereviewerDueAt = dueAt;
     }
 
-    public void reassignRereviewer(String rereviewerId, LocalDateTime dueAt) {
+    public void reassignRereviewer(String rereviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
         if (this.status != CaseStatus.PENDING_REREVIEW) {
             throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
                     "Can only reassign rereviewer in PENDING_REREVIEW. Current: " + this.status);
@@ -319,7 +324,8 @@ public class ReviewCase {
             throw new DomainRuleViolationException("REREVIEWER_SAME_AS_REVIEWER",
                     "Re-reviewer must not be the same person as the initial reviewer (D-017)");
         }
-        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, LocalDateTime.now());
+        Objects.requireNonNull(assignedAt, "assignedAt must not be null");
+        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, assignedAt);
         this.rereviewerDueAt = dueAt;
     }
 

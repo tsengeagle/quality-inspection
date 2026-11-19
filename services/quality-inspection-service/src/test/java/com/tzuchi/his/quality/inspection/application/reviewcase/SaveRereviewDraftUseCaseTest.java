@@ -21,6 +21,7 @@ import java.util.EnumSet;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.time.Clock;
 
 class SaveRereviewDraftUseCaseTest {
 
@@ -32,7 +33,7 @@ class SaveRereviewDraftUseCaseTest {
     void setUp() {
         caseRepository = new InMemoryReviewCaseRepository();
         submissionRepository = new InMemoryReviewSubmissionRepository();
-        useCase = new SaveRereviewDraftUseCase(caseRepository, submissionRepository);
+        useCase = new SaveRereviewDraftUseCase(caseRepository, submissionRepository, Clock.systemDefaultZone());
     }
 
     private ActorContext rereviewerActor() {
@@ -43,18 +44,18 @@ class SaveRereviewDraftUseCaseTest {
     private void seedCaseAndDraft() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
         rc.startInitialReview("sub-init", "ss-1");
         rc.completeInitialReview(new BigDecimal("90"));
         // D-054：先固定初審，才依品質線判斷流向。
         rc.fixInitialReview(rc.getLatestInitialSubmissionId(), "reviewer-1",
                 java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("90"), new BigDecimal("80"));
-        rc.assignRereviewer("rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59));
+        rc.assignRereviewer("rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59), LocalDateTime.now());
         rc.startRereview("rereviewer-1");
         rc.setLatestRereviewSubmissionId("sub-r1");
         caseRepository.save(rc);
 
-        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1");
+        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", LocalDateTime.now());
         submissionRepository.save(draft);
     }
 

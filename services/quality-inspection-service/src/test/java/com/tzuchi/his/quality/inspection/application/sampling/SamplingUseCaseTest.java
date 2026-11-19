@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import com.tzuchi.his.quality.inspection.application.common.Page;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.time.Clock;
 
 class SamplingUseCaseTest {
 
@@ -51,8 +52,8 @@ class SamplingUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
 
         previewUseCase = new PreviewSamplingPopulationUseCase(projectRepo, candidateSource);
-        executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher);
-        retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher);
+        executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher, Clock.systemDefaultZone());
+        retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher, Clock.systemDefaultZone());
         executeContextUseCase = new GetSamplingExecuteContextUseCase(projectRepo, new InMemoryBatchQueryPort());
 
         hospitalManagerActor = new ActorContext("u-test", "Test", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
@@ -115,8 +116,8 @@ class SamplingUseCaseTest {
         projectRepo.save(project);
 
         SamplingBatch failedBatch = SamplingBatch.start("failed-b", "p1",
-                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null));
-        failedBatch.fail("test failure");
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
+        failedBatch.fail("test failure", Instant.now());
         batchRepo.save(failedBatch);
 
         candidateSource.setCandidates(List.of(
@@ -143,12 +144,12 @@ class SamplingUseCaseTest {
         projectRepo.save(project);
 
         SamplingBatch completedBatch = SamplingBatch.start("done-b", "p1",
-                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null));
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
         completedBatch.recordCandidateCount(1, 1, 0);
         completedBatch.selectCases(List.of(
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
-        completedBatch.complete();
+        completedBatch.complete(Instant.now());
         batchRepo.save(completedBatch);
 
         assertThrows(DomainRuleViolationException.class, () -> retryUseCase.execute(hospitalManagerActor, "done-b"));
@@ -170,8 +171,8 @@ class SamplingUseCaseTest {
 
         RuleSnapshot originalSnapshot = new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "original-policy", null);
         SamplingBatch failedBatch = SamplingBatch.start("failed-b2", "p1",
-                ExecutionMode.MANUAL, originalSnapshot);
-        failedBatch.fail("test failure");
+                ExecutionMode.MANUAL, originalSnapshot, Instant.now());
+        failedBatch.fail("test failure", Instant.now());
         batchRepo.save(failedBatch);
 
         candidateSource.setCandidates(List.of());
@@ -238,8 +239,8 @@ class SamplingUseCaseTest {
         projectRepo.save(project);
 
         SamplingBatch failedBatch = SamplingBatch.start("failed-ev", "p1",
-                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null));
-        failedBatch.fail("test failure");
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
+        failedBatch.fail("test failure", Instant.now());
         batchRepo.save(failedBatch);
 
         candidateSource.setCandidates(List.of(

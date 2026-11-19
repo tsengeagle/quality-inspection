@@ -33,7 +33,7 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void saveAndFindById_draftSubmission_shouldRoundTrip() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-1");
+                "sub-1", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
 
         repository.save(sub);
 
@@ -54,12 +54,12 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void saveAndFindById_withAnswerSet_shouldPreserveJsonRoundTrip() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-2", "c1", "reviewer-1", "ss-1");
+                "sub-2", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
         List<AnswerItem> answers = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
         );
-        sub.updateDraft(answers, new BigDecimal("17.5"), "draft comment");
+        sub.updateDraft(answers, new BigDecimal("17.5"), "draft comment", LocalDateTime.now());
 
         repository.save(sub);
 
@@ -76,9 +76,9 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void saveAndFindById_submittedSubmission_shouldPreserveStatus() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-3", "c1", "reviewer-1", "ss-1");
-        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null);
-        sub.submit();
+                "sub-3", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
+        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+        sub.submit(LocalDateTime.now());
 
         repository.save(sub);
 
@@ -90,9 +90,9 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void findByCaseIdAndStage_shouldReturnMatchingSubmissions() {
         ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
-                "sub-a", "c1", "reviewer-1", "ss-1");
+                "sub-a", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
         ReviewSubmission sub2 = ReviewSubmission.createInitialDraft(
-                "sub-b", "c1", "reviewer-1", "ss-1");
+                "sub-b", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
         repository.save(sub1);
         repository.save(sub2);
 
@@ -103,7 +103,7 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void findLatestByCaseIdAndStage_shouldReturnHighestRevisionNo() {
         ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
-                "sub-first", "c1", "reviewer-1", "ss-1");
+                "sub-first", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
         repository.save(sub1);
 
         // Seed a second submission with higher revisionNo directly via JPA

@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.Clock;
+import java.time.Instant;
 
 /**
  * Retry a failed sampling batch.
@@ -33,17 +35,20 @@ public class RetrySamplingBatchUseCase {
     private final ReviewCaseRepository caseRepository;
     private final CandidateSourcePort candidateSource;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public RetrySamplingBatchUseCase(ReviewProjectRepository projectRepository,
                                      SamplingBatchRepository batchRepository,
                                      ReviewCaseRepository caseRepository,
                                      CandidateSourcePort candidateSource,
-                                     DomainEventPublisher eventPublisher) {
+                                     DomainEventPublisher eventPublisher,
+                                     Clock clock) {
         this.projectRepository = projectRepository;
         this.batchRepository = batchRepository;
         this.caseRepository = caseRepository;
         this.candidateSource = candidateSource;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     public String execute(ActorContext actor, String previousBatchId) {
@@ -70,7 +75,7 @@ public class RetrySamplingBatchUseCase {
         RuleSnapshot snapshot = previousBatch.getRuleSnapshot();
 
         String newBatchId = UUID.randomUUID().toString();
-        SamplingBatch newBatch = SamplingBatch.start(newBatchId, projectId, ExecutionMode.RETRY, snapshot);
+        SamplingBatch newBatch = SamplingBatch.start(newBatchId, projectId, ExecutionMode.RETRY, snapshot, Instant.now(clock));
         newBatch.markRetryOf(previousBatchId);
 
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
@@ -83,7 +88,7 @@ public class RetrySamplingBatchUseCase {
 
         newBatch.recordCandidateCount(populationCount, eligibleCount, excludedCount);
         newBatch.selectCases(candidates);
-        newBatch.complete();
+        newBatch.complete(Instant.now(clock));
 
         // Persist state before publishing events — listeners may query the batch
         batchRepository.save(newBatch);

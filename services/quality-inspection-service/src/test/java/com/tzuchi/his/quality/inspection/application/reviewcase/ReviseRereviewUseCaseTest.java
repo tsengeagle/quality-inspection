@@ -28,6 +28,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.time.Clock;
 
 class ReviseRereviewUseCaseTest {
     private InMemoryReviewCaseRepository caseRepo;
@@ -52,7 +53,7 @@ class ReviseRereviewUseCaseTest {
         scoreSheetRepo = new InMemoryScoreSheetRepository();
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
-        useCase = new ReviseRereviewUseCase(caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService);
+        useCase = new ReviseRereviewUseCase(caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone());
     }
 
     private ActorContext rereviewerActor() {
@@ -82,25 +83,25 @@ class ReviseRereviewUseCaseTest {
     private void seedInProgressCaseWithSubmittedRereview() {
         // Submitted but not closed: D-032 permits revision only before terminal state.
         ReviewCase rc = ReviewCase.createFromSampling(CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
         rc.startInitialReview("sub-init", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         rc.completeInitialReview(new BigDecimal("90"));
         // D-054：先固定初審，才依品質線判斷流向。 → PENDING_REREVIEW
         rc.fixInitialReview(rc.getLatestInitialSubmissionId(), "reviewer-1",
                 java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("90"), new BigDecimal("80"));
-        rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.of(2026, 6, 30, 23, 59));
+        rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.of(2026, 6, 30, 23, 59), LocalDateTime.now());
         rc.startRereview(REREVIEWER_ID); // → REREVIEW_IN_PROGRESS
         rc.updateFinalScoreForRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
         rc.setLatestRereviewSubmissionId(OLD_SUBMISSION_ID);
         caseRepo.save(rc);
 
         // Seed the submitted rereview submission (old submission that will be revised)
-        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID);
+        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID, LocalDateTime.now());
         List<AnswerItem> oldAnswers = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "10", new BigDecimal("5.0")));
-        sub.updateDraft(oldAnswers, new BigDecimal("15.0"), "original comment");
-        sub.submit(); // → SUBMITTED
+        sub.updateDraft(oldAnswers, new BigDecimal("15.0"), "original comment", LocalDateTime.now());
+        sub.submit(LocalDateTime.now()); // → SUBMITTED
         submissionRepo.save(sub);
     }
 
@@ -229,22 +230,22 @@ class ReviseRereviewUseCaseTest {
             submissionRepo.save(target);
         }
         if (scenario.equals("draft")) {
-            target = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID);
+            target = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID, LocalDateTime.now());
             submissionRepo.save(target);
         }
-        if (scenario.equals("submitted")) target.submit();
+        if (scenario.equals("submitted")) target.submit(LocalDateTime.now());
         if (scenario.equals("superseded")) {
-            if (target.getStatus() == SubmissionStatus.DRAFT) target.submit();
-            target.markSuperseded("newer-submission");
+            if (target.getStatus() == SubmissionStatus.DRAFT) target.submit(LocalDateTime.now());
+            target.markSuperseded("newer-submission", LocalDateTime.now());
         }
         if (scenario.equals("stale")) {
-            ReviewSubmission newer = ReviewSubmission.createRereviewDraft("newer-submission", CASE_ID, REREVIEWER_ID);
+            ReviewSubmission newer = ReviewSubmission.createRereviewDraft("newer-submission", CASE_ID, REREVIEWER_ID, LocalDateTime.now());
             submissionRepo.save(newer);
             reviewCase.setLatestRereviewSubmissionId(newer.getSubmissionId());
         }
         if (scenario.equals("missingPointer")) reviewCase.setLatestRereviewSubmissionId(null);
         if (scenario.equals("closed")) { reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5")); reviewCase.closeAfterRereview(LocalDateTime.now()); }
-        if (scenario.equals("cancelled")) reviewCase.cancel("cancelled");
+        if (scenario.equals("cancelled")) reviewCase.cancel("cancelled", LocalDateTime.now());
         caseRepo.save(reviewCase);
         List<Object> beforeCase = caseState(reviewCase);
         Map<String, List<Object>> beforeSubmissions = submissionState();

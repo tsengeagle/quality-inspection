@@ -26,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
@@ -36,17 +38,20 @@ public class SubmitInitialReviewUseCase {
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
+    private final Clock clock;
 
     public SubmitInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                        ReviewSubmissionRepository submissionRepository,
                                        ScoreSheetRepository scoreSheetRepository,
                                        DomainEventPublisher eventPublisher,
-                                       ScoreCalculationService scoreCalculationService) {
+                                       ScoreCalculationService scoreCalculationService,
+                                       Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
+        this.clock = clock;
     }
 
     public SubmitInitialReviewResult execute(ActorContext actor, String caseId) {
@@ -125,8 +130,9 @@ public class SubmitInitialReviewUseCase {
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Update with final scores, then submit
-        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), submission.getComment());
-        submission.submit();
+        LocalDateTime now = LocalDateTime.now(clock);
+        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), submission.getComment(), now);
+        submission.submit(now);
         submissionRepository.save(submission);
 
         // D-031, D-054: submitting does not decide on rereview; the case waits for the initial review to be fixed.

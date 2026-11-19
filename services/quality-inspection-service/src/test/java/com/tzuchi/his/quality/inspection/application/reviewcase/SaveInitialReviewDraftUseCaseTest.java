@@ -27,6 +27,8 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 class SaveInitialReviewDraftUseCaseTest {
 
@@ -50,7 +52,7 @@ class SaveInitialReviewDraftUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new SaveInitialReviewDraftUseCase(
-                submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, caseRepo);
+                submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, caseRepo, Clock.systemDefaultZone());
     }
 
     private ActorContext reviewer() {
@@ -73,7 +75,7 @@ class SaveInitialReviewDraftUseCaseTest {
 
     private ReviewSubmission seedDraftSubmission() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
         submissionRepo.save(sub);
         return sub;
     }
@@ -81,7 +83,7 @@ class SaveInitialReviewDraftUseCaseTest {
     private ReviewCase seedReviewCase() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", "p1", HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer(REVIEWER_ID, java.time.LocalDateTime.now());
+        rc.assignReviewer(REVIEWER_ID, java.time.LocalDateTime.now(), LocalDateTime.now());
         rc.startInitialReview(SUBMISSION_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
         return rc;
@@ -166,9 +168,9 @@ class SaveInitialReviewDraftUseCaseTest {
         seedPublishedScoreSheet();
         seedReviewCase();
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null);
-        sub.submit();
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
+        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+        sub.submit(LocalDateTime.now());
         submissionRepo.save(sub);
 
         assertThrows(DomainStateConflictException.class,
@@ -253,17 +255,17 @@ class SaveInitialReviewDraftUseCaseTest {
         seedPublishedScoreSheet();
         ReviewCase rc = seedReviewCase();
         ReviewSubmission old = seedDraftSubmission();
-        old.updateDraft(Collections.emptyList(), new BigDecimal("7"), "historical");
+        old.updateDraft(Collections.emptyList(), new BigDecimal("7"), "historical", LocalDateTime.now());
         rc.returnToInitialReview("return");
         rc.reopenInitialReview();
         rc.startInitialReview("sub-2", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
-        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
+        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
         submissionRepo.save(current);
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
         SaveInitialReviewDraftUseCase saving = new SaveInitialReviewDraftUseCase(
-                selected, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), caseRepo);
+                selected, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), caseRepo, Clock.systemDefaultZone());
         assertEquals(1, old.getRevisionNo());
         assertEquals(1, current.getRevisionNo());
         SaveDraftResult result = saving.execute(reviewer(), CASE_ID,

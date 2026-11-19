@@ -42,7 +42,7 @@ public class ReviewSubmission {
      */
     public static ReviewSubmission createInitialDraft(
             String submissionId, String caseId, String reviewerId,
-            String scoreSheetVersionId) {
+            String scoreSheetVersionId, LocalDateTime createdAt) {
         Objects.requireNonNull(submissionId, "submissionId must not be null");
         Objects.requireNonNull(caseId, "caseId must not be null");
         Objects.requireNonNull(reviewerId, "reviewerId must not be null");
@@ -58,7 +58,7 @@ public class ReviewSubmission {
         sub.answerSet = new ArrayList<>();
         sub.totalScore = BigDecimal.ZERO;
         sub.basedOnScoreSheetVersionId = scoreSheetVersionId;
-        sub.createdAt = LocalDateTime.now();
+        sub.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
         sub.updatedAt = sub.createdAt;
         return sub;
     }
@@ -67,7 +67,8 @@ public class ReviewSubmission {
      * Create a rereview draft submission.
      * Called by StartRereviewUseCase.
      */
-    public static ReviewSubmission createRereviewDraft(String submissionId, String caseId, String reviewerId) {
+    public static ReviewSubmission createRereviewDraft(String submissionId, String caseId, String reviewerId,
+                                                       LocalDateTime createdAt) {
         ReviewSubmission s = new ReviewSubmission();
         s.submissionId = submissionId;
         s.caseId = caseId;
@@ -76,8 +77,8 @@ public class ReviewSubmission {
         s.status = SubmissionStatus.DRAFT;
         s.revisionNo = 1;
         s.answerSet = new ArrayList<>();
-        s.createdAt = LocalDateTime.now();
-        s.updatedAt = LocalDateTime.now();
+        s.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
+        s.updatedAt = createdAt;
         return s;
     }
 
@@ -115,24 +116,26 @@ public class ReviewSubmission {
     /**
      * Update draft answers and score. Can be called multiple times while in DRAFT.
      */
-    public void updateDraft(List<AnswerItem> scoredAnswers, BigDecimal totalScore, String comment) {
+    public void updateDraft(List<AnswerItem> scoredAnswers, BigDecimal totalScore, String comment,
+                            LocalDateTime updatedAt) {
         requireDraft();
         Objects.requireNonNull(scoredAnswers, "scoredAnswers must not be null");
         Objects.requireNonNull(totalScore, "totalScore must not be null");
         this.answerSet = new ArrayList<>(scoredAnswers);
         this.totalScore = totalScore;
         this.comment = comment;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt must not be null");
     }
 
     /**
      * Submit this draft. Transitions DRAFT → SUBMITTED. Irreversible.
      */
-    public void submit() {
+    public void submit(LocalDateTime submittedAt) {
         requireDraft();
+        Objects.requireNonNull(submittedAt, "submittedAt must not be null");
         this.status = SubmissionStatus.SUBMITTED;
-        this.submittedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.submittedAt = submittedAt;
+        this.updatedAt = submittedAt;
     }
 
     /**
@@ -144,7 +147,9 @@ public class ReviewSubmission {
             ReviewSubmission oldSubmission,
             List<AnswerItem> scoredAnswers,
             BigDecimal totalScore,
-            String comment) {
+            String comment,
+            LocalDateTime submittedAt) {
+        Objects.requireNonNull(submittedAt, "submittedAt must not be null");
         Objects.requireNonNull(newSubmissionId, "newSubmissionId must not be null");
         Objects.requireNonNull(oldSubmission, "oldSubmission must not be null");
         Objects.requireNonNull(scoredAnswers, "scoredAnswers must not be null");
@@ -165,9 +170,9 @@ public class ReviewSubmission {
         rev.answerSet = new ArrayList<>(scoredAnswers);
         rev.totalScore = totalScore;
         rev.comment = comment;
-        rev.submittedAt = LocalDateTime.now();
+        rev.submittedAt = submittedAt;
         rev.basedOnScoreSheetVersionId = oldSubmission.basedOnScoreSheetVersionId;
-        rev.createdAt = LocalDateTime.now();
+        rev.createdAt = submittedAt;
         rev.updatedAt = rev.createdAt;
         return rev;
     }
@@ -176,7 +181,7 @@ public class ReviewSubmission {
      * Mark this submission as SUPERSEDED by a newer revision.
      * Only SUBMITTED submissions can be superseded.
      */
-    public void markSuperseded(String newSubmissionId) {
+    public void markSuperseded(String newSubmissionId, LocalDateTime updatedAt) {
         if (this.status != SubmissionStatus.SUBMITTED) {
             throw new DomainStateConflictException("SUBMISSION_NOT_SUBMITTED",
                     "Can only supersede a SUBMITTED submission. Current: " + this.status);
@@ -184,7 +189,7 @@ public class ReviewSubmission {
         Objects.requireNonNull(newSubmissionId, "newSubmissionId must not be null");
         this.supersededBySubmissionId = newSubmissionId;
         this.status = SubmissionStatus.SUPERSEDED;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = Objects.requireNonNull(updatedAt, "updatedAt must not be null");
     }
 
     private void requireDraft() {

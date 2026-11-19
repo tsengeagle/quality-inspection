@@ -21,7 +21,7 @@ class ReviewCaseTest {
 
     private ReviewCase createPendingInitialReview() {
         ReviewCase rc = createPendingAssignment();
-        rc.assignReviewer("reviewer-1", DUE);
+        rc.assignReviewer("reviewer-1", DUE, LocalDateTime.now());
         return rc;
     }
 
@@ -54,7 +54,7 @@ class ReviewCaseTest {
     void assignReviewer_fromSelectedPending_shouldSucceed() {
         ReviewCase rc = createPendingAssignment();
 
-        rc.assignReviewer("reviewer-1", DUE);
+        rc.assignReviewer("reviewer-1", DUE, LocalDateTime.now());
 
         assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, rc.getStatus());
         assertNotNull(rc.getReviewerAssignment());
@@ -67,7 +67,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingInitialReview(); // already PENDING_INITIAL_REVIEW
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.assignReviewer("reviewer-2", DUE));
+                () -> rc.assignReviewer("reviewer-2", DUE, LocalDateTime.now()));
     }
 
     @Test
@@ -75,7 +75,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingAssignment();
 
         assertThrows(NullPointerException.class,
-                () -> rc.assignReviewer(null, DUE));
+                () -> rc.assignReviewer(null, DUE, LocalDateTime.now()));
     }
 
     // --- reassignReviewer ---
@@ -85,7 +85,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingInitialReview();
         LocalDateTime newDue = DUE.plusDays(7);
 
-        rc.reassignReviewer("reviewer-2", newDue);
+        rc.reassignReviewer("reviewer-2", newDue, LocalDateTime.now());
 
         assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, rc.getStatus());
         assertEquals("reviewer-2", rc.getReviewerAssignment().getReviewerId());
@@ -97,7 +97,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingAssignment(); // SELECTED_PENDING_ASSIGNMENT
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.reassignReviewer("reviewer-2", DUE));
+                () -> rc.reassignReviewer("reviewer-2", DUE, LocalDateTime.now()));
     }
 
     // --- cancel ---
@@ -106,7 +106,7 @@ class ReviewCaseTest {
     void cancel_fromSelectedPending_shouldSucceed() {
         ReviewCase rc = createPendingAssignment();
 
-        rc.cancel("project cancelled");
+        rc.cancel("project cancelled", LocalDateTime.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
         assertEquals("project cancelled", rc.getCancelReason());
@@ -117,7 +117,7 @@ class ReviewCaseTest {
     void cancel_fromPendingInitialReview_shouldSucceed() {
         ReviewCase rc = createPendingInitialReview();
 
-        rc.cancel("reviewer unavailable");
+        rc.cancel("reviewer unavailable", LocalDateTime.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
     }
@@ -126,7 +126,7 @@ class ReviewCaseTest {
     void cancel_fromInProgress_shouldSucceed() {
         ReviewCase rc = createInProgress();
 
-        rc.cancel("duplicate case");
+        rc.cancel("duplicate case", LocalDateTime.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
     }
@@ -135,7 +135,7 @@ class ReviewCaseTest {
     void cancel_fromReturned_shouldSucceed() {
         ReviewCase rc = createReturned();
 
-        rc.cancel("no longer needed");
+        rc.cancel("no longer needed", LocalDateTime.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
     }
@@ -146,16 +146,16 @@ class ReviewCaseTest {
         rc.forceStatus(CaseStatus.CLOSED);
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.cancel("too late"));
+                () -> rc.cancel("too late", LocalDateTime.now()));
     }
 
     @Test
     void cancel_fromCancelled_shouldThrow() {
         ReviewCase rc = createPendingAssignment();
-        rc.cancel("first cancel");
+        rc.cancel("first cancel", LocalDateTime.now());
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.cancel("second cancel"));
+                () -> rc.cancel("second cancel", LocalDateTime.now()));
     }
 
     // --- returnToInitialReview ---

@@ -22,17 +22,22 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 public class SaveRereviewDraftUseCase {
 
     private final ReviewCaseRepository caseRepository;
     private final ReviewSubmissionRepository submissionRepository;
+    private final Clock clock;
 
     public SaveRereviewDraftUseCase(ReviewCaseRepository caseRepository,
-                                     ReviewSubmissionRepository submissionRepository) {
+                                     ReviewSubmissionRepository submissionRepository,
+                                     Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
+        this.clock = clock;
     }
 
     @Transactional
@@ -81,7 +86,7 @@ public class SaveRereviewDraftUseCase {
             throw new DomainStateConflictException("NO_CHANGES", "Draft content is unchanged");
         }
 
-        submission.updateDraft(answers, totalScore, cmd.getComment());
+        submission.updateDraft(answers, totalScore, cmd.getComment(), LocalDateTime.now(clock));
         submissionRepository.save(submission);
         return new SaveDraftResult(
                 submission.getSubmissionId(),

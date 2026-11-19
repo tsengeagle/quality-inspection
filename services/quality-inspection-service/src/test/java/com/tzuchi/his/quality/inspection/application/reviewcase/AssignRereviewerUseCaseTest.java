@@ -46,7 +46,7 @@ class AssignRereviewerUseCaseTest {
     private ReviewCase seedPendingRereviewCase() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
         rc.startInitialReview("sub-1", "ss-1");
         rc.completeInitialReview(new BigDecimal("90"));
         // D-054：先固定初審，才依品質線判斷流向。

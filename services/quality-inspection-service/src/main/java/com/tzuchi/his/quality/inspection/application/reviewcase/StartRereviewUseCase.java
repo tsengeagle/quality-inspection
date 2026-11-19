@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 public class StartRereviewUseCase {
@@ -21,13 +23,16 @@ public class StartRereviewUseCase {
     private final ReviewCaseRepository caseRepository;
     private final ReviewSubmissionRepository submissionRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public StartRereviewUseCase(ReviewCaseRepository caseRepository,
                                  ReviewSubmissionRepository submissionRepository,
-                                 DomainEventPublisher eventPublisher) {
+                                 DomainEventPublisher eventPublisher,
+                                 Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     @Transactional
@@ -39,7 +44,7 @@ public class StartRereviewUseCase {
         // Domain method validates actor is the assigned rereviewer
         reviewCase.startRereview(actor.getUserId());
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(
-                UUID.randomUUID().toString(), cmd.getCaseId(), actor.getUserId());
+                UUID.randomUUID().toString(), cmd.getCaseId(), actor.getUserId(), LocalDateTime.now(clock));
         submissionRepository.save(rereviewDraft);
         reviewCase.setLatestRereviewSubmissionId(rereviewDraft.getSubmissionId());
         caseRepository.save(reviewCase);

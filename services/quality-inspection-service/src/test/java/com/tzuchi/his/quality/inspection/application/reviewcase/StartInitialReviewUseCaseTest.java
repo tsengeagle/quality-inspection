@@ -29,6 +29,7 @@ import java.util.EnumSet;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.time.Clock;
 
 class StartInitialReviewUseCaseTest {
 
@@ -53,7 +54,7 @@ class StartInitialReviewUseCaseTest {
         submissionRepo = new InMemoryReviewSubmissionRepository();
         eventPublisher = new CapturingDomainEventPublisher();
         useCase = new StartInitialReviewUseCase(
-                caseRepo, projectRepo, scoreSheetRepo, submissionRepo, eventPublisher);
+                caseRepo, projectRepo, scoreSheetRepo, submissionRepo, eventPublisher, Clock.systemDefaultZone());
     }
 
     private ActorContext reviewer() {
@@ -64,7 +65,7 @@ class StartInitialReviewUseCaseTest {
     private ReviewCase seedAssignedCase() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer(REVIEWER_ID, LocalDateTime.of(2026, 2, 1, 23, 59));
+        rc.assignReviewer(REVIEWER_ID, LocalDateTime.of(2026, 2, 1, 23, 59), LocalDateTime.now());
         caseRepo.save(rc);
         return rc;
     }

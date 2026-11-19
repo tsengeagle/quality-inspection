@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.Clock;
+import java.time.Instant;
 
 /** Execute sampling: create batch, snapshot, select cases, create ReviewCases. */
 @Service
@@ -31,17 +33,20 @@ public class ExecuteSamplingUseCase {
     private final ReviewCaseRepository caseRepository;
     private final CandidateSourcePort candidateSource;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public ExecuteSamplingUseCase(ReviewProjectRepository projectRepository,
                                   SamplingBatchRepository batchRepository,
                                   ReviewCaseRepository caseRepository,
                                   CandidateSourcePort candidateSource,
-                                  DomainEventPublisher eventPublisher) {
+                                  DomainEventPublisher eventPublisher,
+                                  Clock clock) {
         this.projectRepository = projectRepository;
         this.batchRepository = batchRepository;
         this.caseRepository = caseRepository;
         this.candidateSource = candidateSource;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     public String execute(ActorContext actor, String projectId) {
@@ -70,7 +75,7 @@ public class ExecuteSamplingUseCase {
         );
 
         String batchId = UUID.randomUUID().toString();
-        SamplingBatch batch = SamplingBatch.start(batchId, projectId, ExecutionMode.MANUAL, snapshot);
+        SamplingBatch batch = SamplingBatch.start(batchId, projectId, ExecutionMode.MANUAL, snapshot, Instant.now(clock));
 
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
         List<SelectedCaseRef> candidates = candidateSource.queryCandidates(
@@ -82,7 +87,7 @@ public class ExecuteSamplingUseCase {
 
         batch.recordCandidateCount(populationCount, eligibleCount, excludedCount);
         batch.selectCases(candidates);
-        batch.complete();
+        batch.complete(Instant.now(clock));
 
         // Persist state before publishing events — listeners may query the batch
         batchRepository.save(batch);
