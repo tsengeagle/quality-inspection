@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-19-d062-review-project-http",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:faf866361c5264bd15c6830854aff538b59bbff4b6c86c0d373016e8b9fe4a4a",
+  "reviewed_commit": "38a08b25fd442b4a3c2f245315b4ec456176bbbc",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFkAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAghihX/R\nq3C2qycCcVhx0LkVTeSw7MEttHzTwijS611dYAAAATc3NoOmxhdy1hbWVuZG1lbnQtMgAA\nAA1sYXctYW1lbmRtZW50AAAAAAAAAAZzaGE1MTIAAABnAAAAGnNrLXNzaC1lZDI1NTE5QG\n9wZW5zc2guY29tAAAAQAnPZNWgIqq+P2QXlYLVmEctjssK5xnrV/3w8ml496IuOGENkCHr\n8Ux95TD1gsO+Brh92c99WRdpXO6AdCchigQFAAAATQ==\n-----END SSH SIGNATURE-----\n"
+}
