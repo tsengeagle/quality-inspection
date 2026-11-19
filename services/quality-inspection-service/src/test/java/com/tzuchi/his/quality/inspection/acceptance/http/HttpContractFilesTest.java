@@ -24,7 +24,7 @@ class HttpContractFilesTest {
         assertTrue(Files.isRegularFile(common), common + " 不存在");
         HttpContract contract = HttpContract.load(common, SPECS, SPECS);
         assertEquals(List.of(), contract.loadProblems());
-        assertEquals(7, contract.endpoints().size(), "score-sheet 的 7 支 use case 各一個端點");
+        assertEquals(14, contract.endpoints().size(), "score-sheet 7 個、review-project 7 個端點，一支 use case 一個");
     }
 
 }

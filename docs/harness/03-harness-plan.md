@@ -215,6 +215,8 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 這個機制擋不到的：已立法 aggregate 的介面層缺口（範例只到 use case 層），以及 `/specs` 以外的裁決變更。前者要把回應格式納入範例或另做比對閘門；後者要靠擴大立法範圍。
 
+D-060 在真實 PR 上的驗證（2026-11-19，交接 H-3）：#99 修改暫准範圍的 `ReviewProjectController`。CI 的 `law-check` 判為通過，報告列出「未立法範圍的修改」，並在 GitHub 上顯示為 `warning` annotation：「ReviewProject 的 HTTP 介面（use case 已立法、HTTP 未立法）：…/ReviewProjectController.java」。行為與本機模擬一致。
+
 2-2 的簽章方案：判決程式做成可抽換，核准檔帶 `scheme` 欄位，每種方案一個驗證器。已實作並啟用的是「SSH 簽章加實體金鑰」。其次是「X.509 加自然人憑證」，要先查證憑證內的個資、到期與廢止、命令列環境三件事；OpenPGP 視需要；檔案金鑰不建議當核准用。
 
 和論文順序的差異：論文是先畫出模式網路，再為每個節點寫四種形式，最後才有工作流程，閘門是每個模式的第四形式。本文件把閘門提到最前面，是因為本專案已經有程式，先擋住新增的違規最划算。這是為既有程式做的調整。
