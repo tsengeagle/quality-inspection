@@ -1,8 +1,8 @@
 spec_version: 1
 kind: http-common
-# HTTP 契約的共用層（試做）。範圍與位置見 docs/harness/13-http-contract-options.md 第八節。
+# HTTP 契約的共用層（D-061）。本檔是律法（spec），修改需要修法紀錄與簽章。
 # 這一層跨 aggregate：回應外殼、錯誤分類對應的狀態碼、不屬於任何 use case 的錯誤代碼。
-# 比對器：services/quality-inspection-service/src/test/java/.../acceptance/http/（B-1：觀察）。
+# 格式見 specs/README.md 第七節；比對器在 services/quality-inspection-service/src/test/java/.../acceptance/http/（B-1：觀察）。
 #
 # 形狀的寫法：對應表是封閉物件（多或少欄位都算違反）；只有一個元素的清單是陣列；
 # 純量型別 id、text、int、decimal、boolean、enum <名稱>，結尾加 ? 表示可以是 null（要加引號）；
@@ -35,7 +35,7 @@ status_by_category:
   conflict: 409
   rule_violation: 422
 
-# 不屬於任何 use case 的錯誤代碼（api-spec §4.1）。INTERNAL_ERROR（500）刻意不列：契約範圍內不應觀察到它。
+# 不屬於任何 use case 的錯誤代碼（api-spec §4.1；401 的 UNAUTHORIZED 依 D-023）。INTERNAL_ERROR（500）刻意不列：契約範圍內不應觀察到它。
 transport_codes:
   - { code: BAD_REQUEST,  status: 400 }
   - { code: UNAUTHORIZED, status: 401 }

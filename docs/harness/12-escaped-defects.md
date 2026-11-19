@@ -16,7 +16,7 @@
 |---|---|---|---|---|---|---|
 | E-01 | `GET /review-cases/{caseId}/rereview-revisions` 只檢查院區，沒有角色、指派範圍與內容遮罩；`SYSTEM_ADMIN` 等角色讀得到複審分數與評語 | 2026-04-14 | B4 設計（`docs/superpowers/specs/2026-04-10-b4-rereview-operations-design.md` §6.9）要求依權限矩陣套用可見性規則；D-059 | ReviewCase 不在 `/specs`，沒有可執行範例；權限測試由建構者自己撰寫，沒有逐端點對照 `permission-matrix` | D-059（#81）、#82 | 待裁決：見 `03-harness-plan.md` 第六節「未立法的問題側先停下來」；另可考慮「每個讀取端點都要有權限測試」的偵測器 |
 | E-02 | `revision-history` 回傳 `hasExceptionEntry`，前端據此顯示 D-032 已撤銷的「前往複審修正（例外）」入口 | 2026-04-15 | D-032（2026-11-04）撤銷 | 裁決改變發生在 `/specs` 以外，沒有任何東西因此變紅 | #83、#84 | 同上；根本的回應是擴大立法範圍，讓裁決變更能透過範例傳到程式 |
-| E-03 | 評分表列表、章節查詢直接回傳陣列，不符 D-050 第 7 點的 `{ items }`、`{ scoreSheetId, sections }` | 2026-04-14 | D-050（2026-11-15） | **score-sheet 已立法**，但範例只執行到 use case 層；HTTP 回應格式在 api-spec，api-spec 不是律法 | #85 | 待裁決：把介面層的回應格式納入範例，或另做 api-spec 與 controller 的比對閘門（路徑比對腳本已在 #76 手動使用過） |
+| E-03 | 評分表列表、章節查詢直接回傳陣列，不符 D-050 第 7 點的 `{ items }`、`{ scoreSheetId, sections }` | 2026-04-14 | D-050（2026-11-15） | **score-sheet 已立法**，但範例只執行到 use case 層；HTTP 回應格式在 api-spec，api-spec 不是律法 | #85 | D-061：HTTP 契約與觀察式比對閘門（見下方回應） |
 
 ### 回應（2026-11-18）
 
@@ -26,6 +26,6 @@
 | E-01、E-02 | 修訂律法 | 根本的回應是把 ReviewCase 立法進 `/specs`，讓裁決變更透過範例傳到程式 | 未排期 |
 | E-01 | 新增偵測器 | 「每個讀取端點都要有權限測試」 | 未排期，尚未裁決 |
 | E-03 | 新增偵測器 | D-060 把已立法 aggregate 的 controller 與 dto 列為暫准，改到時會提醒，但不擋 | 部分回應 |
-| E-03 | 新增偵測器或修訂律法 | 把介面層的回應格式納入範例，或做 api-spec 與 controller 的比對閘門 | 未排期，尚未裁決 |
+| E-03 | 新增偵測器並修訂律法 | D-061：HTTP 契約（`specs/http-common.yaml`、`specs/score-sheet/http.yaml`）加上觀察式比對閘門。回應形狀不符時 `check` 未通過（mutation：把 #85 之前的陣列回應放回去，閘門擋下） | 已回應（D-061）。請求端仍未涵蓋（D-061 第 6 點） |
 
-E-03 只有部分回應：D-060 會提醒，但擋不到同類缺陷。
+E-03 原本只有部分回應（D-060 只提醒）。D-061 之後，已立法 aggregate 的回應形狀不符會被擋下；請求端仍未涵蓋。

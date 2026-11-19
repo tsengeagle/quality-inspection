@@ -93,7 +93,7 @@ GitLab CI 的範本尚未實作。
 
 ```
 @problem-side <路徑樣式>                 問題側的範圍，可以有多行
-<路徑樣式>  legislated     <規格目錄>     已立法：規格目錄必須存在於 base
+<路徑樣式>  legislated     <規格>         已立法：規格（目錄或檔案）必須存在於 base
 <路徑樣式>  grandfathered  <說明>         未立法但暫准
 ```
 
@@ -101,7 +101,7 @@ GitLab CI 的範本尚未實作。
 |---|---|
 | 不在 `@problem-side` 範圍內 | 不檢查 |
 | 刪除 | 不檢查 |
-| 符合 `legislated` | 規格目錄存在就通過 |
+| 符合 `legislated` | 規格存在就通過。規格可以是目錄（aggregate），也可以是檔案（跨 aggregate 的共用層，例如 `specs/http-common.yaml`，D-061） |
 | 符合 `grandfathered` | 通過；報告列出「未立法範圍的修改」，在 GitHub Actions 上另外輸出 `::warning` |
 | 不符合任何一行 | 未通過：未立法的新範圍 |
 

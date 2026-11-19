@@ -10,18 +10,21 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** repo 裡的契約檔本身要讀得進來：形狀、use case 歸屬、列舉、錯誤分類都要對得上。 */
+/**
+ * repo 裡的契約檔本身要讀得進來：形狀、use case 歸屬、列舉、錯誤分類都要對得上（D-061 第 2 點）。
+ * {@code spec_lint} 不檢查 {@code http.yaml} 與 {@code http-common.yaml}，由本測試檢查。
+ */
 class HttpContractFilesTest {
 
     private static final Path SPECS = Paths.get(System.getProperty("acceptance.specs.dir", "../../specs")).toAbsolutePath().normalize();
-    private static final Path DRAFT = Paths.get(System.getProperty("acceptance.specdraft.dir", "../../spec-draft")).toAbsolutePath().normalize();
 
     @Test
-    void draftContractLoadsWithoutProblems() {
-        Path common = DRAFT.resolve("http-common.yaml");
+    void specsContractLoadsWithoutProblems() {
+        Path common = SPECS.resolve("http-common.yaml");
         assertTrue(Files.isRegularFile(common), common + " 不存在");
-        HttpContract contract = HttpContract.load(common, DRAFT, SPECS);
+        HttpContract contract = HttpContract.load(common, SPECS, SPECS);
         assertEquals(List.of(), contract.loadProblems());
         assertEquals(7, contract.endpoints().size(), "score-sheet 的 7 支 use case 各一個端點");
     }
+
 }

@@ -32,12 +32,22 @@ final class JsonShape {
 
     private JsonShape() {}
 
-    /** 載入時檢查形狀本身，問題加進 problems；陣列的位置（索引寫成 []）加進 arrays。 */
+    /** 一個端點累積觀察到的東西（位置的索引寫成 []）：非空的陣列、出現過 null 的欄位、出現過非 null 值的欄位。 */
+    static final class Seen {
+        final Set<String> arrays = new java.util.HashSet<>();
+        final Set<String> nulls = new java.util.HashSet<>();
+        final Set<String> values = new java.util.HashSet<>();
+    }
+
+    /**
+     * 載入時檢查形狀本身，問題加進 problems；陣列的位置加進 arrays，可為 null 的欄位位置加進 nullables
+     * （索引寫成 []）。
+     */
     static void validate(Object shape, String path, Map<String, Set<String>> enums, boolean allowData,
-                         List<String> problems, List<String> arrays) {
+                         List<String> problems, List<String> arrays, List<String> nullables) {
         if (shape instanceof Map) {
             for (Map.Entry<?, ?> e : ((Map<?, ?>) shape).entrySet()) {
-                validate(e.getValue(), path + "." + e.getKey(), enums, allowData, problems, arrays);
+                validate(e.getValue(), path + "." + e.getKey(), enums, allowData, problems, arrays, nullables);
             }
         } else if (shape instanceof List) {
             List<?> list = (List<?>) shape;
@@ -46,7 +56,7 @@ final class JsonShape {
                 return;
             }
             arrays.add(path);
-            validate(list.get(0), path + "[]", enums, allowData, problems, arrays);
+            validate(list.get(0), path + "[]", enums, allowData, problems, arrays, nullables);
         } else if (shape instanceof String) {
             String s = (String) shape;
             if (DATA.equals(s)) {
@@ -59,6 +69,9 @@ final class JsonShape {
                 return;
             }
             String base = s.endsWith("?") ? s.substring(0, s.length() - 1) : s;
+            if (s.endsWith("?")) {
+                nullables.add(path);
+            }
             Matcher m = ENUM.matcher(base);
             if (m.matches()) {
                 if (!enums.containsKey(m.group(1))) {
@@ -73,20 +86,20 @@ final class JsonShape {
         }
     }
 
-    /** 比對實際的 JSON。arraysSeen 收集非空陣列的位置（索引寫成 []）。 */
+    /** 比對實際的 JSON，觀察到的東西累積到 seen。 */
     static void check(Object shape, JsonNode node, String path, Object dataShape, Map<String, Set<String>> enums,
-                      List<String> out, Set<String> arraysSeen) {
-        check(shape, node, path, path, dataShape, enums, out, arraysSeen);
+                      List<String> out, Seen seen) {
+        check(shape, node, path, path, dataShape, enums, out, seen);
     }
 
     private static void check(Object shape, JsonNode node, String path, String norm, Object dataShape,
-                              Map<String, Set<String>> enums, List<String> out, Set<String> arraysSeen) {
+                              Map<String, Set<String>> enums, List<String> out, Seen seen) {
         if (shape == null) {
             out.add(path + "：契約沒有這個位置的形狀，無法比對");
             return;
         }
         if (DATA.equals(shape)) {
-            check(dataShape, node, path, norm, null, enums, out, arraysSeen);
+            check(dataShape, node, path, norm, null, enums, out, seen);
             return;
         }
         if (shape instanceof Map) {
@@ -104,7 +117,7 @@ final class JsonShape {
                 if (!node.has(key)) {
                     out.add(path + "：缺少欄位 " + key);
                 } else {
-                    check(e.getValue(), node.get(key), path + "." + key, norm + "." + key, dataShape, enums, out, arraysSeen);
+                    check(e.getValue(), node.get(key), path + "." + key, norm + "." + key, dataShape, enums, out, seen);
                 }
             }
             for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
@@ -129,11 +142,11 @@ final class JsonShape {
                 return;
             }
             if (node.size() > 0) {
-                arraysSeen.add(norm);
+                seen.arrays.add(norm);
             }
             Object element = ((List<?>) shape).get(0);
             for (int i = 0; i < node.size(); i++) {
-                check(element, node.get(i), path + "[" + i + "]", norm + "[]", dataShape, enums, out, arraysSeen);
+                check(element, node.get(i), path + "[" + i + "]", norm + "[]", dataShape, enums, out, seen);
             }
             return;
         }
@@ -156,6 +169,9 @@ final class JsonShape {
         }
         boolean nullable = s.endsWith("?");
         String base = nullable ? s.substring(0, s.length() - 1) : s;
+        if (nullable) {
+            (node.isNull() ? seen.nulls : seen.values).add(norm);
+        }
         if (node.isNull()) {
             if (!nullable) out.add(path + "：不可為 null");
             return;

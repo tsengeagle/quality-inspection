@@ -56,7 +56,20 @@ tasks.named('test') {
     inputs.dir('src/test/java').withPropertyName('arch04SampleSources')
     // 驗收範例（第 4 期）讀 repo 根目錄的規格。不宣告的話，只改規格不會讓 test 重跑。
     inputs.dir('../../specs').withPropertyName('acceptanceSpecs')
+    // HTTP 契約（D-061）：試做中的契約放在 spec-draft/，只列出、不擋；改了也要讓 test 重跑。
+    inputs.dir('../../spec-draft').withPropertyName('httpContractDrafts')
     ignoreFailures = true
+
+    // HTTP 契約（D-061）：測試 JVM 結束時，acceptance/http/ 的觀察器把報告寫到這裡，第一行是本次的執行識別碼。
+    // 識別碼不是 test 的輸入（不影響 up-to-date 判斷），在 doFirst 才交給測試 JVM。
+    def httpContractReport = layout.buildDirectory.file('reports/http-contract/report.txt').get().asFile
+    def httpContractRunId = UUID.randomUUID().toString()
+    doFirst {
+        def full = filter.includePatterns.isEmpty() && filter.commandLineIncludePatterns.isEmpty()
+        systemProperty 'http.contract.runId', httpContractRunId
+        systemProperty 'http.contract.fullRun', full.toString()
+        systemProperty 'http.contract.report', httpContractReport.absolutePath
+    }
 
     def executed = new TreeSet<String>()
     def failed = new TreeMap<String, Integer>()   // 方法 -> 失敗的呼叫次數
@@ -138,8 +151,25 @@ tasks.named('test') {
         if (notExecuted) {
             problems << "清單上的測試沒有執行，可能已改名或刪除（${notExecuted.size()}）：\n  " + notExecuted.join('\n  ')
         }
+
+        // HTTP 契約（D-061）：specs/ 的契約有任何問題就未通過。報告必須是本次執行產生的：
+        // 觀察器被關掉、或只留下上一次的報告，完整執行時都算未通過。有篩選條件時只判每一筆回應，涵蓋不判。
+        def contractText = httpContractReport.exists() ? httpContractReport.getText('UTF-8') : ''
+        if (!contractText.startsWith("run-id: ${httpContractRunId}\n")) {
+            if (fullRun) {
+                problems << "HTTP 契約報告不存在，或不是本次執行產生的（${httpContractReport}）：觀察器沒有運作，契約沒有被評估"
+            }
+        } else {
+            def enforced = contractText =~ /(?m)^enforced-problems: (\d+)$/
+            if (!enforced.find()) {
+                problems << "HTTP 契約報告的格式不對（${httpContractReport}），契約沒有被評估"
+            } else if ((enforced.group(1) as Integer) > 0) {
+                def blocked = contractText.readLines().collect { it.trim() }.findAll { it.startsWith('[擋] ') }.collect { it.substring(4) }
+                problems << "HTTP 契約（specs/）不符（${enforced.group(1)}）：\n  " + blocked.join('\n  ') + "\n  報告：${httpContractReport}"
+            }
+        }
         if (problems) {
-            throw new GradleException("測試結果與 ${knownFailuresFile.name} 不符。\n" + problems.join('\n') +
+            throw new GradleException("測試閘門未通過（${knownFailuresFile.name}、HTTP 契約）。\n" + problems.join('\n') +
                     "\n本次實際失敗的清單：${actualFile}")
         }
     }

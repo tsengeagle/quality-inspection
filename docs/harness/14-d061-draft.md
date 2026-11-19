@@ -1,6 +1,6 @@
 # D-061 草案：HTTP 契約升格為律法（待裁決）
 
-> 狀態：**負責人 2026-11-18 已裁決 Q-1～Q-6，全部採建議選項（A）**，見第六節。尚未寫入 `decision-log.md`；實作順序第 2 步的修法 PR 會把條文寫進去。`decision-log.md` 第 2 節第 1 條規定只記錄已決定的事項，所以裁決前的草案寫在這裡。
+> 狀態：**已裁決，已寫入 `decision-log.md` 的 D-061**（2026-11-19 修法）。本文件保留為草案與裁決的紀錄，權威條文以 decision-log 為準。
 > 依據：`docs/harness/13-http-contract-options.md`（選項比較、範圍與位置、score-sheet 試做結果）；#93、#95。
 > 撰寫時的基準：`main` = `168ff7d`。
 
@@ -147,3 +147,17 @@ B-1 只看回應。controller 也負責把請求對應到 use case，請求 dto 
 - 方法簽章沒有改：改了的話，既有的 ARCH-01 凍結違規描述會跟著變，被當成新違規（第一次全套執行時 `arch01LayerDependencies` 失敗，已改回原簽章）。凍結基線沒有改。
 - 測試先寫：`infrastructure/security/ApiKeyAuthFilterApiTest`（2 個）。修正前 2 個都失敗（`expected:<UNAUTHORIZED> but was:<MISSING_API_KEY>`、`<INVALID_TOKEN>`），HTTP 契約試做的報告也同時列出這兩個代碼「沒有定義」。
 - 修正後，後端全套 986 個方法、1252 次執行，0 失敗。HTTP 契約報告：契約範圍內 73 次觀察（含 2 次 401），問題 0。
+
+### 第 2 步：修法 PR（D-061 生效）
+
+- W-7 生效前，先以 #97 補上建構者測試（P4：建構者測試不能放進修法 PR）。
+- `law_check.py` 0.5.0：`legislated` 可以指向檔案。新增 3 個測試，先紅後綠，harness-core 共 115 個測試通過。
+- 比對器：
+  - W-7。
+  - 報告分成強制（`specs/`）與只列出（`spec-draft/`）兩區。
+  - 第一行是執行識別碼，第二行是強制問題數。
+- `build.gradle`：`doFirst` 把識別碼交給測試 JVM，`doLast` 讀報告判決。
+- mutation 驗證，結果都符合預期：
+  - M1：列表回到陣列，閘門擋下。
+  - M2：拿掉觀察器設定，即使留著舊報告，完整執行也擋下。
+  - M3、M4：有篩選條件的執行照常通過。

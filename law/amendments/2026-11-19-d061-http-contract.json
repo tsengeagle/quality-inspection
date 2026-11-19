@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-19-d061-http-contract",
+  "decision": "D-061",
+  "reason": "依負責人 2026-11-18 的裁決（D-061 草案 Q-1～Q-6 全部採建議選項；docs/harness/14-d061-draft.md），新增 D-061：HTTP 契約升格為律法。契約從 spec-draft 搬到 specs/http-common.yaml 與 specs/score-sheet/http.yaml；specs/README.md 規則 6 只適用於 model、usecases、examples，新增第七節（HTTP 契約）。比對器（acceptance/http/）：加上 W-7（可為 null 的欄位 null 與非 null 都要觀察到），報告分為強制（specs/）與只列出（spec-draft/），開頭寫執行識別碼與強制問題數。build.gradle：doFirst 交給測試 JVM 執行識別碼與是否完整執行，doLast 讀報告——specs/ 的契約有問題、或完整執行時沒有本次的報告，就未通過；spec-draft/ 宣告為 test 的輸入。law_check.py 0.5.0：legislated 可以指向檔案（修訂 D-060 第 1 點）。coverage.txt：ApiResponse、GlobalExceptionHandler 與 score-sheet 的 5 個回應 dto 改為已立法，controller 與請求 dto 仍暫准（Q-3）。生效前已合併 #96（401 改回 UNAUTHORIZED）與 #97（補建構者測試）。驗證：測試先寫（W-7 3 個、報告 5 個、law_check 3 個，先紅後綠）；harness-core 115 個測試通過；後端全套 995 個方法、0 失敗，報告強制問題 0；mutation：列表回到陣列時閘門擋下；拿掉觀察器設定時，即使留著舊報告，完整執行也擋下；有篩選條件的執行照常通過。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/",
+    "spec-draft/",
+    "law/coverage.txt",
+    "harness-core/",
+    "services/quality-inspection-service/build.gradle",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/"
+  ]
+}

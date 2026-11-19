@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +17,8 @@ import java.util.Set;
  *
  * <ul>
  *   <li>每個回應：成功的比對外殼、狀態碼與 data 形狀；失敗的比對錯誤外殼，以及錯誤代碼的分類對應的狀態碼。</li>
- *   <li>涵蓋：契約裡每個端點至少觀察到一次成功回應；data 形狀裡的每個陣列至少觀察到一次非空，元素的形狀才算比對過。</li>
+ *   <li>涵蓋：契約裡每個端點至少觀察到一次成功回應；data 形狀裡的每個陣列至少觀察到一次非空，元素的形狀才算比對過；
+ *       可為 null 的欄位，null 與非 null 都要觀察到（W-7，D-061）。</li>
  * </ul>
  *
  * <p>契約以外的端點不比對（那些範圍還沒有 HTTP 契約）。</p>
@@ -31,14 +31,14 @@ public final class HttpContractEvaluator {
     private final HttpContract contract;
     private final Map<String, Integer> problems = new LinkedHashMap<>();   // 問題 -> 次數
     private final Map<String, int[]> counts = new LinkedHashMap<>();       // 端點 -> {成功, 失敗}
-    private final Map<String, Set<String>> arraysSeen = new HashMap<>();
+    private final Map<String, JsonShape.Seen> seen = new HashMap<>();
     private int observed;
 
     public HttpContractEvaluator(HttpContract contract) {
         this.contract = contract;
         for (HttpContract.Endpoint e : contract.endpoints()) {
             counts.put(e.key(), new int[2]);
-            arraysSeen.put(e.key(), new HashSet<>());
+            seen.put(e.key(), new JsonShape.Seen());
         }
     }
 
@@ -67,9 +67,9 @@ public final class HttpContractEvaluator {
             if (o.status() != e.successStatus()) {
                 out.add("成功狀態碼應為 " + e.successStatus() + "，實際 " + o.status());
             }
-            JsonShape.check(contract.successEnvelope(), body, "$", e.dataShape(), enums, out, arraysSeen.get(e.key()));
+            JsonShape.check(contract.successEnvelope(), body, "$", e.dataShape(), enums, out, seen.get(e.key()));
         } else {
-            JsonShape.check(contract.errorEnvelope(), body, "$", null, enums, out, new HashSet<>());
+            JsonShape.check(contract.errorEnvelope(), body, "$", null, enums, out, new JsonShape.Seen());
             JsonNode code = body.path("error").path("code");
             if (code.isTextual()) {
                 String[] reason = new String[1];
@@ -87,16 +87,38 @@ public final class HttpContractEvaluator {
 
     /** 載入問題、觀察到的問題、涵蓋問題。空的才算通過。 */
     public List<String> problems() {
+        List<String> all = observationProblems();
+        all.addAll(coverageProblems());
+        return all;
+    }
+
+    /** 載入問題與每一筆回應的問題。與執行了哪些測試無關，有篩選條件時也要判。 */
+    public List<String> observationProblems() {
         List<String> all = new ArrayList<>(contract.loadProblems());
         problems.forEach((p, n) -> all.add(n > 1 ? p + "（" + n + " 次）" : p));
+        return all;
+    }
+
+    /** 涵蓋問題：沒有觀察到成功回應、陣列從未非空、可為 null 的欄位只觀察到一種值。只有完整執行時才有意義。 */
+    public List<String> coverageProblems() {
+        List<String> all = new ArrayList<>();
         for (HttpContract.Endpoint e : contract.endpoints()) {
             if (counts.get(e.key())[0] == 0) {
                 all.add(e.key() + "：沒有觀察到任何成功回應");
                 continue;
             }
+            JsonShape.Seen s = seen.get(e.key());
             for (String array : e.arrays()) {
-                if (!arraysSeen.get(e.key()).contains(array)) {
+                if (!s.arrays.contains(array)) {
                     all.add(e.key() + "：陣列 " + array + " 從未觀察到非空，元素的形狀沒有比對過");
+                }
+            }
+            for (String field : e.nullables()) {
+                if (!s.values.contains(field)) {
+                    all.add(e.key() + "：可為 null 的欄位 " + field + " 從未觀察到非 null 的值，值的形狀沒有比對過");
+                }
+                if (!s.nulls.contains(field)) {
+                    all.add(e.key() + "：可為 null 的欄位 " + field + " 從未觀察到 null");
                 }
             }
         }
