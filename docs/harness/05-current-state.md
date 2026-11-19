@@ -90,7 +90,7 @@
 | 3 | domain 內 15 處無參數的 `LocalDateTime.now()`（`ReviewCase` 6 處、`ReviewSubmission` 9 處）：用伺服器預設時區，且繞過注入的 `Clock` | 架構債 | 在 ARCH-02 凍結基線內；`closedAt` 因此在匯出頁標示為伺服器時間。改為 UTC `Instant` 需先裁決 |
 | 4 | api-spec 的路徑與程式不一致 | 契約漂移 | 2026-11-18 已逐一核對（只核對方法與路徑）：見 `docs/review/api-spec-path-reconciliation-2026-11-18.md`。前端呼叫的端點後端都有；9 組同一動作路徑不同、8 個後端端點 api-spec 沒有記載；D-022 的路徑樣式與程式及 D-053／D-054 衝突。已處理：2026-11-18 負責人裁決採選項 A，D-058（以程式為準，修正 D-022 的路徑樣式），api-spec 與測試、前端文件同步（#80） |
 | 4a | `GET /review-cases/{caseId}/rereview-revisions` 沒有角色檢查：院區範圍內的任何角色（含只應取得 metadata 的 `SYSTEM_ADMIN`）都能讀到複審的 `totalScore` 與 `comment`。目前沒有前端使用 | 權限缺口 | 已處理：2026-11-18 以測試證實（4 個情境全紅，`revision-history` 同樣情境全綠）；D-059 裁決移除（#81）；#82 移除端點，並新增 4 個測試鎖定 `revision-history` 的保護 |
-| 4b | 評分表列表、章節查詢的回應：D-050 第 7 點規定 `{ items }`、`{ scoreSheetId, sections }`，程式直接回傳陣列 | 程式與裁決不符 | 已處理：#85（先改 5 個測試、修改前全紅）。`decision-log.md` D-058 第 6 點的文字仍描述修正前的狀態，屬裁決，未改 |
+| 4b | 評分表列表、章節查詢的回應：D-050 第 7 點規定 `{ items }`、`{ scoreSheetId, sections }`，程式直接回傳陣列 | 程式與裁決不符 | 已處理：#85（先改 5 個測試、修改前全紅）。`decision-log.md` D-058 第 6 點的現況描述已於 2026-11-19 以修法加註更正（H-4） |
 | 4c | `revision-history` 的 `hasExceptionEntry`：案件 CLOSED 且查看者是原複審醫師時為 `true`，前端據此顯示 D-032 已撤銷的「前往複審修正（例外）」入口 | 程式與裁決不符 | 已處理：#83 移除後端欄位與前端 C22 例外按鈕；#84 同步 16 份文件。共用的 `StatusOrBlockedBannerComponent` 仍保留 `exception-amber` 樣式，目前沒有頁面使用 |
 | 5 | standalone 模式沒有 Bootstrap 樣式、空狀態插圖不會載入（shell 提供的資產，依 GOV-CSS-002／GOV-BND-003 不另外載入） | 開發／demo 體驗 | 待負責人決定 |
 | 6 | 「無權限」區塊不是共用元件（UI-015、UI-017 各寫一份） | 前端重用 | 待負責人決定 |
