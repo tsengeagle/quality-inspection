@@ -118,7 +118,8 @@ specs/
 
 | 等級 | 項目 |
 |---|---|
-| 擋下 | 第三節規則 1 到 7、第四節規則 2、3、5，以及 YAML 讀不進來、`spec_version` 或 `kind` 不對 |
+| 擋下 | 第三節規則 1 到 7、第四節規則 2、3、5，以及 YAML 讀不進來、`spec_version` 或 `kind` 不對；第八節的封閉結構、分辨不了情境的範例、引用完整性（D-063） |
+| 只列出（D-063） | `given`、`when`、`then`、`observe` 完全相同的兩個範例：可能是刻意的重複 |
 | 只列出 | 沒有任何範例涵蓋的規則；`basis` 含 `proposed` 規則的範例 |
 
 「只列出」的兩項原定在第 4 期完成後改為擋下。執行器已完成（第四節「執行」），改為擋下另案處理：`RP-INV-04` 由抽選的 use case 執行，現在擋下會卡住。
@@ -156,3 +157,91 @@ specs/
 |---|---|---|
 | `ScoreSheetDefinition` | `specs/score-sheet/http.yaml` | 7 |
 | `ReviewProject` | `specs/review-project/http.yaml` | 9（含列表與版本查詢，D-062） |
+
+## 八、欄位表（D-063，v1.1）
+
+2026-11-20 起，三種檔案都是封閉結構：每一層只允許下表列出的欄位，型別也要相符，否則擋下。檔案仍寫 `spec_version: 1`。
+
+- 任何一層對應表都可以有 `note`。它是自由文字，不參與判決。
+- 欄位表內建在 `harness-core/spec_lint.py` 的 `FILE_SCHEMAS`。本節是同一份內容，給人看；兩者不一致時以檢查程式為準（本文件開頭）。
+- 下表只管欄位與型別。必填、引用、規則的格式由第三、四節負責。
+- 標「待改寫」的四項照樣接受，在下一次規格格式的修法中改寫（D-063 第 3 點）。
+
+**寫法說明**：
+
+- 「規則欄位」指 `status`、`source`、`question`（第三節規則 2、3）。
+- `source` 的每一項可以有 `decision`、`design_decision`、`doc`、`section`、`example`、`scenario`、`rule`。
+- 「名稱 → X」表示鍵是自由的名稱，值依 X 檢查。
+
+### `model.yaml`
+
+| 欄位 | 型別 |
+|---|---|
+| `spec_version`、`kind`、`name`、`term` | 整數、字串 |
+| `identity` | `name`、`type`、`assigned_by` |
+| `sources` | `source` 項目的清單 |
+| `attributes[]` | 屬性（見下） |
+| `entities[]` | `name`、`term`、`attributes`（屬性的清單） |
+| `enums[]` | `name`、`values`（字串清單）、規則欄位 |
+| `transitions[]` | `id`、`from`、`to`、`by`（都是字串）、規則欄位 |
+| `terminal_states` | 字串清單 |
+| `invariants[]` | `id`、`text`、`enforced_by`（待改寫：併入 `note`）、規則欄位 |
+| `deferred_attributes`、`deferred_behaviors` | 字串清單：文件列出、但本次不處理的屬性與行為 |
+
+屬性：`name`、`type`、`required`（布林）、`initial`（任意值）、`assigned_by`、`mutable`（布林）、`external`（布林）、`range`（整數清單；待改寫：改成有 id 的規則）、規則欄位。
+
+### `usecases.yaml`
+
+| 欄位 | 型別 |
+|---|---|
+| `spec_version`、`kind`、`aggregate` | 整數、字串 |
+| `sources` | `source` 項目的清單 |
+| `error_codes[]` | `code`、`category`、規則欄位 |
+| `guards[]` | `id`、`when`、`outcome`、規則欄位 |
+| `input_types` | 名稱 → 輸入欄位的清單 |
+| `usecases[]` | use case（見下） |
+
+use case：
+
+| 欄位 | 型別 |
+|---|---|
+| `name`、`summary` | 字串 |
+| `kind` | `command` 或 `query` |
+| `actor` | `roles`（字串清單） |
+| `input[]` | 輸入欄位：`name`、`type`、`required`（布林）、規則欄位 |
+| `input_note` | 字串（待改寫：併入 `note`） |
+| `guards` | 字串清單 |
+| `guard_exceptions[]` | `guard`、`text`、規則欄位 |
+| `rules[]` | `id`、`when`、`text`、`outcome`、規則欄位 |
+| `success` | `state[]`（`id`、`text`、規則欄位）、`emits[]`（`event`、規則欄位）、`output[]`（`name`、`type`、規則欄位；待改寫） |
+| `output` | `fields[]`（`name`、`type`）、規則欄位（待改寫：與 `success.output` 合併成一種寫法） |
+
+`outcome`：`result`、`code`、`no_change`（布林）。
+
+### `examples.yaml`
+
+| 欄位 | 型別 |
+|---|---|
+| `spec_version`、`kind`、`aggregate` | 整數、字串 |
+| `actors` | 名稱 → `user`、`roles`（字串清單）、`hospital` |
+| `fixtures` | 名稱 → `steps`（步驟的清單）、`needs`（字串清單） |
+| `examples[]` | `name`、`basis`、`derived_from`、`needs`（字串清單）、`given`（步驟的清單）、`when`（步驟）、`then`、`observe`（觀察步驟的清單） |
+| `not_covered[]` | `rules`（字串清單）、`item`、`reason` |
+
+- 步驟：`run`、`as`、`input`（名稱 → 任意值）、`save`（名稱 → 字串）、`use`、`input_pending`。
+- 觀察步驟：步驟的欄位，加上 `expect`：`result`、`code`、`output`（名稱 → 任意值）。
+- `then`：`result`（`SUCCESS` 或 `REJECTED`）、`code`。執行器只比對這兩個（第四節「執行」）。
+- `not_covered[].rules` 應該只放規則 id；review-project 的 `rules: [emits]` 待改寫成 `item: emits`，改寫後才核對（D-063 第 5 點）。
+
+注意：YAML 會把 `on`、`yes`、`no` 之類的鍵讀成布林。它們會被判為不認得的欄位，訊息裡會說明原因。
+
+### 其他 v1.1 的檢查
+
+1. **分辨不了情境的範例。**
+   - 兩個範例的 `given`（`use` 依 fixture 展開後）與 `when` 完全相同，`then` 卻不同，擋下：兩者不可能同時通過。
+   - 連 `then`、`observe` 都相同，只列出。
+   - 比較時忽略 `note`。`${名稱}` 依字面比較：變數名稱不同、實質相同的兩個範例，檢查不出來。
+2. **引用完整性。**
+   - `guard_exceptions[].guard` 必須是同一支 use case `guards` 裡的 id。
+   - `transitions[].by` 必須是同目錄 `usecases.yaml` 的 use case；`from`、`to` 都要有。
+   - 轉移的狀態與 `terminal_states` 必須都是同一個列舉的值。

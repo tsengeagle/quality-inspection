@@ -1,0 +1,19 @@
+# 規格裡不得出現的實作詞彙。一行一個 Python 正規表示式，不分大小寫；# 開頭是註解。
+# 檢查對象是規格 YAML 裡的所有值（不含 YAML 註解）。
+# 這個檔案是律法，修改需要修法紀錄與簽章。
+
+# HTTP 路徑與狀態碼
+/api/
+\bHTTP\b
+\b(?:GET|POST|PUT|PATCH|DELETE)\s+/
+\b[1-5]\d\d\s+(?:OK|Created|Bad Request|Unauthorized|Forbidden|Not Found|Conflict|Unprocessable)\b
+
+# 程式結構與框架
+\w+(?:UseCase|Controller|Repository|Service|Entity|Dto|DTO|Adapter|Mapper)\b
+\b(?:Spring|JPA|Hibernate|ArchUnit|Gradle|Angular|NgRx)\b
+@\w+\(
+
+# 資料庫
+(?-i:\b(?:SELECT|INSERT|UPDATE|DELETE FROM)\s+\w+)
+\btable\b
+資料表

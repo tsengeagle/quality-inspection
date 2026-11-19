@@ -1,0 +1,64 @@
+spec_version: 1
+kind: examples
+aggregate: CardResource
+
+actors:
+  doctor_a: { user: u-a, roles: [DOCTOR], hospital: H-01 }
+
+examples:
+  - name: signs_once_and_releases_the_lock
+    basis: [HC-USE-S1, HC-USE-S2, HC-T-01, HC-T-02]
+    needs: [GetCardResourceStatus]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetCardResourceStatus
+        as: doctor_a
+        input: {}
+        expect: { result: SUCCESS, output: { status: FREE } }
+
+  - name: rejects_when_another_process_holds_the_lock
+    basis: [HC-G-01]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: REJECTED, code: CARD_IN_USE }
+
+  - name: mismatched_card_never_sends_pin
+    basis: [HC-USE-01, HC-INV-03]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: REJECTED, code: CARD_MISMATCH }
+
+  - name: close_failure_keeps_signature_and_faults_resource
+    basis: [HC-USE-03, HC-T-03]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: SUCCESS }
+
+  # ---- 以下是 v1 沒有的寫法 ----
+  - name: ext_lock_held_by_other_process
+    basis: [HC-G-01]
+    given:
+      - process: other                     # 第二個行程
+        holds: lock
+      - clock: { advance: 15s }            # 固定時鐘
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: REJECTED, code: CARD_IN_USE, output: { holder: u-b } }   # 拒絕時帶資料
+
+  - name: ext_mismatch_never_sends_pin
+    basis: [HC-USE-01, HC-INV-03]
+    given:
+      - port: CardModule                   # 外部埠的替身
+        on: readCardNo
+        returns: OTHER-CARD
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then:
+      result: REJECTED
+      code: CARD_MISMATCH
+      calls: [acquireLock, openModule, readCardNo, closeModule, releaseLock]   # 呼叫順序
+      not_called: [sendPin]
+      resource: FREE                       # 第二個維度
+
+  - name: ext_close_fails_three_times
+    basis: [HC-USE-03, HC-T-03]
+    given:
+      - { port: CardModule, on: closeModule, fail_times: 3 }
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: SUCCESS, resource: FAULTED, call_count: { closeModule: 3 } }
