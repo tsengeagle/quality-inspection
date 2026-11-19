@@ -381,11 +381,23 @@ Accept: application/json
 
 #### Query Params
 
-* `hospitalId`
-* `status`
-* `keyword`
-* `page`
-* `size`
+* `hospitalId`：只有 `SYSTEM_ADMIN` 可用來縮小範圍；其他角色只列出自己院區的專案（D-062 第 2 點）
+* `status`、`keyword`、`page`、`size`：尚未實作，不在規格與契約內（D-062 第 2 點）
+
+#### Response（D-062 第 1 點）
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      { "projectId": "RP-001", "hospitalId": "H-01", "name": "門診品質審查", "status": "DRAFT" }
+    ]
+  }
+}
+```
+
+每一項的欄位與 §7.8 專案詳情相同。
 
 ---
 
@@ -396,6 +408,22 @@ Accept: application/json
 #### 權限
 
 * 同上
+
+---
+
+## 7.9 查詢專案版本
+
+### `GET /review-projects/{projectId}/version`
+
+#### 權限（D-062 第 3 點）
+
+* `SYSTEM_ADMIN`（不受院區限制）
+* `HOSPITAL_MANAGER`、`AUDITOR`：本院
+* `REVIEWER` / `REREVIEWER` 不開放（D-051）
+
+#### Response
+
+回傳專案目前版本的版本號與是否已發布。HTTP 欄位名稱在補上 `specs/review-project/http.yaml` 時決定（D-062 第 4 點）。
 
 ---
 

@@ -11,6 +11,8 @@ actors:
   manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
   reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
   rereviewer_h1: { user: u-rr1, roles: [REREVIEWER],   hospital: H-01 }
+  auditor_h1:  { user: u-au1, roles: [AUDITOR],          hospital: H-01 }
+  admin:       { user: u-a1, roles: [SYSTEM_ADMIN],     hospital: H-09 }
 
 # 可重複使用的準備步驟。
 fixtures:
@@ -647,6 +649,116 @@ examples:
       as: rereviewer_h1
       input: { projectId: "${p}" }
     then: { result: REJECTED, code: ROLE_DENIED }
+
+  # ---------- ListReviewProjects（D-062） ----------
+
+  - name: lists_only_own_hospital_projects
+    basis: [RP-LST-01]
+    given:
+      - use: draft_project
+      - run: CreateReviewProject
+        as: manager_h2
+        input: { name: "住院品質審查", description: "H-02", medicalRecordTypes: [INPATIENT], qualityThreshold: 5 }
+        save: { p2: projectId }
+    when:
+      run: ListReviewProjects
+      as: manager_h1
+      input: { hospitalId: H-02 }
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewProjects
+        as: manager_h1
+        input: { hospitalId: H-02 }
+        expect:
+          result: SUCCESS
+          output:
+            items:
+              - { projectId: "${p}", hospitalId: H-01 }
+
+  - name: system_admin_lists_one_hospital
+    basis: [RP-LST-02]
+    given:
+      - use: draft_project
+      - run: CreateReviewProject
+        as: manager_h2
+        input: { name: "住院品質審查", description: "H-02", medicalRecordTypes: [INPATIENT], qualityThreshold: 5 }
+        save: { p2: projectId }
+    when:
+      run: ListReviewProjects
+      as: admin
+      input: { hospitalId: H-02 }
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewProjects
+        as: admin
+        input: { hospitalId: H-02 }
+        expect:
+          result: SUCCESS
+          output:
+            items:
+              - { projectId: "${p2}", hospitalId: H-02 }
+
+  - name: rejects_project_list_for_a_reviewer
+    basis: [RP-G-01]
+    when:
+      run: ListReviewProjects
+      as: reviewer_h1
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  # ---------- GetReviewProjectVersion（D-062） ----------
+
+  - name: reads_draft_project_version
+    basis: [RP-G-01]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectVersion
+      as: manager_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { versionNo: 1, published: false } }
+
+  - name: auditor_reads_project_version
+    basis: [RP-G-01]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectVersion
+      as: auditor_h1
+      input: { projectId: "${p}" }
+    then: { result: SUCCESS }
+
+  - name: rejects_project_version_from_another_hospital
+    basis: [RP-G-03]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectVersion
+      as: manager_h2
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_project_version_for_a_reviewer
+    basis: [RP-G-01]
+    given:
+      - use: draft_project
+    when:
+      run: GetReviewProjectVersion
+      as: reviewer_h1
+      input: { projectId: "${p}" }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_unknown_project_version
+    basis: [RP-G-02]
+    when:
+      run: GetReviewProjectVersion
+      as: manager_h1
+      input: { projectId: NO-SUCH-PROJECT }
+    then: { result: REJECTED, code: PROJECT_NOT_FOUND }
 
 not_covered:
   - rules: [emits]

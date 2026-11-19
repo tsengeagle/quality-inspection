@@ -17,9 +17,10 @@ sources:
   - { decision: D-049 }
   - { decision: D-050 }
   - { decision: D-051 }
+  - { decision: D-062 }
   - { doc: docs/02-ddd/application-service.md, section: "§5、§5.1" }
   - { doc: docs/02-ddd/domain-events.md, section: "§4.1–§4.4" }
-  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§7.1–§7.8" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§7.1–§7.9" }
   - { example: EX-018 }
   - { scenario: TS-PV-001 }
   - { scenario: TS-PV-002 }
@@ -282,3 +283,49 @@ usecases:
         - { name: qualityThreshold,   type: int }
         - { name: initialReviewWeight, type: decimal(2) }
         - { name: rereviewWeight,     type: decimal(2) }
+
+  - name: ListReviewProjects
+    kind: query
+    summary: 列出專案摘要
+    actor:
+      roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
+      # 讀取角色依 D-043；REVIEWER／REREVIEWER 不開放，依 RP-G-01 拒絕（D-051）
+    input:
+      - { name: hospitalId, type: ref Hospital, required: false, status: decided, source: [{ decision: D-062 }], note: 只有 SYSTEM_ADMIN 可用來縮小範圍 }
+    guards: [RP-G-01]
+    rules:
+      - id: RP-LST-01
+        when: 操作者不是 SYSTEM_ADMIN
+        outcome: { result: SUCCESS }
+        text: 只列出操作者院區的專案；輸入的 hospitalId 不採用
+        status: decided
+        source: [{ decision: D-042 }, { decision: D-047 }, { decision: D-062 }]
+      - id: RP-LST-02
+        when: 操作者是 SYSTEM_ADMIN
+        outcome: { result: SUCCESS }
+        text: 有輸入 hospitalId 時只列出該院區的專案；沒有輸入時列出全部
+        status: decided
+        source: [{ decision: D-047 }, { decision: D-062 }]
+    output:
+      status: decided
+      source: [{ decision: D-062 }]
+      fields:
+        - { name: items, type: list<ReviewProjectSummary>, note: 每一項的欄位與 GetReviewProjectDetail 的輸出相同 }
+
+  - name: GetReviewProjectVersion
+    kind: query
+    summary: 查詢專案目前版本的版本號與是否已發布
+    actor:
+      roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR]
+      # D-062 第 3 點；REVIEWER／REREVIEWER 不開放（D-051）
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [RP-G-01, RP-G-02, RP-G-03]
+    guard_exceptions:
+      - { guard: RP-G-03, text: SYSTEM_ADMIN 不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    output:
+      status: decided
+      source: [{ decision: D-062 }]
+      fields:
+        - { name: versionNo, type: int }
+        - { name: published, type: boolean }
