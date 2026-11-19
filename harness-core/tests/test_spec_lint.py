@@ -471,6 +471,30 @@ class SpecLintTest(unittest.TestCase):
         passed, report = self.run_lint()
         self.assertTrue(passed, report)
 
+    def test_present_null_values_fail_except_where_any_value_is_allowed(self):
+        # #109 review：寫了但值是 null，會繞過型別檢查
+        for mutate, where in (
+                (lambda: self.rule("SM-T-01").__setitem__("from", None), "transitions[SM-T-01].from"),
+                (lambda: self.usecases["usecases"][0].__setitem__("kind", None), "usecases[CreateSample].kind"),
+                (lambda: self.model.__setitem__("attributes", [{"name": "n", "type": "text", "required": None}]),
+                 "attributes[n].required"),
+                (lambda: self.examples["examples"][1].__setitem__("given", None), "examples[activates_twice].given"),
+                (lambda: self.rule("SM-INV-01").__setitem__("note", None), "invariants[SM-INV-01].note")):
+            with self.subTest(where=where):
+                self.setUp()
+                mutate()
+                passed, report = self.run_lint()
+                self.assertFalse(passed, report)
+                self.assertIn("%s：不可以是 null" % where, report)
+
+    def test_null_is_still_allowed_where_any_value_is(self):
+        self.model["attributes"] = [{"name": "n", "type": "int?", "initial": None}]
+        self.examples["examples"][0]["observe"] = [
+            {"run": "CreateSample", "as": "m", "input": {"title": None},
+             "expect": {"result": "SUCCESS", "output": {"threshold": None}}}]
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+
     def test_yaml_boolean_keys_are_explained(self):
         self.run_lint()
         path = os.path.join(self.tmp, "specs/sample/examples.yaml")
@@ -579,6 +603,23 @@ class SpecLintTest(unittest.TestCase):
         self.assertIn("必須都是同一個列舉的值", report)
         self.model["terminal_states"] = ["ACTIVE"]
         self.assertTrue(self.run_lint()[0])
+
+    def test_states_without_any_enums_fail(self):
+        # #109 review：沒寫 enums 時，欄位表不會報，狀態的核對不能就此略過
+        del self.model["enums"]
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("有轉移或 terminal_states，卻沒有 enums", report)
+        self.model["transitions"] = []
+        self.rule("SM-ACT-01")["source"] = [{"scenario": "TS-SM-001"}]
+        self.examples["examples"][1]["basis"] = ["SM-ACT-01"]
+        self.model["terminal_states"] = ["ACTIVE"]
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("卻沒有 enums", report)
+        self.model["terminal_states"] = []
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)            # 沒有狀態要核對時，不需要 enums
 
     def test_transition_without_from_fails(self):
         del self.rule("SM-T-01")["from"]
