@@ -626,3 +626,91 @@ v2.0 之後的第一個使用者是 ReviewCase 的薄切片（分派、初審提
 - 執行器沒有跑過，替身、交錯、面向的觀察都只在紙上。
 - 範例沒有涵蓋 HCAAPI 的 `CARD_LOCKED`（9043）與 `updateCardinfo`（待決 E）。
 
+
+### 四題的回答（2026-11-20，負責人）
+
+| 題 | 回答 | 對範例的影響 |
+|---|---|---|
+| 1. 關 Module 失敗的重試 | 先定**重試 3 次，間隔 1 秒** | 第一次呼叫之後再重試 3 次，共呼叫 4 次，每次之間 `advance` 1 秒。負責人已確認「共 4 次」。次數與間隔是設定值（缺口 G-05），範例要宣告設定 |
+| 2. 卡號不符時要不要 CloseSession | **不要**（沒登入就不關 Session） | 卡號不符的範例要寫 `never: CloseSession`，但 CloseModule 照常呼叫 |
+| 3. 開處方時卡號不符，要不要撤銷簽章情境 | **要** | iccard-signing 要補一條規則與範例：撤銷之後，下一次開處方回 `SIGNING_NOT_SET` |
+| 4. 簽章情境的期限 | 先定 **4 小時** | 到期範例用 `advance` 4 小時（缺口 G-19）；期限也是設定值 |
+
+這四項的出處目前只有本節。設計文件第四版（不在 repo）還沒更新。寫成正式規格時，`source` 要指向更新後的設計文件，或另立裁決。
+
+## 十二、缺口二的修法：D-064 草案（2026-11-20）
+
+**狀態：草案，未生效。** 依 D-063 的前例，條文先寫在這裡；負責人同意後，與實作放在同一個修法 PR，寫進 `decision-log.md`。
+
+### 起草時查到的寫死之處
+
+| 位置 | 寫死的內容 | 缺口 |
+|---|---|---|
+| `spec_lint.py` 的 `EXAMPLES_SCHEMA` | `actors` 每一項只能有 `user`、`roles`、`hospital` | G-07 |
+| `spec_lint.py` 的 `USECASE` | use case 的 `actor` 只能有 `roles` | G-07（試寫時沒標出，起草時查到） |
+| `spec_lint.py` 的 `CATEGORIES` | 錯誤分類固定五種 | G-03 |
+| `specs/README.md` 第三節規則 5 | guard 的順序依 D-024 | G-04 |
+| `specs/README.md` 第三節規則 7 | 五種分類與「對應 HTTP 狀態碼」的說明 | G-03 |
+
+已經可攜的前例：決策紀錄的位置讀律法清冊的 `@decision-log`；禁用詞彙讀 `specs/forbidden-vocabulary.txt`。本草案沿用第二種做法：專案專屬的內容放在 `specs/` 底下的一個檔案，`spec_lint` 讀它，不寫死在程式裡。
+
+### 草案條文
+
+> ## D-064 — 規格格式 v1.2：專案設定檔，harness-core 不再寫死本專案的操作者、錯誤分類與 guard 順序
+>
+> ### Status
+>
+> `proposed`（2026-11-20 起草；處理格式 v2 草案第十一節的缺口二：G-07、G-04、G-03）
+>
+> ### Decision
+>
+> 1. **專案設定檔。**
+>    - 新增 `specs/spec-profile.yaml`，寫下規格格式裡屬於專案的部分。`spec_lint` 從規格目錄讀它，與 `forbidden-vocabulary.txt` 相同。
+>    - 這個檔案在 `specs/` 底下，依律法清冊屬於規格類，修改要修法紀錄。
+>    - 檔案不存在、或缺少下面任何一項，`spec_lint` 判為無法評估，不使用預設值。預設值會讓本專案的假設以另一種形式留在 `harness-core/`。
+> 2. **操作者的欄位（G-07）。**
+>    - `actor_fields`：`examples.yaml` 的 `actors` 每一項允許的欄位與型別。型別用欄位表既有的詞彙（`str`、字串清單）。
+>    - `usecase_actor_fields`：`usecases.yaml` 的 `actor` 允許的欄位與型別。
+>    - 欄位表的其他部分不變，仍然封閉：`actors` 只是改成依設定檔決定哪些欄位合法，設定檔沒列的欄位照樣擋下。
+>    - 本專案的設定照現狀：`actor_fields` 是 `user`（字串）、`roles`（字串清單）、`hospital`（字串）；`usecase_actor_fields` 是 `roles`（字串清單）。
+> 3. **錯誤分類（G-03）。**
+>    - `error_categories`：`error_codes[].category` 允許的值。
+>    - 本專案照現狀列五種：`denied`、`not_found`、`invalid_input`、`conflict`、`rule_violation`。
+>    - `specs/README.md` 規則 7 改寫成「`category` 只能是設定檔列出的值」；「分類對應 HTTP 狀態碼」的說明移到第七節（HTTP 契約），因為只有提供 HTTP 介面的專案需要。
+> 4. **guard 的順序（G-04）。**
+>    - `specs/README.md` 規則 5 改寫成「`guards` 的順序就是檢查的順序」，不再寫死 D-024。
+>    - 順序的依據寫在設定檔的 `guard_order`（自由文字，附出處）。本專案寫「角色 → 載入 → 院區範圍 → 領域規則（D-024）」。
+>    - `spec_lint` 不檢查順序，這一點與現狀相同；`guard_order` 只給人看。
+> 5. **不變的部分。**
+>    - 規格檔仍寫 `spec_version: 1`，現有規格一個字都不改。
+>    - 執行器（`ExampleRunnerTest`）不動：它本來就是本專案的程式，依本專案的操作者建立使用者。
+>    - 範例的語法、引用完整性、分辨不了情境的範例，都與 D-063 相同。
+> 6. **驗證。**
+>    - 現有規格在 v1.2 下維持零問題。
+>    - 以 `docs/harness/samples/card-v2-trial/` 的 `actors` 寫法為測試資料：設定檔允許 `program`、`user` 時不擋；本專案的設定檔仍然擋下 `program`。
+>    - 拿掉設定檔、或拿掉其中一項，要判為無法評估。
+>    - `harness-core/VERSION` 升為 0.7.0。
+> 7. **順序。** 一個修法 PR：`decision-log.md`、`specs/README.md`、`specs/spec-profile.yaml`、`harness-core/spec_lint.py` 與它的測試、修法紀錄。不夾帶程式（P4）。
+>
+> ### Relationship / Evidence
+>
+> - 起因：格式 v2 草案第十一節的缺口二。依 Q-9，卡片規格放在 iccard 的 repo 並安裝 `harness-core/`；G-07 不改，iccard 寫 `program` 就被擋。
+> - 前例：D-063 第 2 點要求欄位表內建在 `harness-core/` 以保持可攜。本裁決把欄位表裡屬於專案的部分移出來，其餘照舊內建。
+> - 相關裁決：D-024（guard 順序，內容不變，只是改由設定檔引用）、D-061（HTTP 契約的 `status_by_category`）。
+>
+> ### Mapping
+>
+> - `specs/spec-profile.yaml`、`specs/README.md` 第三、七、八節
+> - `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`
+> - 後續：缺口一的語法（v2.1 前補進第四節）；格式 v2.0、v2.1
+
+### 待負責人決定
+
+1. **設定檔的位置與名稱。** 草案用 `specs/spec-profile.yaml`。另一個做法是寫進律法清冊（像 `@decision-log`），但清冊目前只放路徑，不放格式內容。
+2. **沒有設定檔時要不要有預設值。** 草案選「不給預設值，判為無法評估」。代價是任何安裝 `harness-core/` 的專案都要先寫設定檔。
+3. **`http-common.yaml` 的 `status_by_category` 要不要核對涵蓋了每一種分類。** 草案沒有放進來：那是 D-061 的範圍，目前也沒有出錯。
+
+### 這份草案沒有處理的
+
+- 出處的種類（`design_decision` 指 `docs/02-ddd/`、`example`／`scenario` 指 `docs/04-testing/`）也帶有本專案的目錄。程式已經允許專案不設定（不設定時，用到這兩類出處的規則會被列為問題），iccard 可以只用 `decision` 與 `doc`，所以不擋，不列入本草案。
+- 禁用詞彙依專案分開（第八節），與 `harness-core/` 拆成獨立 repo 一起處理。
