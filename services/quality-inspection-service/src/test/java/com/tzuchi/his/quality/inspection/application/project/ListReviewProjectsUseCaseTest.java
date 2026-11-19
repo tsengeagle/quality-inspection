@@ -33,7 +33,7 @@ class ListReviewProjectsUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        List<ReviewProjectSummary> result = useCase.execute(actor, null);
+        List<ReviewProjectSummary> result = useCase.execute(actor, null).getItems();
 
         assertEquals(1, result.size());
         assertEquals("p1", result.get(0).getProjectId());
@@ -46,7 +46,7 @@ class ListReviewProjectsUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        List<ReviewProjectSummary> result = useCase.execute(actor, null);
+        List<ReviewProjectSummary> result = useCase.execute(actor, null).getItems();
 
         assertEquals(2, result.size());
     }
@@ -80,7 +80,7 @@ class ListReviewProjectsUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Auditor",
                 EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
 
-        List<ReviewProjectSummary> result = useCase.execute(actor, null);
+        List<ReviewProjectSummary> result = useCase.execute(actor, null).getItems();
 
         assertEquals(1, result.size());
         assertEquals("p1", result.get(0).getProjectId());
@@ -94,7 +94,7 @@ class ListReviewProjectsUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        List<ReviewProjectSummary> result = useCase.execute(actor, "H002");
+        List<ReviewProjectSummary> result = useCase.execute(actor, "H002").getItems();
 
         assertEquals(1, result.size());
         assertEquals("p2", result.get(0).getProjectId());
@@ -108,7 +108,7 @@ class ListReviewProjectsUseCaseTest {
         ActorContext actor = new ActorContext("u1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        List<ReviewProjectSummary> result = useCase.execute(actor, "H002");
+        List<ReviewProjectSummary> result = useCase.execute(actor, "H002").getItems();
 
         assertEquals(1, result.size());
         assertEquals("p1", result.get(0).getProjectId());

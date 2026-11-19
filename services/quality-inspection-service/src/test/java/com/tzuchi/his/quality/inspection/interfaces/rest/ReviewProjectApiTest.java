@@ -292,8 +292,8 @@ class ReviewProjectApiTest {
         mockMvc.perform(get(BASE)
                         .header("api-key", hmToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)))
-                .andExpect(jsonPath("$.data[0].name").value("HM Project"));
+                .andExpect(jsonPath("$.data.items", hasSize(1)))   // D-062 第 1 點：{ items }
+                .andExpect(jsonPath("$.data.items[0].name").value("HM Project"));
     }
 
     @Test
@@ -303,7 +303,7 @@ class ReviewProjectApiTest {
         mockMvc.perform(get(BASE)
                         .header("api-key", saToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(jsonPath("$.data.items", hasSize(1)));
     }
 
     // --- GET DETAIL ---
@@ -405,13 +405,13 @@ class ReviewProjectApiTest {
         String admin = TestTokenFactory.systemAdminToken();
 
         mockMvc.perform(get(BASE).header("api-key", admin))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items", hasSize(1)));
         mockMvc.perform(get(BASE).header("api-key", admin).param("hospitalId", "H001"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items", hasSize(1)));
         mockMvc.perform(get(BASE).header("api-key", admin).param("hospitalId", "H002"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(0)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items", hasSize(0)));
         mockMvc.perform(get(BASE).header("api-key", hmToken).param("hospitalId", "H002"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.data", hasSize(1)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.items", hasSize(1)));
     }
 
     private String createProjectAndGetId(String name) throws Exception {
