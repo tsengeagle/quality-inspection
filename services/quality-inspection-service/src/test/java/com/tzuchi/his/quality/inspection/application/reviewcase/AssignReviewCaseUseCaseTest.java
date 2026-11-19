@@ -20,6 +20,7 @@ import java.util.EnumSet;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.time.Clock;
 
 class AssignReviewCaseUseCaseTest {
 
@@ -33,7 +34,7 @@ class AssignReviewCaseUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new AssignReviewCaseUseCase(repository, eventPublisher);
+        useCase = new AssignReviewCaseUseCase(repository, eventPublisher, Clock.systemDefaultZone());
     }
 
     private ReviewCase createCase() {

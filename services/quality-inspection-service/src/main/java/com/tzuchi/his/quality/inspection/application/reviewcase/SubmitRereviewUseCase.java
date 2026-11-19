@@ -28,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 public class SubmitRereviewUseCase {
@@ -38,19 +40,22 @@ public class SubmitRereviewUseCase {
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
+    private final Clock clock;
 
     public SubmitRereviewUseCase(ReviewCaseRepository caseRepository,
                                   ReviewSubmissionRepository submissionRepository,
                                   ReviewProjectRepository projectRepository,
                                   ScoreSheetRepository scoreSheetRepository,
                                   DomainEventPublisher eventPublisher,
-                                  ScoreCalculationService scoreCalculationService) {
+                                  ScoreCalculationService scoreCalculationService,
+                                  Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.projectRepository = projectRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
+        this.clock = clock;
     }
 
     @Transactional
@@ -113,8 +118,9 @@ public class SubmitRereviewUseCase {
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Update draft with scored answers, then submit
-        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), cmd.getComment());
-        submission.submit();
+        LocalDateTime now = LocalDateTime.now(clock);
+        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), cmd.getComment(), now);
+        submission.submit(now);
         submissionRepository.save(submission);
 
         // Load project for weights

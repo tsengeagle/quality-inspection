@@ -44,7 +44,8 @@ public class SamplingBatch {
     }
 
     private SamplingBatch(String batchId, String projectId, ExecutionMode executionMode,
-                          RuleSnapshot ruleSnapshot) {
+                          RuleSnapshot ruleSnapshot, Instant startedAt) {
+        Objects.requireNonNull(startedAt, "startedAt must not be null");
         Objects.requireNonNull(batchId, "batchId must not be null");
         Objects.requireNonNull(projectId, "projectId must not be null");
         Objects.requireNonNull(executionMode, "executionMode must not be null");
@@ -53,14 +54,15 @@ public class SamplingBatch {
         this.projectId = projectId;
         this.executionMode = executionMode;
         this.ruleSnapshot = ruleSnapshot;
-        this.startedAt = Instant.now();
+        this.startedAt = startedAt;
         this.status = BatchStatus.STARTED;
         this.selectedCases = new ArrayList<>();
     }
 
     public static SamplingBatch start(String batchId, String projectId,
-                                       ExecutionMode executionMode, RuleSnapshot ruleSnapshot) {
-        return new SamplingBatch(batchId, projectId, executionMode, ruleSnapshot);
+                                       ExecutionMode executionMode, RuleSnapshot ruleSnapshot,
+                                       Instant startedAt) {
+        return new SamplingBatch(batchId, projectId, executionMode, ruleSnapshot, startedAt);
     }
 
     /**
@@ -136,24 +138,26 @@ public class SamplingBatch {
         this.status = BatchStatus.SAMPLING;
     }
 
-    public void complete() {
+    public void complete(Instant finishedAt) {
+        Objects.requireNonNull(finishedAt, "finishedAt must not be null");
         requireNotCompleted();
         if (selectedCount > eligibleCount) {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
                     "selectedCount exceeds eligibleCount");
         }
         this.status = BatchStatus.COMPLETED;
-        this.finishedAt = Instant.now();
+        this.finishedAt = finishedAt;
     }
 
-    public void fail(String reason) {
+    public void fail(String reason, Instant finishedAt) {
+        Objects.requireNonNull(finishedAt, "finishedAt must not be null");
         if (this.status == BatchStatus.COMPLETED) {
             throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
                     "Cannot fail a completed batch");
         }
         this.status = BatchStatus.FAILED;
         this.failureReason = reason;
-        this.finishedAt = Instant.now();
+        this.finishedAt = finishedAt;
     }
 
     private void requireNotCompleted() {

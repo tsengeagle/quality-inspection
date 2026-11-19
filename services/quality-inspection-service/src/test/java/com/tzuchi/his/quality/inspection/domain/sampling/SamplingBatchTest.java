@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import java.time.Instant;
 
 class SamplingBatchTest {
 
@@ -73,7 +74,7 @@ class SamplingBatchTest {
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        batch.complete();
+        batch.complete(Instant.now());
 
         assertEquals(BatchStatus.COMPLETED, batch.getStatus());
         assertNotNull(batch.getFinishedAt());
@@ -88,7 +89,7 @@ class SamplingBatchTest {
                 new SelectedCaseRef("C2", "H1", MedicalRecordType.OUTPATIENT)
         ));
 
-        assertThrows(DomainStateConflictException.class, batch::complete);
+        assertThrows(DomainStateConflictException.class, () -> batch.complete(Instant.now()));
     }
 
     @Test
@@ -98,7 +99,7 @@ class SamplingBatchTest {
         batch.selectCases(List.of(
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
-        batch.complete();
+        batch.complete(Instant.now());
 
         assertThrows(DomainStateConflictException.class,
                 () -> batch.recordCandidateCount(5, 5, 0));
@@ -112,7 +113,7 @@ class SamplingBatchTest {
     void fail_shouldTransitionToFailed() {
         SamplingBatch batch = createBatch("b1", "p1", ExecutionMode.MANUAL);
 
-        batch.fail("test error");
+        batch.fail("test error", Instant.now());
 
         assertEquals(BatchStatus.FAILED, batch.getStatus());
     }
@@ -124,9 +125,9 @@ class SamplingBatchTest {
         batch.selectCases(List.of(
                 new SelectedCaseRef("C1", "H1", MedicalRecordType.OUTPATIENT)
         ));
-        batch.complete();
+        batch.complete(Instant.now());
 
-        assertThrows(DomainStateConflictException.class, () -> batch.fail("cannot fail completed"));
+        assertThrows(DomainStateConflictException.class, () -> batch.fail("cannot fail completed", Instant.now()));
     }
 
     @Test
@@ -184,6 +185,6 @@ class SamplingBatchTest {
 
     private SamplingBatch createBatch(String batchId, String projectId, ExecutionMode mode) {
         return SamplingBatch.start(batchId, projectId, mode,
-                new RuleSnapshot("PV-001-v1", 1, "SS-001-v1", "MANUAL", null));
+                new RuleSnapshot("PV-001-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
     }
 }

@@ -41,7 +41,7 @@ class ReviewCaseCreatedAtTest {
         assertThat(createdAt).isNotNull().isBetween(before, after);
 
         ReviewCase loaded = repository.findById("c1").orElseThrow();
-        loaded.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59));
+        loaded.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
         repository.save(loaded);
 
         assertThat(jpa.findById("c1").orElseThrow().getCreatedAt()).isEqualTo(createdAt);

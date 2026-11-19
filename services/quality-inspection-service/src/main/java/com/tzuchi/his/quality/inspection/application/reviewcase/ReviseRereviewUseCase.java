@@ -28,6 +28,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 /**
  * Use case: Revise a submitted rereview.
@@ -44,19 +46,22 @@ public class ReviseRereviewUseCase {
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
+    private final Clock clock;
 
     public ReviseRereviewUseCase(ReviewCaseRepository caseRepository,
                                   ReviewSubmissionRepository submissionRepository,
                                   ReviewProjectRepository projectRepository,
                                   ScoreSheetRepository scoreSheetRepository,
                                   DomainEventPublisher eventPublisher,
-                                  ScoreCalculationService scoreCalculationService) {
+                                  ScoreCalculationService scoreCalculationService,
+                                  Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.projectRepository = projectRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
+        this.clock = clock;
     }
 
     @Transactional
@@ -115,15 +120,17 @@ public class ReviseRereviewUseCase {
 
         // 7. Create revision using static method
         String newSubmissionId = "sub-rev-" + UUID.randomUUID().toString();
+        LocalDateTime now = LocalDateTime.now(clock);
         ReviewSubmission revision = ReviewSubmission.createRevision(
                 newSubmissionId,
                 oldSubmission,
                 result.getScoredAnswers(),
                 result.getTotalScore(),
-                cmd.getComment());
+                cmd.getComment(),
+                now);
 
         // 8. Mark old submission superseded
-        oldSubmission.markSuperseded(newSubmissionId);
+        oldSubmission.markSuperseded(newSubmissionId, now);
 
         // 9. Save both old and new submissions
         submissionRepository.save(oldSubmission);

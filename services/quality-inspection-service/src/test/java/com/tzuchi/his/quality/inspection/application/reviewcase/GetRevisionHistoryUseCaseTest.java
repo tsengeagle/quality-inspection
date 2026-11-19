@@ -51,7 +51,7 @@ class GetRevisionHistoryUseCaseTest {
         // Default: active (non-CLOSED) case
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", "p1", HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer(REVIEWER_ID, LocalDateTime.now());
+        rc.assignReviewer(REVIEWER_ID, LocalDateTime.now(), LocalDateTime.now());
         caseRepo.save(rc);
     }
 
@@ -69,11 +69,11 @@ class GetRevisionHistoryUseCaseTest {
     void getHistory_reviewerWithIncompleteHistoryIsDenied_D055() {
         // Seed rev-2 first, rev-1 second (to test sorting)
         ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
-                "sub-1", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
-        sub1.submit();
+                "sub-1", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID, LocalDateTime.now());
+        sub1.submit(LocalDateTime.now());
         ReviewSubmission sub2 = ReviewSubmission.createRevision(
-                "sub-2", sub1, Collections.emptyList(), BigDecimal.ZERO, null);
-        sub1.markSuperseded("sub-2");
+                "sub-2", sub1, Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+        sub1.markSuperseded("sub-2", LocalDateTime.now());
 
         // Store in reverse order
         submissionRepo.save(sub2);
@@ -89,11 +89,11 @@ class GetRevisionHistoryUseCaseTest {
     void getHistory_reviewerWithCompleteHistoryIsGrantedAndRecorded_D055() {
         // Seed rev-2 first, rev-1 second (to test sorting)
         ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
-                "sub-1", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
-        sub1.submit();
+                "sub-1", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID, LocalDateTime.now());
+        sub1.submit(LocalDateTime.now());
         ReviewSubmission sub2 = ReviewSubmission.createRevision(
-                "sub-2", sub1, Collections.emptyList(), BigDecimal.ZERO, null);
-        sub1.markSuperseded("sub-2");
+                "sub-2", sub1, Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+        sub1.markSuperseded("sub-2", LocalDateTime.now());
 
         // Store in reverse order
         submissionRepo.save(sub2);
@@ -137,16 +137,16 @@ class GetRevisionHistoryUseCaseTest {
         // D-054：先固定初審，才依品質線判斷流向。
         rc.fixInitialReview(rc.getLatestInitialSubmissionId(), "reviewer-1",
                 java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("92"), new BigDecimal("80"));
-        rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.now());
-        ReviewSubmission initial = ReviewSubmission.createInitialDraft("initial", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID);
-        initial.updateDraft(Collections.emptyList(), new BigDecimal("92"), "private initial comment");
-        initial.submit();
+        rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.now(), LocalDateTime.now());
+        ReviewSubmission initial = ReviewSubmission.createInitialDraft("initial", CASE_ID, REVIEWER_ID, SCORE_SHEET_ID, LocalDateTime.now());
+        initial.updateDraft(Collections.emptyList(), new BigDecimal("92"), "private initial comment", LocalDateTime.now());
+        initial.submit(LocalDateTime.now());
         submissionRepo.save(initial);
         if (!phase.equals("before")) {
             rc.startRereview(REREVIEWER_ID);
-            ReviewSubmission own = ReviewSubmission.createRereviewDraft("own", CASE_ID, REREVIEWER_ID);
-            own.updateDraft(Collections.emptyList(), new BigDecimal("80"), "own comment");
-            if (!phase.equals("progress")) own.submit();
+            ReviewSubmission own = ReviewSubmission.createRereviewDraft("own", CASE_ID, REREVIEWER_ID, LocalDateTime.now());
+            own.updateDraft(Collections.emptyList(), new BigDecimal("80"), "own comment", LocalDateTime.now());
+            if (!phase.equals("progress")) own.submit(LocalDateTime.now());
             submissionRepo.save(own);
         }
         if (phase.equals("closed")) { rc.completeRereview(new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")); rc.closeAfterRereview(LocalDateTime.now()); }
@@ -160,14 +160,14 @@ class GetRevisionHistoryUseCaseTest {
     // --- D-059 第 3 點：revision-history 對複審資料的保護（取代已移除的 rereview-revisions） ---
 
     private void seedSubmittedRereview() {
-        ReviewSubmission rereview = ReviewSubmission.createRereviewDraft("sub-r1", CASE_ID, REREVIEWER_ID);
+        ReviewSubmission rereview = ReviewSubmission.createRereviewDraft("sub-r1", CASE_ID, REREVIEWER_ID, LocalDateTime.now());
         rereview.updateDraft(
                 java.util.Arrays.asList(
                         com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem
                                 .ofScored("Q001", "false", new BigDecimal("3"))),
                 new BigDecimal("3"),
-                "複審評語");
-        rereview.submit();
+                "複審評語", LocalDateTime.now());
+        rereview.submit(LocalDateTime.now());
         submissionRepo.save(rereview);
     }
 

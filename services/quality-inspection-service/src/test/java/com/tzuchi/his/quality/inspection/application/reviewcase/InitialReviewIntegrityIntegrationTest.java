@@ -257,7 +257,7 @@ class InitialReviewIntegrityIntegrationTest {
         String s1 = start.execute(actor("H001"), "c1");
         ReviewSubmission first = submissionRepository.findById(s1).orElseThrow();
         first.updateDraft(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)),
-                BigDecimal.TEN, "historical");
+                BigDecimal.TEN, "historical", LocalDateTime.now());
         submissionRepository.save(first);
         ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         returnReview.execute(manager, "c1", "return for review");
@@ -266,7 +266,7 @@ class InitialReviewIntegrityIntegrationTest {
         assertNotEquals(s1, s2);
         ReviewSubmission second = submissionRepository.findById(s2).orElseThrow();
         second.updateDraft(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)),
-                BigDecimal.TEN, "current");
+                BigDecimal.TEN, "current", LocalDateTime.now());
         submissionRepository.save(second);
         assertEquals(1, submissions.findById(s1).orElseThrow().getRevisionNo());
         assertEquals(1, submissions.findById(s2).orElseThrow().getRevisionNo());

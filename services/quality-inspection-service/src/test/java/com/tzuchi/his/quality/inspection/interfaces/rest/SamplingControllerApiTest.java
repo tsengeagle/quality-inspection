@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import java.time.Instant;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -83,8 +84,8 @@ class SamplingControllerApiTest {
 
         SamplingBatch failedBatch = SamplingBatch.start(
                 "failed-context-batch", projectId, ExecutionMode.MANUAL,
-                new RuleSnapshot("PV-" + projectId + "-v1", 1, "SS-001-v1", "MANUAL", null));
-        failedBatch.fail("simulated failure");
+                new RuleSnapshot("PV-" + projectId + "-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
+        failedBatch.fail("simulated failure", Instant.now());
         batchRepository.save(failedBatch);
 
         mockMvc.perform(get("/review-projects/" + projectId + "/sampling/execute-context")
@@ -134,8 +135,8 @@ class SamplingControllerApiTest {
 
         SamplingBatch failedBatch = SamplingBatch.start(
                 "test-failed-batch", projectId, ExecutionMode.MANUAL,
-                new RuleSnapshot("PV-" + projectId + "-v1", 1, "SS-001-v1", "MANUAL", null));
-        failedBatch.fail("simulated failure");
+                new RuleSnapshot("PV-" + projectId + "-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
+        failedBatch.fail("simulated failure", Instant.now());
         batchRepository.save(failedBatch);
 
         MvcResult result = mockMvc.perform(

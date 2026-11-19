@@ -27,6 +27,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
@@ -37,17 +39,20 @@ public class SaveInitialReviewDraftUseCase {
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
     private final ReviewCaseRepository caseRepository;
+    private final Clock clock;
 
     public SaveInitialReviewDraftUseCase(ReviewSubmissionRepository submissionRepository,
                                           ScoreSheetRepository scoreSheetRepository,
                                           DomainEventPublisher eventPublisher,
                                           ScoreCalculationService scoreCalculationService,
-                                          ReviewCaseRepository caseRepository) {
+                                          ReviewCaseRepository caseRepository,
+                                          Clock clock) {
         this.submissionRepository = submissionRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
         this.caseRepository = caseRepository;
+        this.clock = clock;
     }
 
     /**
@@ -96,7 +101,7 @@ public class SaveInitialReviewDraftUseCase {
         // If no answers, update with empty + zero
         if (answers == null || answers.isEmpty()) {
             rejectIfUnchanged(Collections.emptyList(), comment, submission);
-            submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment);
+            submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment, LocalDateTime.now(clock));
             submissionRepository.save(submission);
 
             eventPublisher.publish(new ReviewDraftSavedEvent(
@@ -129,7 +134,7 @@ public class SaveInitialReviewDraftUseCase {
         rejectIfUnchanged(result.getScoredAnswers(), comment, submission);
 
         // Update draft
-        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment);
+        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, LocalDateTime.now(clock));
         submissionRepository.save(submission);
 
         // Publish event

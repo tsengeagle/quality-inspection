@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.Clock;
 
 @Service
 @Transactional
@@ -18,11 +19,14 @@ public class AssignReviewCaseUseCase {
 
     private final ReviewCaseRepository repository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public AssignReviewCaseUseCase(ReviewCaseRepository repository,
-                                    DomainEventPublisher eventPublisher) {
+                                    DomainEventPublisher eventPublisher,
+                                    Clock clock) {
         this.repository = repository;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     public void execute(ActorContext actor, String caseId, String reviewerId, LocalDateTime dueAt) {
@@ -34,7 +38,7 @@ public class AssignReviewCaseUseCase {
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
 
-        reviewCase.assignReviewer(reviewerId, dueAt);
+        reviewCase.assignReviewer(reviewerId, dueAt, LocalDateTime.now(clock));
         repository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseAssignedEvent(

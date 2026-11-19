@@ -10,17 +10,22 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseClosedWithoutRereviewEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 public class CloseWithoutRereviewUseCase {
 
     private final ReviewCaseRepository caseRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public CloseWithoutRereviewUseCase(ReviewCaseRepository caseRepository,
-                                        DomainEventPublisher eventPublisher) {
+                                        DomainEventPublisher eventPublisher,
+                                        Clock clock) {
         this.caseRepository = caseRepository;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     @Transactional
@@ -29,7 +34,7 @@ public class CloseWithoutRereviewUseCase {
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
         actor.requireHospitalScope(reviewCase.getHospitalId());
-        reviewCase.closeWithoutRereview();
+        reviewCase.closeWithoutRereview(LocalDateTime.now(clock));
         caseRepository.save(reviewCase);
         eventPublisher.publish(new CaseClosedWithoutRereviewEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),

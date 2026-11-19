@@ -20,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
@@ -30,17 +32,20 @@ public class StartInitialReviewUseCase {
     private final ScoreSheetRepository scoreSheetRepository;
     private final ReviewSubmissionRepository submissionRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
 
     public StartInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                       ReviewProjectRepository projectRepository,
                                       ScoreSheetRepository scoreSheetRepository,
                                       ReviewSubmissionRepository submissionRepository,
-                                      DomainEventPublisher eventPublisher) {
+                                      DomainEventPublisher eventPublisher,
+                                      Clock clock) {
         this.caseRepository = caseRepository;
         this.projectRepository = projectRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.submissionRepository = submissionRepository;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     /**
@@ -89,7 +94,7 @@ public class StartInitialReviewUseCase {
         // Create draft submission
         String submissionId = UUID.randomUUID().toString();
         ReviewSubmission submission = ReviewSubmission.createInitialDraft(
-                submissionId, caseId, actor.getUserId(), scoreSheetVersionRef);
+                submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, LocalDateTime.now(clock));
 
         // Transition case
         reviewCase.startInitialReview(submissionId, scoreSheetVersionRef);
