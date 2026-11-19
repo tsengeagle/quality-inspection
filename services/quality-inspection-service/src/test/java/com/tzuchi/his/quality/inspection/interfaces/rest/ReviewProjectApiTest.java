@@ -306,6 +306,35 @@ class ReviewProjectApiTest {
                 .andExpect(jsonPath("$.data.items", hasSize(1)));
     }
 
+    @Test
+    void listProjects_itemCarriesDescriptionAndBoundScoreSheetVersion() throws Exception {
+        // D-062 第 1 點：每一項與專案詳情相同。讓可為 null 的 description、scoreSheetVersionId 在列表裡出現非 null 的值（D-061 第 3 點、W-7）
+        String projectId = createProjectAndGetId("Listed Project");
+        UpdateReviewProjectRequest update = new UpdateReviewProjectRequest();
+        update.setName("Listed Project");
+        update.setDescription("列表說明");
+        update.setMedicalRecordTypes(Set.of("OUTPATIENT"));
+        mockMvc.perform(put(BASE + "/" + projectId)
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isOk());
+        String versionId = publishedScoreSheetVersion(projectId);
+        BindScoreSheetRequest bind = new BindScoreSheetRequest();
+        bind.setScoreSheetVersionId(versionId);
+        mockMvc.perform(post(BASE + "/" + projectId + "/bind-score-sheet")
+                        .header("api-key", hmToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(bind)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(BASE).header("api-key", hmToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items", hasSize(1)))
+                .andExpect(jsonPath("$.data.items[0].description").value("列表說明"))
+                .andExpect(jsonPath("$.data.items[0].scoreSheetVersionId").value(versionId));
+    }
+
     // --- GET DETAIL ---
 
     @Test
