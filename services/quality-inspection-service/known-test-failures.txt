@@ -7,11 +7,3 @@
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
 
-# D-062：專案列表與版本查詢的規格先於程式。建構 PR 修改程式後，這 4 行要刪除。
-# 列表：use case 回傳陣列，規格是 { items }（D-062 第 1 點）
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/lists_only_own_hospital_projects
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/system_admin_lists_one_hospital
-# 版本查詢：輸出屬性是 versionNumber，規格是 versionNo（D-062 第 4 點）
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/reads_draft_project_version
-# 版本查詢：AUDITOR 被拒（D-062 第 3 點）
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/auditor_reads_project_version

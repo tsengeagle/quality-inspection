@@ -4,7 +4,6 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.project.*;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectSummary;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
-import com.tzuchi.his.quality.inspection.domain.project.ProjectVersion;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -110,14 +109,14 @@ public class ReviewProjectController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ReviewProjectResponse>>> listProjects(
+    public ResponseEntity<ApiResponse<ReviewProjectListResponse>> listProjects(
             @CurrentActor ActorContext actor,
             @RequestParam(required = false) String hospitalId) {
-        List<ReviewProjectSummary> summaries = listUseCase.execute(actor, hospitalId);
+        List<ReviewProjectSummary> summaries = listUseCase.execute(actor, hospitalId).getItems();
         List<ReviewProjectResponse> responses = summaries.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(new ReviewProjectListResponse(responses))); // D-062 第 1 點：{ items }
     }
 
     @GetMapping("/{projectId}")
@@ -132,9 +131,10 @@ public class ReviewProjectController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> getVersion(
             @CurrentActor ActorContext actor,
             @PathVariable String projectId) {
-        ProjectVersion version = getVersionUseCase.execute(actor, projectId);
+        ReviewProjectVersionView version = getVersionUseCase.execute(actor, projectId);
+        // HTTP 欄位名稱維持現況（versionNumber），在補上 http.yaml 時決定（D-062 第 4 點）
         Map<String, Object> versionMap = new LinkedHashMap<>();
-        versionMap.put("versionNumber", version.getVersionNumber());
+        versionMap.put("versionNumber", version.getVersionNo());
         versionMap.put("published", version.isPublished());
         return ResponseEntity.ok(ApiResponse.ok(versionMap));
     }
