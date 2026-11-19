@@ -15,7 +15,8 @@ import java.util.Map;
  * <ul>
  *   <li>{@code specs/} 的契約是<b>強制的</b>：問題數寫在報告第二行 {@code enforced-problems: N}，每個問題以 {@code [擋]} 開頭。
  *       {@code build.gradle} 的 test 閘門讀這兩樣東西，N 大於 0 就未通過。</li>
- *   <li>{@code spec-draft/} 的契約（有的話）<b>只列出、不擋</b>，與 spec-check 對 spec-draft 的處理相同。</li>
+ *   <li>{@code spec-draft/} 的契約（有的話）<b>只列出、不擋</b>，與 spec-check 對 spec-draft 的處理相同。
+ *       草稿區沒有自己的 {@code http-common.yaml} 時，沿用 {@code specs/} 的共用層。</li>
  *   <li>報告第一行是 {@code run-id:}，值是 Gradle 這次執行給的識別碼。閘門靠它確認報告是本次產生的，
  *       觀察器沒有運作、只留下舊報告，都會被發現。</li>
  *   <li>涵蓋問題（端點沒有成功觀察、陣列從未非空、可為 null 的欄位只觀察到一種值）只在完整執行時才算進強制的問題；
@@ -71,9 +72,10 @@ final class HttpContractReport {
             for (String p : s.coverage) body.append("  ").append(fullRun ? BLOCK : "- ").append(p).append('\n');
         }
 
+        // 草稿區有自己的共用層、或有任何 <aggregate>/http.yaml，就比對；沒有自己的共用層時沿用 specs/ 的。
         Path draftCommon = draft.resolve("http-common.yaml");
-        if (Files.isRegularFile(draftCommon)) {
-            Section s = evaluate(draftCommon, draft, specs, observations);
+        if (Files.isRegularFile(draftCommon) || hasEndpointFiles(draft)) {
+            Section s = evaluate(Files.isRegularFile(draftCommon) ? draftCommon : common, draft, specs, observations);
             body.append("\n== ").append(draft).append("（草稿，只列出）\n").append(s.summary);
             for (String p : s.observation) body.append("  - ").append(p).append('\n');
             for (String p : s.coverage) body.append("  - ").append(p).append('\n');
@@ -89,6 +91,13 @@ final class HttpContractReport {
         final List<String> observation = new ArrayList<>();
         final List<String> coverage = new ArrayList<>();
         final StringBuilder summary = new StringBuilder();
+    }
+
+    private static boolean hasEndpointFiles(Path root) throws IOException {
+        if (!Files.isDirectory(root)) return false;
+        try (java.util.stream.Stream<Path> dirs = Files.list(root)) {
+            return dirs.anyMatch(d -> Files.isRegularFile(d.resolve("http.yaml")));
+        }
     }
 
     private static Section evaluate(Path common, Path root, Path specs, List<HttpObservation> observations) {

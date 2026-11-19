@@ -114,4 +114,28 @@ class HttpContractReportTest {
         assertTrue(text.contains("陣列的形狀必須剛好一個元素"), text);
         assertFalse(text.startsWith("run-id: RUN-1\nenforced-problems: 0\n"), text);
     }
+
+    /** 升格後草稿區沒有自己的共用層，只放 <aggregate>/http.yaml 時，沿用 specs/ 的共用層照樣比對（Copilot review，#98）。 */
+    @Test
+    void draftEndpointsWithoutDraftCommonUseSpecsCommonAndAreReportOnly(@TempDir Path dir) throws Exception {
+        contract(dir.resolve("specs"), "thing", "GET", "/things", "GetThing");
+        Path draft = dir.resolve("draft");
+        contract(draft, "other", "GET", "/others", "GetOther");
+        Files.delete(draft.resolve("http-common.yaml"));
+        String text = report(dir, true, List.of(
+                new HttpObservation("GET", "/things", 200, GOOD),
+                new HttpObservation("GET", "/others", 200, BARE_ARRAY)));
+
+        assertTrue(text.startsWith("run-id: RUN-1\nenforced-problems: 0\n"), text);
+        assertTrue(text.contains("（草稿，只列出）"), text);
+        assertTrue(text.contains("- GET /others（觀察到 200 GET /others） $.data：預期物件，實際是陣列"), text);
+    }
+
+    @Test
+    void emptyDraftDirectoryIsNotReported(@TempDir Path dir) throws Exception {
+        contract(dir.resolve("specs"), "thing", "GET", "/things", "GetThing");
+        Files.createDirectories(dir.resolve("draft"));
+        String text = report(dir, true, List.of(new HttpObservation("GET", "/things", 200, GOOD)));
+        assertFalse(text.contains("草稿"), text);
+    }
 }
