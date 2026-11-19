@@ -21,6 +21,25 @@ try:
 except ImportError:      # pragma: no cover
     yaml = None
 
+# 測試用的專案設定檔：操作者欄位刻意與 quality-inspection 相同，另外的測試再換成別的專案
+PROFILE = """kind: spec-profile
+profile_version: 1
+actor_fields: { user: str, roles: str_list, hospital: str }
+usecase_actor_fields: { roles: str_list }
+error_categories: [denied, not_found, invalid_input, conflict, rule_violation]
+guard_order:
+  text: 角色 → 領域規則
+  source: [{ decision: D-001 }]
+"""
+# 安裝 harness-core 的另一個專案：操作者是程式，錯誤分類也不同（D-064 第 6 點）
+DEVICE_PROFILE = """kind: spec-profile
+profile_version: 1
+actor_fields: { program: str, user: str }
+usecase_actor_fields: { program: str }
+error_categories: [conflict, device_error]
+guard_order: { text: 依呼叫順序 }
+"""
+
 MODEL = {
     "spec_version": 1, "kind": "aggregate", "name": "Sample",
     "enums": [{"name": "SampleStatus", "values": ["DRAFT", "ACTIVE"]}],
@@ -70,6 +89,7 @@ class SpecLintTest(unittest.TestCase):
         self.write("design/model.md", "# 模型\n\n## DD-01 設計決策\n")
         self.write("acceptance/examples.md", "EX-001 與 TS-SM-001\n")
         self.write("specs/forbidden-vocabulary.txt", "# 測試用\n/api/\n\\w+Controller\\b\n")
+        self.write("specs/spec-profile.yaml", PROFILE)
         self.model, self.usecases, self.examples = map(copy.deepcopy, (MODEL, USECASES, EXAMPLES))
 
     def tearDown(self):
@@ -632,6 +652,8 @@ class SpecLintTest(unittest.TestCase):
     def lint_trial(self, version):
         source = os.path.join(HERE, "fixtures", "spec-format-trial", version)
         shutil.copytree(source, os.path.join(self.tmp, "trial"))
+        # 試寫是本專案的草稿，用與本專案相同的設定檔（D-064）
+        self.write("trial/spec-profile.yaml", PROFILE)
         passed, report = lint_module.lint(self.tmp, "trial", [])
         return passed, "\n".join(report)
 
@@ -660,6 +682,81 @@ class SpecLintTest(unittest.TestCase):
             with self.subTest(expected=expected):
                 self.assertIn(expected, report)
         self.assertNotIn("結構：內容的型別不合法", report)
+
+
+    # --- 專案設定檔（D-064）---
+
+    def use_device_profile(self):
+        """iccard 的寫法：操作者是程式，沒有角色與院區。"""
+        self.write("specs/spec-profile.yaml", DEVICE_PROFILE)
+        self.examples["actors"] = {"m": {"program": "iccard-localserver", "user": "doctor-1"}}
+        self.usecases["error_codes"] = [{"code": "ROLE_DENIED", "category": "device_error"},
+                                        {"code": "INVALID_STATE_TRANSITION", "category": "conflict"}]
+
+    def test_program_actor_is_rejected_by_this_projects_profile(self):
+        self.examples["actors"] = {"m": {"program": "iccard-localserver", "user": "doctor-1"}}
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("actors.m：不認得的欄位 program", report)
+
+    def test_another_projects_profile_accepts_its_own_actors_and_categories(self):
+        self.use_device_profile()
+        self.usecases["usecases"][0]["actor"] = {"program": "iccard-localserver"}
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+
+    def test_another_projects_profile_rejects_fields_it_does_not_list(self):
+        self.use_device_profile()
+        self.examples["actors"]["m"]["hospital"] = "H-01"
+        self.usecases["usecases"][0]["actor"] = {"roles": ["MANAGER"]}
+        self.usecases["error_codes"][1]["category"] = "denied"
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("actors.m：不認得的欄位 hospital", report)
+        self.assertIn("actor：不認得的欄位 roles", report)
+        self.assertIn("category 必須是 conflict、device_error 其中一種", report)
+
+    def test_profile_field_types_are_checked(self):
+        self.examples["actors"]["m"]["roles"] = "MANAGER"
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("actors.m.roles：必須是清單", report)
+
+    def test_missing_profile_is_not_evaluated(self):
+        os.remove(os.path.join(self.tmp, "specs/spec-profile.yaml"))
+        with self.assertRaises(lint_module.NotEvaluated) as caught:
+            self.run_lint()
+        self.assertIn("找不到 spec-profile.yaml", str(caught.exception))
+
+    def test_each_missing_profile_item_is_not_evaluated(self):
+        for key in ("actor_fields", "usecase_actor_fields", "error_categories", "guard_order"):
+            with self.subTest(key=key):
+                doc = yaml.safe_load(PROFILE)
+                del doc[key]
+                self.write("specs/spec-profile.yaml", yaml.safe_dump(doc, allow_unicode=True))
+                with self.assertRaises(lint_module.NotEvaluated) as caught:
+                    self.run_lint()
+                self.assertIn("缺少 %s" % key, str(caught.exception))
+
+    def test_invalid_profiles_are_not_evaluated(self):
+        cases = {
+            "不認得的欄位": PROFILE + "extra: 1\n",
+            "必須是 str、str_list 其中之一": PROFILE.replace("hospital: str", "hospital: int"),
+            "error_categories 不可以是空的": PROFILE.replace("[denied, not_found, invalid_input, conflict, rule_violation]", "[]"),
+            "error_categories 有重複的值": PROFILE.replace("[denied, not_found", "[denied, denied"),
+            "guard_order 的出處 D-999 不在決策紀錄裡": PROFILE.replace("D-001", "D-999"),
+            "guard_order 必須有 text": PROFILE.replace("text: 角色 → 領域規則", "text: ''"),
+            "kind 必須是 spec-profile": PROFILE.replace("kind: spec-profile", "kind: profile"),
+            "profile_version 必須是 1": PROFILE.replace("profile_version: 1", "profile_version: 2"),
+            "讀不進來": "kind: [\n",
+            "最上層必須是對應表": "- a\n",
+        }
+        for expected, text in cases.items():
+            with self.subTest(expected=expected):
+                self.write("specs/spec-profile.yaml", text)
+                with self.assertRaises(lint_module.NotEvaluated) as caught:
+                    self.run_lint()
+                self.assertIn(expected, str(caught.exception))
 
 
 if __name__ == "__main__":

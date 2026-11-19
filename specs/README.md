@@ -23,6 +23,7 @@
 specs/
   README.md                    本文件
   forbidden-vocabulary.txt     規格裡不得出現的實作詞彙
+  spec-profile.yaml            格式裡屬於本專案的部分：操作者、錯誤分類、guard 順序（第九節，D-064）
   http-common.yaml             HTTP 契約的共用層（第七節，D-061）
   <aggregate>/
     model.yaml                 aggregate 模型：屬性、狀態、轉移、不變量
@@ -55,9 +56,9 @@ specs/
    `specs/` 裡的規格只能引用 `specs/` 裡的規則；`--report-only` 的草稿可以引用兩者。
 
 4. **每條規則只有一個結果。** `outcome.result` 是 `SUCCESS` 或 `REJECTED`。`REJECTED` 必須帶 `code`，而且 `code` 要定義在同一份 `usecases.yaml` 的 `error_codes`。不允許「A 或 B」。
-5. **規則的順序就是檢查的順序。** use case 的 `guards` 依序列出前置檢查的 id，順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
+5. **規則的順序就是檢查的順序。** use case 的 `guards` 依序列出前置檢查的 id。順序的依據寫在 `spec-profile.yaml` 的 `guard_order`（第九節）；本專案依 D-024：角色 → 載入 → 院區範圍 → 領域規則。檢查程式不檢查順序。
 6. **不出現實作詞彙。** 類別名、方法名、框架型別、HTTP 路徑、狀態碼、資料表名都不行。禁用的寫法列在 `forbidden-vocabulary.txt`，檢查程式逐一比對規格裡的所有值（YAML 註解不檢查）。本規則只適用於 `model.yaml`、`usecases.yaml`、`examples.yaml`；HTTP 契約（`http.yaml`、`http-common.yaml`）用來寫 HTTP 路徑與狀態碼，見第七節（D-061）。
-7. **錯誤代碼只寫分類，不寫 HTTP 狀態碼。** `error_codes` 每一項有 `code` 與 `category`，`category` 只能是 `denied`、`not_found`、`invalid_input`、`conflict`、`rule_violation`。分類對應到哪個 HTTP 狀態碼，由實作端的對應表決定。
+7. **錯誤代碼只寫分類，不寫 HTTP 狀態碼。** `error_codes` 每一項有 `code` 與 `category`，`category` 只能是 `spec-profile.yaml` 的 `error_categories` 列出的值（第九節）。本專案是 `denied`、`not_found`、`invalid_input`、`conflict`、`rule_violation`。
 8. **架構詞彙只用 `glossary.md` 有定義的詞。** 目前只人工檢查。
 
 ## 四、範例
@@ -119,6 +120,7 @@ specs/
 | 等級 | 項目 |
 |---|---|
 | 擋下 | 第三節規則 1 到 7、第四節規則 2、3、5，以及 YAML 讀不進來、`spec_version` 或 `kind` 不對；第八節的封閉結構、分辨不了情境的範例、引用完整性（D-063） |
+| 無法評估（不算通過） | `spec-profile.yaml` 不存在、讀不進來、缺少任何一項或內容不合法（D-064）；`forbidden-vocabulary.txt` 不存在 |
 | 只列出（D-063） | `given`、`when`、`then`、`observe` 完全相同的兩個範例：可能是刻意的重複 |
 | 只列出 | 沒有任何範例涵蓋的規則；`basis` 含 `proposed` 規則的範例 |
 
@@ -130,7 +132,7 @@ specs/
 
 | 檔案 | `kind` | 內容 |
 |---|---|---|
-| `specs/http-common.yaml` | `http-common` | 跨 aggregate 的共用層：`base_path`、回應外殼 `envelope.success`／`envelope.error`、`status_by_category`（錯誤分類對應的狀態碼，規則 7）、`transport_codes`（不屬於任何 use case 的錯誤代碼與狀態碼） |
+| `specs/http-common.yaml` | `http-common` | 跨 aggregate 的共用層：`base_path`、回應外殼 `envelope.success`／`envelope.error`、`status_by_category`（錯誤分類對應的狀態碼：規格只寫分類，規則 7；分類對到哪個 HTTP 狀態碼由這裡決定）、`transport_codes`（不屬於任何 use case 的錯誤代碼與狀態碼） |
 | `specs/<aggregate>/http.yaml` | `http` | `endpoints`：每一項有 `usecase`、`method`、`path`、`success.status`、`success.data` |
 
 規則：
@@ -208,7 +210,7 @@ use case：
 |---|---|
 | `name`、`summary` | 字串 |
 | `kind` | `command` 或 `query` |
-| `actor` | `roles`（字串清單） |
+| `actor` | 欄位依 `spec-profile.yaml` 的 `usecase_actor_fields`（第九節）；本專案是 `roles`（字串清單） |
 | `input[]` | 輸入欄位：`name`、`type`、`required`（布林）、規則欄位 |
 | `input_note` | 字串（待改寫：併入 `note`） |
 | `guards` | 字串清單 |
@@ -224,7 +226,7 @@ use case：
 | 欄位 | 型別 |
 |---|---|
 | `spec_version`、`kind`、`aggregate` | 整數、字串 |
-| `actors` | 名稱 → `user`、`roles`（字串清單）、`hospital` |
+| `actors` | 名稱 → 欄位依 `spec-profile.yaml` 的 `actor_fields`（第九節）；本專案是 `user`、`roles`（字串清單）、`hospital` |
 | `fixtures` | 名稱 → `steps`（步驟的清單）、`needs`（字串清單） |
 | `examples[]` | `name`、`basis`、`derived_from`、`needs`（字串清單）、`given`（步驟的清單）、`when`（步驟）、`then`、`observe`（觀察步驟的清單） |
 | `not_covered[]` | `rules`（字串清單）、`item`、`reason` |
@@ -246,3 +248,19 @@ use case：
    - `guard_exceptions[].guard` 必須是同一支 use case `guards` 裡的 id。
    - `transitions[].by` 必須是同目錄 `usecases.yaml` 的 use case；`from`、`to` 都要有。
    - 轉移的狀態與 `terminal_states` 必須都是同一個列舉的值；有轉移或 `terminal_states`，就必須有 `enums`。
+
+## 九、專案設定檔（D-064，v1.2）
+
+格式裡屬於專案的部分寫在 `specs/spec-profile.yaml`，`harness-core/spec_lint.py` 從規格目錄讀它，不寫死在程式裡。安裝 `harness-core/` 的其他專案（例如 iccard）寫自己的設定檔。檔案不存在、或缺少下表任何一項，判為無法評估，不使用預設值。
+
+| 欄位 | 型別 | 用途 |
+|---|---|---|
+| `kind` | 固定 `spec-profile` | |
+| `profile_version` | 固定 `1` | |
+| `actor_fields` | 名稱 → `str` 或 `str_list` | `examples.yaml` 的 `actors` 每一項允許的欄位。沒列的欄位照樣擋下 |
+| `usecase_actor_fields` | 名稱 → `str` 或 `str_list` | `usecases.yaml` 的 `actor` 允許的欄位 |
+| `error_categories` | 字串清單，不可重複 | `error_codes[].category` 允許的值 |
+| `guard_order` | `text`（字串）、`source`（`decision` 的清單） | guard 順序的說明（第三節規則 5）。只給人看，不檢查順序；`source` 的裁決要存在於決策紀錄 |
+
+`actor_fields`、`usecase_actor_fields`、`error_categories` 不可以是空的。設定檔也是封閉結構，不認得的欄位判為內容不合法。
+

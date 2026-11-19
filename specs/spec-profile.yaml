@@ -1,0 +1,23 @@
+# 規格格式裡屬於本專案的部分（D-064）。harness-core/spec_lint.py 讀這個檔案，不寫死在程式裡。
+# 欄位說明見 specs/README.md 第九節。
+kind: spec-profile
+profile_version: 1
+
+# examples.yaml 的 actors：每個操作者允許的欄位與型別（str：字串；str_list：字串清單）
+actor_fields:
+  user: str
+  roles: str_list
+  hospital: str
+
+# usecases.yaml 的 actor：use case 允許的操作者欄位
+usecase_actor_fields:
+  roles: str_list
+
+# usecases.yaml 的 error_codes[].category 允許的值。對應的 HTTP 狀態碼見 http-common.yaml 的 status_by_category
+error_categories: [denied, not_found, invalid_input, conflict, rule_violation]
+
+# guards 的順序就是檢查的順序。本專案的順序如下；spec_lint 不檢查順序
+guard_order:
+  text: 角色 → 載入 → 院區範圍 → 領域規則
+  source:
+    - { decision: D-024 }

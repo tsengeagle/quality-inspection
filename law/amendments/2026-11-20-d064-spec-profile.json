@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-20-d064-spec-profile",
+  "decision": "D-064",
+  "reason": "依負責人 2026-11-20 對格式 v2 草案第十二節三點的裁決（設定檔用 specs/spec-profile.yaml；不給預設值；不核對 status_by_category），新增 D-064：規格格式 v1.2，處理第十一節的缺口二。spec_lint.py 改從 specs/spec-profile.yaml 讀操作者欄位（actor_fields、usecase_actor_fields，G-07）、錯誤分類（error_categories，G-03）與 guard 順序的說明（guard_order，G-04），不再寫死本專案的 user／roles／hospital 與五種分類；設定檔不存在或不合法判為無法評估。specs/README.md 規則 5、7 改寫，新增第九節。新增 specs/spec-profile.yaml，內容照現狀。harness-core 測試新增 7 個，回歸樣本的測試補上設定檔。本機確認：現有兩份規格零問題；147 個測試全部通過；把分類或操作者欄位改回寫死，新測試各有 2 個變紅。執行器不動。VERSION 0.6.1 → 0.7.0。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/README.md",
+    "specs/spec-profile.yaml",
+    "harness-core/"
+  ]
+}
