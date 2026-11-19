@@ -44,9 +44,10 @@ public final class HttpContract {
         private final int successStatus;
         private final Object dataShape;
         private final List<String> arrays;
+        private final List<String> nullables;
 
         Endpoint(String aggregate, String usecase, String method, String path, int successStatus,
-                 Object dataShape, List<String> arrays) {
+                 Object dataShape, List<String> arrays, List<String> nullables) {
             this.aggregate = aggregate;
             this.usecase = usecase;
             this.method = method;
@@ -55,6 +56,7 @@ public final class HttpContract {
             this.successStatus = successStatus;
             this.dataShape = dataShape;
             this.arrays = arrays;
+            this.nullables = nullables;
         }
 
         public String aggregate() { return aggregate; }
@@ -65,6 +67,8 @@ public final class HttpContract {
         Object dataShape() { return dataShape; }
         /** data 形狀裡的陣列位置，以 {@code $.data} 開頭，巢狀的索引寫成 []。 */
         List<String> arrays() { return arrays; }
+        /** data 形狀裡可為 null 的欄位位置，寫法同 {@link #arrays()}。 */
+        List<String> nullables() { return nullables; }
 
         public String key() { return method + " " + path; }
 
@@ -183,8 +187,8 @@ public final class HttpContract {
                 loadProblems.add("http-common.yaml：envelope 必須有 success 與 error");
             } else {
                 List<String> ignored = new ArrayList<>();
-                JsonShape.validate(successEnvelope, "http-common.yaml envelope.success", Map.of(), true, loadProblems, ignored);
-                JsonShape.validate(errorEnvelope, "http-common.yaml envelope.error", Map.of(), false, loadProblems, ignored);
+                JsonShape.validate(successEnvelope, "http-common.yaml envelope.success", Map.of(), true, loadProblems, ignored, new ArrayList<>());
+                JsonShape.validate(errorEnvelope, "http-common.yaml envelope.error", Map.of(), false, loadProblems, ignored, new ArrayList<>());
             }
             for (Map.Entry<?, ?> e : map(c.get("status_by_category")).entrySet()) {
                 if (e.getValue() instanceof Integer) statusByCategory.put(String.valueOf(e.getKey()), (Integer) e.getValue());
@@ -258,9 +262,10 @@ public final class HttpContract {
                     continue;
                 }
                 List<String> arrays = new ArrayList<>();
-                JsonShape.validate(success.get("data"), "$.data", en, false, loadProblems, arrays);
+                List<String> nullables = new ArrayList<>();
+                JsonShape.validate(success.get("data"), "$.data", en, false, loadProblems, arrays, nullables);
                 endpoints.add(new Endpoint(aggregate, usecase, method, path, (Integer) success.get("status"),
-                        success.get("data"), arrays));
+                        success.get("data"), arrays, nullables));
             }
         }
     }

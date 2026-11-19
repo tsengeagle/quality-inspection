@@ -85,6 +85,7 @@ class HttpContractEvaluatorTest {
     }
 
     private static final String GOOD_LIST = ok("{\"items\":[{\"thingId\":\"T1\",\"status\":\"DRAFT\",\"count\":3,\"ratio\":0.5,\"note\":null}]}");
+    private static final String GOOD_LIST_WITH_NOTE = ok("{\"items\":[{\"thingId\":\"T2\",\"status\":\"PUBLISHED\",\"count\":1,\"ratio\":1,\"note\":\"n\"}]}");
     private static final String GOOD_PARTS = ok("{\"thingId\":\"T1\",\"parts\":[{\"partId\":\"P1\"}]}");
     private static final String GOOD_THING = ok("{\"thingId\":\"T1\"}");
 
@@ -92,6 +93,7 @@ class HttpContractEvaluatorTest {
     private static HttpContractEvaluator fullyCovered(HttpContract c) {
         HttpContractEvaluator e = new HttpContractEvaluator(c);
         e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST));
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST_WITH_NOTE));
         e.observe(new HttpObservation("GET", "/things/T1/parts", 200, GOOD_PARTS));
         e.observe(new HttpObservation("GET", "/things/T1", 200, GOOD_THING));
         return e;
@@ -308,5 +310,34 @@ class HttpContractEvaluatorTest {
         HttpContractEvaluator e = fullyCovered(c);
         e.observe(new HttpObservation("GET", "/things/T1/parts", 200, GOOD_PARTS));
         assertTrue(e.problems().containsAll(c.loadProblems()), e.problems().toString());
+    }
+
+    // ---------- W-7（D-061 草案 Q-4）：可為 null 的欄位兩種值都要觀察到 ----------
+
+    @Test
+    void nullableFieldNeverObservedNonNullIsAProblem() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract());
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST));
+        e.observe(new HttpObservation("GET", "/things/T1/parts", 200, GOOD_PARTS));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, GOOD_THING));
+        assertProblem(e, "GET /things：可為 null 的欄位 $.data.items[].note 從未觀察到非 null 的值");
+    }
+
+    @Test
+    void nullableFieldNeverObservedNullIsAProblem() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract());
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST_WITH_NOTE));
+        e.observe(new HttpObservation("GET", "/things/T1/parts", 200, GOOD_PARTS));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, GOOD_THING));
+        assertProblem(e, "GET /things：可為 null 的欄位 $.data.items[].note 從未觀察到 null");
+    }
+
+    @Test
+    void coverageProblemsAreSeparateFromObservationProblems() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{}")));
+        assertTrue(e.observationProblems().stream().anyMatch(p -> p.contains("缺少欄位 thingId")), e.observationProblems().toString());
+        assertTrue(e.observationProblems().stream().noneMatch(p -> p.contains("沒有觀察到任何成功回應")), e.observationProblems().toString());
+        assertTrue(e.coverageProblems().stream().anyMatch(p -> p.contains("GET /things：沒有觀察到任何成功回應")), e.coverageProblems().toString());
     }
 }

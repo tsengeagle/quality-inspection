@@ -23,10 +23,12 @@
 specs/
   README.md                    本文件
   forbidden-vocabulary.txt     規格裡不得出現的實作詞彙
+  http-common.yaml             HTTP 契約的共用層（第七節，D-061）
   <aggregate>/
     model.yaml                 aggregate 模型：屬性、狀態、轉移、不變量
     usecases.yaml              use case 合約：誰能做、輸入、前置檢查、規則與結果
     examples.yaml              驗收範例：只透過 use case 準備資料、執行、觀察
+    http.yaml                  HTTP 契約：端點與回應的形狀（第七節；有的 aggregate 才有）
     OPEN-QUESTIONS.md          待裁決的問題（有 proposed 規則時才需要）
 ```
 
@@ -54,7 +56,7 @@ specs/
 
 4. **每條規則只有一個結果。** `outcome.result` 是 `SUCCESS` 或 `REJECTED`。`REJECTED` 必須帶 `code`，而且 `code` 要定義在同一份 `usecases.yaml` 的 `error_codes`。不允許「A 或 B」。
 5. **規則的順序就是檢查的順序。** use case 的 `guards` 依序列出前置檢查的 id，順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
-6. **不出現實作詞彙。** 類別名、方法名、框架型別、HTTP 路徑、狀態碼、資料表名都不行。禁用的寫法列在 `forbidden-vocabulary.txt`，檢查程式逐一比對規格裡的所有值（YAML 註解不檢查）。
+6. **不出現實作詞彙。** 類別名、方法名、框架型別、HTTP 路徑、狀態碼、資料表名都不行。禁用的寫法列在 `forbidden-vocabulary.txt`，檢查程式逐一比對規格裡的所有值（YAML 註解不檢查）。本規則只適用於 `model.yaml`、`usecases.yaml`、`examples.yaml`；HTTP 契約（`http.yaml`、`http-common.yaml`）用來寫 HTTP 路徑與狀態碼，見第七節（D-061）。
 7. **錯誤代碼只寫分類，不寫 HTTP 狀態碼。** `error_codes` 每一項有 `code` 與 `category`，`category` 只能是 `denied`、`not_found`、`invalid_input`、`conflict`、`rule_violation`。分類對應到哪個 HTTP 狀態碼，由實作端的對應表決定。
 8. **架構詞彙只用 `glossary.md` 有定義的詞。** 目前只人工檢查。
 
@@ -120,3 +122,37 @@ specs/
 | 只列出 | 沒有任何範例涵蓋的規則；`basis` 含 `proposed` 規則的範例 |
 
 「只列出」的兩項原定在第 4 期完成後改為擋下。執行器已完成（第四節「執行」），改為擋下另案處理：`RP-INV-04` 由抽選的 use case 執行，現在擋下會卡住。
+
+## 七、HTTP 契約（D-061）
+
+範例只執行到 use case 層，HTTP 的回應形狀要另外由契約涵蓋（漏網紀錄 E-03）。契約有兩層：
+
+| 檔案 | `kind` | 內容 |
+|---|---|---|
+| `specs/http-common.yaml` | `http-common` | 跨 aggregate 的共用層：`base_path`、回應外殼 `envelope.success`／`envelope.error`、`status_by_category`（錯誤分類對應的狀態碼，規則 7）、`transport_codes`（不屬於任何 use case 的錯誤代碼與狀態碼） |
+| `specs/<aggregate>/http.yaml` | `http` | `endpoints`：每一項有 `usecase`、`method`、`path`、`success.status`、`success.data` |
+
+規則：
+
+1. **端點屬於它呼叫的 use case 所在的規格目錄**，不看 URL 前綴。`usecase` 必須在同目錄的 `usecases.yaml`；同一個方法與路徑（路徑參數視為相同）只能出現一次。
+2. **形狀的寫法。**
+   - 對應表是封閉物件：列出的欄位都要有，沒列出的欄位不可以出現。
+   - 只有一個元素的清單是陣列。
+   - 純量型別：`id`、`text`、`int`、`decimal`、`boolean`、`enum <名稱>`（名稱在同目錄 `model.yaml` 的 `enums`）。結尾加 `?` 表示可以是 null，要加引號。
+   - 字面值 `'null'`、`'true'`、`'false'` 要加引號。
+   - `$data` 只能用在共用層的外殼，代表端點的 data 形狀。
+3. **錯誤回應。** 錯誤代碼先查 `transport_codes`，再查該 aggregate `usecases.yaml` 的 `error_codes`，以分類對應狀態碼。兩邊都找不到的代碼算違反。
+4. **比對（B-1 觀察）。** 測試期間經過 MockMvc 的每一個回應，都用契約比對；本文必須是單一 JSON 文件。比對器在 `services/quality-inspection-service/src/test/java/.../acceptance/http/`（律法，gate），以 `application-test.yml` 的 `context.initializer.classes` 掛進每個測試 context。
+5. **涵蓋。** 每個端點至少觀察到一次成功回應；data 形狀裡的每個陣列至少觀察到一次非空；data 形狀裡可為 null 的欄位，null 與非 null 都要觀察到。共用層的外殼不寫可為 null 的欄位（錯誤回應的 `message` 一律要有值）。
+6. **閘門。** 報告寫在 `build/reports/http-contract/report.txt`，`build.gradle` 的 test 閘門讀它判決：
+   - `specs/` 的契約有問題就未通過。
+   - 完整執行時，報告必須是本次執行產生的。
+   - 有篩選條件時只判每一筆回應，涵蓋不判。
+   - `spec-draft/` 裡的契約只列出、不擋。
+7. **檢查。** `spec_lint` 不檢查這兩種檔案，由 `HttpContractFilesTest` 檢查它們讀得進來、沒有載入問題。
+8. **不涵蓋的。** 請求端（請求本文、query、參數名稱）、操作者怎麼傳進來、值的正確性（由 use case 範例負責）。
+
+| aggregate | `http.yaml` | 端點 |
+|---|---|---|
+| `ScoreSheetDefinition` | `specs/score-sheet/http.yaml` | 7 |
+| `ReviewProject` | 尚未撰寫（D-061 第 6 點） | — |

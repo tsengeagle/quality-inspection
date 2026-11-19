@@ -139,7 +139,7 @@ class Coverage:
 
     格式（# 開頭是註解）：
         @problem-side <路徑樣式>                 問題側的範圍，可以有多行
-        <路徑樣式>  legislated     <規格目錄>     已立法：規格目錄必須存在於 base
+        <路徑樣式>  legislated     <規格>         已立法：規格（目錄或檔案）必須存在於 base
         <路徑樣式>  grandfathered  <說明>         未立法但暫准：照常通過，報告列為提醒
     路徑樣式的寫法與律法清冊相同；一個路徑符合多行時以最後一行為準。
     問題側裡新增或修改的檔案，若不符合任何一行，判為未通過：要先立法，或以修法把它列進清單。
@@ -197,12 +197,13 @@ def judge_coverage(repo, base, start, head, coverage_path):
         elif entry[2] == "grandfathered":
             reminders.append((entry[3], path))
         else:
-            spec_dir = entry[3].rstrip("/")
-            if not git(repo, "ls-tree", "-d", base, "--", spec_dir).stdout.strip():
+            spec = entry[3].rstrip("/")
+            # 規格可以是目錄（aggregate 的規格），也可以是檔案（D-061：跨 aggregate 的共用層契約）
+            if not git(repo, "ls-tree", base, "--", spec).stdout.strip():
                 missing_specs.append("%s（%s）" % (path, entry[3]))
     checks = [("問題側的修改都在涵蓋清單內", not outside,
                "不在清單內：%s。這是未立法的新範圍：先立法，或以修法把它列進 %s" % ("、".join(outside), coverage_path)),
-              ("已立法範圍指向的規格目錄存在", not missing_specs, "base 上沒有：" + "、".join(missing_specs))]
+              ("已立法範圍指向的規格存在", not missing_specs, "base 上沒有：" + "、".join(missing_specs))]
     return checks, reminders
 
 

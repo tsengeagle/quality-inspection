@@ -893,6 +893,39 @@ class CoverageTest(RepoCase):
         self.assertFalse(passed, report)
         self.assertIn("specs/score/", report)
 
+    def test_legislated_entry_may_point_to_an_existing_spec_file(self):
+        # D-061：跨 aggregate 的共用層契約是 specs/ 底下的單一檔案
+        self.git("checkout", "-q", "main")
+        self.write({"law/coverage.txt": COVERAGE + "src/api/Envelope.java  legislated  specs/http-common.yaml\n",
+                    "specs/http-common.yaml": "kind: http-common\n",
+                    "src/api/Envelope.java": "class Envelope {}\n"})
+        self.base = self.commit("file spec")
+        self.git("checkout", "-q", "-B", "change")
+        passed, report = self.judge({"src/api/Envelope.java": "class Envelope { int x; }\n"})
+        self.assertTrue(passed, report)
+        self.assertNotIn("未立法範圍的修改", report)
+
+    def test_legislated_entry_pointing_to_a_missing_spec_file_fails(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/coverage.txt": COVERAGE + "src/api/Envelope.java  legislated  specs/http-common.yaml\n",
+                    "src/api/Envelope.java": "class Envelope {}\n"})
+        self.base = self.commit("missing file spec")
+        self.git("checkout", "-q", "-B", "change")
+        passed, report = self.judge({"src/api/Envelope.java": "class Envelope { int x; }\n"})
+        self.assertFalse(passed, report)
+        self.assertIn("specs/http-common.yaml", report)
+
+    def test_later_specific_row_overrides_an_earlier_directory_row(self):
+        # D-061：dto/ 整個目錄暫准，其中已有契約的檔案以後面的單檔行改為已立法
+        self.git("checkout", "-q", "main")
+        self.write({"law/coverage.txt": COVERAGE + "src/domain/case/CaseView.java  legislated  specs/project/\n",
+                    "src/domain/case/CaseView.java": "class CaseView {}\n"})
+        self.base = self.commit("specific row")
+        self.git("checkout", "-q", "-B", "change")
+        passed, report = self.judge({"src/domain/case/CaseView.java": "class CaseView { int x; }\n"})
+        self.assertTrue(passed, report)
+        self.assertNotIn("未立法範圍的修改", report)
+
     def test_missing_coverage_file_is_not_evaluated(self):
         self.git("checkout", "-q", "main")
         self.write({"law/coverage.txt": None})

@@ -2262,3 +2262,58 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `harness-core/law_check.py`、`harness-core/tests/test_law_check.py`、`harness-core/README.md`、`harness-core/VERSION`
 - `AGENTS.md`、`CLAUDE.md`
 - `docs/harness/03-harness-plan.md` 第六節、`docs/harness/12-escaped-defects.md`、`docs/harness/05-current-state.md` 第七節
+
+---
+
+## D-061 — HTTP 契約升格為律法：觀察式比對與閘門
+
+### Status
+
+`accepted`（2026-11-18，依負責人裁決：HTTP 契約採選項 B「另立機器可讀的契約」、比對採 B-1「觀察」、比對器放在 `acceptance/`；草案的 Q-1～Q-6 全部採建議選項。草案與裁決紀錄見 `docs/harness/14-d061-draft.md`）
+
+### Decision
+
+1. **契約的位置。** 共用層（回應外殼、錯誤分類對應的狀態碼、不屬於任何 use case 的錯誤代碼）放在 `specs/http-common.yaml`，跨 aggregate 只寫一次。aggregate 層（端點與回應的 data 形狀）放在 `specs/<aggregate>/http.yaml`。端點屬於它呼叫的 use case 所在的規格目錄，不看 URL 前綴。
+2. **格式。** 規格格式 v1 第三節規則 6（不出現實作詞彙）只適用於 `model.yaml`、`usecases.yaml`、`examples.yaml`。`http.yaml` 與 `http-common.yaml` 用來寫 HTTP 契約，可以出現路徑與狀態碼。格式寫在 `specs/README.md` 第七節，由 `acceptance/http/` 的 `HttpContractFilesTest` 檢查，不重複寫進 `spec_lint`。
+3. **比對方式（B-1 觀察）。** 測試期間經過 MockMvc 的每一個回應，都用契約比對：外殼、成功狀態碼、data 的形狀（物件是封閉的）、錯誤代碼的分類對應的狀態碼；本文必須是單一 JSON 文件。涵蓋的要求：
+   - 每個端點至少觀察到一次成功回應。
+   - 每個陣列至少觀察到一次非空。
+   - data 形狀裡可為 null 的欄位，null 與非 null 都要觀察到（W-7）。共用層的外殼沒有可為 null 的欄位：錯誤回應的 `message` 一律要有值（api-spec §3.5）。
+4. **閘門。** `check` 的 test 閘門在下列任一情況未通過：
+   - `specs/` 的契約有任何問題：載入問題、回應不符，以及完整執行時的涵蓋不足。有篩選條件的執行只判每一筆回應，涵蓋不判。
+   - 完整執行時，沒有本次執行產生的報告。報告第一行是 Gradle 這次給的執行識別碼，所以觀察器被關掉、或只留下舊報告，都算未通過。
+   - `spec-draft/` 的契約只列出、不擋。`build.gradle` 把 `specs/` 與 `spec-draft/` 都宣告為 test 的輸入。
+   - 本裁決生效時立刻擋（Q-6）：生效時現行程式的報告問題為 0，沒有要凍結的已知失敗。
+5. **涵蓋清單。** 下列範圍由暫准改為已立法：
+   - `dto/ApiResponse.java`、`GlobalExceptionHandler.java`，指向 `specs/http-common.yaml`。
+   - score-sheet 的 5 個回應 dto，指向 `specs/score-sheet/`。
+
+   修訂 D-060 第 1 點：`legislated` 可以指向規格目錄，也可以指向規格檔案（`law_check.py` 0.5.0）。
+6. **不在本裁決範圍內的。**
+   - **請求端**（Q-3）：`ScoreSheetController` 與請求 dto 仍列為暫准。請求端之後與律法擁有的 HTTP 請求（W-10）一起設計。
+   - **操作者的傳遞**：`ActorContextArgumentResolver`、`CurrentActor` 不在契約內，仍列為暫准。
+   - **其他 aggregate**（Q-1）：本裁決只做 score-sheet。review-project 另以修法補上 `http.yaml`，不必另立裁決。
+7. **401。** 未認證一律回 401 與 `UNAUTHORIZED`（D-023、api-spec §4.1），缺少與無效的差別只寫在 `message`（Q-5，#96 已修正程式）。
+8. **暫准只減不增**（D-060 第 5 點）。之後每立法一個 aggregate，就同時寫它的 `http.yaml`，並把它的回應 dto 改為已立法。
+
+### Relationship / Evidence
+
+- **起因**：E-03（`docs/harness/12-escaped-defects.md`）。score-sheet 已立法，範例全過，回應形狀卻不符 D-050 第 7 點達 7 個月。D-060 只能提醒，擋不到。
+- **試做**：#93、#95（`docs/harness/13-http-contract-options.md` 第九節）：
+  - 把 #85 之前的寫法放回去，列出 6 個問題。
+  - 不打 HTTP 時，列出 7 個端點都沒有成功觀察。
+  - 現行程式的報告問題為 0。
+- **生效前的準備**：
+  - #96：401 改回 `UNAUTHORIZED`。試做的報告在修正前就列出 `MISSING_API_KEY`、`INVALID_TOKEN` 沒有定義。
+  - #97：補上建構者測試，讓 `scoreSheetVersionId`、`conditionExpression` 兩種值都被觀察到。
+- **擋不到的**：
+  - 不經過 MockMvc 的呼叫：會判為沒有觀察。
+  - 值的正確性：由 use case 範例負責。
+  - 請求端（W-9）、律法擁有的 HTTP 請求（W-10）。
+
+### Mapping
+
+- `specs/http-common.yaml`、`specs/score-sheet/http.yaml`、`specs/README.md`、`spec-draft/README.md`
+- `services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/`、`services/quality-inspection-service/build.gradle`
+- `law/coverage.txt`、`harness-core/law_check.py`、`harness-core/tests/test_law_check.py`、`harness-core/README.md`、`harness-core/VERSION`
+- `docs/harness/13-http-contract-options.md`、`docs/harness/14-d061-draft.md`、`docs/harness/12-escaped-defects.md`
