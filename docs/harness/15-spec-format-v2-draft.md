@@ -130,7 +130,9 @@ examples:
 ```
 
 - 沒有寫 `clock` 的範例，執行器仍要提供固定的時鐘，起始值是規格目錄層級的預設值。範例的結果不能依賴執行當下的時間。
-- 程式必須從注入的時鐘取時間，這和 ARCH-02 的方向一致（`domain`、`application` 不得直接取系統時間，`now(Clock)` 不算違規）。但 2026-11-19 的 `domain` 仍有 19 處無參數的取時呼叫，都凍結在 ARCH-02 的基線內：`ReviewCase` 6 處、`ReviewSubmission` 9 處（`LocalDateTime.now()`），`SamplingBatch` 3 處、`DomainEvent` 1 處（`Instant.now()`）。這 19 處要先改成注入的時鐘，時鐘的範例才能作用在 ReviewCase 上。其中 `LocalDateTime` 要不要改成 UTC 的 `Instant`，是 `05-current-state.md` 第五節第 3 項待裁決的事。
+- 程式必須從注入的時鐘取時間，這和 ARCH-02 的方向一致（`domain`、`application` 不得直接取系統時間，`now(Clock)` 不算違規）。但 2026-11-19 的 `domain` 仍有 19 處無參數的取時呼叫，都凍結在 ARCH-02 的基線內：`ReviewCase` 6 處、`ReviewSubmission` 9 處（`LocalDateTime.now()`），`SamplingBatch` 3 處、`DomainEvent` 1 處（`Instant.now()`）。這 19 處要先改成注入的時鐘，時鐘的範例才能作用在 ReviewCase 上。
+  - 2026-11-20 的建構 PR 改掉 `ReviewCase`、`ReviewSubmission`、`SamplingBatch` 的 18 處：domain 方法改收時間參數，use case 以注入的 `Clock` 傳入，ARCH-02 基線刪 18 行。行為不變，型別也沒改。
+  - 剩下 `DomainEvent` 的 1 處（`occurredAt`）。建立事件的 29 支 use case 含已立法範圍，另案處理；ReviewCase 的第一個薄切片不比對事件時間，不影響 v2.0。其中 `LocalDateTime` 要不要改成 UTC 的 `Instant`，是 `05-current-state.md` 第五節第 3 項待裁決的事。
 
 **6. 矩陣範例（角色 × 狀態）**
 
@@ -357,7 +359,7 @@ facets:
 | 期 | 內容 | 前提 | 對現有規格的影響 |
 |---|---|---|---|
 | v1.1 | A 組（第 1～3 項）、Q-1 的欄位表 | Q-1、Q-2 | **已完成**（D-063，#109、#110）。現有規格零問題 |
-| v2.0 | B 組（第 4～8 項） | Q-6、Q-7、Q-8 已裁決；尚待 `domain` 的 19 處取時呼叫改用注入的時鐘（第 5 項） | 現有範例照跑；新寫法供 ReviewCase 使用 |
+| v2.0 | B 組（第 4～8 項） | Q-6、Q-7、Q-8 已裁決；`domain` 的取時呼叫已改掉 18 處，剩 `DomainEvent` 1 處（第 5 項） | 現有範例照跑；新寫法供 ReviewCase 使用 |
 | v2.1 | C 組（第 9～12 項） | Q-3、Q-4、Q-5、Q-9 已裁決 | 規格目前沒有宣告任何埠（程式裡的 11 個 `XPort` 是內部的查詢與儲存介面，不因此變成規格的一部分）；先以卡片的試寫驗證 |
 
 v2.0 之後的第一個使用者是 ReviewCase 的薄切片（分派、初審提交、revision-history 的讀取遮罩）。用它驗證 B 組夠不夠，之後再擴大。
