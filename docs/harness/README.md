@@ -34,7 +34,7 @@
 | `07-github-settings.md` | GitHub 端要手動做的設定（main 的保護規則、必要檢查）與驗收方式 |
 | `08-legislation-design.md` | 修法機制的設計草稿：律法清冊、修法紀錄、簽章核准、CI 判決規則；涵蓋 GitHub 與 GitLab、多種 AI 工具。待審，尚未實作 |
 | `09-law-inventory.md` | 律法清冊的盤點：方法、缺口、裁決（測試與規格延後列入）、未裁決的項目 |
-| `10-spec-format.md` | 規格格式 v1 的決定與理由；對 ReviewProject 草稿的試跑結果 |
+| `10-spec-format.md` | 規格格式 v1 的決定與理由；對 ReviewProject 草稿的試跑結果；對外部資源協定（醫事人員卡）的試寫與格式 v2 的候選 |
 | `11-example-runner.md` | 第 4 期：驗收範例的執行器。設計決定、驗證、第一次執行的結果 |
 | `12-escaped-defects.md` | 漏網紀錄：閘門全過卻漏掉的缺陷，以及對 harness 的回應 |
 | `13-http-contract-options.md` | HTTP 契約如何立法的選項比較（A／B／C），待負責人裁決（D-061 候選） |
