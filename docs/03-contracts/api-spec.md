@@ -423,7 +423,14 @@ Accept: application/json
 
 #### Response
 
-回傳專案目前版本的版本號與是否已發布。HTTP 欄位名稱在補上 `specs/review-project/http.yaml` 時決定（D-062 第 4 點）。
+```json
+{
+  "success": true,
+  "data": { "versionNumber": 1, "published": false }
+}
+```
+
+欄位名稱維持程式現況 `versionNumber`（D-062 第 4 點）。
 
 ---
 
