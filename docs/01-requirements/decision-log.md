@@ -2168,7 +2168,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
    - `POST /review-cases/{caseId}/reopen`：限 `HOSPITAL_MANAGER`，本院；`RETURNED` → `PENDING_INITIAL_REVIEW`。只用於退回初審之後，不是重開 `CLOSED` 案件（D-005、D-032 不受影響）。
    - `GET /sampling-batches/{batchId}/export`：限 `HOSPITAL_MANAGER`，本院（依所屬專案的院區）。
    - `GET /score-sheets/{scoreSheetId}/version`：角色與院區依 D-050 第 7 點。
-6. **評分表列表與章節查詢，依 D-050 第 7 點，不以程式為準。** `GET /score-sheets`、`GET /score-sheets/{scoreSheetId}/sections` 的路徑以程式為準，但回應依 D-050 第 7 點：列表回傳 `{ items }`、章節回傳 `{ scoreSheetId, sections }`。現行程式直接回傳陣列，與 D-050 不一致，列為待修的程式缺口，由後續的建構 PR 處理，本決策不改程式。
+6. **評分表列表與章節查詢，依 D-050 第 7 點，不以程式為準。** `GET /score-sheets`、`GET /score-sheets/{scoreSheetId}/sections` 的路徑以程式為準，但回應依 D-050 第 7 點：列表回傳 `{ items }`、章節回傳 `{ scoreSheetId, sections }`。現行程式直接回傳陣列，與 D-050 不一致，列為待修的程式缺口，由後續的建構 PR 處理，本決策不改程式。（已由 #85 修正：列表回傳 `{ items }`、章節回傳 `{ scoreSheetId, sections }`，見 `ScoreSheetController`；2026-11-19 更正本點的現況描述，裁決內容不變。）
 7. **不納入本決策：`GET /review-cases/{caseId}/rereview-revisions`。** `GetRereviewRevisionHistoryUseCase` 沒有角色檢查（程式註解寫「Any authenticated role can query — visibility enforced at API/UI layer」，但 API 層沒有檢查），院區範圍內的任何角色都能讀到複審的 `totalScore` 與 `comment`，包括只應取得 metadata 的 `SYSTEM_ADMIN`。這是權限缺口，不能以程式為準寫進 api-spec；是否保留這支端點、該開放哪些角色，需另行裁決。目前沒有前端使用。（已由 D-059 裁決：移除。）
 
 ### Relationship / Evidence
@@ -2187,7 +2187,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
   - `docs/06-frontend/ui-api-binding-matrix.md`、`frontend-design-roadmap.md`、`ui-view-model-spec.md`
 - 更新路徑樣式的規則：`docs/06-frontend/frontend-test-scenarios.md` 的 G-01／G-02、`docs/07-design/ui-design-decisions.md` 的 O2-A；`docs/06-frontend/frontend-review-gate-pending-items.md` 的 O2 分析加註以 D-058 為準。
 - 不改：`docs/superpowers/`、`docs/review/` 的舊計畫與報告（歷史紀錄）；`docs/06-frontend/` 的 `ready-pages-*`、`wave-backend-dependency-inventory.md`、`sampling-route-module-map-addendum.md` 等規劃與交接文件，其中多數路徑是當時提議、程式從未實作的端點，不屬於本次的路徑差異；UI-014 §11.3「可後補」的 compare API。
-- 程式不變；第 6 點的回應格式與第 7 點的權限缺口由後續 PR 處理。
+- 程式不變；第 6 點的回應格式與第 7 點的權限缺口由後續 PR 處理。（第 6 點已由 #85 處理，第 7 點已由 D-059 處理。）
 
 ---
 

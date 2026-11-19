@@ -1,0 +1,9 @@
+{
+  "id": "2026-11-19-d058-point6-note",
+  "decision": "D-058",
+  "reason": "H-4：更正 D-058 第 6 點的現況描述。第 6 點寫「現行程式直接回傳陣列……由後續的建構 PR 處理」，但 #85（a05c0e6）已把 GET /score-sheets 改為 { items }、GET /score-sheets/{scoreSheetId}/sections 改為 { scoreSheetId, sections }（ScoreSheetController 第 125、154 行）。依第 7 點既有的加註方式，在第 6 點與 Mapping 最後一行附加括號註記，原文與裁決內容不變。docs/harness/05-current-state.md 第 4b 列同步更新。不改程式與測試。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md"
+  ]
+}
