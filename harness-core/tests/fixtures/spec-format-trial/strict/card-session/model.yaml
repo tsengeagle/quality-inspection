@@ -1,0 +1,33 @@
+# 試寫：把白板寫進規格格式 v1。不是律法。
+spec_version: 1
+kind: aggregate
+name: CardResource
+term: 卡片資源
+
+identity: { name: machineId, type: id, assigned_by: system }
+
+attributes:
+  - { name: holder, type: text, required: false, note: 目前持鎖的使用者 }
+  - { name: status, type: enum CardResourceStatus, initial: FREE }
+
+enums:
+  CardResourceStatus: [FREE, HELD, FAULTED]
+
+transitions:
+  - { id: HC-T-01, from: FREE, by: UseCardOnce, to: HELD, status: proposed, question: Q-01 }
+  - { id: HC-T-02, from: HELD, by: UseCardOnce, to: FREE, status: proposed, question: Q-01 }
+  - { id: HC-T-03, from: HELD, by: UseCardOnce, to: FAULTED, status: proposed, question: Q-01 }
+
+invariants:
+  - id: HC-INV-01
+    text: 先取得鎖，才能開啟卡片模組；鎖從開啟之前護到關閉之後
+    status: proposed
+    question: Q-01
+  - id: HC-INV-02
+    text: 卡片模組確認關閉，才能放鎖；持鎖的意思是「我可能還有模組開著」
+    status: proposed
+    question: Q-01
+  - id: HC-INV-03
+    text: 對方可能持卡時不送 PIN；取鎖後先讀卡號比對，不符就不送 PIN
+    status: proposed
+    question: Q-01

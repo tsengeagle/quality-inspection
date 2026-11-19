@@ -362,7 +362,9 @@ class SpecLintTest(unittest.TestCase):
                                  "status": "proposed", "question": "Q-01"}]
         other["invariants"] = []
         self.write("specs/two/OPEN-QUESTIONS.md", "### Q-01\n")
-        for name, doc in (("model.yaml", other), ("usecases.yaml", {"spec_version": 1, "kind": "usecases"}),
+        # 轉移的 by 要是同目錄的 use case（D-063 第 5 點）
+        two_usecases = {"spec_version": 1, "kind": "usecases", "usecases": [{"name": "ActivateSample"}]}
+        for name, doc in (("model.yaml", other), ("usecases.yaml", two_usecases),
                           ("examples.yaml", {"spec_version": 1, "kind": "examples"})):
             self.write("specs/two/%s" % name, yaml.safe_dump(doc, allow_unicode=True, sort_keys=False))
         self.examples["examples"][0]["basis"].append("OT-T-01")
@@ -377,6 +379,246 @@ class SpecLintTest(unittest.TestCase):
         passed, report = self.run_lint(folder="specs/two")
         self.assertFalse(passed, report)
         self.assertIn("與另一個 aggregate 重複", report)
+
+    # --- D-063 第 2 點：封閉結構 ---
+
+    def test_unknown_field_in_then_fails(self):
+        # 試寫時的寫法：then 多出來的鍵，v1 的檢查與執行器都不理，讀的人卻會以為驗證過
+        self.examples["examples"][1]["then"]["not_called"] = ["sendPin"]
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("examples.yaml examples[activates_twice].then：不認得的欄位 not_called", report)
+
+    def test_unknown_field_in_a_step_fails(self):
+        self.examples["examples"][1]["given"].append({"clock": {"advance": "15s"}})
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("given[2]：不認得的欄位 clock", report)
+
+    def test_unknown_field_in_each_file_fails(self):
+        for target, mutate in (
+                ("model.yaml", lambda: self.rule("SM-INV-01").__setitem__("severity", "high")),
+                ("usecases.yaml", lambda: self.rule("SM-ACT-01")["outcome"].__setitem__("resource", "FAULTED")),
+                ("usecases.yaml", lambda: self.usecases["usecases"][0].__setitem__("timeout", "15s")),
+                ("examples.yaml", lambda: self.examples.__setitem__("ports", {})),
+                ("model.yaml", lambda: self.rule("SM-INV-01")["source"][0].__setitem__("page", 3))):
+            with self.subTest(target=target):
+                self.setUp()
+                mutate()
+                passed, report = self.run_lint()
+                self.assertFalse(passed, report)
+                self.assertIn("[問題] %s" % target, report)
+                self.assertIn("不認得的欄位", report)
+
+    def test_note_is_allowed_at_any_level(self):
+        self.model["note"] = "最上層"
+        self.rule("SM-INV-01")["note"] = "規則"
+        self.rule("SM-INV-01")["source"][0]["note"] = "出處"
+        self.examples["examples"][0]["note"] = "範例"
+        self.examples["examples"][0]["when"]["note"] = "步驟"
+        self.examples["examples"][0]["then"]["note"] = "結果"
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+
+    def test_note_must_be_text(self):
+        self.rule("SM-INV-01")["note"] = {"x": 1}
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("note：必須是字串", report)
+
+    def test_wrong_types_fail(self):
+        for mutate, message in (
+                (lambda: self.model.__setitem__("attributes", [{"name": "n", "type": "text", "required": "yes"}]),
+                 "required：必須是布林"),
+                (lambda: self.usecases["usecases"][0].__setitem__("kind", "event"), "必須是 command、query 其中之一"),
+                (lambda: self.examples["examples"][0]["then"].__setitem__("result", "OK"),
+                 "必須是 REJECTED、SUCCESS 其中之一"),
+                (lambda: self.model.__setitem__("enums", {"SampleStatus": ["DRAFT", "ACTIVE"]}), "enums：必須是清單"),
+                (lambda: self.usecases["usecases"][0].__setitem__("input", {"name": "text"}), "input：必須是清單")):
+            with self.subTest(message=message):
+                self.setUp()
+                mutate()
+                passed, report = self.run_lint()
+                self.assertFalse(passed, report)
+                self.assertIn(message, report)
+
+    def test_fields_already_in_use_are_accepted(self):
+        # D-063 第 2、3 點：照現有規格收錄的欄位（含標為「待改寫」的四項），v1.1 照樣接受
+        self.model.update({
+            "term": "樣本", "identity": {"name": "sampleId", "type": "id", "assigned_by": "system"},
+            "sources": [{"decision": "D-001"}], "terminal_states": ["ACTIVE"],
+            "deferred_attributes": ["x"], "deferred_behaviors": ["y"],
+            "attributes": [{"name": "score", "type": "int", "required": False, "initial": 0, "mutable": False,
+                            "external": False, "range": [1, 10], "assigned_by": "system"}],
+            "entities": [{"name": "Part", "term": "部分", "attributes": [{"name": "n", "type": "int", "initial": []}]}],
+        })
+        self.rule("SM-INV-01")["enforced_by"] = "另一支 use case"
+        usecase = self.usecases["usecases"][0]
+        usecase.update({"summary": "建立", "actor": {"roles": ["MANAGER"]}, "input_note": "說明",
+                        "input": [{"name": "title", "type": "text", "required": True}],
+                        "guard_exceptions": [{"guard": "SM-G-01", "text": "例外", "status": "decided",
+                                              "source": [{"decision": "D-001"}]}],
+                        "success": {"state": [], "emits": [{"event": "SampleCreated", "status": "decided",
+                                                            "source": [{"decision": "D-001"}]}],
+                                    "output": [{"name": "sampleId", "type": "id"}]}})
+        self.usecases["usecases"].append({"name": "GetSample", "kind": "query", "guards": [],
+                                          "output": {"status": "decided", "source": [{"decision": "D-001"}],
+                                                     "fields": [{"name": "sampleId", "type": "id"}]}})
+        self.usecases["input_types"] = {"ItemInput": [{"name": "code", "type": "text", "required": True}]}
+        self.rule("SM-ACT-01")["outcome"]["no_change"] = True
+        self.examples["examples"][0]["derived_from"] = ["EX-001"]
+        self.examples["not_covered"] = [{"rules": ["SM-INV-01"], "reason": "x"}, {"item": "emits", "reason": "y"}]
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+
+    def test_yaml_boolean_keys_are_explained(self):
+        self.run_lint()
+        path = os.path.join(self.tmp, "specs/sample/examples.yaml")
+        with open(path, encoding="utf-8") as f:
+            text = f.read()
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text.replace("  given:\n", "  given:\n  - port: CardModule\n    on: closeModule\n", 1))
+        passed, report = self.lint_only()
+        self.assertFalse(passed, report)
+        self.assertIn("True（YAML 把 on、yes 之類的鍵讀成布林或數字）", report)
+        self.assertNotIn("結構：內容的型別不合法", report)
+
+    # --- D-063 第 4 點：分辨不了情境的範例 ---
+
+    def duplicate_of_example(self, index, **changes):
+        twin = copy.deepcopy(self.examples["examples"][index])
+        twin["name"] = "twin"
+        twin["basis"] = ["SM-INV-01"]
+        twin.update(changes)
+        self.examples["examples"].append(twin)
+
+    def test_same_situation_with_different_then_fails(self):
+        self.duplicate_of_example(1, then={"result": "SUCCESS"})
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("examples.yaml twin：given、when 與範例 activates_twice 相同，then 卻不同", report)
+
+    def test_fixtures_are_expanded_before_comparing(self):
+        # 一個用 fixture、一個把同樣的步驟寫開：情境相同
+        steps = copy.deepcopy(self.examples["fixtures"]["draft"]["steps"]) + \
+            [copy.deepcopy(self.examples["examples"][1]["given"][1])]
+        self.duplicate_of_example(1, given=steps, then={"result": "SUCCESS"})
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("then 卻不同", report)
+
+    def test_notes_and_names_do_not_make_situations_different(self):
+        self.duplicate_of_example(0, then={"result": "REJECTED", "code": "ROLE_DENIED"},
+                                  derived_from=["EX-001"], note="不同的說明")
+        self.examples["examples"][-1]["when"]["note"] = "步驟的說明"
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("then 卻不同", report)
+
+    def test_different_input_is_a_different_situation(self):
+        self.duplicate_of_example(0, then={"result": "REJECTED", "code": "ROLE_DENIED"})
+        self.examples["examples"][-1]["when"]["input"] = {"title": "另一個"}
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+
+    def test_identical_examples_are_listed_not_blocked(self):
+        self.duplicate_of_example(0)
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+        self.assertIn("twin：given、when、then、observe 都與範例 creates 相同", report)
+
+    def test_same_then_with_different_observation_is_not_listed(self):
+        self.duplicate_of_example(0, observe=[{"run": "CreateSample", "as": "m", "input": {},
+                                               "expect": {"result": "SUCCESS"}}])
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+        self.assertNotIn("twin：", report)
+
+    def test_fixture_cycles_do_not_hang(self):
+        self.examples["fixtures"]["loop"] = {"steps": [{"use": "loop"}]}
+        self.duplicate_of_example(0, given=[{"use": "loop"}], then={"result": "SUCCESS"})
+        self.examples["examples"][0]["given"] = [{"use": "loop"}]
+        self.examples["examples"][-1]["then"] = {"result": "REJECTED", "code": "ROLE_DENIED"}
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("then 卻不同", report)
+
+    # --- D-063 第 5 點：引用完整性 ---
+
+    def test_guard_exception_must_name_one_of_the_usecases_own_guards(self):
+        self.usecases["guards"].append({"id": "SM-G-02", "when": "院區不符",
+                                        "outcome": {"result": "REJECTED", "code": "ROLE_DENIED"},
+                                        "status": "decided", "source": [{"decision": "D-001"}]})
+        usecase = self.usecases["usecases"][0]
+        usecase["guard_exceptions"] = [{"guard": "SM-G-02", "text": "例外", "status": "decided",
+                                        "source": [{"decision": "D-001"}]}]
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("guard SM-G-02 不在這支 use case 的 guards 裡", report)
+        usecase["guards"].append("SM-G-02")
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+
+    def test_transition_by_must_be_a_usecase_in_the_same_folder(self):
+        self.rule("SM-T-01")["by"] = "PublishSample"
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("model.yaml SM-T-01：by 必須是同目錄 usecases.yaml 的 use case", report)
+
+    def test_transition_states_must_belong_to_one_enum(self):
+        self.model["enums"].append({"name": "Other", "values": ["ARCHIVED"]})
+        self.rule("SM-T-01")["to"] = "ARCHIVED"
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("必須都是同一個列舉的值", report)
+
+    def test_terminal_states_must_belong_to_the_state_enum(self):
+        self.model["terminal_states"] = ["CLOSED"]
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("必須都是同一個列舉的值", report)
+        self.model["terminal_states"] = ["ACTIVE"]
+        self.assertTrue(self.run_lint()[0])
+
+    def test_transition_without_from_fails(self):
+        del self.rule("SM-T-01")["from"]
+        passed, report = self.run_lint()
+        self.assertFalse(passed, report)
+        self.assertIn("SM-T-01：缺少 from", report)
+
+    # --- D-063 第 6 點：回歸樣本（docs/harness/10-spec-format.md 第五節的試寫）---
+
+    def lint_trial(self, version):
+        source = os.path.join(HERE, "fixtures", "spec-format-trial", version)
+        shutil.copytree(source, os.path.join(self.tmp, "trial"))
+        passed, report = lint_module.lint(self.tmp, "trial", [])
+        return passed, "\n".join(report)
+
+    def test_trial_strict_draft_is_blocked_for_its_hollow_examples(self):
+        # v1 判它零問題：成功與被拒絕的範例 given、when 一字不差
+        passed, report = self.lint_trial("strict")
+        self.assertFalse(passed, report)
+        self.assertEqual(report.count("then 卻不同"), 2, report)
+        self.assertIn("rejects_when_another_process_holds_the_lock：given、when 與範例 signs_once_and_releases_the_lock 相同", report)
+        self.assertIn("mismatched_card_never_sends_pin：given、when 與範例 signs_once_and_releases_the_lock 相同", report)
+        self.assertNotIn("結構：內容的型別不合法", report)
+
+    def test_trial_extended_draft_is_blocked_for_each_invented_field(self):
+        # 試寫結果二的前 7 列；第 8 列（實作詞彙）不在 v1.1 的範圍
+        passed, report = self.lint_trial("ext")
+        self.assertFalse(passed, report)
+        for expected in (
+                "outcome：必須是對應表",                                    # 一條規則兩個結果（v1 已擋）
+                "rules[HC-USE-03].outcome：不認得的欄位 resource",            # 第二個面向
+                "then：不認得的欄位 calls、not_called、resource",             # 呼叫的順序、未呼叫
+                "then：不認得的欄位 resource、call_count",                    # 次數
+                "examples[ext_lock_held_by_other_process].then：不認得的欄位 output",   # 拒絕時帶資料
+                "given[0]：不認得的欄位 port",                               # 外部的替身
+                "given[0]：不認得的欄位 process、holds",                      # 第二個行程
+                "given[1]：不認得的欄位 clock"):                             # 固定時鐘
+            with self.subTest(expected=expected):
+                self.assertIn(expected, report)
+        self.assertNotIn("結構：內容的型別不合法", report)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""spec_lint.py — 規格格式的檢查程式（格式 v1，見 specs/README.md）。
+"""spec_lint.py — 規格格式的檢查程式（格式 v1，含 D-063 的 v1.1 檢查；見 specs/README.md）。
 
 逐一檢查 <specs 目錄>/<aggregate>/ 底下的 model.yaml、usecases.yaml、examples.yaml。
 判決是確定性的：只讀檔案，不執行任何規格裡的內容。
+
+v1.1（D-063）多了三項：
+    封閉結構：每一層只允許欄位表（FILE_SCHEMAS）列出的欄位，型別也要相符；任何一層都可以有 note。
+    分辨不了情境的範例：given（展開 fixture 後）與 when 相同、then 卻不同。
+    引用完整性：guard_exceptions、transitions 的 by／from／to、terminal_states。
 
 用法：
     python3 spec_lint.py [--repo .] [--specs specs] [--manifest law/manifest.txt]
@@ -18,6 +23,7 @@
 需要 PyYAML。
 """
 import argparse
+import json
 import os
 import re
 import sys
@@ -35,6 +41,163 @@ ID_PATTERN = re.compile(r"^[A-Z]{2,}-[A-Z0-9]+-[A-Z0-9]+$")
 SOURCE_KINDS = {"decision", "design_decision", "doc", "example", "scenario", "rule"}
 DEFAULT_MANIFEST = "law/manifest.txt"
 EXIT_PASS, EXIT_FAIL, EXIT_NOT_EVALUATED = 0, 1, 2
+USECASE_KINDS = {"command", "query"}
+
+
+# ---------- 欄位表（D-063 第 2 點）----------
+#
+# 每一層列出允許的欄位與型別。表上沒有的欄位、型別不符的值都是問題。
+# 任何一層對應表都可以有 note（自由文字，不參與判決）。
+# 欄位表是格式的定義，內建在這裡，不讀專案的 README；README 的欄位表是給人看的同一份內容。
+#
+# 節點的寫法：
+#   "str"、"int"、"bool"：純量
+#   "any"：任意值（範例的輸入、預期輸出、屬性的初始值）
+#   ("enum", 值的集合)：字串，且必須是其中之一
+#   ("list", 項目)：清單
+#   ("map", {欄位: 節點})：封閉的對應表
+#   ("named", 值)：鍵是自由的名稱（操作者、fixture、變數），值依節點檢查
+#   （待改寫）：D-063 第 3 點，v1.1 照樣接受、下一次修法改寫的欄位，以註解標出
+
+def _map(fields):
+    return ("map", fields)
+
+
+def _list(item):
+    return ("list", item)
+
+
+SOURCE_ITEM = _map({"decision": "str", "design_decision": "str", "doc": "str", "section": "str",
+                    "example": "str", "scenario": "str", "rule": "str"})
+RULE_META = {"status": "str", "source": _list(SOURCE_ITEM), "question": "str"}
+
+
+def _ruled(fields):
+    merged = dict(fields)
+    merged.update(RULE_META)
+    return _map(merged)
+
+
+ATTRIBUTE = _ruled({"name": "str", "type": "str", "required": "bool", "initial": "any",
+                    "assigned_by": "str", "mutable": "bool", "external": "bool",
+                    "range": _list("int")})                       # range（待改寫）
+MODEL_SCHEMA = _map({
+    "spec_version": "int", "kind": "str", "name": "str", "term": "str",
+    "identity": _map({"name": "str", "type": "str", "assigned_by": "str"}),
+    "sources": _list(SOURCE_ITEM),
+    "attributes": _list(ATTRIBUTE),
+    "entities": _list(_map({"name": "str", "term": "str", "attributes": _list(ATTRIBUTE)})),
+    "enums": _list(_ruled({"name": "str", "values": _list("str")})),
+    "transitions": _list(_ruled({"id": "str", "from": "str", "to": "str", "by": "str"})),
+    "terminal_states": _list("str"),
+    "invariants": _list(_ruled({"id": "str", "text": "str",
+                                "enforced_by": "str"})),         # enforced_by（待改寫）
+    "deferred_attributes": _list("str"),
+    "deferred_behaviors": _list("str"),
+})
+OUTCOME = _map({"result": "str", "code": "str", "no_change": "bool"})
+INPUT_FIELD = _ruled({"name": "str", "type": "str", "required": "bool"})
+USECASE = _map({
+    "name": "str", "kind": ("enum", USECASE_KINDS), "summary": "str",
+    "actor": _map({"roles": _list("str")}),
+    "input": _list(INPUT_FIELD),
+    "input_note": "str",                                          # input_note（待改寫）
+    "guards": _list("str"),
+    "guard_exceptions": _list(_ruled({"guard": "str", "text": "str"})),
+    "rules": _list(_ruled({"id": "str", "when": "str", "text": "str", "outcome": OUTCOME})),
+    "success": _map({
+        "state": _list(_ruled({"id": "str", "text": "str"})),
+        "emits": _list(_ruled({"event": "str"})),
+        "output": _list(_ruled({"name": "str", "type": "str"})),  # success.output（待改寫）
+    }),
+    "output": _ruled({"fields": _list(_map({"name": "str", "type": "str"}))}),   # output（待改寫）
+})
+USECASES_SCHEMA = _map({
+    "spec_version": "int", "kind": "str", "aggregate": "str",
+    "sources": _list(SOURCE_ITEM),
+    "error_codes": _list(_ruled({"code": "str", "category": "str"})),
+    "guards": _list(_ruled({"id": "str", "when": "str", "outcome": OUTCOME})),
+    "input_types": ("named", _list(INPUT_FIELD)),
+    "usecases": _list(USECASE),
+})
+STEP_FIELDS = {"run": "str", "as": "str", "input": ("named", "any"), "save": ("named", "str"),
+               "use": "str", "input_pending": "str"}
+STEP = _map(STEP_FIELDS)
+RESULT = _map({"result": ("enum", RESULTS), "code": "str"})
+OBSERVE_STEP = _map(dict(STEP_FIELDS, expect=_map({"result": ("enum", RESULTS), "code": "str",
+                                                     "output": ("named", "any")})))
+EXAMPLES_SCHEMA = _map({
+    "spec_version": "int", "kind": "str", "aggregate": "str",
+    "actors": ("named", _map({"user": "str", "roles": _list("str"), "hospital": "str"})),
+    "fixtures": ("named", _map({"steps": _list(STEP), "needs": _list("str")})),
+    "examples": _list(_map({
+        "name": "str", "basis": _list("str"), "derived_from": _list("str"), "needs": _list("str"),
+        "given": _list(STEP), "when": STEP, "then": RESULT, "observe": _list(OBSERVE_STEP),
+    })),
+    "not_covered": _list(_map({"rules": _list("str"), "item": "str", "reason": "str"})),
+})
+FILE_SCHEMAS = {"model.yaml": MODEL_SCHEMA, "usecases.yaml": USECASES_SCHEMA, "examples.yaml": EXAMPLES_SCHEMA}
+SCALAR_TYPES = {"str": ("字串", lambda v: isinstance(v, str)),
+                "int": ("整數", lambda v: isinstance(v, int) and not isinstance(v, bool)),
+                "bool": ("布林", lambda v: isinstance(v, bool))}
+
+
+def schema_problems(node, schema, path):
+    """依欄位表檢查，回傳 (路徑, 訊息) 的清單。只檢查欄位與型別，必填與引用由其他檢查負責。"""
+    if schema == "any" or node is None:
+        return []
+    if isinstance(schema, str):
+        label, ok = SCALAR_TYPES[schema]
+        return [] if ok(node) else [(path, "必須是%s，實際是 %r" % (label, node))]
+    kind, inner = schema
+    if kind == "enum":
+        if isinstance(node, str) and node in inner:
+            return []
+        return [(path, "必須是 %s 其中之一，實際是 %r" % ("、".join(sorted(inner)), node))]
+    if kind == "list":
+        if not isinstance(node, list):
+            return [(path, "必須是清單，實際是 %r" % (node,))]
+        out = []
+        for index, item in enumerate(node):
+            label = index
+            if isinstance(item, dict):
+                for key in ("name", "id", "code"):
+                    if isinstance(item.get(key), str):
+                        label = item[key]
+                        break
+            out += schema_problems(item, inner, "%s[%s]" % (path, label))
+        return out
+    if not isinstance(node, dict):
+        return [(path, "必須是對應表，實際是 %r" % (node,))]
+    out = []
+    if kind == "named":
+        for key, value in node.items():
+            out += schema_problems(value, inner, "%s.%s" % (path, key))
+        return out
+    # YAML 1.1 會把 on、yes、no 之類的鍵讀成布林；照讀到的值列出，並說明原因
+    unknown = [key if isinstance(key, str) else "%r（YAML 把 on、yes 之類的鍵讀成布林或數字）" % (key,)
+               for key in node if key not in inner and key != "note"]
+    if unknown:
+        out.append((path, "不認得的欄位 %s" % "、".join(unknown)))
+    if "note" in node and not isinstance(node["note"], str):
+        out.append((path + ".note", "必須是字串，實際是 %r" % (node["note"],)))
+    for key, value in node.items():
+        if key in inner:
+            out += schema_problems(value, inner[key], "%s.%s" % (path, key) if path else str(key))
+    return out
+
+
+def strip_notes(node):
+    """比較範例時忽略 note。範例的輸入與預期輸出是資料，裡面的 note 也一併忽略：寧可少擋，不可誤擋。"""
+    if isinstance(node, dict):
+        return {str(k): strip_notes(v) for k, v in node.items() if k != "note"}
+    if isinstance(node, list):
+        return [strip_notes(v) for v in node]
+    return node
+
+
+def canonical(node):
+    return json.dumps(strip_notes(node), sort_keys=True, ensure_ascii=False, default=str)
 
 
 class NotEvaluated(Exception):
@@ -159,6 +322,8 @@ class Aggregate:
                 self.error(name, "spec_version 必須是 %d，實際是 %r" % (SPEC_VERSION, doc.get("spec_version")))
             if doc.get("kind") != kind:
                 self.error(name, "kind 必須是 %s，實際是 %r" % (kind, doc.get("kind")))
+            for where, message in schema_problems(doc, FILE_SCHEMAS[name], ""):
+                self.error("%s %s" % (name, where or "最上層"), message)
             self.docs[name] = doc
         questions = os.path.join(self.path, "OPEN-QUESTIONS.md")
         if os.path.isfile(questions):
@@ -272,9 +437,60 @@ class Aggregate:
                 continue
             name = usecase["name"]
             self.usecases[name] = usecase
+            own_guards = []
             for guard in self.as_list("usecases.yaml %s guards" % name, usecase.get("guards")):
                 if not isinstance(guard, str) or guard not in self.guards:
                     self.error("usecases.yaml %s" % name, "guards 引用了不存在的 %s" % guard)
+                else:
+                    own_guards.append(guard)
+            # D-063 第 5 點：例外只能針對這支 use case 自己的前置檢查
+            # 型別不對的情形已由欄位表報過，這裡略過，不重複報
+            exceptions = usecase.get("guard_exceptions")
+            for exception in exceptions if isinstance(exceptions, list) else []:
+                if not isinstance(exception, dict):
+                    continue
+                guard = exception.get("guard")
+                if guard not in own_guards:
+                    self.error("usecases.yaml %s guard_exceptions" % name,
+                               "guard %s 不在這支 use case 的 guards 裡" % (guard,))
+
+    # ---------- 模型的引用（D-063 第 5 點）----------
+
+    def check_model_references(self):
+        doc = self.docs.get("model.yaml")
+        if not doc:
+            return
+        # 型別不對的情形已由欄位表報過，這裡只檢查結構正確的部分，不重複報
+        def items(key):
+            value = doc.get(key)
+            return value if isinstance(value, list) else []
+
+        enums = {}
+        for enum in items("enums"):
+            if isinstance(enum, dict) and isinstance(enum.get("name"), str) and isinstance(enum.get("values"), list):
+                enums[enum["name"]] = {v for v in enum["values"] if isinstance(v, str)}
+        states = set()
+        for transition in items("transitions"):
+            if not isinstance(transition, dict):
+                continue
+            where = "model.yaml %s" % transition.get("id", "transitions")
+            by = transition.get("by")
+            if by not in self.usecases:
+                self.error(where, "by 必須是同目錄 usecases.yaml 的 use case，實際是 %r" % (by,))
+            for key in ("from", "to"):
+                if isinstance(transition.get(key), str):
+                    states.add(transition[key])
+                elif key not in transition:
+                    self.error(where, "缺少 %s" % key)
+        terminal = [s for s in items("terminal_states") if isinstance(s, str)]
+        wanted = states | set(terminal)
+        # enums 本身不合法時（已報過），列舉的核對沒有意義，略過以免連帶報錯
+        if not wanted or not isinstance(doc.get("enums"), list):
+            return
+        owners = sorted(name for name, values in enums.items() if wanted <= values)
+        if not owners:
+            self.error("model.yaml transitions", "轉移的狀態與 terminal_states（%s）必須都是同一個列舉的值"
+                       % "、".join(sorted(wanted)))
 
     # ---------- 範例 ----------
 
@@ -330,7 +546,42 @@ class Aggregate:
             check_steps(where + " given", example.get("given"), needs)
             check_steps(where + " when", [when] if isinstance(when, dict) else when, needs)
             check_steps(where + " observe", example.get("observe"), needs)
+        self.check_distinguishable(doc, fixtures)
         return covered
+
+    def check_distinguishable(self, doc, fixtures):
+        """D-063 第 4 點：given（展開 fixture 後）與 when 相同的兩個範例，then 不能不同。"""
+        def expand(steps, seen):
+            out = []
+            for step in steps if isinstance(steps, list) else []:
+                if isinstance(step, dict) and isinstance(step.get("use"), str) and step["use"] in fixtures:
+                    name = step["use"]
+                    if name in seen:          # 循環引用：照原樣比較，不再展開
+                        out.append(step)
+                        continue
+                    fixture = fixtures[name]
+                    out += expand(fixture.get("steps") if isinstance(fixture, dict) else None, seen | {name})
+                else:
+                    out.append(step)
+            return out
+
+        first = {}
+        for example in doc.get("examples") or []:
+            if not isinstance(example, dict):
+                continue
+            situation = canonical([expand(example.get("given"), frozenset()), example.get("when")])
+            name = example.get("name", "?")
+            if situation not in first:
+                first[situation] = example
+                continue
+            other = first[situation]
+            if canonical(example.get("then")) != canonical(other.get("then")):
+                self.error("examples.yaml %s" % name,
+                           "given、when 與範例 %s 相同，then 卻不同：兩者不可能同時通過，"
+                           "範例沒有寫出區分兩種情境的前提" % other.get("name", "?"))
+            elif canonical(example.get("observe")) == canonical(other.get("observe")):
+                self.notes.append("examples.yaml %s：given、when、then、observe 都與範例 %s 相同（可能是刻意的重複）"
+                                  % (name, other.get("name", "?")))
 
     # ---------- 實作詞彙 ----------
 
@@ -393,6 +644,7 @@ def lint(repo, specs_dir_rel, report_only, manifest_rel=DEFAULT_MANIFEST, design
         known_ids = all_ids if agg.lenient else strict_ids
         try:
             agg.check_usecases()
+            agg.check_model_references()
             for rule_id, (name, rule) in sorted(agg.rules.items()):
                 agg.check_rule(rule_id, name, rule, known_ids)
             agg.covered = agg.check_examples(known_ids, proposed_all if agg.lenient else proposed_strict)
@@ -419,7 +671,7 @@ def lint(repo, specs_dir_rel, report_only, manifest_rel=DEFAULT_MANIFEST, design
         report.append("%s（%s）：規則 %d 條，問題 %d 個" % (agg.label, mode, len(agg.rules), len(agg.errors)))
         report.extend("  [問題] %s" % e for e in agg.errors)
         report.extend("  [列出] %s" % n for n in agg.notes)
-    header = ["規格檢查（格式 v%d）" % SPEC_VERSION,
+    header = ["規格檢查（格式 v%d，含 v1.1 的檢查）" % SPEC_VERSION,
               "評估的 aggregate：%d 個要擋下、%d 個只列出" % (strict_count, len(aggregates) - strict_count)]
     if not strict_count:
         header.append("注意：%s 底下還沒有任何 aggregate，擋下的檢查沒有評估到任何東西" % specs_dir_rel)

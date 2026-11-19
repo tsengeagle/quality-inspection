@@ -1,0 +1,445 @@
+# 規格格式 v2 草案
+
+狀態：草案，待負責人裁決（D-063 候選）。本文件不是律法；格式本身仍以 `specs/README.md`（v1）為準。
+
+## 一、範圍
+
+負責人 2026-11-19 決定：
+
+- 這一輪只處理問題側的規格（`specs/`）。裁決、閘門、基線、傳統的格式不在範圍內。
+- v2 要回應三組需求：
+
+| 組 | 需求 | 起因 |
+|---|---|---|
+| A | 補 v1 的兩個漏洞 | `10-spec-format.md` 第五節：未定義的欄位被靜默接受；`given`、`when` 相同而 `then` 不同的範例檢查不出來 |
+| B | ReviewCase 立法需要的寫法 | 狀態機、多角色、讀取遮罩、時間、跨 aggregate；漏網紀錄 E-01、E-02 的根本回應是把 ReviewCase 立法 |
+| C | 外部資源協定 | 同機共用醫事人員卡（負責人提供的 `hca-card-mutex-eventstorming.drawio`，三頁：現況與實驗事實、目標流程、決議與驗收；未進 repo）：呼叫的順序、資源有沒有交出去、部分成功、兩個行程搶同一把鎖 |
+
+本文件的檢驗方式是第五節的對照表：B 與 C 的每一項具體需求，都要能用 v2 寫成可執行的範例，或明確說明為什麼留在規格之外。
+
+## 二、現況盤點
+
+### v1 的 README 與實際使用不一致
+
+2026-11-20 以腳本列出 `specs/` 現有規格的全部鍵路徑（`http.yaml` 除外，它在第七節已有封閉的形狀），逐一對照 `specs/README.md`：
+
+- **README 描述了規則與範例，但沒有描述檔案的結構。**
+  - 有說明的：規則的 `id`、`status`、`source`、`outcome`；`guards` 的順序；`error_codes`；範例的 `basis`、`needs`、`fixtures`、`given`／`when`／`then`／`observe`、`save`、`input_pending`、`derived_from`、`not_covered`；型別詞彙。
+  - **`model.yaml` 與 `usecases.yaml` 的骨架都沒有欄位表。**
+- 沒有說明、但已經在用的欄位如下（括號內是出現次數）：
+
+| 檔案 | 沒有說明的欄位 |
+|---|---|
+| `model.yaml` 骨架 | `name`、`term`、`identity`（`name`、`type`、`assigned_by`）、`sources`、`attributes`、`entities`（`name`、`term`、`attributes`）、`enums`（`name`、`values`）、`transitions`（`from`、`to`、`by`）、`terminal_states`、`invariants`、`deferred_attributes`、`deferred_behaviors` |
+| `model.yaml` 屬性 | `name`、`type`、`required`、`initial`（9）、`assigned_by`（3）、`mutable`（2）、`range`（1）、`external`（型別詞彙裡提過） |
+| `model.yaml` 其他 | `invariants[].enforced_by`（1） |
+| `usecases.yaml` 骨架 | `aggregate`、`sources`、`input_types`、`usecases[]` 的 `name`、`kind`（command 9、query 7）、`summary`（16）、`actor.roles`、`input`、`input_note`（1）、`guard_exceptions`（5）、`rules`、`success`（`state`、`emits`、`output`）、`output`（`status`、`source`、`fields`） |
+| `examples.yaml` | `not_covered[]` 的 `rules`（4）、`item`（2）、`reason`；`actors` 的鍵是操作者名稱 |
+
+所以「封閉結構」不能只照 README 現有的欄位來寫，否則兩份已經立法的規格會立刻全紅。實際上要做的是**為三種檔案補寫完整的欄位表**。處理方式見 Q-1。
+
+盤點時另外發現三處形狀不一致：
+
+1. **兩種輸出寫法。**
+   - command 的輸出寫成 `success.output`：一個 `{name, type}` 的清單，3 處。
+   - query 的輸出寫成 `usecases[].output`：一個帶 `status`、`source`、`fields` 的物件，7 處。
+2. **`not_covered` 的兩種寫法。**
+   - `rules: [...]`：指向規則 id。
+   - `item: 文字`：score-sheet 的 2 處。
+3. **`not_covered.rules` 裡有一個值不是規則 id。** review-project 寫了 `rules: [emits]`，`emits` 是一個欄位名稱，不是 id。其餘 3 個值都是存在的 id。
+   - 若第 3 項的引用檢查涵蓋 `not_covered.rules`，這一處會變紅。
+   - 它應該改寫成 `item: emits`，與 score-sheet 的寫法一致。
+
+其中 `guard_exceptions[].guard` 指向 guard 的 id，但 `spec_lint` 不核對它是否存在。這是 A 組之外的另一個小漏洞，一併處理。
+
+2026-11-19 以腳本核對現有規格（review-project 3 條轉移、score-sheet 1 條轉移）：`transitions[].by` 都是同目錄的 use case，`terminal_states` 都是列舉值，`guard_exceptions` 指向的 guard 都存在。所以第四節第 3 項的檢查上線時，這三種引用不會讓現有規格變紅。`not_covered.rules` 例外，見上一段第 3 點。
+
+### 執行器的現況
+
+`acceptance/ExampleRunner.java` 的行為與 v2 相關的部分：
+
+- `then`、`expect` 只讀 `result`、`code`、`output`，其餘的鍵忽略。
+- 沒有 `run` 的步驟丟出 `RunnerProblem`，範例未通過。
+- `expect.output` 是部分比對，只比列出的欄位，**無法斷言某個欄位不存在**。這是讀取遮罩最需要的能力。
+- 每個範例在一個交易裡執行，只有一個執行緒。
+
+## 三、設計原則
+
+1. **v1 的三個前提不變。**
+   - 範例只透過 use case 準備、執行、觀察。
+   - 一條規則只有一個結果（`SUCCESS` 或 `REJECTED`）。
+   - 規格不出現實作詞彙。
+   
+   v2 新增的寫法都要在這三個前提下成立；做不到的，寧可不支援。
+2. **新增的外部接觸點只有兩種：時鐘、埠。** 規格之外的世界，只能透過這兩種宣告過的東西進入範例。不提供「直接寫資料」的後門。
+3. **沒有對照表。** 埠的名稱和 use case 一樣，要求程式使用規格的名稱，由執行器依名稱找到對應的介面。
+4. **判決是確定性的。** 並行也要用確定性的方式表達（第四節第 9 項），不靠真的同時執行、看運氣。
+5. **封閉。** 每一種檔案的每一層都列出允許的欄位，沒列出的欄位是問題。唯一的例外是 `note`：任何一層都可以有 `note`，內容是自由文字，不參與判決。
+6. **可攜。** `spec_lint` 屬於 `harness-core/`，不含專案專屬的路徑或詞彙。執行器是各專案自己的程式，v2 只規定它要做到什麼。
+
+## 四、v2 的寫法
+
+### A 組：補漏洞
+
+**1. 封閉結構**
+
+`spec_lint` 內建每一種檔案的欄位表，結構與型別都檢查。對 v1 檔案也生效（Q-1）。
+
+```
+[問題] examples.yaml ext_close_fails_three_times then：不認得的欄位 resource、call_count
+```
+
+**2. 分辨不了情境的範例**
+
+把 `given` 展開 fixture 之後，若兩個範例的 `given`、`when`（含時鐘與埠的設定）完全相同，而 `then` 不同，判為問題。若兩者的 `then` 也相同，只列出，因為可能是刻意的重複。
+
+**3. 引用的完整性**
+
+`guard_exceptions[].guard`、`transitions[].by`（必須是同目錄的 use case）、`terminal_states`（必須是狀態列舉的值）都要核對。
+
+### B 組：ReviewCase 需要的
+
+**4. 欄位不存在的斷言（讀取遮罩）**
+
+```yaml
+observe:
+  - run: GetReviewCaseDetail
+    as: rereviewer_h1
+    input: { caseId: "${c}" }
+    expect:
+      result: SUCCESS
+      output: { status: REREVIEW_IN_PROGRESS }
+      absent: [initialAnswers, initialScore, initialComments]   # 永久盲審（D-033）
+```
+
+`absent` 的每一項是屬性路徑，可以用 `.` 指到巢狀屬性。執行器確認該屬性不存在或為 null。哪一種算遮罩見 Q-6。
+
+**5. 時鐘**
+
+```yaml
+examples:
+  - name: overdue_assignment_is_flagged
+    clock: { start: "2026-11-19T09:00:00Z" }        # 這個範例的起始時間
+    given:
+      - run: AssignReviewer
+        as: manager_h1
+        input: { caseId: "${c}", reviewerId: u-r1, dueDate: "2026-11-20" }
+      - advance: P2D                                 # 讓時間前進（ISO 8601 期間）
+    when: { run: GetReviewCaseDetail, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS }
+```
+
+- 沒有寫 `clock` 的範例，執行器仍要提供固定的時鐘，起始值是規格目錄層級的預設值。範例的結果不能依賴執行當下的時間。
+- 程式必須從注入的時鐘取時間，這和 ARCH-02 的方向一致（`domain`、`application` 不得直接取系統時間，`now(Clock)` 不算違規）。但 2026-11-19 的 `domain` 仍有 19 處無參數的取時呼叫，都凍結在 ARCH-02 的基線內：`ReviewCase` 6 處、`ReviewSubmission` 9 處（`LocalDateTime.now()`），`SamplingBatch` 3 處、`DomainEvent` 1 處（`Instant.now()`）。這 19 處要先改成注入的時鐘，時鐘的範例才能作用在 ReviewCase 上。其中 `LocalDateTime` 要不要改成 UTC 的 `Instant`，是 `05-current-state.md` 第五節第 3 項待裁決的事。
+
+**6. 矩陣範例（角色 × 狀態）**
+
+讀取權限與遮罩是「多個角色 × 多個狀態」的表。逐一寫範例會有幾十個幾乎一樣的範例，人審不出漏掉哪一格。
+
+```yaml
+  - name: initial_content_visibility
+    basis: [RC-VIS-01, RC-VIS-02, RC-VIS-03]
+    matrix:
+      columns: [actor, state, expect]
+      rows:
+        - [manager_h1,    INITIAL_REVIEW_SUBMITTED, visible]
+        - [rereviewer_h1, REREVIEW_IN_PROGRESS,     masked]
+        - [admin,         CLOSED,                   metadata_only]
+    given:
+      - use: "case_in_${state}"
+    when: { run: GetReviewCaseDetail, as: "${actor}", input: { caseId: "${c}" } }
+    then: { result: SUCCESS }
+    observe:
+      - use_expect: "${expect}"      # 指向同檔 expectations 底下的具名斷言
+```
+
+- 展開後每一列是一個範例，名稱是 `<name>[<第一欄>,<第二欄>]`，例如 `initial_content_visibility[rereviewer_h1,REREVIEW_IN_PROGRESS]`。這個名稱就是它在已知失敗清單裡的身分，所以列的順序可以改，但值不能改。
+- `expectations` 是可重用的具名斷言，和 `fixtures` 對稱。
+- `spec_lint` 檢查每一列的欄數、引用的 fixture 與斷言都存在。
+
+**7. 事件**
+
+v1 的 `success.emits` 已經存在，但不驗證。v2 讓範例可以斷言：
+
+```yaml
+    then:
+      result: SUCCESS
+      emits:
+        - { event: InitialReviewSubmitted, with: { caseId: "${c}" } }
+      emits_only: true            # 除了列出的事件，不得有其他事件
+```
+
+執行器要能取得這次 use case 執行期間發出的事件。事件名稱必須在 `usecases.yaml` 的 `success.emits` 有宣告。
+
+**8. 轉移的涵蓋**
+
+`model.yaml` 的每一條 `transitions` 都必須至少被一個範例的 `basis` 引用，否則判為問題（v1 只列出）。狀態機是 ReviewCase 最容易漏的地方，所以只有轉移這一類先改成「擋下」。其餘規則仍然只列出（Q-8）。
+
+### C 組：外部資源協定
+
+**9. 埠**
+
+在 `model.yaml` 宣告問題側看得到的外部依賴，以及它的操作：
+
+```yaml
+ports:
+  - name: CardModule
+    term: 卡片模組
+    operations:
+      - { name: open }
+      - { name: readCardNo, returns: id }
+      - { name: login }                 # 會送出 PIN
+      - { name: sign, returns: text }
+      - { name: closeSession }
+      - { name: close }
+  - name: CardLock
+    term: 卡片鎖
+    operations:
+      - { name: acquire, waits: true }  # 可能等待，受時鐘控制
+      - { name: release }
+```
+
+- 埠的名稱、操作名稱是規格的詞彙，和 use case 名稱一樣受禁用詞彙檢查。這裡不寫 DLL 的函式名稱。
+- 執行器依名稱找程式裡的介面（命名慣例見 Q-3），換成可以腳本化的替身。替身會記錄每一次呼叫。
+
+在範例裡設定埠的行為：
+
+```yaml
+    given:
+      - port: CardModule.readCardNo
+        returns: OTHER-CARD
+      - port: CardModule.close
+        fails: { times: 3, code: "9xxx" }     # 前 3 次失敗
+```
+
+**10. 呼叫的斷言**
+
+```yaml
+    then:
+      result: REJECTED
+      code: CARD_MISMATCH
+      calls:
+        CardModule: [open, readCardNo, close]   # 依序、完整
+        CardLock:   [acquire, release]
+      never:
+        - CardModule.login                      # 規則 3：不送 PIN
+```
+
+- `calls` 是完整的序列：多一次、少一次、順序不同都算不符。要部分比對時，改用 `calls_include`。
+- 跨埠的順序（規則 1：先取鎖才開模組；規則 2：模組關閉才放鎖）用 `order`：
+
+```yaml
+      order:
+        - [CardLock.acquire, CardModule.open]
+        - [CardModule.close, CardLock.release]
+```
+
+**11. 面向（資源有沒有交出去）**
+
+白板的重點是「拿到簽章」與「卡片資源可以交給對方」是兩件事。v2 不放寬「一條規則一個結果」，改成在結果之外宣告**面向**：
+
+```yaml
+# model.yaml
+facets:
+  - name: resource
+    term: 卡片資源
+    values: [RELEASED, HELD, FAULTED]
+    observed_by: GetCardResourceStatus        # 一支查詢 use case
+```
+
+```yaml
+# usecases.yaml 的規則
+      - id: HC-USE-03
+        when: 簽章已取得，但關閉模組重試三次仍失敗
+        outcome: { result: SUCCESS, facets: { resource: FAULTED } }
+```
+
+```yaml
+# examples.yaml
+    then: { result: SUCCESS, facets: { resource: FAULTED } }
+```
+
+- `result` 仍然只有一個值，回答的是「使用者拿到了什麼」。面向回答的是「系統之後處於什麼狀態」，兩者互不取代，所以不是「A 或 B」。
+- 面向必須有 `observed_by`。執行器在 `then` 之後執行那支查詢來比對，所以面向不是只寫在紙上的東西。
+
+**12. 行程與確定性的交錯**
+
+白板驗收 T1「A 在鎖內時，B 等待且沒有碰 DLL；A 放鎖後 B 取得」。v2 用「停在某個埠的操作上」來表達交錯：
+
+```yaml
+  - name: waits_while_other_process_holds_the_card
+    basis: [HC-G-01, HC-INV-01]
+    processes: [A, B]
+    given:
+      - process: B
+        run: UseCardOnce
+        as: doctor_b
+        input: { document: "處方 B" }
+        pause_at: CardModule.login          # B 停在登入之前，此時 B 持鎖
+    when:
+      process: A
+      run: UseCardOnce
+      as: doctor_a
+      input: { document: "處方 A" }
+      advance: PT15S                         # A 等待期間時間前進 15 秒
+    then:
+      result: REJECTED
+      code: CARD_IN_USE
+      never: [A:CardModule.open]             # A 沒有碰卡
+```
+
+- 執行器以執行緒模擬行程，在 `pause_at` 的操作上讓它停住，所以每次的交錯都一樣。
+- 這只驗證「程式依規則使用鎖」，不驗證鎖本身真的能跨 JVM 互斥。後者是實機的整合測試（T1 的實機部分、T4、T5），不屬於規格（Q-4）。
+
+## 五、檢驗：需求對照
+
+### C 組：白板與驗收項目
+
+| 來源 | 內容 | v2 的寫法 | 可執行 |
+|---|---|---|---|
+| 規則 1 | 先取鎖才開模組 | 第 10 項 `order` | 是 |
+| 規則 2 | 模組確認關閉才放鎖 | 第 10 項 `order`；關閉失敗時 `never: [CardLock.release]` | 是 |
+| 規則 3 | 對方可能持卡時不送 PIN | 第 10 項 `never: [CardModule.login]` | 是 |
+| 白板第 2 列 | 15 秒內等不到鎖 → 卡片使用中，沒有碰卡 | 第 12 項 | 是 |
+| 白板第 3 列 | 鎖檔無法建立 → 拒絕用卡 | 第 9 項 `CardLock.acquire` 設定 `fails` | 是 |
+| 白板第 4 列 | 卡號不符 → 不送 PIN、已清理、鎖已釋放 | 第 9 項 `returns`；第 10 項；第 11 項 `resource: RELEASED` | 是 |
+| 白板第 5 列 | DLL 回錯誤碼；PIN 類錯誤不重試 | 第 9 項 `fails`；第 10 項 `calls` 只出現一次 `login` | 是 |
+| 白板第 6 列 | 簽章已取得但關閉失敗三次 → 簽章照常回傳、鎖沒有釋放、資源異常 | 第 9 項 `fails: { times: 3 }`；第 11 項 `resource: FAULTED`；第 10 項 `calls` 只出現一次 `sign` | 是 |
+| 白板 | 顯示佔用者 | **不支援**：`REJECTED` 不帶輸出（v1 前提）。改成另一支查詢 use case 觀察佔用者，或列為 Q-5 | 有條件 |
+| 批次 | 第 N 份簽章失敗 → 前 N−1 份照常保存 | 第 9 項 `fails: { on_call: N }`；`observe` 查詢已保存的文件 | 是 |
+| 批次 | 第 M 份保存失敗 → 未保存的簽章丟棄 | 同上，對保存的埠設定 | 是 |
+| 批次 | 分段 K、記憶體、整批持鎖超過 15 秒 | `proposed` 加題目；量測（T6）不屬於規格 | 否，留給人 |
+| T1 | 兩個 JVM 搶鎖 | 第 12 項驗證使用方式；真正的跨 JVM 互斥是實機測試 | 部分 |
+| T2 | 清理與結果分開（假 DLL） | 第 9、10、11 項 | 是 |
+| T3 | 卡號不符、等不到鎖、鎖檔失敗都沒有呼叫 InitSession | 第 10 項 `never` | 是 |
+| T4～T6 | POC 重跑、正式程式實機、量測 | 不屬於規格（S–W，由人判斷） | 否 |
+
+### B 組：ReviewCase
+
+| 需求 | 來源 | v2 的寫法 | 可執行 |
+|---|---|---|---|
+| 永久盲審：複審者看不到初審內容 | D-033、permission-matrix §5 | 第 4 項 `absent` | 是 |
+| SYSTEM_ADMIN 只看得到 metadata 白名單 | permission-matrix §5.1 | 第 4 項 `absent`，或封閉的輸出（Q-6） | 是 |
+| 角色 × 狀態的可見性表 | permission-matrix §5、§6 | 第 6 項矩陣 | 是 |
+| 讀過完整初審的人不得再被指派為複審 | D-055 | v1 已可寫：先讀、再指派，`REJECTED REREVIEWER_HAS_READ_INITIAL` | 是（v1） |
+| 歷史不完整的案件（導入前建立）一律拒絕 | D-055 | **use case 建立不出「歷史不完整」的案件**。依原則 2，不開資料後門，改成把案件歷史的來源宣告為埠（Q-7） | 有條件 |
+| 指派期限、逾期 | domain-model `dueAt` | 第 5 項時鐘 | 是 |
+| updatedAt 不倒退、建案初始化為 UTC | D-037 | 第 5 項時鐘加 `advance` | 是 |
+| 狀態機每一條轉移都有範例 | state-machine §3.2 | 第 8 項 | 是 |
+| 提交、固定、結案發出事件 | domain-events | 第 7 項 | 是 |
+| 裁決撤銷之後，舊的入口不得再出現（E-02） | D-032 | 第 4 項 `absent` 斷言該欄位不存在 | 是 |
+
+## 六、待裁決
+
+已裁決：Q-1、Q-2（2026-11-20，負責人選建議的選項；條文見第九節）。其餘待裁決。
+
+| # | 題目 | 選項 | 建議 |
+|---|---|---|---|
+| Q-1 | 封閉結構怎麼處理 README 沒有說明、但已經在用的欄位 | (a) 全部寫進 README，成為正式欄位；(b) 逐一檢討，不需要的刪掉；(c) v1 不封閉，只有 v2 封閉 | **已裁決（2026-11-20）：(a) 加 (b)。** 照現狀補完整的欄位表，現有規格保持綠燈；另標出 4 項下一次修法改寫（第九節第 3 點） |
+| Q-2 | 版本策略 | (a) A 組對 v1 直接生效，B、C 組要 `spec_version: 2`；(b) 全部等 v2 | **已裁決（2026-11-20）：(a)。** 檔案仍是 `spec_version: 1` |
+| Q-3 | 埠在程式裡的命名慣例 | (a) 埠 `X` 對到介面 `XPort`，操作對到同名方法；(b) 用註解標記 | (a)，與 `XUseCase` 一致，不用對照表 |
+| Q-4 | 並行要做到哪裡 | (a) 只做第 12 項的確定性交錯；(b) 另外支援真的多行程 | (a)。真的跨 JVM 互斥是實機整合測試，結果不確定，不適合放在判決路徑上 |
+| Q-5 | 被拒絕時要不要能帶輸出（例如佔用者） | (a) 維持 v1：拒絕不帶輸出；(b) 允許 `REJECTED` 帶具名的 `details` | (a)，佔用者改用查詢 use case 觀察。保持「拒絕只有代碼」，錯誤的形狀由 HTTP 契約負責 |
+| Q-6 | 遮罩的語意 | (a) `absent` 指屬性不存在或為 null；(b) 分成 `absent`（不存在）與 `masked`（存在但被遮罩的固定值） | 先查 D-036 的 metadata 八欄與現行回應實際怎麼遮，再決定。這題要看資料 |
+| Q-7 | 用 use case 建立不出來的前提（歷史不完整的案件） | (a) 宣告成埠，由範例設定；(b) 允許 `seed` 直接寫入，但限定宣告過的情境；(c) 不寫範例，列在 `not_covered` | (a)。(b) 會讓範例繞過不變量，正是 v1 刻意排除的 |
+| Q-8 | 哪些「只列出」要改成「擋下」 | 轉移、沒有範例的規則、`basis` 含 `proposed` | 先擋轉移。沒有範例的規則等 `RP-INV-04` 的歸屬解決 |
+| Q-9 | 醫事人員卡的規格放哪裡 | (a) 它自己的專案，安裝 `harness-core/`；(b) 本 repo 的 `spec-draft/` 試寫 | (a)。它不在本專案的問題側；本 repo 只把它當 C 組的檢驗樣本。(b) 只做格式驗證、不立法時可以接受 |
+
+## 七、實作順序
+
+每一期都是：裁決 → 修法 PR（`specs/README.md`、`spec_lint.py` 與測試）→ 執行器的修法 PR → 建構 PR（程式配合）。`spec_lint` 和執行器都是律法，不能和建構 PR 混在一起（P4）。
+
+| 期 | 內容 | 前提 | 對現有規格的影響 |
+|---|---|---|---|
+| v1.1 | A 組（第 1～3 項）、Q-1 的欄位表 | Q-1、Q-2 | 不應該有紅燈；若有，就是真的問題 |
+| v2.0 | B 組（第 4～8 項） | Q-6、Q-7、Q-8；`domain` 的 19 處取時呼叫改用注入的時鐘（第 5 項） | 現有範例照跑；新寫法供 ReviewCase 使用 |
+| v2.1 | C 組（第 9～12 項） | Q-3、Q-4、Q-5、Q-9 | 本專案目前沒有埠；先以卡片的試寫驗證 |
+
+v2.0 之後的第一個使用者是 ReviewCase 的薄切片（分派、初審提交、revision-history 的讀取遮罩）。用它驗證 B 組夠不夠，之後再擴大。
+
+## 八、這份草案沒有處理的
+
+- 請求端的 HTTP 契約（W-9／W-10）。屬於 `http.yaml`，不在這三組需求裡。
+- 規則 8（架構詞彙只用 glossary 有定義的詞）的機械檢查。
+- 禁用詞彙清單依專案分開（`10-spec-format.md` 第五節 v2 候選第 8 項）。與 `harness-core/` 拆成獨立 repo 一起處理。
+- 第四節 B、C 組的語法只在紙上推演過，還沒有實作來證明它可行。A 組已在 v1.1 實作（D-063），回歸樣本是 `10-spec-format.md` 第五節的兩份草稿：
+  - 嚴格版的空洞範例被第 2 項擋下。
+  - 擴充版的硬寫：試寫結果二的前 7 列都被擋下，其中 6 列由第 1 項擋下；第 8 列是實作詞彙，不屬於 A 組。
+
+## 九、D-063 草案（v1.1）
+
+依 Q-1、Q-2 的裁決起草。D-063 只涵蓋 v1.1（A 組）；B、C 組等 Q-3～Q-9 裁決後另立。
+
+**2026-11-20 更新：條文已和實作放在同一個修法 PR，寫進 `decision-log.md` 的 D-063。以 decision-log 為準。**
+
+實作時對下面的草案做了兩處更正：
+
+- 第 6 點：擴充版不是「8 種寫法全部被第 2 點擋下」。試寫結果二的第 1 列 v1 就已經擋下，第 8 列是實作詞彙，不屬於 v1.1。
+- 「起草時要注意的」第二點：決定欄位表內建在 `spec_lint`，README 由人工維持一致（D-063 第 2 點）。
+
+下面保留起草時的版本，供對照。
+
+### 草案條文
+
+> ## D-063 — 規格格式 v1.1：封閉結構、分辨不了情境的範例、引用完整性
+>
+> ### Status
+>
+> `accepted`（日期待定，依負責人 2026-11-20 對 Q-1、Q-2 的裁決）
+>
+> ### Decision
+>
+> 1. **適用範圍。**
+>    - 適用於 `specs/` 與 `--report-only` 草稿的 `model.yaml`、`usecases.yaml`、`examples.yaml`。
+>    - 檔案仍寫 `spec_version: 1`。
+>    - `http.yaml`、`http-common.yaml` 不變：它們的形狀已經是封閉的（D-061）。
+> 2. **封閉結構。**
+>    - `specs/README.md` 為三種檔案補完整的欄位表，列出每一層允許的欄位與型別。
+>    - 欄位表照現有規格的寫法收錄。現有規格用到的欄位全部列入，不因收錄而改寫任何規格。
+>    - `spec_lint` 依欄位表檢查；表上沒有的欄位、型別不符的值都是問題，擋下。
+>    - 任何一層都可以有 `note`。它是自由文字，不參與判決。
+> 3. **收錄但待改寫的四項。** 這四項列入欄位表並標為「待改寫」。v1.1 照樣接受，在下一次規格格式的修法中改寫：
+>    1. command 的 `success.output`（清單）與 query 的 `usecases[].output`（帶 `fields` 的物件）合併成一種寫法。
+>    2. `usecases[].input_note`、`invariants[].enforced_by` 併入 `note`。
+>    3. `attributes[].range` 改寫成有 id 的規則。它目前沒有任何範例或程式在驗證；範圍的依據待 D-046 確認。
+>    4. review-project 的 `not_covered` 寫了 `rules: [emits]`，`emits` 不是規則 id。改成 `item: emits`，與 score-sheet 一致。
+> 4. **分辨不了情境的範例。**
+>    - 範例的 `given` 依 fixture 展開之後，若兩個範例的 `given`、`when` 完全相同：
+>      - `then` 不同，判為問題，擋下。
+>      - `then` 也相同，只列出：可能是刻意的重複。
+>    - 比較時忽略 `name`、`basis`、`derived_from`、`note`。
+>    - `${名稱}` 依字面比較。變數名稱不同、實質相同的兩個範例，檢查不出來。
+> 5. **引用完整性。** 下列引用都要核對，不符就擋下：
+>    - `guard_exceptions[].guard`：必須是同一支 use case `guards` 裡的 id。
+>    - `transitions[].by`：必須是同目錄 `usecases.yaml` 的 use case。
+>    - `transitions[].from`、`to`：必須是同一個列舉的值。
+>    - `terminal_states`：必須是上一點那個列舉的值。
+>    - `not_covered[].rules`：等第 3 點第 4 項改寫後才核對。
+> 6. **回歸樣本。** `docs/harness/10-spec-format.md` 第五節的兩份試寫草稿，放進 `harness-core/tests/` 當測試資料：
+>    - 嚴格版的空洞範例要被第 4 點擋下。
+>    - 擴充版的 8 種寫法要全部被第 2 點擋下。
+> 7. **順序。** 本裁決用一個修法 PR 完成，內容是：
+>    - `decision-log.md`
+>    - `specs/README.md` 的欄位表與第六節
+>    - `harness-core/spec_lint.py` 與它的測試
+>
+>    執行器不動，因為 v1.1 沒有新的語意。現有規格在這個 PR 上必須維持零問題。若出現問題，那就是真的缺陷，另案處理，不在這個 PR 裡放寬欄位表。
+>
+> ### Relationship / Evidence
+>
+> - 起因：`docs/harness/10-spec-format.md` 第五節。試寫的擴充版用了 8 種不存在的欄位，`spec_lint` 回報零問題；嚴格版的兩個範例只差在 `then`，也檢查不出來。
+> - 盤點：`docs/harness/15-spec-format-v2-draft.md` 第二節（2026-11-20）。
+> - 以腳本核對過現有規格，第 5 點的每一項都不會讓它們變紅：
+>   - 例外的 guard 都在那支 use case 自己的 `guards` 裡（5 處）。
+>   - 轉移的狀態各屬於 `ProjectStatus`、`ScoreSheetStatus`。
+>   - `terminal_states` 也都屬於同一個列舉。
+>
+> ### Mapping
+>
+> - `specs/README.md`、`harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`
+> - 後續：B 組（v2.0）、C 組（v2.1）另立裁決
+
+### 起草時要注意的
+
+- **回歸樣本現在只在本機的暫存目錄裡**，還沒進 repo。修法 PR 開工前要先確認它們還在；不在的話，依 `10-spec-format.md` 第五節的描述重寫。
+- **`spec_lint` 屬於 `harness-core/`，要可攜。** 欄位表應該是 `spec_lint` 內建的格式定義，不能讀本專案的 README。README 的欄位表是給人看的同一份內容。兩者是否一致，由 `harness-core` 的測試核對，或接受人工維持。這一點在實作時決定，不影響條文。

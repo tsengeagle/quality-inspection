@@ -1,0 +1,75 @@
+spec_version: 1
+kind: usecases
+aggregate: CardResource
+
+error_codes:
+  - { code: CARD_IN_USE,           category: conflict }
+  - { code: CARD_LOCK_UNAVAILABLE, category: rule_violation }
+  - { code: CARD_MISMATCH,         category: rule_violation }
+  - { code: CARD_MODULE_ERROR,     category: rule_violation }
+  - { code: CARD_NOT_INITIALIZED,  category: rule_violation }
+
+guards:
+  - id: HC-G-01
+    when: 15 秒內取不到鎖
+    outcome: { result: REJECTED, code: CARD_IN_USE }
+    status: proposed
+    question: Q-01
+  - id: HC-G-02
+    when: 鎖檔無法建立或開啟
+    outcome: { result: REJECTED, code: CARD_LOCK_UNAVAILABLE }
+    status: proposed
+    question: Q-01
+
+usecases:
+  - name: UseCardOnce
+    actor: { roles: [DOCTOR] }
+    input: { document: text }
+    guards: [HC-G-01, HC-G-02]
+    rules:
+      - id: HC-USE-01
+        when: 讀到的卡號與預期不符
+        outcome: { result: REJECTED, code: CARD_MISMATCH }
+        status: proposed
+        question: Q-01
+      - id: HC-USE-02
+        when: 卡片模組回錯誤碼；PIN 類錯誤（9039、9041、9043）不重試
+        outcome: { result: REJECTED, code: CARD_MODULE_ERROR }
+        status: proposed
+        question: Q-01
+      - id: HC-USE-03
+        when: 簽章已取得，但關閉模組重試三次仍失敗
+        outcome: { result: SUCCESS, resource: FAULTED }
+        status: proposed
+        question: Q-01
+    success:
+      - { id: HC-USE-S1, text: 回傳簽章, status: proposed, question: Q-01 }
+      - { id: HC-USE-S2, text: 鎖已釋放，對方可以立刻用卡, status: proposed, question: Q-01 }
+
+  - name: SignBatch
+    actor: { roles: [DOCTOR] }
+    input: { documents: list<text> }
+    rules:
+      - id: HC-BAT-01
+        when: 初始化狀態已不存在
+        outcome: { result: REJECTED, code: CARD_NOT_INITIALIZED }
+        status: proposed
+        question: Q-01
+      - id: HC-BAT-02
+        when: 第 N 份簽章失敗
+        outcome: [{ result: SUCCESS, for: "前 N-1 份" }, { result: REJECTED, code: CARD_MODULE_ERROR, for: "第 N 份起" }]
+        note: 前 N-1 份照常保存；第 N 份起回報失敗
+        status: proposed
+        question: Q-01
+      - id: HC-BAT-03
+        when: 第 M 份保存失敗
+        outcome: { result: SUCCESS }
+        note: 組 XML 上傳後回寫資料庫；32 位元 JVM 記憶體
+        status: proposed
+        question: Q-01
+      - id: HC-BAT-04
+        when: 批次份數超過 K
+        outcome: { result: SUCCESS }
+        note: 每 K 份一段：簽一段、放鎖、保存一段
+        status: proposed
+        question: Q-02

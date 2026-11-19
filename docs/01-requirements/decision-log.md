@@ -2346,3 +2346,66 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `specs/review-project/examples.yaml`、`services/quality-inspection-service/known-test-failures.txt`
 - `docs/03-contracts/api-spec.md` §7.7、§7.9
 - 後續：建構 PR 修改程式；修法補上 `specs/review-project/http.yaml` 與 `law/coverage.txt`
+
+## D-063 — 規格格式 v1.1：封閉結構、分辨不了情境的範例、引用完整性
+
+### Status
+
+`accepted`（2026-11-20，依負責人對 Q-1、Q-2 的裁決：照現狀補完整的欄位表，另標出待改寫的項目；A 組直接套用 v1 的檔案）
+
+### Decision
+
+1. **適用範圍。**
+   - 適用於 `specs/` 與 `--report-only` 草稿的 `model.yaml`、`usecases.yaml`、`examples.yaml`。
+   - 檔案仍寫 `spec_version: 1`。
+   - `http.yaml`、`http-common.yaml` 不變：它們的形狀已經是封閉的（D-061）。
+2. **封閉結構。**
+   - `specs/README.md` 第八節為三種檔案補完整的欄位表，列出每一層允許的欄位與型別。
+   - 欄位表照現有規格的寫法收錄：現有規格用到的欄位全部列入，不因收錄而改寫任何規格。
+   - 表上沒有的欄位、型別不符的值都是問題，擋下。
+   - 任何一層都可以有 `note`。它是自由文字，不參與判決。
+   - 欄位表內建在 `harness-core/spec_lint.py`，不讀專案的 README，以保持 `harness-core/` 可攜。README 的欄位表是給人看的同一份內容，由人工維持一致；不一致時以檢查程式為準。
+3. **收錄但待改寫的四項。** 這四項列入欄位表並標為「待改寫」。v1.1 照樣接受，在下一次規格格式的修法中改寫：
+   1. command 的 `success.output`（清單）與 query 的 `usecases[].output`（帶 `fields` 的物件）合併成一種寫法。
+   2. `usecases[].input_note`、`invariants[].enforced_by` 併入 `note`。
+   3. `attributes[].range` 改寫成有 id 的規則。它目前沒有任何範例或程式在驗證；範圍的依據待 D-046 確認。
+   4. review-project 的 `not_covered` 寫了 `rules: [emits]`，`emits` 不是規則 id。改成 `item: emits`，與 score-sheet 一致。
+4. **分辨不了情境的範例。**
+   - 範例的 `given` 依 fixture 展開之後，若兩個範例的 `given`、`when` 完全相同：
+     - `then` 不同，判為問題，擋下。
+     - `then`、`observe` 也相同，只列出：可能是刻意的重複。
+   - 比較時忽略 `note`。
+   - `${名稱}` 依字面比較。變數名稱不同、實質相同的兩個範例，檢查不出來。
+5. **引用完整性。** 下列引用都要核對，不符就擋下：
+   - `guard_exceptions[].guard`：必須是同一支 use case `guards` 裡的 id。
+   - `transitions[].by`：必須是同目錄 `usecases.yaml` 的 use case。
+   - `transitions[].from`、`to`：都要有。
+   - 轉移的狀態與 `terminal_states`：必須都是同一個列舉的值。
+   - `not_covered[].rules`：等第 3 點第 4 項改寫後才核對。
+6. **回歸樣本。** `docs/harness/10-spec-format.md` 第五節的兩份試寫草稿，放進 `harness-core/tests/fixtures/spec-format-trial/` 當測試資料：
+   - 嚴格版：v1 判它零問題。v1.1 要以第 4 點擋下它的兩個空洞範例。
+   - 擴充版：試寫結果二的前 7 列都要被擋下。
+     - 第 1 列「一條規則兩個結果」，v1 已經擋下。
+     - 其餘 6 列由第 2 點擋下。
+     - 第 8 列（實作詞彙）不在本裁決的範圍，屬於格式 v2 候選第 8 項。
+7. **順序。** 本裁決用一個修法 PR 完成：`decision-log.md`、`specs/README.md`、`harness-core/spec_lint.py` 與它的測試。
+   - 執行器不動：v1.1 沒有新的語意。
+   - 現有規格在這個 PR 上必須維持零問題。若出現問題，就是真的缺陷，另案處理，不在這個 PR 裡放寬欄位表。
+
+### Relationship / Evidence
+
+- **起因**：`docs/harness/10-spec-format.md` 第五節。
+  - 試寫的擴充版用了 6 種不存在的欄位，`spec_lint` 一個也沒發現。
+  - 嚴格版的兩個範例只差在 `then`，也檢查不出來。
+- **盤點**：`docs/harness/15-spec-format-v2-draft.md` 第二節（2026-11-20）。README 描述了規則與範例，但 `model.yaml`、`usecases.yaml` 的結構沒有欄位表。
+- **實作時的驗證**（2026-11-20）：
+  - 現有兩份規格在 v1.1 下零問題。
+  - 嚴格版另外被抓出 4 個 v1 靜默接受的結構錯誤：`enums`、`input` 寫成對應表，`success` 寫成清單。
+  - 逐一拿掉三項新檢查，各有測試變紅。
+- **相關裁決**：本裁決是格式 v2 草案的 A 組。B 組（ReviewCase 需要的寫法）、C 組（外部資源協定）待 Q-3～Q-9 裁決後另立。
+
+### Mapping
+
+- `specs/README.md` 第六、八節
+- `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`、`harness-core/tests/fixtures/spec-format-trial/`
+- 後續：第 3 點的四項改寫；格式 v2.0（B 組）、v2.1（C 組）另立裁決

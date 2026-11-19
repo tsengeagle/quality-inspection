@@ -1,0 +1,33 @@
+spec_version: 1
+kind: examples
+aggregate: CardResource
+
+actors:
+  doctor_a: { user: u-a, roles: [DOCTOR], hospital: H-01 }
+
+examples:
+  - name: signs_once_and_releases_the_lock
+    basis: [HC-USE-S1, HC-USE-S2, HC-T-01, HC-T-02]
+    needs: [GetCardResourceStatus]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetCardResourceStatus
+        as: doctor_a
+        input: {}
+        expect: { result: SUCCESS, output: { status: FREE } }
+
+  - name: rejects_when_another_process_holds_the_lock
+    basis: [HC-G-01]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: REJECTED, code: CARD_IN_USE }
+
+  - name: mismatched_card_never_sends_pin
+    basis: [HC-USE-01, HC-INV-03]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: REJECTED, code: CARD_MISMATCH }
+
+  - name: close_failure_keeps_signature_and_faults_resource
+    basis: [HC-USE-03, HC-T-03]
+    when: { run: UseCardOnce, as: doctor_a, input: { document: "處方 1" } }
+    then: { result: SUCCESS }
