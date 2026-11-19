@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-19-d062-project-list-version",
+  "decision": "D-062",
+  "reason": "依負責人 2026-11-19 的裁決（列表改成 { items }；查詢參數只寫 hospitalId；版本查詢加開 AUDITOR），新增 D-062。specs/review-project/usecases.yaml 補上 ListReviewProjects（RP-LST-01、RP-LST-02）與 GetReviewProjectVersion；examples.yaml 補 8 個範例與 auditor_h1、admin 兩個操作者。現行程式不符規格的 4 個範例凍結進 known-test-failures.txt（本機確認：列表回傳陣列 ×2、輸出沒有 versionNo、AUDITOR 被 ROLE_DENIED），其餘 4 個一加入就通過。api-spec 補 §7.7 的回應與 §7.9。http.yaml 只改註解：列表的契約要等建構 PR 改程式後再補（D-062 第 5 點）。specs/README.md 的數字更新（原本寫 36 個範例，實際是 38，一併更正）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/",
+    "services/quality-inspection-service/known-test-failures.txt"
+  ]
+}

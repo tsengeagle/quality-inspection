@@ -2317,3 +2317,32 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/`、`services/quality-inspection-service/build.gradle`
 - `law/coverage.txt`、`harness-core/law_check.py`、`harness-core/tests/test_law_check.py`、`harness-core/README.md`、`harness-core/VERSION`
 - `docs/harness/13-http-contract-options.md`、`docs/harness/14-d061-draft.md`、`docs/harness/12-escaped-defects.md`
+
+---
+
+## D-062 — 專案列表與版本查詢：回應形狀與讀取角色
+
+### Status
+
+`accepted`（2026-11-19，依負責人裁決：列表改成 `{ items }`；查詢參數只寫 `hospitalId`；版本查詢加開 `AUDITOR`）
+
+### Decision
+
+1. **列表回傳 `{ items }`。** `GET /review-projects` 的 `data` 是 `{ items }`，每一項的欄位與專案詳情相同。與評分表列表（D-050 第 7 點）一致。
+2. **列表的查詢參數只有 `hospitalId`。** 只有 `SYSTEM_ADMIN` 可用來縮小範圍；其他角色只列出自己院區的專案，輸入的 `hospitalId` 不採用（D-042、D-047）。api-spec §7.7 的 `status`、`keyword`、`page`、`size` 尚未實作，不寫進規格與契約，另立題目。
+3. **版本查詢的讀取角色。** `GET /review-projects/{projectId}/version` 的讀取角色為 `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR`，院區範圍依 D-042、D-047；`REVIEWER`／`REREVIEWER` 不開放（D-051）。與專案詳情（D-043）、評分表的版本查詢（D-050 第 7 點）一致。現行程式拒絕 `AUDITOR`，是程式缺口。
+4. **版本查詢的輸出。** 規格的輸出依 `model.yaml` 的 `ProjectVersion`：`versionNo`、`published`。HTTP 回應的欄位名稱在補上 `http.yaml` 時決定。
+5. **順序。** 先以本修法寫入規格與範例（一開始紅的範例凍結進已知失敗清單），再以建構 PR 修改程式，最後以修法補上 `specs/review-project/http.yaml` 的兩個端點。列表的契約若在程式修改前寫入，D-061 的閘門會立刻擋下。
+
+### Relationship / Evidence
+
+- 起因：D-061 第 6 點補上 review-project 的 `http.yaml` 時，這兩支端點的 use case 不在 `usecases.yaml`，負責人 2026-11-19 決定另立題目（#100）。
+- 現行程式：`ReviewProjectController` 的列表直接回傳陣列；`GetReviewProjectVersionUseCase` 只允許 `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`，回傳的 `ProjectVersion` 屬性名稱是 `versionNumber`。
+- 前端目前沒有呼叫這兩支端點（只有 sampling 使用 `/review-projects` 底下的路徑），改形狀不影響前端。
+
+### Mapping
+
+- `specs/review-project/usecases.yaml`：`ListReviewProjects`、`GetReviewProjectVersion`
+- `specs/review-project/examples.yaml`、`services/quality-inspection-service/known-test-failures.txt`
+- `docs/03-contracts/api-spec.md` §7.7、§7.9
+- 後續：建構 PR 修改程式；修法補上 `specs/review-project/http.yaml` 與 `law/coverage.txt`

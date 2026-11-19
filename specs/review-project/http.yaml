@@ -5,7 +5,7 @@ aggregate: ReviewProject
 # 每個端點屬於它呼叫的 use case 所在的規格目錄（本目錄的 usecases.yaml）。綁定評分表雖然操作評分表，use case 在這裡。
 # 錯誤代碼與分類讀同目錄的 usecases.yaml，列舉讀同目錄的 model.yaml。路徑以程式為準（D-058）。
 # 不在本檔的端點：GET /review-projects（列表）、GET /review-projects/{projectId}/version（版本查詢）。
-# 它們的 use case 不在 usecases.yaml，依 D-061 第 1 點不能寫進契約；負責人 2026-11-19 決定另立題目。
+# 它們的 use case 已依 D-062 寫入 usecases.yaml；列表的契約在程式改成 { items } 之前寫入會被閘門擋下，所以等建構 PR 之後再補（D-062 第 5 點）。
 endpoints:
   - usecase: CreateReviewProject
     method: POST
