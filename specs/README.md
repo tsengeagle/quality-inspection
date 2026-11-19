@@ -10,7 +10,7 @@
 
 | aggregate | 位置 | 狀態 |
 |---|---|---|
-| `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。44 條規則全部 `decided`，含評分表升格時加入的綁定（`BindScoreSheetToProject`，D-050 第 8 點）與列表、版本查詢（D-062）；46 個範例，其中 4 個在已知失敗清單上，等建構 PR 修改程式。沒有範例的規則：`RP-INV-04`（由抽選的 use case 執行）、`RP-BND-03`（範例拿不到未發布的版本 id）。沒有待裁決的題目 |
+| `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。44 條規則全部 `decided`，含評分表升格時加入的綁定（`BindScoreSheetToProject`，D-050 第 8 點）與列表、版本查詢（D-062）；46 個範例；D-062 的 4 個已由 #104 修正，範例全部通過。沒有範例的規則：`RP-INV-04`（由抽選的 use case 執行）、`RP-BND-03`（範例拿不到未發布的版本 id）。沒有待裁決的題目 |
 | `ScoreSheetDefinition` | `specs/score-sheet/` | 2026-11-15 由 `spec-draft/` 升格。38 條規則全部 `decided`（D-050）；36 個範例。程式已照規格修改（PR #41、#42），範例全部通過 |
 
 尚未轉換的 aggregate 以 `docs/01-requirements` 到 `docs/04-testing` 為準。
@@ -155,4 +155,4 @@ specs/
 | aggregate | `http.yaml` | 端點 |
 |---|---|---|
 | `ScoreSheetDefinition` | `specs/score-sheet/http.yaml` | 7 |
-| `ReviewProject` | `specs/review-project/http.yaml` | 7（列表與版本查詢的 use case 已依 D-062 寫入規格；契約等程式修改後再補） |
+| `ReviewProject` | `specs/review-project/http.yaml` | 9（含列表與版本查詢，D-062） |

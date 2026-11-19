@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-19-d062-review-project-http",
+  "decision": "D-062",
+  "reason": "D-062 第 5 點的最後一步：specs/review-project/http.yaml 補上 ListReviewProjects（GET /review-projects，{ items }，每一項與詳情相同）與 GetReviewProjectVersion（GET /review-projects/{projectId}/version，{ versionNumber, published }）。HTTP 欄位名稱依負責人 2026-11-19 的決定維持程式現況 versionNumber，記入 D-062 第 4 點與 api-spec §7.9。coverage.txt：ReviewProjectListResponse 改為已立法；ReviewProjectController 仍暫准（請求端未立法），說明更新。HttpContractFilesTest 的端點數改為 16。specs/README.md 的數字更新。程式已由 #104 修改，涵蓋所需的建構者測試已由 #105 補上。驗證見 PR 說明。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/",
+    "law/coverage.txt",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/"
+  ]
+}
