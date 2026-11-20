@@ -1,7 +1,7 @@
 # 規格格式裡屬於本專案的部分（D-064）。harness-core/spec_lint.py 讀這個檔案，不寫死在程式裡。
 # 欄位說明見 specs/README.md 第九節。
 kind: spec-profile
-profile_version: 1
+profile_version: 2
 
 # examples.yaml 的 actors：每個操作者允許的欄位與型別（str：字串；str_list：字串清單）
 actor_fields:
@@ -21,3 +21,9 @@ guard_order:
   text: 角色 → 載入 → 院區範圍 → 領域規則
   source:
     - { decision: D-024 }
+
+# 時間（D-065 第 5 點）。spec_version 2 的規格需要這兩項
+# 沒有寫 clock 的範例從這個時間開始：範例的結果不能依賴執行當下的時間
+clock_start: "2026-11-19T17:00:00+08:00"
+# 程式的輸入或輸出是不帶時區的時間時，依這個時區解讀；執行器提供的時鐘也用這個時區
+local_time_zone: Asia/Taipei

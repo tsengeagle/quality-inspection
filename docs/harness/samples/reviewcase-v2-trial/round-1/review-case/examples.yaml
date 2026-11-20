@@ -1,0 +1,374 @@
+# 試寫：ReviewCase 薄切片。不是律法。缺口清單見 ../README.md。
+spec_version: 2
+kind: examples
+aggregate: ReviewCase
+
+actors:
+  manager_h1:    { user: u-m1,  roles: [HOSPITAL_MANAGER],     hospital: H-01 }
+  manager_h2:    { user: u-m2,  roles: [HOSPITAL_MANAGER],     hospital: H-02 }
+  reviewer_h1:   { user: u-r1,  roles: [REVIEWER],             hospital: H-01 }
+  reviewer2_h1:  { user: u-r2,  roles: [REVIEWER],             hospital: H-01 }
+  rereviewer_h1: { user: u-rr1, roles: [REREVIEWER],           hospital: H-01 }
+  auditor_h1:    { user: u-au1, roles: [AUDITOR],              hospital: H-01 }
+  admin:         { user: u-a1,  roles: [SYSTEM_ADMIN],         hospital: H-09 }
+  dual_role_h1:  { user: u-d1,  roles: [REVIEWER, REREVIEWER], hospital: H-01 }
+
+# [缺口 B-07] 第 5 項說「沒有寫 clock 的範例用規格目錄層級的預設值」，但沒說預設值寫在哪個檔案。這裡寫在範例檔的最上層。
+clock: { start: "2026-11-19T09:00:00Z" }
+
+fixtures:
+  # [缺口 B-10] 這 7 個準備步驟和 specs/review-project/examples.yaml 的 active_project 一模一樣。
+  # fixture 只能引用同一個檔案裡的，所以每個需要「啟用中的專案」的 aggregate 都要抄一份。
+  active_project:
+    steps:
+      - run: CreateReviewProject
+        as: manager_h1
+        input: { name: "門診品質審查", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5 }
+        save: { p: projectId }
+      - run: CreateScoreSheetDraft
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { s: scoreSheetId }
+      - run: UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", weight: "1", requiredRule: ALWAYS_REQUIRED }
+      - run: PublishScoreSheetVersion
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        save: { sv: scoreSheetVersionId }
+      - run: BindScoreSheetToProject
+        as: manager_h1
+        input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+      - run: PublishReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+      - run: ActivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+
+  # 案件只能由抽選建立（前提 P-1）。
+  selected_case:
+    needs: [ExecuteSampling, ListReviewCases]
+    steps:
+      - use: active_project
+      - run: ExecuteSampling
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { b: batchId }
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        # [缺口 B-11] save 只能取輸出的同名屬性。這裡要的是清單第一筆的 caseId，沒有寫法；下面是假設的路徑寫法。
+        save: { c: "content[0].caseId" }
+
+  assigned_case:
+    needs: [ExecuteSampling, ListReviewCases]
+    steps:
+      - use: selected_case
+      - run: AssignReviewCase
+        as: manager_h1
+        input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" }
+
+  case_in_progress:
+    needs: [ExecuteSampling, ListReviewCases]
+    steps:
+      - use: assigned_case
+      - run: StartInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        save: { s1: submissionId }
+
+  answered_case:
+    needs: [ExecuteSampling, ListReviewCases, SaveInitialReviewDraft]
+    steps:
+      - use: case_in_progress
+      - run: SaveInitialReviewDraft
+        as: reviewer_h1
+        input:
+          caseId: "${c}"
+          answers: [{ itemId: I1, answerValue: "20" }]
+          comment: "初審評語"
+
+  # 矩陣的 state 欄用 case_in_<狀態> 找到準備步驟（第 6 項）。
+  case_in_INITIAL_REVIEW_COMPLETED:
+    needs: [ExecuteSampling, ListReviewCases, SaveInitialReviewDraft]
+    steps:
+      - use: answered_case
+      - run: SubmitInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+
+  # 初審 20 分大於品質線 5，固定後自動進入待複審（D-054 第 3 點）。
+  case_in_PENDING_REREVIEW:
+    needs: [ExecuteSampling, ListReviewCases, SaveInitialReviewDraft, FixInitialReview]
+    steps:
+      - use: case_in_INITIAL_REVIEW_COMPLETED
+      - run: FixInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}", submissionId: "${s1}" }
+
+  case_in_REREVIEW_IN_PROGRESS:
+    needs: [ExecuteSampling, ListReviewCases, SaveInitialReviewDraft, FixInitialReview, AssignRereviewer, StartRereview]
+    steps:
+      - use: case_in_PENDING_REREVIEW
+      - run: AssignRereviewer
+        as: manager_h1
+        input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-11-30T23:59:59Z" }
+      - run: StartRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}" }
+
+# 第 6 項：可重用的具名斷言。
+expectations:
+  full_content:
+    # [缺口 B-01] expect.output 的清單是一對一配對。複審進行中時歷程有兩筆（初審、複審草稿），
+    # 只想斷言「初審那一筆」就寫不出來。這裡假設清單可以只列出要比對的那幾筆。
+    output:
+      entries:
+        - { stage: INITIAL, status: SUBMITTED, totalScore: "20", comment: "初審評語" }
+  initial_masked:
+    # [缺口 B-01] absent 的路徑只定義了用「.」指到巢狀屬性，沒有定義怎麼穿過清單、怎麼只選某些筆。
+    # 這裡假設 entries[stage=INITIAL] 表示「stage 是 INITIAL 的每一筆」。
+    output:
+      entries:
+        - { stage: INITIAL, status: SUBMITTED }
+    absent: ["entries[stage=INITIAL].totalScore", "entries[stage=INITIAL].comment"]
+  metadata_only:
+    absent: ["entries[*].totalScore", "entries[*].comment"]
+    # [缺口 B-02] absent 是黑名單：之後輸出多了一個敏感欄位，這個斷言照樣通過。
+    # 白名單（permission-matrix §5.1、D-036「不得因新增欄位自動擴大」）需要「只有這些欄位」的斷言，第 4 項沒有。
+    # 假設的寫法： only: ["entries[*]": [stage, revisionNo, submittedAt, submittedBy, isCurrentEffective]]
+
+examples:
+
+  # ---------- AssignReviewCase ----------
+
+  - name: assigns_a_reviewer
+    basis: [RC-T-01, RC-ASG-S1, RC-ASG-S2, RC-INV-03]
+    needs: [GetReviewCaseDetail]
+    given:
+      - use: selected_case
+      - advance: PT1H
+    when:
+      run: AssignReviewCase
+      as: manager_h1
+      input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseAssigned, with: { caseId: "${c}", assignedReviewerId: u-r1 } }
+      emits_only: true
+    observe:
+      - run: GetReviewCaseDetail
+        as: manager_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            status: PENDING_INITIAL_REVIEW
+            reviewerId: u-r1
+            # [缺口 B-07] 時間值怎麼比對沒有定義：寫成字串時依哪個時區、要不要帶時區、輸出是沒有時區的時間時怎麼辦。
+            dueAt: "2026-11-26T23:59:59Z"
+            updatedAt: "2026-11-19T10:00:00Z"
+
+  - name: rejects_assign_by_a_non_manager
+    basis: [RC-G-01]
+    given: [{ use: selected_case }]
+    when: { run: AssignReviewCase, as: reviewer_h1, input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_assign_of_an_unknown_case
+    basis: [RC-G-02]
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: no-such-case, reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: CASE_NOT_FOUND }
+
+  - name: rejects_assign_across_hospitals
+    basis: [RC-G-03]
+    given: [{ use: selected_case }]
+    when: { run: AssignReviewCase, as: manager_h2, input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_assign_of_an_already_assigned_case
+    basis: [RC-ASG-01, RC-INV-03]
+    needs: [GetReviewCaseDetail]
+    given:
+      - use: assigned_case
+      - advance: PT1H
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r2, dueAt: "2026-11-27T23:59:59Z" } }
+    then:
+      result: REJECTED
+      code: CASE_NOT_ASSIGNABLE
+      # [缺口 B-08] 「被拒絕時沒有發出任何事件」（domain-events §2 第 3 點）沒有定義寫法。這裡假設空清單加 emits_only。
+      emits: []
+      emits_only: true
+    observe:
+      - run: GetReviewCaseDetail
+        as: manager_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { reviewerId: u-r1, updatedAt: "2026-11-19T09:00:00Z" } }
+
+  - name: rejects_assign_without_a_reviewer
+    basis: [RC-ASG-02]
+    given: [{ use: selected_case }]
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  # ---------- StartInitialReview ----------
+
+  - name: starts_the_initial_review
+    basis: [RC-T-02, RC-STI-S1, RC-STI-S2]
+    given: [{ use: assigned_case }]
+    when:
+      run: StartInitialReview
+      as: reviewer_h1
+      input: { caseId: "${c}" }
+      save: { s1: submissionId }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: InitialReviewStarted, with: { caseId: "${c}" } }
+      emits_only: true
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            entries:
+              - { submissionId: "${s1}", stage: INITIAL, status: DRAFT, revisionNo: 1, reviewerId: u-r1 }
+
+  - name: rejects_start_by_a_reviewer_who_is_not_assigned
+    basis: [RC-STI-01]
+    given: [{ use: assigned_case }]
+    when: { run: StartInitialReview, as: reviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: NOT_ASSIGNED_REVIEWER }
+
+  - name: rejects_start_of_a_review_already_started
+    basis: [RC-STI-02]
+    given: [{ use: case_in_progress }]
+    when: { run: StartInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+
+  # ---------- SubmitInitialReview ----------
+
+  - name: submits_the_initial_review
+    basis: [RC-T-03, RC-SUB-S1, RC-SUB-S2]
+    given:
+      - use: answered_case
+      - advance: PT2H
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      # [缺口 B-03] then 不能比對 when 自己的輸出（與卡片試寫的 G-08 相同）。
+      # 「提交後停在 INITIAL_REVIEW_COMPLETED、不進複審」正是這支命令的回應要保證的事（D-054 第 3 點）。
+      output: { caseStatus: INITIAL_REVIEW_COMPLETED, totalScore: "20" }
+      emits:
+        - { event: ReviewSubmissionSubmitted, with: { caseId: "${c}", submissionId: "${s1}", stage: INITIAL } }
+        - { event: InitialReviewCompleted, with: { caseId: "${c}" } }      # proposed，Q-03
+      emits_only: true
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            entries:
+              - { submissionId: "${s1}", stage: INITIAL, status: SUBMITTED, submittedAt: "2026-11-19T11:00:00Z" }   # [缺口 B-07]
+
+  - name: rejects_submit_by_another_reviewer
+    basis: [RC-SUB-01]
+    given: [{ use: answered_case }]
+    when: { run: SubmitInitialReview, as: reviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_OWNED_BY_ACTOR }
+
+  - name: rejects_submit_of_a_review_already_submitted
+    basis: [RC-SUB-02]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+
+  - name: rejects_submit_with_a_required_item_unanswered
+    basis: [RC-SUB-03]
+    given: [{ use: case_in_progress }]
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+
+  # ---------- GetRevisionHistory：角色 × 狀態 ----------
+
+  - name: revision_history_visibility
+    basis: [RC-VIS-01, RC-VIS-02, RC-VIS-03, RC-INV-01, RC-INV-02]
+    matrix:
+      columns: [actor, state, expect]
+      rows:
+        - [manager_h1,    INITIAL_REVIEW_COMPLETED, full_content]
+        - [auditor_h1,    INITIAL_REVIEW_COMPLETED, full_content]
+        - [reviewer_h1,   INITIAL_REVIEW_COMPLETED, full_content]
+        - [admin,         INITIAL_REVIEW_COMPLETED, metadata_only]
+        - [manager_h1,    REREVIEW_IN_PROGRESS,     full_content]
+        - [reviewer_h1,   REREVIEW_IN_PROGRESS,     full_content]
+        - [rereviewer_h1, REREVIEW_IN_PROGRESS,     initial_masked]
+        - [admin,         REREVIEW_IN_PROGRESS,     metadata_only]
+    given:
+      - use: "case_in_${state}"
+    when: { run: GetRevisionHistory, as: "${actor}", input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      # [缺口 B-04] 第 6 項的示範把 use_expect 放在 observe，而且那一步沒有 run：
+      # 被觀察的就是 when 那支查詢自己。所以具名斷言要能放在 then（與卡片試寫的 G-10、G-11 相同）。
+      use_expect: "${expect}"
+
+  - name: rejects_history_for_a_reviewer_outside_the_case
+    basis: [RC-RVH-02]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: GetRevisionHistory, as: reviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_history_for_a_rereviewer_not_yet_assigned
+    basis: [RC-RVH-02]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetRevisionHistory, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_history_for_an_actor_with_two_roles
+    basis: [RC-RVH-01]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: GetRevisionHistory, as: dual_role_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_history_across_hospitals
+    basis: [RC-G-03]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: GetRevisionHistory, as: manager_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  # 這一個 v1 就寫得出來（草案第五節）：先讀、再指派。
+  - name: a_reader_of_the_initial_review_cannot_become_the_rereviewer
+    basis: [RC-VIS-04]
+    needs: [AssignRereviewer]
+    given:
+      - use: case_in_PENDING_REREVIEW
+      - run: GetRevisionHistory
+        as: auditor_h1
+        input: { caseId: "${c}" }
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-au1, dueAt: "2026-11-30T23:59:59Z" } }
+    then: { result: REJECTED, code: REREVIEWER_HAS_READ_INITIAL }
+
+not_covered:
+  - rules: [RC-RVH-03]
+    reason: 要先讓一位管理者或稽核成為這個案件的複審醫師。指派複審醫師時會不會檢查對象的角色，要等複審指派立法時才知道；試寫沒有涵蓋
+  - rules: [RC-RVH-04]
+    reason: 用 use case 建立不出「複審指派歷史不完整」的案件（草案 Q-7 的裁決），由建構者的白箱測試負責
+  - item: updatedAt 在兩個同時進行的命令之下不倒退（D-037 第 5 點）
+    reason: 需要並行；範例的時鐘只會前進，表達不出「時間倒退時不得覆寫」
+  - item: 讀取者紀錄與同時進行的複審指派只能有一方成功（D-055 第 5 點）
+    reason: 需要並行。草案第 12 項的確定性交錯屬於 C 組，而且它是停在埠的操作上，這裡沒有埠
+  - item: 逾期
+    reason: 權威文件沒有已裁決的逾期規則（api-spec §10.3：期限的檢核尚未定稿），也沒有輸出欄位表示逾期

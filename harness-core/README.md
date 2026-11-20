@@ -59,6 +59,8 @@ GitLab CI 的範本尚未實作。
 | 設計決策（`design_decision` 出處）所在的目錄 | `--design-docs` |
 | 驗收範例與情境（`example`、`scenario` 出處）所在的目錄 | `--testing-docs` |
 | 禁用的實作詞彙 | 規格目錄裡的 `forbidden-vocabulary.txt`，缺少時判定無法評估 |
+| 操作者的欄位、錯誤分類、guard 順序的說明 | 規格目錄裡的 `spec-profile.yaml`，缺少時判定無法評估 |
+| 預設的時鐘起始時間、不帶時區的時間用哪個時區 | `spec-profile.yaml` 的 `clock_start`、`local_time_zone`（`profile_version: 2`）。有 `spec_version: 2` 的規格時才需要 |
 
 沒有設定 `--design-docs` 或 `--testing-docs` 時，用到該類出處的規則一律算問題，不會略過。
 

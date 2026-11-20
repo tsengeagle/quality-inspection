@@ -1,0 +1,90 @@
+# 試寫：ReviewCase 薄切片（分派、初審提交、revision 歷程的讀取遮罩）。不是律法。
+# 寫法照 docs/harness/15-spec-format-v2-draft.md 第四節 B 組（第 4～8 項）。
+# 第四節沒有定義的寫法標 [缺口 B-xx]，清單見 ../README.md。
+spec_version: 2
+kind: aggregate
+name: ReviewCase
+term: 審查案件
+
+identity: { name: caseId, type: id, assigned_by: system }
+
+sources:
+  - { decision: D-024 }
+  - { decision: D-031 }
+  - { decision: D-033 }
+  - { decision: D-035 }
+  - { decision: D-037 }
+  - { decision: D-054 }
+  - { decision: D-055 }
+  - { doc: docs/02-ddd/state-machine.md, section: "§3" }
+  - { doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1、§6" }
+
+enums:
+  - name: CaseStatus
+    values:
+      - SELECTED_PENDING_ASSIGNMENT
+      - PENDING_INITIAL_REVIEW
+      - INITIAL_REVIEW_IN_PROGRESS
+      - INITIAL_REVIEW_COMPLETED
+      - PENDING_REREVIEW
+      - REREVIEW_IN_PROGRESS
+      - RETURNED
+      - CLOSED
+      - CANCELLED
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.1" }]
+  # [缺口 B-10] 提交（ReviewSubmission）有自己的狀態機（state-machine §4）。
+  # 一份 model.yaml 的轉移與 terminal_states 必須屬於同一個列舉（v1.1 引用完整性），所以這裡只能宣告列舉，寫不了它的轉移。
+  - name: SubmissionStatus
+    values: [DRAFT, SUBMITTED, SUPERSEDED]
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.1" }]
+  - name: ReviewStage
+    values: [INITIAL, REREVIEW]
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.1" }]
+
+attributes:
+  - { name: hospitalId, type: id,              required: true,  mutable: false }
+  - { name: status,     type: enum CaseStatus, required: true,  initial: SELECTED_PENDING_ASSIGNMENT }
+  - { name: reviewerId, type: id,              required: false }
+  # [缺口 B-06] 型別詞彙（specs/README.md 第五節）沒有時間。這裡假設有 datetime。
+  - { name: dueAt,      type: datetime,        required: false }
+  - name: updatedAt
+    type: datetime
+    required: true
+    status: decided
+    source: [{ decision: D-037 }]
+    note: 案件與它的提交最後一次業務更新的時間；案件建立時就有值（D-037 第 1 點）
+
+transitions:
+  - { id: RC-T-01, from: SELECTED_PENDING_ASSIGNMENT, to: PENDING_INITIAL_REVIEW,     by: AssignReviewCase,    status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
+  - { id: RC-T-02, from: PENDING_INITIAL_REVIEW,      to: INITIAL_REVIEW_IN_PROGRESS, by: StartInitialReview,  status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
+  - { id: RC-T-03, from: INITIAL_REVIEW_IN_PROGRESS,  to: INITIAL_REVIEW_COMPLETED,   by: SubmitInitialReview, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-054 }] }
+  # [缺口 B-09] state-machine §3.2 的轉移表有 16 列，這裡只寫得進 3 列：
+  #   - 其餘 13 列的 by 是本次範圍外的 use case。transitions[].by 必須在同目錄的 usecases.yaml（v1.1），寫了就被擋。
+  #   - 就算寫得進來，第 8 項要求每條轉移都有範例，薄切片也會被擋。
+  #   - 固定初審有兩條：同一個 from、同一支 use case，依分數走到不同的 to（D-054 第 3 點）。轉移沒有條件欄位。
+  #   - 複審提交是自己轉到自己（REREVIEW_IN_PROGRESS → REREVIEW_IN_PROGRESS，D-053）。
+  #   - 取消從 4 個狀態出發，要重複寫 4 條。
+
+terminal_states: [CLOSED, CANCELLED]
+
+invariants:
+  - id: RC-INV-01
+    text: 複審醫師在任何狀態、任何查詢都取不到同案初審的答案、分數、評語，也取不到可以反推初審分數的值
+    status: decided
+    source: [{ decision: D-033 }]
+  - id: RC-INV-02
+    text: SYSTEM_ADMIN 只取得 metadata，取不到任何階段的答案、分數、評語
+    status: decided
+    source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1" }]
+  - id: RC-INV-03
+    text: 任何成功的命令都把 updatedAt 設為當時的時間；被拒絕的命令不改變 updatedAt
+    status: decided
+    source: [{ decision: D-037 }]
+
+deferred_behaviors:
+  - 改派、取消、退回、重新開放、固定初審、複審、結案（state-machine §3.2 其餘 13 列轉移）
+  - 案件詳情與提交明細的讀取遮罩（本次只寫 revision 歷程）
+  - 修正已提交的初審

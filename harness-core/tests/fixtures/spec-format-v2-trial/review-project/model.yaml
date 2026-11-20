@@ -1,0 +1,15 @@
+# 測試資料：spec_version 1 的最小規格，供 v2 的規格跨目錄引用它的 fixture（D-065 第 9 點）。
+spec_version: 1
+kind: aggregate
+name: ReviewProject
+term: 審查專案
+enums:
+  - name: ProjectStatus
+    values: [DRAFT, ACTIVE]
+    status: decided
+    source: [{ decision: D-039 }]
+invariants:
+  - id: RP-INV-01
+    text: 已發布的版本不可修改
+    status: decided
+    source: [{ decision: D-040 }]

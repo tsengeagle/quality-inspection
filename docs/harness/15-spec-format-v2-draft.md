@@ -1,6 +1,6 @@
 # 規格格式 v2 草案
 
-狀態：Q-1～Q-9 全部已裁決（2026-11-20）。A 組已成為 D-063（格式 v1.1）並生效；B 組（v2.0）、C 組（v2.1）待各期的修法 PR。本文件不是律法：格式以 `specs/README.md` 與 `decision-log.md` 為準。
+狀態：Q-1～Q-9 全部已裁決（2026-11-20）。A 組已成為 D-063（格式 v1.1）並生效；B 組（v2.0）、C 組（v2.1）待各期的修法 PR。B 組已用 ReviewCase 試寫兩輪（第十三節），Q-10～Q-20 全部已裁決（2026-11-20），寫法已併入第四節；v2.0 的裁決是 D-065，已和 `spec_lint` 的實作放在同一個修法 PR（第十四節）；執行器的修法 PR 還沒開始。本文件不是律法：格式以 `specs/README.md` 與 `decision-log.md` 為準。
 
 ## 一、範圍
 
@@ -93,89 +93,227 @@
 
 把 `given` 展開 fixture 之後，若兩個範例的 `given`、`when`（含時鐘與埠的設定）完全相同，而 `then` 不同，判為問題。若兩者的 `then` 也相同，只列出，因為可能是刻意的重複。
 
+v2.0 起（Q-20）：擋下的條件改成「`result` 或 `code` 不同」。`then` 能比對輸出之後（第 4 項），兩個範例可以各自驗證同一個輸出的不同面向；這種情況只列出。
+
 **3. 引用的完整性**
 
 `guard_exceptions[].guard`、`transitions[].by`（必須是同目錄的 use case）、`terminal_states`（必須是狀態列舉的值）都要核對。
 
 ### B 組：ReviewCase 需要的
 
-**4. 欄位不存在的斷言（讀取遮罩）**
+**4. 輸出的斷言：`output`、`absent`、`only`（Q-6、Q-10、Q-11、Q-12）**
+
+`then`、`observe` 的 `expect`、具名斷言（第 6 項）用同一組欄位：
+
+| 欄位 | 意思 |
+|---|---|
+| `result`、`code` | 與 v1 相同 |
+| `output` | 部分比對，與 v1 相同。鍵可以是路徑 |
+| `absent` | 路徑的清單。選到的屬性必須不存在或為 null（Q-6） |
+| `only` | 路徑 → 欄位清單。選到的每一個物件，值不是 null 的屬性都必須在清單裡 |
+| `emits`、`emits_include` | 事件，見第 7 項。只能用在 `then` |
+| `use_expect` | 指向具名斷言，見第 6 項 |
+
+- `then` 比對的對象是 `when` 的輸出；`expect` 比對的是那一步的輸出。
+- `result` 是 `REJECTED` 時，不能有 `output`、`absent`、`only`、`emits`、`emits_include`：被拒絕沒有輸出（Q-5），也沒有事件（第 7 項）。
+
+路徑：
+
+| 寫法 | 選到什麼 | 可以用在 |
+|---|---|---|
+| `.` | 輸出本身 | `only` |
+| `a.b` | 巢狀屬性 | 全部 |
+| `a[*]` | 清單的每一筆 | `output` 的鍵、`absent`、`only` |
+| `a[k=v]` | `k` 等於 `v` 的每一筆。只有「等於」，多個條件用逗號。`v` 可以是 `${名稱}` | `output` 的鍵、`absent`、`only` |
+| `a[0]` | 第一筆。範例不得依賴它是哪一筆 | `save` |
+
+- `[*]`、`[k=v]` 選不到任何一筆時，斷言不成立。否則清單是空的時候，遮罩的斷言會空洞地通過。
+- `output` 裡直接寫清單，仍然是 v1 的語意：筆數相同、一對一配對、不比順序。只想比對其中幾筆時，用路徑當鍵。
 
 ```yaml
-observe:
-  - run: GetReviewCaseDetail
-    as: rereviewer_h1
-    input: { caseId: "${c}" }
-    expect:
-      result: SUCCESS
-      output: { status: REREVIEW_IN_PROGRESS }
-      absent: [initialAnswers, initialScore, initialComments]   # 永久盲審（D-033）
+when: { run: GetRevisionHistory, as: admin, input: { caseId: "${c}" } }
+then:
+  result: SUCCESS
+  output:
+    "entries[stage=INITIAL]": { status: SUBMITTED }
+  absent: ["entries[*].totalScore", "entries[*].comment"]        # 黑名單
+  only:                                                           # 白名單
+    ".": [caseId, entries]
+    "entries[*]": [submissionId, stage, revisionNo, status, submittedAt]
 ```
 
-`absent` 的每一項是屬性路徑，可以用 `.` 指到巢狀屬性。執行器確認該屬性不存在或為 null。哪一種算遮罩見 Q-6。
+分工（第十節 Q-6）：use case 層用 `absent`、`only` 斷言「看不到值」；JSON 的鍵不存在由 `http.yaml` 的封閉形狀負責。
 
-**5. 時鐘**
+`save` 也可以用路徑：`save: { c: "content[0].caseId" }`。
+
+**5. 時鐘與時間（Q-14）**
 
 ```yaml
 examples:
-  - name: overdue_assignment_is_flagged
-    clock: { start: "2026-11-19T09:00:00Z" }        # 這個範例的起始時間
+  - name: assigns_a_reviewer
+    clock: { start: "2026-11-19T09:00:00Z" }        # 這個範例的起始時間；不寫就用設定檔的 clock_start
     given:
-      - run: AssignReviewer
-        as: manager_h1
-        input: { caseId: "${c}", reviewerId: u-r1, dueDate: "2026-11-20" }
-      - advance: P2D                                 # 讓時間前進（ISO 8601 期間）
-    when: { run: GetReviewCaseDetail, as: manager_h1, input: { caseId: "${c}" } }
+      - use: case_in_SELECTED_PENDING_ASSIGNMENT
+      - advance: PT1H                                # 讓時間前進（ISO 8601 期間）
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-27T07:59:59+08:00" } }
     then: { result: SUCCESS }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output:
+            "content[caseId=${c}]": { assignedAt: "2026-11-19T10:00:00Z", dueAt: "2026-11-26T23:59:59Z" }
 ```
 
-- 沒有寫 `clock` 的範例，執行器仍要提供固定的時鐘，起始值是規格目錄層級的預設值。範例的結果不能依賴執行當下的時間。
-- 程式必須從注入的時鐘取時間，這和 ARCH-02 的方向一致（`domain`、`application` 不得直接取系統時間，`now(Clock)` 不算違規）。但 2026-11-19 的 `domain` 仍有 19 處無參數的取時呼叫，都凍結在 ARCH-02 的基線內：`ReviewCase` 6 處、`ReviewSubmission` 9 處（`LocalDateTime.now()`），`SamplingBatch` 3 處、`DomainEvent` 1 處（`Instant.now()`）。這 19 處要先改成注入的時鐘，時鐘的範例才能作用在 ReviewCase 上。
-  - 2026-11-20 的建構 PR 改掉 `ReviewCase`、`ReviewSubmission`、`SamplingBatch` 的 18 處：domain 方法改收時間參數，use case 以注入的 `Clock` 傳入，ARCH-02 基線刪 18 行。行為不變，型別也沒改。
-  - 剩下 `DomainEvent` 的 1 處（`occurredAt`）。建立事件的 29 支 use case 含已立法範圍，另案處理；ReviewCase 的第一個薄切片不比對事件時間，不影響 v2.0。其中 `LocalDateTime` 要不要改成 UTC 的 `Instant`，是 `05-current-state.md` 第五節第 3 項待裁決的事。
+- 型別詞彙加 `datetime`：一個時間點。範例裡寫 ISO 8601 加時區；沒有時區的寫法是問題。
+- 比對的是時間點，不是字串：上例的 `+08:00` 與 `Z` 相等。
+- `spec-profile.yaml` 加兩項：
+  - `clock_start`：沒有寫 `clock` 的範例的起始時間。範例的結果不能依賴執行當下的時間。
+  - `local_time_zone`：程式的輸入或輸出是不帶時區的時間時，依這個時區解讀；執行器提供的時鐘也用這個時區。
+- 程式必須從注入的時鐘取時間，這和 ARCH-02 的方向一致（`domain`、`application` 不得直接取系統時間，`now(Clock)` 不算違規）。
+  - 2026-11-20 的建構 PR（#112）改掉 `ReviewCase`、`ReviewSubmission`、`SamplingBatch` 的 18 處：domain 方法改收時間參數，use case 以注入的 `Clock` 傳入。
+  - 剩下 `DomainEvent` 的 1 處（`occurredAt`）。v2.0 的 `with` 不比對事件時間，不受影響。
+  - 程式把時間全部改成帶時區的時間點，是 `05-current-state.md` 第五節第 3 項待裁決的事。改完之後 `local_time_zone` 自然用不到。
 
-**6. 矩陣範例（角色 × 狀態）**
+**6. 具名斷言與矩陣範例（Q-10、Q-13）**
 
 讀取權限與遮罩是「多個角色 × 多個狀態」的表。逐一寫範例會有幾十個幾乎一樣的範例，人審不出漏掉哪一格。
 
 ```yaml
-  - name: initial_content_visibility
-    basis: [RC-VIS-01, RC-VIS-02, RC-VIS-03]
+expectations:                         # 可重用的具名斷言，和 fixtures 對稱；欄位與第 4 項相同
+  full_content:
+    result: SUCCESS
+    output: { "entries[stage=INITIAL]": { status: SUBMITTED, totalScore: "20" } }
+  metadata_only:
+    result: SUCCESS
+    absent: ["entries[*].totalScore", "entries[*].comment"]
+  denied:
+    result: REJECTED
+    code: ACCESS_DENIED
+
+examples:
+  - name: revision_history_visibility
+    basis: [RC-VIS-01, RC-VIS-03, RC-RVH-01, RC-RVH-02]
     matrix:
       columns: [actor, state, expect]
+      key: [actor, state]             # 哪幾欄組成展開後的名稱
       rows:
-        - [manager_h1,    INITIAL_REVIEW_SUBMITTED, visible]
-        - [rereviewer_h1, REREVIEW_IN_PROGRESS,     masked]
-        - [admin,         CLOSED,                   metadata_only]
+        - [manager_h1,    INITIAL_REVIEW_COMPLETED, full_content]
+        - [admin,         INITIAL_REVIEW_COMPLETED, metadata_only]
+        - [rereviewer_h1, INITIAL_REVIEW_COMPLETED, denied]
     given:
       - use: "case_in_${state}"
-    when: { run: GetReviewCaseDetail, as: "${actor}", input: { caseId: "${c}" } }
-    then: { result: SUCCESS }
-    observe:
-      - use_expect: "${expect}"      # 指向同檔 expectations 底下的具名斷言
+    when: { run: GetRevisionHistory, as: "${actor}", input: { caseId: "${c}" } }
+    then: { use_expect: "${expect}" }
 ```
 
-- 展開後每一列是一個範例，名稱是 `<name>[<第一欄>,<第二欄>]`，例如 `initial_content_visibility[rereviewer_h1,REREVIEW_IN_PROGRESS]`。這個名稱就是它在已知失敗清單裡的身分，所以列的順序可以改，但值不能改。
-- `expectations` 是可重用的具名斷言，和 `fixtures` 對稱。
-- `spec_lint` 檢查每一列的欄數、引用的 fixture 與斷言都存在。
+- 具名斷言可以包含 `result` 與 `code`，所以矩陣的一列可以是「被拒絕」。
+- 展開後每一列是一個範例，名稱是 `<name>.<值>.<值>`，例如 `revision_history_visibility.admin.INITIAL_REVIEW_COMPLETED`。這個名稱就是它在已知失敗清單裡的身分。
+  - `matrix.key` 必填。這幾欄的值只能用英數字與 `_` `-`，組合不得重複。
+  - 列的順序可以改，`key` 那幾欄的值不能改。
+- 欄的值可以代入範例裡任何一個字串。
+- `spec_lint` 檢查每一列的欄數、引用的 fixture 與具名斷言都存在。
+- 矩陣的每一列共用同一份 `basis`。要分開統計涵蓋時，拆成兩個矩陣。
 
-**7. 事件**
+**7. 事件（Q-15）**
 
 v1 的 `success.emits` 已經存在，但不驗證。v2 讓範例可以斷言：
 
 ```yaml
     then:
       result: SUCCESS
-      emits:
-        - { event: InitialReviewSubmitted, with: { caseId: "${c}" } }
-      emits_only: true            # 除了列出的事件，不得有其他事件
+      emits:                          # 完整的清單，不比順序
+        - { event: ReviewCaseAssigned, with: { caseId: "${c}", assignedReviewerId: u-r1 } }
 ```
 
-執行器要能取得這次 use case 執行期間發出的事件。事件名稱必須在 `usecases.yaml` 的 `success.emits` 有宣告。
+- **名稱**：事件 `X` 對到類別 `XEvent`，與 use case 的慣例相同。事件名稱必須在那支 use case 的 `success.emits` 有宣告。
+- **`with`**：依屬性名稱部分比對，與 `output` 相同。
+- **完整與部分**：`emits` 是完整的清單：多一個、少一個都算不符。只想確認其中幾個時用 `emits_include`。這與 C 組的 `calls`、`calls_include` 對稱。
+- **被拒絕**：`then.result` 是 `REJECTED` 時，執行器一律確認沒有發出任何事件，範例不必寫，也不能寫。
+- **沒有寫 `emits`**：不驗證事件。
+- **`proposed` 的事件**：範例斷言了宣告為 `proposed` 的事件，視同 `basis` 含 `proposed`，還不能當驗收依據。事件不必有 id。
 
-**8. 轉移的涵蓋**
+執行器要能取得這次 use case 執行期間發出的事件。
 
-`model.yaml` 的每一條 `transitions` 都必須至少被一個範例的 `basis` 引用，否則判為問題（v1 只列出）。狀態機是 ReviewCase 最容易漏的地方，所以只有轉移這一類先改成「擋下」。其餘規則仍然只列出（Q-8）。
+**8. 轉移（Q-8、Q-16）**
+
+```yaml
+transitions:
+  - { id: RC-T-01, from: SELECTED_PENDING_ASSIGNMENT, to: PENDING_INITIAL_REVIEW, by: AssignReviewCase, status: decided, source: [...] }
+
+deferred_transitions:                 # 存在、但還沒立法的轉移
+  - { from: INITIAL_REVIEW_COMPLETED, to: PENDING_REREVIEW,         by: FixInitialReview, when: 分數大於品質線 }
+  - { from: INITIAL_REVIEW_COMPLETED, to: INITIAL_REVIEW_COMPLETED, by: FixInitialReview, when: 分數不大於品質線，或品質線沒有設定 }
+```
+
+- **涵蓋**：`transitions` 的每一條都必須至少被一個範例的 `basis` 引用，否則判為問題（v1 只列出）。其餘規則仍然只列出（Q-8）。
+- **條件**：轉移可以有 `when`（文字）。同一個 `from`、同一支 use case 可以有多條轉移，只要 `when` 不同。`from` 等於 `to` 的轉移合法。
+- **`deferred_transitions`**：每一項是 `from`、`to`、`by`、`when`、`note`。
+  - `from`、`to` 要核對是同一個列舉的值；`by` 不核對，因為那支 use case 還不在規格裡。
+  - 不需要 id，不需要範例。
+  - `by` 已經在規格裡的，不能留在這裡，要搬到 `transitions` 並給 id。
+  - 由 use case 內部的步驟觸發、從外面觀察不到的轉移（例如抽選批次的中間狀態），留在這裡。
+- 不支援「`from` 是清單」：一條轉移一個 id，才知道哪一條沒有範例。
+
+**8a. 跨目錄的引用（Q-17）**
+
+| 引用 | 寫法 |
+|---|---|
+| fixture | `use: <目錄>.<名稱>`。變數一起帶過來 |
+| use case | `run: <目錄>.<名稱>`；同目錄的直接寫名稱 |
+| 轉移的 `by` | `by: <目錄>.<名稱>` |
+| 列舉的型別 | `enum <目錄>.<名稱>` |
+| 埠 | `port: <目錄>.<埠>.<操作>` |
+
+- 範例執行的 use case 只要在 `specs/` 任何一份 `usecases.yaml` 裡，就不必列在 `needs`。`needs` 只留給真的還沒立法的 use case。
+- 規則的 id 本來就是整個 `specs/` 唯一，`basis` 可以直接引用另一個目錄的規則。
+- 一個 aggregate 一個目錄的原則不變。提交（ReviewSubmission）有自己的目錄與狀態機；改變它的 use case 定義在 `review-case/`，所以它的轉移寫 `by: review-case.SubmitInitialReview`。
+
+**8b. 輸出的結構（Q-18）**
+
+```yaml
+output_types:                         # 與 input_types 對稱
+  RevisionEntry:
+    - { name: submissionId, type: id }
+    - { name: stage,        type: enum ReviewStage }
+    - { name: totalScore,   type: decimal(2) }
+
+usecases:
+  - name: GetRevisionHistory
+    kind: query
+    output:
+      fields:
+        - { name: caseId,  type: id }
+        - { name: entries, type: "list<RevisionEntry>" }
+```
+
+- 命令與查詢的輸出都寫 `output.fields`。v1 的 `success.output` 在 `spec_version: 2` 的檔案裡不再接受（D-063 第 3 點第 1 項）。
+- **欄位對誰可見，不寫進結構。** 留在規則的 `text` 與範例的 `absent`、`only`。角色是專案的詞彙（D-064）；可見性也常常同時取決於角色、指派關係與歷史（D-055），一個角色清單表達不了。
+
+**8c. 最小的埠（Q-19）**
+
+第 9 項的「宣告埠」與 `returns` 提前到 v2.0，其餘留在 v2.1。
+
+```yaml
+# model.yaml
+ports:
+  - name: CandidateSource
+    term: 抽選母體的來源
+    operations:
+      - { name: queryCandidates, returns: "list<Candidate>" }
+
+# examples.yaml
+    given:
+      - port: CandidateSource.queryCandidates
+        returns:
+          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+```
+
+- v2.0 的埠步驟只能有 `port` 與 `returns`。`fails`、`calls`、`never`、`order`、面向、行程都是 v2.1。
+- 依 Q-3，埠 `CandidateSource` 對到介面 `CandidateSourcePort`。執行器在範例期間把它換成回傳設定值的替身。
+- 範例用到的埠沒有設定 `returns` 時，範例未通過：不退回程式裡的開發用替身。
 
 ### C 組：外部資源協定
 
@@ -325,7 +463,7 @@ facets:
 | 角色 × 狀態的可見性表 | permission-matrix §5、§6 | 第 6 項矩陣 | 是 |
 | 讀過完整初審的人不得再被指派為複審 | D-055 | v1 已可寫：先讀、再指派，`REJECTED REREVIEWER_HAS_READ_INITIAL` | 是（v1） |
 | 歷史不完整的案件（導入前建立）一律拒絕 | D-055 | **use case 建立不出「歷史不完整」的案件**。依 Q-7 的裁決，列在 `not_covered`，由建構者的白箱測試負責；不開資料後門，也不把系統自己的儲存宣告成埠 | 否 |
-| 指派期限、逾期 | domain-model `dueAt` | 第 5 項時鐘 | 是 |
+| 指派期限、逾期 | domain-model `dueAt` | 期限與指派時間：第 5 項時鐘。逾期：權威文件沒有已裁決的規則，目前沒有東西可以驗證（第十三節 P-3） | 部分 |
 | updatedAt 不倒退、建案初始化為 UTC | D-037 | 第 5 項時鐘加 `advance` | 是 |
 | 狀態機每一條轉移都有範例 | state-machine §3.2 | 第 8 項 | 是 |
 | 提交、固定、結案發出事件 | domain-events | 第 7 項 | 是 |
@@ -338,7 +476,9 @@ facets:
 - Q-1、Q-2（2026-11-20）：成為 D-063（格式 v1.1），已生效（#109、#110）。條文見第九節。
 - Q-3～Q-9（2026-11-20）：查證與理由見第十節。Q-7 的建議在查證後由 (a) 改為 (c)。
 
-它們會在各期的修法 PR 裡寫成裁決：v2.0 用 Q-6、Q-7、Q-8，v2.1 用 Q-3、Q-4、Q-5、Q-9。
+- Q-10～Q-20（2026-11-20）：題目與理由見第十三節。負責人整批照建議裁決。
+
+它們會在各期的修法 PR 裡寫成裁決：v2.0 用 Q-3（埠的命名）、Q-5、Q-6、Q-7、Q-8、Q-10～Q-20（D-065 草案見第十四節），v2.1 用 Q-3、Q-4、Q-5、Q-9。
 
 | # | 題目 | 選項 | 建議 |
 |---|---|---|---|
@@ -351,6 +491,7 @@ facets:
 | Q-7 | 用 use case 建立不出來的前提（歷史不完整的案件） | (a) 宣告成埠，由範例設定；(b) 允許 `seed` 直接寫入，但限定宣告過的情境；(c) 不寫範例，列在 `not_covered` | **已裁決（2026-11-20）：(c)。** 起草時建議 (a)，查證後改為 (c)（第十節） |
 | Q-8 | 哪些「只列出」要改成「擋下」 | 轉移、沒有範例的規則、`basis` 含 `proposed` | **已裁決（2026-11-20）：先擋轉移。** |
 | Q-9 | 醫事人員卡的規格放哪裡 | (a) 它自己的專案，安裝 `harness-core/`；(b) 本 repo 的 `spec-draft/` 試寫 | **已裁決（2026-11-20）：(a)。** |
+| Q-10～Q-20 | B 組試寫的缺口（第十三節） | 各題見第十三節 | **已裁決（2026-11-20）：全部照建議的 (a)。** |
 
 ## 七、實作順序
 
@@ -359,17 +500,19 @@ facets:
 | 期 | 內容 | 前提 | 對現有規格的影響 |
 |---|---|---|---|
 | v1.1 | A 組（第 1～3 項）、Q-1 的欄位表 | Q-1、Q-2 | **已完成**（D-063，#109、#110）。現有規格零問題 |
-| v2.0 | B 組（第 4～8 項） | Q-6、Q-7、Q-8 已裁決；`domain` 的取時呼叫已改掉 18 處，剩 `DomainEvent` 1 處（第 5 項） | 現有範例照跑；新寫法供 ReviewCase 使用 |
-| v2.1 | C 組（第 9～12 項） | Q-3、Q-4、Q-5、Q-9 已裁決；**第十一節的缺口一（語法）要先補進第四節；缺口二（harness-core 寫死的假設）已由 D-064 修正（#115）** | 規格目前沒有宣告任何埠（程式裡的 11 個 `XPort` 是內部的查詢與儲存介面，不因此變成規格的一部分）；回歸樣本是 `samples/card-v2-trial/`（第十一節） |
+| v2.0 | B 組（第 4～8 項、8a～8c） | Q-6、Q-7、Q-8、Q-10～Q-20 已裁決；`domain` 的取時呼叫已改掉 18 處，剩 `DomainEvent` 1 處（第 5 項）。裁決草案是第十四節（D-065） | 現有範例照跑；新寫法只在 `spec_version: 2` 的檔案生效 |
+| v2.1 | C 組（第 9～12 項；埠的宣告與 `returns` 已提前到 v2.0，第 8c 項） | Q-3、Q-4、Q-5、Q-9 已裁決；**第十一節的缺口一（語法）要先補進第四節；缺口二（harness-core 寫死的假設）已由 D-064 修正（#115）** | 規格目前沒有宣告任何埠（程式裡的 11 個 `XPort` 是內部的查詢與儲存介面，不因此變成規格的一部分）；回歸樣本是 `samples/card-v2-trial/`（第十一節） |
 
 v2.0 之後的第一個使用者是 ReviewCase 的薄切片（分派、初審提交、revision-history 的讀取遮罩）。用它驗證 B 組夠不夠，之後再擴大。
+
+2026-11-20 更新：試寫發現薄切片不能單獨立法（第十三節 P-1），負責人決定改成直向切片：從抽選到初審提交。v2.0 的前提另外加上 Q-10～Q-20。
 
 ## 八、這份草案沒有處理的
 
 - 請求端的 HTTP 契約（W-9／W-10）。屬於 `http.yaml`，不在這三組需求裡。
 - 規則 8（架構詞彙只用 glossary 有定義的詞）的機械檢查。
 - 禁用詞彙清單依專案分開（`10-spec-format.md` 第五節 v2 候選第 8 項）。與 `harness-core/` 拆成獨立 repo 一起處理。
-- 第四節 B、C 組的語法只在紙上推演過，還沒有實作來證明它可行。A 組已在 v1.1 實作（D-063），回歸樣本是 `10-spec-format.md` 第五節的兩份草稿：
+- 第四節 B、C 組的語法還沒有實作來證明它可行。B 組已用 ReviewCase 試寫兩輪（第十三節），C 組已用白板 V10 試寫一次（第十一節），兩者都只有暫時的檢查，執行器沒有跑。A 組已在 v1.1 實作（D-063），回歸樣本是 `10-spec-format.md` 第五節的兩份草稿：
   - 嚴格版的空洞範例被第 2 項擋下。
   - 擴充版的硬寫：試寫結果二的前 7 列都被擋下，其中 6 列由第 1 項擋下；第 8 列是實作詞彙，不屬於 A 組。
 - C 組已用白板 V10 試寫過一次（第十一節），但只有暫時的檢查，執行器沒有跑。
@@ -722,3 +865,360 @@ v2.0 之後的第一個使用者是 ReviewCase 的薄切片（分派、初審提
 
 - 出處的種類（`design_decision` 指 `docs/02-ddd/`、`example`／`scenario` 指 `docs/04-testing/`）也帶有本專案的目錄。程式已經允許專案不設定（不設定時，用到這兩類出處的規則會被列為問題），iccard 可以只用 `decision` 與 `doc`，所以不擋，不列入本草案。
 - 禁用詞彙依專案分開（第八節），與 `harness-core/` 拆成獨立 repo 一起處理。
+
+## 十三、ReviewCase 薄切片的 v2 試寫與 B 組的缺口（2026-11-20）
+
+### 目的與做法
+
+第八節說 B 組的語法「只在紙上推演過」。C 組試寫一次就找出 26 個缺口（第十一節），所以在起草 v2.0 的裁決之前，先對 B 組做同樣的檢驗。
+
+- **對象**：第七節指定的薄切片：分派、初審提交、revision 歷程的讀取遮罩。
+- **位置**：`samples/reviewcase-v2-trial/`。不是律法，不改變 `law/coverage.txt`。
+- **寫法**：嚴格照第四節第 4～8 項。沒有定義的寫法標 `[缺口 B-xx]`。
+- **檢查**：暫時的檢查 `v2check_b.py`。執行器沒有跑。
+
+### 第一輪的結果
+
+4 支 use case、30 條規則、19 個範例（矩陣展開後 26 個）。暫時的檢查問題 0 個；故意改壞 6 處，6 處都抓到。
+
+缺口 12 個（B-01～B-12）、前提 4 個（P-1～P-4）。完整的說明在 `samples/reviewcase-v2-trial/README.md`，這裡只列處理方式。
+
+最重要的一項是 P-1：**薄切片不能單獨立法。** 案件只能由抽選建立，準備步驟需要 7 支還沒立法的 use case；照 v1 的規則，26 個範例有 25 個會因為 `needs` 未滿足而算未通過。
+
+負責人 2026-11-20 決定：**薄切片改成直向切片，從抽選到初審提交。** 複審者的遮罩等複審指派立法後再補。第七節的「v2.0 之後的第一個使用者」依此更新。
+
+### 缺口的處理：Q-10～Q-20
+
+**2026-11-20 更新：負責人整批照建議裁決，十一題都是 (a)。** 寫法已併入第四節（第 4～8 項、8a～8c，以及 A 組第 2 項），以第四節為準。下面保留起草時的題目與理由。
+
+下面每一題都有建議的寫法。建議的寫法已經用在第二輪的試寫（見「第二輪」），不是只在紙上。
+
+**Q-10 `then` 的輸出斷言與具名斷言（B-03、B-04；卡片試寫的 G-08、G-10、G-11）**
+
+- (a) `then` 可以寫 `output`、`absent`、`only`，比對的對象是 `when` 的輸出，語意與 `observe` 的 `expect` 相同。`then` 也可以寫 `use_expect`，指向具名斷言；具名斷言可以包含 `result` 與 `code`。
+- (b) 維持現狀：要比對就在 `observe` 把同一支查詢再跑一次。
+
+**建議 (a)。** 理由：
+
+- 命令的回應本身就是要保證的事。例如 D-054 第 3 點：提交初審的回應是 `INITIAL_REVIEW_COMPLETED`。
+- 查詢再跑一次不等於同一次：准許完整讀取會留下讀取者紀錄（P-4）。
+- 具名斷言帶 `result`、`code` 之後，矩陣的一列可以是「被拒絕」，不必把 `result` 拆成一欄、`code` 拆成另一欄。
+
+第 6 項示範裡 `observe` 那一步沒有 `run`，照字面無法執行，改成放在 `then`。
+
+**Q-11 穿過清單的路徑（B-01、B-11）**
+
+- (a) 定義一種路徑，用在 `absent`、`only`、`save`，以及 `output` 的鍵：
+  - `a.b`：巢狀屬性（第 4 項已有）。
+  - `a[*]`：清單的每一筆。
+  - `a[k=v]`：`k` 等於 `v` 的每一筆。只有「等於」，多個條件用逗號。
+  - `a[0]`：第一筆。只能用在 `save`；範例不得依賴它是哪一筆。
+  - `[*]`、`[k=v]` **選不到任何一筆時，斷言不成立。** 否則遮罩的斷言會在清單是空的時候空洞地通過。
+- (b) 不定義路徑；要求查詢回傳不含清單的形狀。
+
+**建議 (a)。** 歷程、提交、答案都是清單，(b) 等於叫程式為了規格改形狀。
+
+`output` 裡直接寫清單時，仍然是 v1 的語意：筆數相同、一對一配對。只想比對其中幾筆時，用路徑當鍵：
+
+```yaml
+output:
+  "entries[stage=INITIAL]": { status: SUBMITTED, totalScore: "20" }
+absent: ["entries[stage=INITIAL].comment"]
+save: { c: "content[0].caseId" }
+```
+
+**Q-12 白名單（B-02）**
+
+- (a) 加 `only`：鍵是路徑（`.` 代表輸出本身），值是欄位清單。選到的每一個物件，值不是 null 的屬性都必須在清單裡。
+- (b) 只用 `absent`。
+
+**建議 (a)。** D-036 要求白名單「不得因新增欄位自動擴大」，`absent` 是黑名單，擋不住新增的欄位。「null 視為不存在」與 Q-6 一致；JSON 的鍵不存在仍由 HTTP 契約負責。
+
+```yaml
+only:
+  "entries[*]": [submissionId, stage, revisionNo, status, reviewerId, submittedAt]
+```
+
+**Q-13 矩陣展開的名稱（B-05）**
+
+- (a) 名稱是 `<name>.<值>.<值>`，用 `.` 連接。`matrix.key` 指定哪幾欄組成名稱；這幾欄的值只能用英數字與 `_` `-`，組合不得重複。
+- (b) 放寬 v1 的範例名稱規則，允許 `[`、`,`、`]`。
+
+**建議 (a)。** 範例名稱是已知失敗清單裡的身分，也是測試名稱，不放寬字元。`key` 明確宣告，比「前兩欄」不容易在加欄位時改到身分。
+
+**Q-14 時間（B-06、B-07）**
+
+- 型別詞彙加 `datetime`：一個時間點。範例裡寫 ISO 8601 加時區，例如 `"2026-11-19T09:00:00Z"`。
+- 比對的是時間點，不是字串：`"2026-11-19T17:00:00+08:00"` 等於 `"2026-11-19T09:00:00Z"`。
+- `spec-profile.yaml` 加兩項：
+  - `clock_start`：沒有寫 `clock` 的範例的起始時間。
+  - `local_time_zone`：程式的輸入或輸出是不帶時區的時間時，依這個時區解讀；執行器提供的時鐘也用這個時區。
+- 沒有設定 `local_time_zone`，而範例碰到不帶時區的時間，判為無法評估，不猜。
+
+選項只有「要不要 `local_time_zone`」：
+
+- (a) 要。現行程式同時有帶時區與不帶時區的時間，不設定就沒有任何時間寫得出範例。
+- (b) 不要；先把程式全部改成帶時區的時間（`05-current-state.md` 第五節第 3 項），再立法。
+
+**建議 (a)。** (b) 是對的方向，但它是另一個待裁決的題目，不該擋住 v2.0。改完之後 `local_time_zone` 自然用不到。
+
+**Q-15 事件（B-08）**
+
+- **名稱**：事件 `X` 對到類別 `XEvent`，與 use case 的慣例相同（現有的事件類別都是這個形狀）。
+- **`with`**：依屬性名稱部分比對，與 `expect.output` 相同。
+- **完整與部分**：`emits` 是完整的清單，不比順序；只想確認其中幾個時用 `emits_include`。拿掉 `emits_only`。這與 C 組的 `calls`、`calls_include` 對稱。
+- **被拒絕**：`then.result` 是 `REJECTED` 時，執行器一律確認沒有發出任何事件，範例不必寫。
+- **沒有寫 `emits`**：不驗證事件。
+
+選項只有「被拒絕時要不要一律檢查」：
+
+- (a) 一律檢查。
+- (b) 範例有寫 `emits: []` 才檢查。
+
+**建議 (a)。** 「非法的操作不得發布事件」是 `domain-events.md` §2 第 3 點的通則，不該靠每個範例記得寫。
+
+**Q-16 轉移（B-09）**
+
+- **條件**：轉移可以有 `when`（文字，與規則的 `when` 相同）。同一個 `from`、同一支 use case 可以有多條轉移，只要 `when` 不同。`from` 等於 `to` 的轉移合法。
+- **還沒立法的轉移**：加 `deferred_transitions`，每一項是 `from`、`to`、`by`、`note`。
+  - `from`、`to` 要核對是列舉的值；`by` 不核對，因為那支 use case 還不在規格裡。
+  - 不需要 id，不需要範例，第 8 項不管它。
+  - 之後立法時，把它搬到 `transitions` 並給 id。
+
+選項：
+
+- (a) 照上面兩點。
+- (b) 不加 `deferred_transitions`；aggregate 要立法就必須整個狀態機一起。
+
+**建議 (a)。** (b) 等於不准薄切片；ReviewCase 有 16 列轉移，一次立法太大。有了 `deferred_transitions`，規格裡看得到完整的狀態機，也看得到哪些還沒立法。
+
+不支援「`from` 是清單」：取消從 4 個狀態出發，就寫 4 條。一條轉移一個 id，第 8 項才知道哪一條沒有範例。
+
+**Q-17 跨目錄的引用（B-10）**
+
+- **fixture**：`use: <目錄>.<名稱>` 引用另一個規格目錄的 fixture，變數一起帶過來。那個 fixture 的 `needs` 也算進來。
+- **use case**：範例執行的 use case 只要在 `specs/` 任何一份 `usecases.yaml` 裡，就不必列在 `needs`。`needs` 只留給真的還沒立法的 use case。
+- **轉移的 `by`**：可以寫 `<目錄>.<use case>`。提交（ReviewSubmission）是另一個 aggregate，有自己的目錄與狀態機，但改變它的 use case 定義在 `review-case/`。
+
+選項：
+
+- (a) 照上面三點。
+- (b) 維持每個目錄自給自足，重複的準備步驟照抄。
+
+**建議 (a)。** 第一輪試寫時，「啟用中的專案」的 7 個準備步驟要從 `specs/review-project/` 整份抄過來。照抄的 fixture 會各自演變，哪一份才是對的沒有人知道。
+
+**Q-18 輸出的結構（B-12；D-063 第 3 點第 1 項）**
+
+- 加 `output_types`，與 `input_types` 對稱：名稱 → 欄位清單。
+- 命令的 `success.output`（清單）與查詢的 `output`（帶 `fields` 的物件）合併成一種寫法：都寫 `output.fields`。這就是 D-063 第 3 點第 1 項的「待改寫」。
+- **欄位對誰可見，不寫進結構。** 留在規則的 `text` 與範例的 `absent`、`only`。
+
+選項只有第三點：
+
+- (a) 不寫進結構。
+- (b) 欄位加 `visible_to: [角色]`。
+
+**建議 (a)。** 角色是專案的詞彙；D-064 剛把它從 `harness-core/` 移出去，(b) 會再放回來。而且可見性常常同時取決於角色、指派關係與歷史（D-055），一個角色清單表達不了。
+
+**Q-19 v2.0 要不要提前納入最小的埠（P-1）**
+
+直向切片從抽選開始，抽選的候選來自外部（`CandidateSourcePort`）。目前是開發用的替身固定回 5 筆，規格看不到這個前提。
+
+- (a) 把第 9 項的「宣告埠」與 `returns` 提前到 v2.0。`calls`、`never`、`order`、面向、行程留在 v2.1。
+- (b) v2.0 不含埠；抽選的範例依賴開發用的替身。
+- (c) 等 v2.1 做完再立法抽選。
+
+**建議 (a)。** (b) 讓範例的結果取決於一段規格沒有宣告的程式，違反原則 2。(c) 把 ReviewCase 的立法排到 C 組之後，而 C 組還有十幾項語法缺口。(a) 需要的只是「宣告一個埠、在 `given` 設定它回傳什麼」，不涉及呼叫紀錄與並行。
+
+依 Q-3，埠 `CandidateSource` 對到介面 `CandidateSourcePort`。
+
+**Q-20 情境相同的範例（Q-10 與 D-063 第 4 點的衝突）**
+
+第二輪試寫時由暫時的檢查抓到。D-063 第 4 點規定：兩個範例的 `given`、`when` 相同而 `then` 不同，就擋下，理由是「兩者不可能同時通過」。v1 的 `then` 只有 `result` 與 `code`，這個理由成立。
+
+Q-10 讓 `then` 可以比對輸出之後，理由不再成立：兩個範例可以各自驗證同一個輸出的不同面向（一個驗黑名單、一個驗白名單），兩者都會通過。
+
+- (a) 擋下的條件改成「`result` 或 `code` 不同」。其餘的斷言不同，只列出。
+- (b) 維持 D-063 的條文；同一個情境的斷言一律寫在同一個範例。
+
+**建議 (a)。** (b) 會逼人把已裁決與 `proposed` 的斷言寫進同一個範例，整個範例就不能當驗收依據。試寫的白名單（`proposed`）與黑名單（`decided`）就是這種情況。
+
+這一題修改的是已經生效的 D-063，要在 D-065 寫明「部分取代 D-063 第 4 點」。
+
+### 不需要裁決的前提
+
+| # | 前提 | 處理 |
+|---|---|---|
+| P-2 | 程式的參數名稱對不上規格（`criteria`、`cmd`） | 立法後由建構 PR 把參數攤平。這是既有規則「程式要使用規格的名稱」的結果，格式不必改 |
+| P-3 | 逾期沒有可以立法的規則 | 第五節 B 組的「指派期限、逾期」目前沒有東西可以驗證。等逾期規則裁決後再寫 |
+| P-4 | 查詢會改變狀態（讀取者紀錄） | 格式不必改。`specs/README.md` 第四節加一句提醒：`observe` 的查詢如果會留下紀錄，它就是情境的一部分 |
+
+### 第二輪：直向切片，用建議的寫法重寫
+
+位置：`samples/reviewcase-v2-trial/round-2/`。第一輪的檔案保留在 `round-1/`。
+
+| 目錄 | 內容 |
+|---|---|
+| `sampling-batch/` | `ExecuteSampling`，宣告埠 `CandidateSource`（Q-19） |
+| `review-case/` | `ListReviewCases`、`AssignReviewCase`、`StartInitialReview`、`SaveInitialReviewDraft`、`SubmitInitialReview`、`GetRevisionHistory` |
+| `review-submission/` | 只有 `model.yaml`：提交的狀態機，`by` 指向 `review-case/` 的 use case（Q-17） |
+
+結果（暫時的檢查 `v2check_b2.py`，執行器沒有跑）：
+
+- 規則 37 條，其中 6 條 `proposed`。範例 26 個，矩陣展開後 35 個。問題 0 個。
+- **`needs` 未滿足的範例從 25 個降到 0 個。** 直向切片自給自足。
+- 故意改壞 10 處，10 處都抓到：路徑的寫法、`absent` 用了 `[數字]`、矩陣的 `key` 不唯一、時間沒有時區、被拒絕卻寫了 `output`、埠的操作不存在、跨目錄的 fixture 不存在、跨目錄的 `by` 不存在、轉移沒有範例、還沒立法的轉移跨了兩個列舉。
+- 狀態機現在是完整的：`review-case/` 3 條已立法、13 條在 `deferred_transitions`；`review-submission/` 2 條已立法、4 條待立法。
+- 可見性表 10 列，其中 4 列是「被拒絕」，和「看得到」的列放在同一張表。
+
+第一輪的 12 個缺口，在第二輪都有寫法。
+
+### 第二輪留下的問題
+
+| # | 問題 | 建議 |
+|---|---|---|
+| R-1 | `success.emits` 的事件沒有 id。範例斷言了一個 `proposed` 的事件時，`basis` 指不到它 | 檢查程式直接看事件宣告的 `status`：斷言了 `proposed` 事件的範例，視同 `basis` 含 `proposed`。不必給事件 id |
+| R-2 | 抽選批次的轉移（state-machine §5.2）由 `ExecuteSampling` 內部的步驟觸發，不是 use case | 留在 `deferred_transitions`。從外面只觀察得到最後的狀態，內部的步驟不屬於規格 |
+| R-3 | 矩陣的每一列共用同一份 `basis` | 接受。要分開統計時，把矩陣拆成兩個 |
+| R-4 | `enum <名稱>` 的列舉在另一個目錄（抽選用到審查專案的病歷類型） | 型別的名稱比照 Q-17 可以寫 `<目錄>.<名稱>`。現行檢查不核對型別名稱，所以不擋 |
+| R-5 | 列出案件的輸出欄位叫 `content`，是分頁元件的詞彙 | 正式立法時決定規格用什麼名稱，由建構 PR 配合（與 P-2 同一類） |
+
+R-1～R-5 都不需要另外裁決：R-1 併入 Q-15，R-4 併入 Q-17，其餘是說明。
+
+### 還沒做的
+
+- 第四節已經改寫，D-065 的草案是第十四節。修法 PR 還沒開始。
+- 執行器沒有跑過。路徑、白名單、時鐘、事件擷取、埠的替身都只在紙上與暫時的檢查裡。
+- 內容的問題 5 題（`samples/reviewcase-v2-trial/round-2/OPEN-QUESTIONS.md`），負責人決定等正式立法時再裁決。
+- 複審者的遮罩（D-033）不在直向切片裡，等複審指派立法後補。
+
+### 修法的順序
+
+v2.0 的內容是：第 4～8 項，加上這十一題的寫法，加上 D-063 第 3 點的四項待改寫。順序照第七節：裁決（D-065）→ 修法 PR（`specs/README.md`、`spec_lint.py` 與測試）→ 執行器的修法 PR → 建構 PR。
+
+## 十四、D-065 草案（v2.0）
+
+依負責人 2026-11-20 對 Q-6、Q-7、Q-8、Q-10～Q-20 的裁決起草。
+
+**2026-11-20 更新：** 負責人對「待負責人決定」的三點裁決如下，條文已和 `spec_lint` 的實作放在同一個修法 PR，寫進 `decision-log.md` 的 D-065。以 decision-log 為準。
+
+1. `local_time_zone` 用 `Asia/Taipei`。
+2. 現有兩份規格先不升到 `spec_version: 2`，等格式穩定之後再做。
+3. `spec_lint` 與執行器分成兩個修法 PR。
+
+實作時對下面的草案做了四處補充：
+
+- 第 1 點：`spec_version: 2` 的目錄只有 `model.yaml` 是必要的。試寫的 `review-submission/` 就是只有狀態機的目錄。
+- 第 2 點：`then.code` 必須定義在 `when` 那支 use case 所在目錄的 `error_codes`。v1 不核對 `then` 的代碼。
+- 第 5 點：`profile_version: 1` 仍然接受；有 `spec_version: 2` 的規格而設定檔是版本 1，才判為無法評估。安裝 `harness-core/` 的其他專案不必為了升級而改設定檔。
+- 第 6 點：`spec_version: 2` 的範例名稱在同一個檔案裡不得重複。
+
+用正式的 `spec_lint` 檢查第二輪試寫時，另外做了一件事：內容的待裁決題目從 `round-2/OPEN-QUESTIONS.md` 拆到各規格目錄，因為檢查程式在各目錄找題號。
+
+下面保留起草時的版本，供對照。
+
+### 草案條文
+
+> ## D-065 — 規格格式 v2.0：輸出斷言、清單路徑、時鐘、矩陣、事件、轉移、跨目錄引用、最小的埠
+>
+> ### Status
+>
+> `proposed`（2026-11-20 起草；依負責人對格式 v2 草案 Q-6、Q-7、Q-8、Q-10～Q-20 的裁決）
+>
+> ### Decision
+>
+> 1. **版本。**
+>    - 本裁決的寫法只在 `spec_version: 2` 的檔案生效。同一個 `specs/` 裡，`spec_version: 1` 與 `2` 的目錄可以並存。
+>    - 同一個目錄的 `model.yaml`、`usecases.yaml`、`examples.yaml` 版本必須相同。
+>    - `spec_version: 1` 的檔案照 D-063、D-064，一個字都不必改，判決結果也不變。
+>    - `http.yaml`、`http-common.yaml` 不變（D-061）。
+> 2. **斷言的欄位。** `then`、`observe` 的 `expect`、具名斷言共用一組欄位：`result`、`code`、`output`、`absent`、`only`、`use_expect`；`then` 另外可以有 `emits`、`emits_include`。
+>    - `then` 比對 `when` 的輸出。
+>    - `result` 是 `REJECTED` 時，只能有 `code`。
+> 3. **路徑。** `.`、`a.b`、`a[*]`、`a[k=v]`（只有等於；多個條件用逗號；值可以是 `${名稱}`）、`a[0]`。
+>    - `output` 的鍵、`absent`、`only` 可以用 `a.b`、`a[*]`、`a[k=v]`；`only` 另外可以用 `.`。
+>    - `a[0]` 只能用在 `save`。
+>    - `[*]`、`[k=v]` 選不到任何一筆時，斷言不成立。
+>    - `output` 裡直接寫的清單維持 v1 的語意：筆數相同、一對一配對。
+> 4. **`absent` 與 `only`。**
+>    - `absent`：選到的屬性不存在或為 null。
+>    - `only`：選到的每一個物件，值不是 null 的屬性都必須在清單裡。
+>    - JSON 的鍵是否存在，仍由 HTTP 契約的封閉形狀負責（D-061）。
+> 5. **時間。**
+>    - 型別詞彙加 `datetime`。範例裡寫 ISO 8601 加時區；比對的是時間點。
+>    - 範例可以寫 `clock: { start }`；步驟可以寫 `advance`（ISO 8601 期間，只能前進）。
+>    - `spec-profile.yaml` 加 `clock_start`、`local_time_zone`，`profile_version` 升為 2。兩項與既有項目一樣必填，缺少就判為無法評估（D-064 第 1 點）。
+>    - 執行器提供固定的時鐘：起始值是範例的 `clock.start` 或設定檔的 `clock_start`，時區是 `local_time_zone`。
+> 6. **具名斷言與矩陣。**
+>    - `examples.yaml` 加 `expectations`：名稱 → 第 2 點的欄位。
+>    - 範例可以有 `matrix`：`columns`、`key`、`rows`。`key` 必填。
+>    - 展開後的名稱是 `<name>.<key 的值，用 . 連接>`。`key` 那幾欄的值只能用英數字與 `_` `-`，組合不得重複。
+>    - 欄的值代入範例裡的 `${欄名}`。欄名與 `save` 的變數名稱不得相同。
+> 7. **事件。**
+>    - 事件 `X` 對到類別 `XEvent`。斷言的事件必須在 `when` 那支 use case 的 `success.emits` 有宣告。
+>    - `emits` 是完整的清單，不比順序；`emits_include` 是部分比對。`with` 依屬性名稱部分比對。
+>    - `then.result` 是 `REJECTED` 時，執行器一律確認沒有發出任何事件。
+>    - 範例斷言了宣告為 `proposed` 的事件，視同 `basis` 含 `proposed`。
+> 8. **轉移。**
+>    - `transitions` 的每一條必須至少被一個範例的 `basis` 引用，否則擋下。其餘規則仍然只列出。
+>    - 轉移可以有 `when`。同一個 `from`、同一支 use case 的多條轉移，`when` 必須不同。`from` 可以等於 `to`。
+>    - 加 `deferred_transitions`：`from`、`to`、`by`、`when`、`note`。`from`、`to` 核對列舉；`by` 已經在規格裡的不得留在這裡。
+> 9. **跨目錄的引用。**
+>    - fixture、use case、轉移的 `by`、列舉的型別、埠，都可以寫 `<目錄>.<名稱>`。
+>    - 範例執行的 use case 在 `specs/` 任何一份 `usecases.yaml` 裡，就不必列在 `needs`。
+> 10. **輸出的結構。**
+>     - 加 `output_types`。命令與查詢的輸出都寫 `output.fields`；`success.output` 不再接受。
+>     - 欄位對誰可見不寫進結構。
+> 11. **最小的埠。**
+>     - `model.yaml` 可以宣告 `ports`：`name`、`term`、`operations`（`name`、`returns`）。埠與操作的名稱受禁用詞彙檢查。
+>     - 步驟可以寫 `port: <埠>.<操作>` 加 `returns`。其他的埠設定與斷言屬於 v2.1。
+>     - 埠 `X` 對到介面 `XPort`，操作對到同名的方法。只有規格宣告過的埠可以被替換。
+>     - 範例執行到的埠沒有設定 `returns`，範例未通過。
+> 12. **情境相同的範例（部分取代 D-063 第 4 點）。**
+>     - 兩個範例的 `given`、`when` 相同時，`result` 或 `code` 不同才擋下。
+>     - 其餘的斷言不同，只列出。
+>     - 對 `spec_version: 1` 的檔案，結果與 D-063 相同：v1 的 `then` 只有 `result` 與 `code`。
+> 13. **用 use case 建立不出來的前提。** 不寫範例，列在 `not_covered`，由建構者的白箱測試負責。不提供直接寫入資料的寫法，也不把系統自己的儲存宣告成埠。
+> 14. **D-063 第 3 點的四項待改寫。**
+>     - `spec_version: 2` 的檔案不接受 `success.output`、`input_note`、`invariants[].enforced_by`、`attributes[].range`；`not_covered[].rules` 核對是規則 id。
+>     - 現有的兩份規格仍是 `spec_version: 1`，照舊接受。它們在升到 `spec_version: 2` 時改寫。
+> 15. **回歸樣本。** `docs/harness/samples/reviewcase-v2-trial/round-2/` 放進 `harness-core/tests/` 當測試資料：
+>     - 原樣必須零問題。
+>     - 第十三節列的 10 種改壞方式，每一種都要被擋下。
+> 16. **順序。**
+>     - 第一個修法 PR：`decision-log.md`、`specs/README.md`、`specs/spec-profile.yaml`、`harness-core/spec_lint.py` 與測試、修法紀錄。`harness-core/VERSION` 升為 0.8.0。現有規格在這個 PR 上維持零問題。
+>     - 第二個修法 PR：執行器。要做到第 2～7、9、11 點：輸出斷言與路徑、時鐘、矩陣展開、事件擷取、跨目錄的 fixture、埠的替身。
+>     - 之後才是規格的修法 PR（抽選到初審提交的直向切片）與建構 PR。
+>     - 修法 PR 不夾帶程式（P4）。
+>
+> ### Relationship / Evidence
+>
+> - 起因：漏網紀錄 E-01、E-02 的根本回應是把 ReviewCase 立法，而格式 v1 寫不出它的讀取遮罩、時間、狀態機與事件。
+> - 兩輪試寫：`docs/harness/samples/reviewcase-v2-trial/`。第一輪照格式 v2 草案原本的第四節，找出 12 個缺口；第二輪用本裁決的寫法重寫成直向切片，暫時的檢查零問題，`needs` 未滿足的範例從 25 個降到 0 個。執行器沒有跑。
+> - 部分取代 D-063 第 4 點（第 12 點）。D-063 第 3 點的四項待改寫在第 14 點處理。
+> - D-064：`spec-profile.yaml` 增加兩項，`profile_version` 升為 2。
+> - D-061：HTTP 契約不變。
+>
+> ### Mapping
+>
+> - `specs/README.md`、`specs/spec-profile.yaml`、`harness-core/spec_lint.py`、`harness-core/tests/`
+> - 後續：執行器的修法 PR；直向切片的規格；格式 v2.1（C 組）
+
+### 待負責人決定
+
+1. **`local_time_zone` 的值。**
+   - 程式的時鐘目前是 `Clock.systemDefaultZone()`，不帶時區的時間取決於主機的設定。`api-spec.md` 的範例都是 `+08:00`；D-037 第 4 點說「時間採統一 UTC 時間點」。
+   - 建議寫 `Asia/Taipei`，與 `api-spec.md` 的範例一致。
+   - 這只決定範例怎麼解讀不帶時區的時間，不改程式。「主機時區決定業務時間」本身是另一個問題，屬於 `05-current-state.md` 第五節第 3 項。
+2. **第 14 點：現有兩份規格要不要在這個 PR 一起升到 `spec_version: 2`。**
+   - 草案選「不要」：第一個修法 PR 只動格式與檢查，現有規格一個字都不改，風險最小。
+   - 代價是 D-063 的四項待改寫繼續留著，直到那兩份規格升版。
+3. **第 16 點：`spec_lint` 與執行器分成兩個修法 PR。**
+   - 草案選「分開」，與第七節一致。第一個 PR 合併後，`spec_version: 2` 的規格過得了檢查，但還沒有執行器能跑，所以在第二個 PR 合併前不能有 v2 的規格進 `specs/`。
+   - 另一個做法是合成一個 PR，比較大，但不會有「檢查過了卻不能執行」的空窗。
+
+### 起草時要注意的
+
+- 第 6 點的「欄名與變數名稱不得相同」是起草時加的，試寫沒有碰到；兩者都用 `${名稱}`，同名時不知道代入哪一個。
+- 第 11 點的「沒有設定 `returns` 就未通過」也是起草時加的：否則範例會默默退回程式裡固定回 5 筆的開發用替身，前提又藏起來了。
+- 第 5 點把 `profile_version` 升為 2，現有的 `specs/spec-profile.yaml` 要在同一個 PR 補上兩項，否則整個 `specs/` 會被判為無法評估。

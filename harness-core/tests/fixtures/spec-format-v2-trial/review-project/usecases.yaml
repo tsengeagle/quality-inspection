@@ -1,0 +1,41 @@
+spec_version: 1
+kind: usecases
+aggregate: ReviewProject
+error_codes:
+  - { code: ROLE_DENIED, category: denied, status: decided, source: [{ decision: D-023 }] }
+guards:
+  - id: RP-G-01
+    when: 操作者不具備這支 use case 的 actor.roles 中任何一個角色
+    outcome: { result: REJECTED, code: ROLE_DENIED }
+    status: decided
+    source: [{ decision: D-023 }]
+usecases:
+  - name: CreateReviewProject
+    kind: command
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: name, type: text, required: true }
+    guards: [RP-G-01]
+    success:
+      output:
+        - { name: projectId, type: id }
+      state:
+        - { id: RP-CRT-S1, text: status = DRAFT, status: decided, source: [{ decision: D-040 }] }
+  - name: PublishReviewProjectVersion
+    kind: command
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [RP-G-01]
+    success:
+      state:
+        - { id: RP-PUB-S1, text: 目前的版本已發布, status: decided, source: [{ decision: D-040 }] }
+  - name: ActivateReviewProject
+    kind: command
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [RP-G-01]
+    success:
+      state:
+        - { id: RP-ACT-S1, text: status = ACTIVE, status: decided, source: [{ decision: D-039 }] }

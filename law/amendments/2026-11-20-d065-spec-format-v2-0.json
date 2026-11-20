@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-20-d065-spec-format-v2-0",
+  "decision": "D-065",
+  "reason": "依負責人 2026-11-20 對格式 v2 草案 Q-6、Q-7、Q-8、Q-10～Q-20 與 D-065 草案三點的裁決，新增 D-065：規格格式 v2.0。spec_lint.py 新增 spec_version 2 的欄位表與檢查：then／expect／具名斷言的 output、absent、only、use_expect；清單路徑；帶時區的時間、clock、advance；矩陣展開與名稱；事件必須宣告；轉移必須有範例、when、deferred_transitions；跨目錄引用 fixture、use case、轉移的 by、埠；最小的埠（宣告與 returns）；情境相同的範例改成 result 或 code 不同才擋下（部分取代 D-063 第 4 點）。spec_version 2 的目錄只有 model.yaml 必要。spec-profile.yaml 增加 profile_version 2（clock_start、local_time_zone）；本專案升為 2，時區 Asia/Taipei。spec_version 1 的目錄判決不變，現有兩份規格一個字都沒改。specs/README.md 新增第十節，第二、五、六、九節配合修改。回歸樣本：harness-core/tests/fixtures/spec-format-v2-trial/（格式 v2 草案第二輪試寫）。本機確認：現有兩份規格零問題；第二輪試寫以 --report-only 檢查零問題；test_spec_lint.py 110 個測試全部通過（新增 41 個，原有的 69 個改 1 個）。執行器不動，還不能執行 spec_version 2 的規格：在執行器的修法 PR 合併之前，specs/ 不得有版本 2 的規格。VERSION 0.7.0 → 0.8.0。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/README.md",
+    "specs/spec-profile.yaml",
+    "harness-core/"
+  ]
+}

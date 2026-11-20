@@ -31,6 +31,9 @@ guard_order:
   text: 角色 → 領域規則
   source: [{ decision: D-001 }]
 """
+# profile_version 2（D-065 第 5 點）：spec_version 2 的規格需要它
+PROFILE_V2 = PROFILE.replace("profile_version: 1", "profile_version: 2") + \
+    'clock_start: "2026-11-19T09:00:00Z"\nlocal_time_zone: Asia/Taipei\n'
 # 安裝 harness-core 的另一個專案：操作者是程式，錯誤分類也不同（D-064 第 6 點）
 DEVICE_PROFILE = """kind: spec-profile
 profile_version: 1
@@ -747,7 +750,13 @@ class SpecLintTest(unittest.TestCase):
             "guard_order 的出處 D-999 不在決策紀錄裡": PROFILE.replace("D-001", "D-999"),
             "guard_order 必須有 text": PROFILE.replace("text: 角色 → 領域規則", "text: ''"),
             "kind 必須是 spec-profile": PROFILE.replace("kind: spec-profile", "kind: profile"),
-            "profile_version 必須是 1": PROFILE.replace("profile_version: 1", "profile_version: 2"),
+            "profile_version 必須是 1 或 2": PROFILE.replace("profile_version: 1", "profile_version: 3"),
+            # profile_version 2 多兩項必填（D-065 第 5 點）
+            "缺少 clock_start；缺少 local_time_zone": PROFILE.replace("profile_version: 1", "profile_version: 2"),
+            "clock_start 必須是帶時區的 ISO 8601 時間": PROFILE_V2.replace("09:00:00Z", "09:00:00"),
+            "local_time_zone 必須是 UTC 或": PROFILE_V2.replace("Asia/Taipei", "+08:00"),
+            # profile_version 1 不認得這兩項：要用就要升版
+            "不認得的欄位 clock_start": PROFILE + 'clock_start: "2026-11-19T09:00:00Z"\n',
             "讀不進來": "kind: [\n",
             "最上層必須是對應表": "- a\n",
         }
@@ -757,6 +766,328 @@ class SpecLintTest(unittest.TestCase):
                 with self.assertRaises(lint_module.NotEvaluated) as caught:
                     self.run_lint()
                 self.assertIn(expected, str(caught.exception))
+
+    def test_version_1_specs_pass_under_a_version_2_profile(self):
+        self.write("specs/spec-profile.yaml", PROFILE_V2)
+        passed, report = self.run_lint()
+        self.assertTrue(passed, report)
+        self.assertIn("規則 5 條，問題 0 個", report)
+
+
+@unittest.skipIf(yaml is None, "需要 PyYAML")
+class SpecLintV2Test(unittest.TestCase):
+    """D-065（格式 v2.0）。回歸樣本是 docs/harness/samples/reviewcase-v2-trial/round-2 的第二輪試寫：
+    三個 spec_version 2 的目錄，加上一個 spec_version 1 的 review-project 供跨目錄引用。
+
+    原樣必須零問題；每個案例改壞一處，確認被擋下（D-065 第 15 點）。
+    """
+
+    FIXTURE = os.path.join(HERE, "fixtures", "spec-format-v2-trial")
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        shutil.copytree(self.FIXTURE, os.path.join(self.tmp, "specs"))
+        self.write("specs/spec-profile.yaml", PROFILE_V2)
+        self.write("law/manifest.txt", "@decision-log records/decisions.md\n@amendments law/amendments/\nlaw/ gate\n")
+        # 樣本引用的裁決與文件：只要存在就好，內容不重要
+        import re
+        text = ""
+        for root, _, files in os.walk(os.path.join(self.tmp, "specs")):
+            for name in files:
+                with open(os.path.join(root, name), encoding="utf-8") as f:
+                    text += f.read()
+        decisions = sorted(set(re.findall(r"decision: (D-\d+)", text)))
+        self.write("records/decisions.md", "# 決策\n\n" + "".join("## %s — 測試用\n\n" % d for d in decisions))
+        for doc in sorted(set(re.findall(r"doc: ([\w./-]+\.md)", text))):
+            self.write(doc, "# 測試用\n")
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def write(self, rel, text):
+        path = os.path.join(self.tmp, rel)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(text)
+
+    def read(self, rel):
+        with open(os.path.join(self.tmp, rel), encoding="utf-8") as f:
+            return f.read()
+
+    def change(self, rel, old, new, count=1):
+        text = self.read(rel)
+        self.assertGreaterEqual(text.count(old), 1, "樣本裡找不到要改的文字：%s" % old)
+        self.write(rel, text.replace(old, new, count))
+
+    def lint(self, report_only=()):
+        passed, report = lint_module.lint(self.tmp, "specs", list(report_only))
+        return passed, "\n".join(report)
+
+    def assert_blocked(self, expected):
+        passed, report = self.lint()
+        self.assertFalse(passed, report)
+        self.assertIn(expected, report)
+
+    # --- 合格 ---
+
+    def test_trial_passes_unchanged(self):
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+        for label, rules in (("review-case", 29), ("review-submission", 2), ("sampling-batch", 6), ("review-project", 5)):
+            self.assertIn("specs/%s（擋下）：規則 %d 條，問題 0 個" % (label, rules), report)
+
+    def test_a_folder_may_hold_only_a_model(self):
+        # review-submission 只有狀態機；改變它的 use case 在 review-case
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "specs/review-submission/usecases.yaml")))
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+
+    def test_version_2_folder_still_needs_a_model(self):
+        os.remove(os.path.join(self.tmp, "specs/sampling-batch/model.yaml"))
+        self.assert_blocked("model.yaml：缺少這個檔案")
+
+    def test_version_1_folder_still_needs_all_three_files(self):
+        os.remove(os.path.join(self.tmp, "specs/review-project/examples.yaml"))
+        self.assert_blocked("examples.yaml：缺少這個檔案")
+
+    # --- 第 1 點：版本 ---
+
+    def test_files_in_one_folder_must_share_a_version(self):
+        self.change("specs/sampling-batch/usecases.yaml", "spec_version: 2", "spec_version: 1")
+        self.assert_blocked("同一個目錄的版本必須相同")
+
+    def test_version_2_spec_needs_a_version_2_profile(self):
+        self.write("specs/spec-profile.yaml", PROFILE)
+        with self.assertRaises(lint_module.NotEvaluated) as caught:
+            self.lint()
+        self.assertIn("需要 profile_version 2", str(caught.exception))
+
+    def test_version_2_draft_under_a_version_1_profile_is_reported_not_fatal(self):
+        shutil.move(os.path.join(self.tmp, "specs/review-submission"), os.path.join(self.tmp, "draft/review-submission"))
+        shutil.move(os.path.join(self.tmp, "specs/review-case"), os.path.join(self.tmp, "draft/review-case"))
+        shutil.move(os.path.join(self.tmp, "specs/sampling-batch"), os.path.join(self.tmp, "draft/sampling-batch"))
+        self.write("specs/spec-profile.yaml", PROFILE)
+        passed, report = self.lint(report_only=["draft"])
+        self.assertTrue(passed, report)
+        self.assertIn("需要 profile_version 2", report)
+
+    def test_fields_dropped_from_version_2_are_rejected(self):
+        # D-063 第 3 點的四項待改寫，在 spec_version 2 不再接受（D-065 第 14 點）
+        cases = [
+            ("specs/review-case/usecases.yaml", "    summary: 指派初審醫師與期限\n",
+             "    summary: 指派初審醫師與期限\n    input_note: 舊寫法\n", "不認得的欄位 input_note"),
+            ("specs/review-case/usecases.yaml", "    success:\n      state:\n        - { id: RC-ASG-S1,",
+             "    success:\n      output:\n        - { name: caseId, type: id }\n      state:\n        - { id: RC-ASG-S1,",
+             "不認得的欄位 output"),
+            ("specs/review-case/model.yaml", "    text: SYSTEM_ADMIN 只取得 metadata",
+             "    enforced_by: 查詢\n    text: SYSTEM_ADMIN 只取得 metadata", "不認得的欄位 enforced_by"),
+            ("specs/review-case/model.yaml", "required: false }      # Q-14", "required: false, range: [1, 2] }  #",
+             "不認得的欄位 range"),
+        ]
+        for rel, old, new, expected in cases:
+            with self.subTest(expected=expected):
+                original = self.read(rel)
+                self.change(rel, old, new)
+                self.assert_blocked(expected)
+                self.write(rel, original)
+
+    def test_not_covered_rules_must_be_rule_ids(self):
+        self.change("specs/review-case/examples.yaml", "  - item: 逾期\n", "  - rules: [emits]\n")
+        self.assert_blocked("rules 只能放規則 id，emits 不是")
+
+    # --- 第 2～4 點：斷言與路徑 ---
+
+    def test_rejected_cannot_carry_output(self):
+        self.change("specs/review-case/examples.yaml", "then: { result: REJECTED, code: NO_CHANGES }",
+                    "then: { result: REJECTED, code: NO_CHANGES, output: { a: 1 } }")
+        self.assert_blocked("REJECTED 不能有 output")
+
+    def test_then_code_must_be_defined_where_the_use_case_lives(self):
+        self.change("specs/review-case/examples.yaml", "then: { result: REJECTED, code: NO_CHANGES }",
+                    "then: { result: REJECTED, code: NO_SUCH_CODE }")
+        self.assert_blocked("code NO_SUCH_CODE 沒有定義在 review-case 的 error_codes")
+
+    def test_then_needs_a_result(self):
+        self.change("specs/review-case/examples.yaml", "      result: SUCCESS\n      only:", "      only:")
+        self.assert_blocked("必須有 result")
+
+    def test_path_syntax_is_checked(self):
+        cases = [
+            ('save: { c: "content[0].caseId" }', 'save: { c: "content[first].caseId" }', "save 的路徑寫法不對"),
+            ('save: { c: "content[0].caseId" }', 'save: { c: "content[*].caseId" }', "save 只能取一個值"),
+            ('absent: ["entries[*].totalScore", "entries[*].comment"]', 'absent: ["entries[0].totalScore"]',
+             "absent 不能用 [數字]"),
+            ('"entries[*]": [submissionId, stage, revisionNo, status, submittedAt]',
+             '"entries[*": [submissionId]', "only 的路徑寫法不對"),
+            ('"content[caseId=${c}]": { reviewerId: u-r1, assignedAt', '"content[caseId>${c}]": { reviewerId: u-r1, assignedAt',
+             "output 的鍵 的路徑寫法不對"),
+        ]
+        rel = "specs/review-case/examples.yaml"
+        for old, new, expected in cases:
+            with self.subTest(expected=expected):
+                original = self.read(rel)
+                self.change(rel, old, new)
+                self.assert_blocked(expected)
+                self.write(rel, original)
+
+    def test_unknown_named_expectation_fails(self):
+        self.change("specs/review-case/examples.yaml", 'then: { use_expect: "${expect}" }', 'then: { use_expect: "${expect}_x" }')
+        self.assert_blocked("use_expect 引用了不存在的具名斷言 full_content_x")
+
+    # --- 第 5 點：時間 ---
+
+    def test_times_need_a_zone(self):
+        self.change("specs/review-case/examples.yaml", 'dueAt: "2026-11-27T07:59:59+08:00"', 'dueAt: "2026-11-27T07:59:59"')
+        self.assert_blocked("時間必須帶時區")
+
+    def test_advance_must_be_a_duration(self):
+        self.change("specs/review-case/examples.yaml", "      - advance: PT2H", "      - advance: 2h")
+        self.assert_blocked("advance 必須是 ISO 8601 期間")
+
+    def test_example_clock_needs_a_zone(self):
+        self.change("specs/review-case/examples.yaml", "  - name: saves_the_draft\n",
+                    '  - name: saves_the_draft\n    clock: { start: "2026-11-19T09:00:00" }\n')
+        self.assert_blocked("clock.start 必須是帶時區的 ISO 8601 時間")
+
+    # --- 第 6 點：矩陣 ---
+
+    def test_matrix_expands_to_one_named_example_per_row(self):
+        self.change("specs/review-case/examples.yaml", "basis: [RC-VIS-01, RC-VIS-03, RC-RVH-01, RC-RVH-02, RC-INV-02]",
+                    "basis: [RC-VIS-01, RC-NO-99]")
+        self.assert_blocked("examples.yaml revision_history_visibility.admin.INITIAL_REVIEW_COMPLETED：basis 引用了不存在的規則 RC-NO-99")
+
+    def test_matrix_key_must_make_names_unique(self):
+        self.change("specs/review-case/examples.yaml", "      key: [actor, state]", "      key: [expect]")
+        self.assert_blocked("範例名稱重複")
+
+    def test_matrix_needs_a_key(self):
+        self.change("specs/review-case/examples.yaml", "      key: [actor, state]   ", "      # no key")
+        self.assert_blocked("matrix.key 必須列出組成名稱的欄")
+
+    def test_matrix_rows_must_match_columns(self):
+        self.change("specs/review-case/examples.yaml", "        - [dual_role_h1,  INITIAL_REVIEW_COMPLETED,   denied]",
+                    "        - [dual_role_h1,  INITIAL_REVIEW_COMPLETED]")
+        self.assert_blocked("matrix 第 10 列的欄數與 columns 不符")
+
+    def test_matrix_key_values_are_restricted(self):
+        self.change("specs/review-case/examples.yaml", "        - [dual_role_h1,  INITIAL_REVIEW_COMPLETED,   denied]",
+                    '        - ["dual role",   INITIAL_REVIEW_COMPLETED,   denied]')
+        self.assert_blocked("只能用英數字與 _ -")
+
+    def test_matrix_column_cannot_share_a_name_with_a_saved_variable(self):
+        # 準備步驟把案件的 id 存成 c；欄名也叫 c 的話，${c} 不知道代入哪一個
+        rel = "specs/review-case/examples.yaml"
+        self.change(rel, "      columns: [actor, state, expect]", "      columns: [c, state, expect]")
+        self.change(rel, "      key: [actor, state]", "      key: [c, state]")
+        self.assert_blocked("matrix 的欄名與 save 的變數同名：c")
+
+    # --- 第 7 點：事件 ---
+
+    def test_asserted_event_must_be_declared(self):
+        self.change("specs/review-case/examples.yaml", "{ event: InitialReviewStarted, with", "{ event: InitialReviewBegun, with")
+        self.assert_blocked("事件 InitialReviewBegun 沒有在 StartInitialReview 的 success.emits 宣告")
+
+    def test_asserting_a_proposed_event_is_noted(self):
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+        self.assertIn("斷言了 proposed 的事件 InitialReviewCompleted", report)
+
+    # --- 第 8 點：轉移 ---
+
+    def test_every_transition_needs_an_example(self):
+        self.change("specs/review-case/examples.yaml", "basis: [RC-DRF-S1, RS-T-01]", "basis: [RC-DRF-S1]")
+        self.assert_blocked("model.yaml RS-T-01：這條轉移沒有任何範例涵蓋")
+
+    def test_transitions_sharing_from_and_by_need_different_conditions(self):
+        rel = "specs/review-submission/model.yaml"
+        self.change(rel, "deferred_transitions:",
+                    "  - { id: RS-T-03, from: DRAFT, to: SUPERSEDED, by: review-case.SubmitInitialReview, status: decided, "
+                    "source: [{ doc: docs/02-ddd/state-machine.md }] }\ndeferred_transitions:")
+        self.assert_blocked("與 RS-T-02 的 from、by 相同：要用不同的 when 區分")
+
+    def test_a_condition_tells_two_transitions_apart(self):
+        rel = "specs/review-submission/model.yaml"
+        self.change(rel, "deferred_transitions:",
+                    "  - { id: RS-T-03, from: DRAFT, to: SUPERSEDED, by: review-case.SubmitInitialReview, when: 另一種情況, "
+                    "status: decided, source: [{ doc: docs/02-ddd/state-machine.md }] }\ndeferred_transitions:")
+        self.change("specs/review-case/examples.yaml", "basis: [RC-DRF-S1, RS-T-01]", "basis: [RC-DRF-S1, RS-T-01, RS-T-03]")
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+
+    def test_deferred_transition_states_are_checked(self):
+        self.change("specs/review-case/model.yaml",
+                    "{ from: PENDING_REREVIEW,            to: REREVIEW_IN_PROGRESS,       by: StartRereview }",
+                    "{ from: PENDING_REREVIEW, to: NO_SUCH_STATE, by: StartRereview }")
+        self.assert_blocked("必須都是同一個列舉的值")
+
+    def test_deferred_transition_must_move_once_its_use_case_is_specified(self):
+        self.change("specs/review-case/model.yaml", "by: StartRereview }", "by: StartInitialReview }")
+        self.assert_blocked("StartInitialReview 已經在規格裡：這條轉移要搬到 transitions 並給 id")
+
+    # --- 第 9 點：跨目錄 ---
+
+    def test_transition_may_be_driven_by_a_use_case_in_another_folder(self):
+        self.change("specs/review-submission/model.yaml", "by: review-case.SubmitInitialReview,", "by: review-case.SubmitReview,")
+        self.assert_blocked("by 必須是規格裡的 use case")
+
+    def test_unknown_fixture_in_another_folder_fails(self):
+        self.change("specs/review-case/examples.yaml", "      - use: review-project.active_project  ",
+                    "      - use: review-project.live_project  ")
+        self.assert_blocked("use 引用了不存在的 fixture review-project.live_project")
+
+    def test_use_case_in_another_folder_must_be_qualified(self):
+        self.change("specs/review-case/examples.yaml", "      - run: sampling-batch.ExecuteSampling", "      - run: ExecuteSampling")
+        self.assert_blocked("執行的 ExecuteSampling 不在本目錄的 usecases.yaml，也沒有列在 needs")
+
+    def test_strict_spec_cannot_reach_into_a_draft_folder(self):
+        shutil.move(os.path.join(self.tmp, "specs/sampling-batch"), os.path.join(self.tmp, "draft/sampling-batch"))
+        passed, report = self.lint(report_only=["draft"])
+        self.assertFalse(passed, report)
+        self.assertIn("執行的 sampling-batch.ExecuteSampling 不在本目錄", report)
+
+    def test_unknown_actor_fails(self):
+        self.change("specs/sampling-batch/examples.yaml", "when: { run: ExecuteSampling, as: reviewer_h1,",
+                    "when: { run: ExecuteSampling, as: nobody,")
+        self.assert_blocked("as 引用了不存在的操作者 nobody")
+
+    # --- 第 11 點：最小的埠 ---
+
+    def test_port_operation_must_be_declared(self):
+        self.change("specs/review-case/examples.yaml", "port: sampling-batch.CandidateSource.queryCandidates",
+                    "port: sampling-batch.CandidateSource.listAll")
+        self.assert_blocked("埠 CandidateSource 沒有操作 listAll")
+
+    def test_port_must_be_declared(self):
+        self.change("specs/sampling-batch/examples.yaml", "port: CandidateSource.queryCandidates", "port: Elsewhere.queryCandidates")
+        self.assert_blocked("port 引用了不存在的埠 Elsewhere.queryCandidates")
+
+    def test_port_step_needs_returns_and_nothing_from_version_2_1(self):
+        rel = "specs/sampling-batch/examples.yaml"
+        original = self.read(rel)
+        self.change(rel, "      - port: CandidateSource.queryCandidates\n        returns:\n",
+                    "      - port: CandidateSource.queryCandidates\n        fails:\n")
+        self.assert_blocked("不認得的欄位 fails")
+        self.write(rel, original)
+        self.change(rel, "      - port: CandidateSource.queryCandidates\n        returns:\n"
+                         "          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }\n"
+                         "          - { sourceCaseKey: MR-002, hospitalId: H-01, medicalRecordType: OUTPATIENT }\n",
+                    "      - port: CandidateSource.queryCandidates\n")
+        self.assert_blocked("port 必須設定 returns")
+
+    # --- 第 12 點：情境相同的範例 ---
+
+    def test_same_situation_with_different_assertions_is_listed_not_blocked(self):
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+        self.assertIn("admin_history_is_a_whitelist：given、when 與範例 "
+                      "revision_history_visibility.admin.INITIAL_REVIEW_COMPLETED 相同，斷言的內容不同", report)
+
+    def test_same_situation_with_different_result_is_blocked(self):
+        self.change("specs/review-case/examples.yaml",
+                    "    then:\n      result: SUCCESS\n      only:", "    then:\n      result: REJECTED\n      code: ACCESS_DENIED\n      skipped_only:")
+        passed, report = self.lint()
+        self.assertFalse(passed, report)
+        self.assertIn("相同，result 或 code 卻不同", report)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,39 @@
+spec_version: 1
+kind: examples
+aggregate: ReviewProject
+actors:
+  manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
+  reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+fixtures:
+  draft_project:
+    steps:
+      - run: CreateReviewProject
+        as: manager_h1
+        input: { name: "門診品質審查" }
+        save: { p: projectId }
+  published_project:
+    steps:
+      - use: draft_project
+      - run: PublishReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+  active_project:
+    steps:
+      - use: published_project
+      - run: ActivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+examples:
+  - name: creates_a_draft_project
+    basis: [RP-CRT-S1, RP-INV-01]
+    when: { run: CreateReviewProject, as: manager_h1, input: { name: "門診品質審查" } }
+    then: { result: SUCCESS }
+  - name: rejects_create_by_a_non_manager
+    basis: [RP-G-01]
+    when: { run: CreateReviewProject, as: reviewer_h1, input: { name: "門診品質審查" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+  - name: activates_a_published_project
+    basis: [RP-PUB-S1, RP-ACT-S1]
+    given: [{ use: published_project }]
+    when: { run: ActivateReviewProject, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS }
