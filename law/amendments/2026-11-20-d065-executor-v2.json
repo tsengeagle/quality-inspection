@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-20-d065-executor-v2",
+  "decision": "D-065",
+  "reason": "D-065 第 16 點的第二個修法 PR：驗收範例的執行器支援 spec_version 2。ExampleRunner 依 examples.yaml 的 spec_version 分流，版本 1 的路徑不變。版本 2 新增：then 比對 when 的輸出；output、absent、only 與路徑（a.b、a[*]、a[k=v]，save 另有 a[0]）；use_expect；帶時區的時間比對時間點，不帶時區的輸出依 local_time_zone 解讀；clock 與 advance（AcceptanceClock 在驗收測試的 context 取代應用程式的 Clock，沒有固定時就是系統時鐘）；矩陣展開；emits、emits_include，以及被拒絕時確認沒有事件（SpringExampleWorld 聽 DomainEvent）；跨目錄的 fixture 與 use case；埠的替身（AcceptancePorts 只替換 model.yaml 宣告過的埠，只在版本 2 的範例期間生效，執行到沒有設定 returns 的埠算未通過）。AcceptanceExamplesTest 改用 SpecFiles 讀規格目錄與 spec-profile.yaml。specs/README.md 第十節新增「執行（版本 2）」，拿掉「執行器還不支援」與「specs/ 不得有版本 2 的規格」；decision-log.md 的 D-065 補上這次的做法與驗證。本機確認：現有兩份規格的 82 個範例全部通過；執行器的測試新增 49 個，原有 25 個沒有改；改壞七種都有測試變紅；第二輪試寫對應用程式執行，埠的替身與事件擷取有作用。現有規格、spec_lint、build.gradle、已知失敗清單都沒有動。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/README.md",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/"
+  ]
+}

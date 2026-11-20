@@ -2565,9 +2565,28 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
   - `test_spec_lint.py` 110 個測試全部通過，其中 41 個是這次新增的；原有的 69 個只改了一個（設定檔版本的訊息）。
   - 執行器沒有動，也還不能執行版本 2 的規格。
 - **還沒有驗證的**：第 2～7、11 點的語意要等執行器實作才知道做不做得到。執行器做不到的部分，回頭修本裁決。
+- **第二個修法 PR：執行器**（2026-11-20）。第 2～7、9、11 點都做得到，條文不必修。第 16 點「第二個修法 PR 合併之前，`specs/` 不得有版本 2 的規格」的限制，隨這個 PR 合併而解除。
+  - 實作時補上的做法（條文沒有寫，寫在 `specs/README.md` 第十節「執行（版本 2）」）：
+    - 別的目錄的 fixture，步驟用那個目錄的 `actors`。
+    - `use_expect` 與直接寫的欄位並存時，直接寫的蓋過具名斷言。與 `spec_lint` 相同。
+    - `when` 的 `save` 先存，`then` 才比對：`then` 的 `output` 與事件可以引用 `when` 存的變數。
+    - 事件只算 `when` 執行期間發出的。`with` 比對事件類別的屬性（getter）。
+    - 埠只在版本 2 的範例期間被替換；版本 1 的範例用原本的實作。被替換的埠，程式必須依介面注入。
+    - 輸入的時間只在 `execute` 的參數本身是 `LocalDateTime` 時換算成當地時間；物件或清單裡面的時間、埠的 `returns` 裡的時間不換算。
+  - 驗證：
+    - 現有兩份規格（版本 1）的 82 個範例全部通過，與修改前相同。
+    - 執行器的測試新增 49 個（`ExampleRunnerV2Test` 37 個、`AcceptanceWorldTest` 12 個），原有的 25 個沒有改。
+    - 把執行器改壞七種（`absent`、`only`、被拒絕時的事件、`emits` 的筆數、時間點、沒設定的埠、選不到任何一筆），每一種都有測試變紅。
+    - 把第二輪試寫與現有的 `review-project`、`score-sheet` 放在一起，對應用程式執行（不進 `specs/`）：應用程式帶著埠的替身啟動；`CandidateSource.queryCandidates` 回傳設定的值；`ExecuteSampling` 的四個事件都擷取到。35 個版本 2 的範例通過 4 個，其餘未通過的原因是程式與試寫的規格對不上，不是執行器。
+  - 那次執行看到、要由規格的修法 PR 或建構 PR 處理的：
+    - `ListReviewCasesUseCase.execute` 的參數是 `criteria`，規格寫 `batchId`（試寫紀錄的 P-2）。29 個範例停在這裡，所以時鐘與矩陣只有執行器自己的測試驗過，還沒有對應用程式驗過。
+    - 抽選的四個事件類別沒有 `batchId`、`projectId` 屬性，只有 `DomainEvent` 的 `entityId` 與 `detail`（JSON 字串）。規格的 `with` 寫不到它們。
+    - `ExecuteSampling` 找不到專案時丟 `IllegalArgumentException`，沒有錯誤代碼。
+  - 還管不到的：`DomainEvent.occurredAt` 直接取系統時間（第 5 點留下的那一處），`clock`、`advance` 影響不到它。
 
 ### Mapping
 
 - `specs/README.md` 第二、五、六、九、十節；`specs/spec-profile.yaml`
 - `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`、`harness-core/tests/fixtures/spec-format-v2-trial/`、`harness-core/README.md`、`harness-core/VERSION`
-- 後續：執行器的修法 PR；直向切片的規格；格式 v2.1（C 組）
+- 執行器：`services/quality-inspection-service/src/test/java/.../acceptance/`（`ExampleRunner`、`TreePath`、`ExampleWorld`、`SpringExampleWorld`、`AcceptanceClock`、`AcceptancePorts`、`AcceptanceWorldConfiguration`、`SpecFiles`）
+- 後續：直向切片的規格；格式 v2.1（C 組）

@@ -1,9 +1,19 @@
 package com.tzuchi.his.quality.inspection.acceptance;
 
 import java.math.BigDecimal;
+import java.time.DateTimeException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
+import java.util.function.BiPredicate;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,26 +44,66 @@ public final class ExampleRunner {
     private final Set<String> specifiedUseCases;
     private final UseCaseInvoker invoker;
 
+    // ---- 以下只有 spec_version 2 使用（D-065）----
+    /** 這份範例所在的規格目錄名稱。 */
+    private final String home;
+    /** 規格目錄名稱 → 那個目錄的 examples.yaml；跨目錄引用 fixture 時用。 */
+    private final Map<String, Map<String, Object>> documents;
+    private final Map<String, Object> profile;
+    private final ExampleWorld world;
+    private final boolean version2;
+    private final Map<String, Object> expectations;
+
     /**
+     * 只有一份 spec_version 1 的 examples.yaml 時用。
+     *
      * @param examplesDoc       讀進來的 examples.yaml
      * @param specifiedUseCases 所有 usecases.yaml 定義的 use case 名稱；needs 只有在這裡找得到才算滿足
      */
     public ExampleRunner(Map<String, Object> examplesDoc, Set<String> specifiedUseCases, UseCaseInvoker invoker) {
+        this("", Collections.singletonMap("", examplesDoc), Collections.emptyMap(), specifiedUseCases, invoker, null);
+    }
+
+    /**
+     * @param home              要執行的規格目錄名稱，必須在 documents 裡
+     * @param documents         規格目錄名稱 → examples.yaml。spec_version 2 的範例可以引用別的目錄的 fixture
+     * @param profile           spec-profile.yaml；spec_version 2 需要 clock_start 與 local_time_zone
+     * @param specifiedUseCases 所有 usecases.yaml 定義的 use case 名稱
+     * @param world             spec_version 2 的時鐘、事件與埠；只有版本 1 的範例時可以是 null
+     */
+    public ExampleRunner(String home, Map<String, Map<String, Object>> documents, Map<String, Object> profile,
+                         Set<String> specifiedUseCases, UseCaseInvoker invoker, ExampleWorld world) {
+        Map<String, Object> examplesDoc = documents.get(home);
+        if (examplesDoc == null) {
+            throw new RunnerProblem("沒有規格目錄 " + home + " 的 examples.yaml");
+        }
+        this.home = home;
+        this.documents = documents;
+        this.profile = profile;
+        this.world = world;
+        this.version2 = isVersion2(examplesDoc);
+        this.expectations = map(examplesDoc.get("expectations"), "expectations");
         this.actors = map(examplesDoc.get("actors"), "actors");
         this.fixtures = map(examplesDoc.get("fixtures"), "fixtures");
         this.specifiedUseCases = specifiedUseCases;
         this.invoker = invoker;
         for (Object item : list(examplesDoc.get("examples"), "examples")) {
-            Map<String, Object> example = map(item, "examples 的一項");
-            Object name = example.get("name");
-            if (!(name instanceof String) || examples.containsKey(name)) {
-                throw new RunnerProblem("範例必須有不重複的 name：" + name);
+            Map<String, Object> declared = map(item, "examples 的一項");
+            for (Map<String, Object> example : version2 ? expandMatrix(declared) : Collections.singletonList(declared)) {
+                Object name = example.get("name");
+                if (!(name instanceof String) || examples.containsKey(name)) {
+                    throw new RunnerProblem("範例必須有不重複的 name：" + name);
+                }
+                if (!EXAMPLE_NAME.matcher((String) name).matches()) {
+                    throw new RunnerProblem("範例名稱只能用英數字與 _ . -（它是已知失敗清單裡的身分）：" + name);
+                }
+                examples.put((String) name, example);
             }
-            if (!EXAMPLE_NAME.matcher((String) name).matches()) {
-                throw new RunnerProblem("範例名稱只能用英數字與 _ . -（它是已知失敗清單裡的身分）：" + name);
-            }
-            examples.put((String) name, example);
         }
+    }
+
+    private static boolean isVersion2(Map<String, Object> doc) {
+        return Integer.valueOf(2).equals(doc.get("spec_version"));
     }
 
     public List<String> exampleNames() {
@@ -67,7 +117,11 @@ public final class ExampleRunner {
             throw new AssertionError("沒有這個範例：" + exampleName);
         }
         try {
-            runExample(example);
+            if (version2) {
+                runExampleV2(example);
+            } else {
+                runExample(example);
+            }
         } catch (RunnerProblem problem) {
             throw new AssertionError("無法執行：" + problem.getMessage(), problem);
         }
@@ -210,6 +264,11 @@ public final class ExampleRunner {
     }
 
     private Object substitute(Object node, Map<String, Object> vars) {
+        return substitute(node, vars, false);
+    }
+
+    /** keys：對應表的鍵也代入變數。只有 spec_version 2 的斷言需要（路徑當鍵，條件的值可以是 ${名稱}）。 */
+    private Object substitute(Object node, Map<String, Object> vars, boolean keys) {
         if (node instanceof String) {
             String text = (String) node;
             Matcher whole = WHOLE_VARIABLE.matcher(text);
@@ -227,14 +286,15 @@ public final class ExampleRunner {
         if (node instanceof Map) {
             Map<String, Object> out = new LinkedHashMap<>();
             for (Map.Entry<?, ?> e : ((Map<?, ?>) node).entrySet()) {
-                out.put(String.valueOf(e.getKey()), substitute(e.getValue(), vars));
+                String key = String.valueOf(e.getKey());
+                out.put(keys ? String.valueOf(substitute(key, vars, false)) : key, substitute(e.getValue(), vars, keys));
             }
             return out;
         }
         if (node instanceof List) {
             List<Object> out = new ArrayList<>();
             for (Object item : (List<?>) node) {
-                out.add(substitute(item, vars));
+                out.add(substitute(item, vars, keys));
             }
             return out;
         }
@@ -289,6 +349,14 @@ public final class ExampleRunner {
 
     /** 部分比對的值比較：集合不比順序；數字依數值比對，規格裡寫成字串的十進位數（"0.50"）也一樣。 */
     static boolean same(Object expected, Object actual) {
+        return same(expected, actual, null);
+    }
+
+    /**
+     * @param zone spec_version 2 的 local_time_zone：規格寫的是帶時區的時間時，比對時間點（D-065 第 5 點），
+     *             實際值不帶時區就依這個時區解讀。null 表示 spec_version 1，時間不特別處理。
+     */
+    static boolean same(Object expected, Object actual, ZoneId zone) {
         if (expected == null || actual == null) {
             return expected == null && actual == null;
         }
@@ -301,7 +369,7 @@ public final class ExampleRunner {
             if (want.size() != have.size()) {
                 return false;
             }
-            return matchesOneToOne(want, have);
+            return matchesOneToOne(want, have, zone);
         }
         if (expected instanceof Map) {
             if (!(actual instanceof Map)) {
@@ -309,11 +377,17 @@ public final class ExampleRunner {
             }
             Map<?, ?> a = (Map<?, ?>) actual;
             for (Map.Entry<?, ?> e : ((Map<?, ?>) expected).entrySet()) {
-                if (!a.containsKey(e.getKey()) || !same(e.getValue(), a.get(e.getKey()))) {
+                if (!a.containsKey(e.getKey()) || !same(e.getValue(), a.get(e.getKey()), zone)) {
                     return false;
                 }
             }
             return true;
+        }
+        if (zone != null) {
+            Instant wanted = instantWithZone(expected);
+            if (wanted != null) {
+                return wanted.equals(instantOf(actual, zone));
+            }
         }
         BigDecimal ed = decimal(expected);
         BigDecimal ad = decimal(actual);
@@ -330,24 +404,24 @@ public final class ExampleRunner {
      * 預期與實際的元素一對一配對，不看順序。用增廣路徑（可以改選先前的配對），
      * 所以部分比對的物件不會因為順序而誤判；元素數量是範例的規模，不需要更快的演算法。
      */
-    private static boolean matchesOneToOne(List<?> want, List<Object> have) {
+    private static boolean matchesOneToOne(List<?> want, List<Object> have, ZoneId zone) {
         int[] owner = new int[have.size()];
         java.util.Arrays.fill(owner, -1);
         for (int w = 0; w < want.size(); w++) {
-            if (!augment(w, want, have, owner, new boolean[have.size()])) {
+            if (!augment(w, want, have, owner, new boolean[have.size()], zone)) {
                 return false;
             }
         }
         return true;
     }
 
-    private static boolean augment(int w, List<?> want, List<Object> have, int[] owner, boolean[] visited) {
+    private static boolean augment(int w, List<?> want, List<Object> have, int[] owner, boolean[] visited, ZoneId zone) {
         for (int h = 0; h < have.size(); h++) {
-            if (visited[h] || !same(want.get(w), have.get(h))) {
+            if (visited[h] || !same(want.get(w), have.get(h), zone)) {
                 continue;
             }
             visited[h] = true;
-            if (owner[h] < 0 || augment(owner[h], want, have, owner, visited)) {
+            if (owner[h] < 0 || augment(owner[h], want, have, owner, visited, zone)) {
                 owner[h] = w;
                 return true;
             }
@@ -369,6 +443,530 @@ public final class ExampleRunner {
     private static boolean isScalar(Object value) {
         return value == null || value instanceof CharSequence || value instanceof Number
                 || value instanceof Boolean || value instanceof Enum;
+    }
+
+    // ---------- spec_version 2（D-065；specs/README.md 第十節）----------
+
+    private static final Pattern MATRIX_KEY_VALUE = Pattern.compile("^[A-Za-z0-9_-]+$");
+
+    /** 一個步驟，連同它寫在哪個規格目錄：操作者與沒有寫目錄的 fixture 依那個目錄解讀。 */
+    private static final class Step {
+        final Map<String, Object> node;
+        final String directory;
+
+        Step(Map<String, Object> node, String directory) {
+            this.node = node;
+            this.directory = directory;
+        }
+    }
+
+    /** 矩陣的每一列展開成一個範例，名稱是 {@code <name>.<key 的值，用 . 連接>}。沒有矩陣就是原來那一個。 */
+    private static List<Map<String, Object>> expandMatrix(Map<String, Object> example) {
+        if (!example.containsKey("matrix")) {
+            return Collections.singletonList(example);
+        }
+        Map<String, Object> matrix = map(example.get("matrix"), "matrix");
+        List<String> columns = strings(matrix.get("columns"), "matrix.columns");
+        List<String> key = strings(matrix.get("key"), "matrix.key");
+        if (key.isEmpty() || !columns.containsAll(key)) {
+            throw new RunnerProblem("matrix.key 必填，而且必須是 columns 裡的欄：" + example.get("name"));
+        }
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (Object row : list(matrix.get("rows"), "matrix.rows")) {
+            List<Object> cells = list(row, "matrix.rows 的一列");
+            if (cells.size() != columns.size()) {
+                throw new RunnerProblem("matrix 的一列有 " + cells.size() + " 格，欄有 " + columns.size() + " 個：" + cells);
+            }
+            Map<String, Object> bindings = new LinkedHashMap<>();
+            for (int i = 0; i < columns.size(); i++) {
+                bindings.put(columns.get(i), cells.get(i));
+            }
+            StringBuilder name = new StringBuilder(String.valueOf(example.get("name")));
+            for (String column : key) {
+                String value = String.valueOf(bindings.get(column));
+                if (!MATRIX_KEY_VALUE.matcher(value).matches()) {
+                    throw new RunnerProblem("matrix 的 key 欄只能用英數字與 _ -：" + value);
+                }
+                name.append('.').append(value);
+            }
+            Map<String, Object> expanded = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : example.entrySet()) {
+                String field = entry.getKey();
+                if ("matrix".equals(field)) {
+                    continue;
+                }
+                expanded.put(field, "name".equals(field) ? name.toString() : bind(entry.getValue(), bindings));
+            }
+            out.add(expanded);
+        }
+        return out;
+    }
+
+    /** 把 ${欄名} 換成這一列的值；不是欄名的 ${名稱} 留給執行時的變數。 */
+    private static Object bind(Object node, Map<String, Object> bindings) {
+        if (node instanceof String) {
+            String text = (String) node;
+            Matcher whole = WHOLE_VARIABLE.matcher(text);
+            if (whole.matches() && bindings.containsKey(whole.group(1))) {
+                return bindings.get(whole.group(1));
+            }
+            Matcher m = VARIABLE.matcher(text);
+            StringBuffer out = new StringBuffer();
+            while (m.find()) {
+                String replacement = bindings.containsKey(m.group(1)) ? String.valueOf(bindings.get(m.group(1))) : m.group(0);
+                m.appendReplacement(out, Matcher.quoteReplacement(replacement));
+            }
+            m.appendTail(out);
+            return out.toString();
+        }
+        if (node instanceof Map) {
+            Map<String, Object> out = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : ((Map<?, ?>) node).entrySet()) {
+                out.put(String.valueOf(bind(String.valueOf(e.getKey()), bindings)), bind(e.getValue(), bindings));
+            }
+            return out;
+        }
+        if (node instanceof List) {
+            List<Object> out = new ArrayList<>();
+            for (Object item : (List<?>) node) {
+                out.add(bind(item, bindings));
+            }
+            return out;
+        }
+        return node;
+    }
+
+    private void runExampleV2(Map<String, Object> example) {
+        if (world == null) {
+            throw new RunnerProblem("spec_version 2 的範例需要時鐘、事件與埠的環境（ExampleWorld）");
+        }
+        Map<String, Object> vars = new LinkedHashMap<>();
+        Set<String> needs = new LinkedHashSet<>(names(example.get("needs")));
+        List<Step> given = expandV2(list(example.get("given"), "given"), home, new LinkedHashSet<>(), needs);
+        if (!(example.get("when") instanceof Map)) {
+            throw new RunnerProblem("when 必須是一個步驟");
+        }
+        Step when = new Step(map(example.get("when"), "when"), home);
+        if (!(when.node.get("run") instanceof String)) {
+            throw new RunnerProblem("when 必須是 run 步驟");
+        }
+        List<Step> observe = new ArrayList<>();
+        for (Object step : list(example.get("observe"), "observe")) {
+            observe.add(new Step(map(step, "observe 的步驟"), home));
+        }
+
+        // 跳過算未通過：先檢查，不執行任何一步（與版本 1 相同）
+        List<String> unmet = new ArrayList<>();
+        for (String need : needs) {
+            if (!specifiedUseCases.contains(useCaseName(need))) {
+                unmet.add(need);
+            }
+        }
+        if (!unmet.isEmpty()) {
+            throw new AssertionError("needs 未滿足（這些 use case 還沒有規格）：" + String.join("、", unmet)
+                    + "。跳過算未通過");
+        }
+        List<Step> all = new ArrayList<>(given);
+        all.add(when);
+        all.addAll(observe);
+        for (Step step : all) {
+            if (step.node.containsKey("input_pending")) {
+                throw new AssertionError("輸入待補（" + step.node.get("run") + "）：" + step.node.get("input_pending")
+                        + "。跳過算未通過");
+            }
+        }
+
+        ZoneId zone = localTimeZone();
+        world.begin(clockStart(example), zone);
+        try {
+            for (int i = 0; i < given.size(); i++) {
+                prepare(given.get(i), "given[" + i + "]", vars);
+            }
+
+            world.takeEvents();
+            Outcome outcome = executeV2(when, vars);
+            List<ExampleWorld.EmittedEvent> events = world.takeEvents();
+            failOnUnconfiguredPorts("when");
+            Map<String, Object> then = assertion(example.get("then"), "then");
+            checkResult("then", then, outcome);
+            if (outcome.isSuccess()) {
+                // 先存變數：then 的 output 與事件可以引用 when 自己存的變數
+                saveV2(when, outcome, vars);
+            }
+            checkAssertion("then", then, outcome, vars, zone);
+            checkEvents(then, outcome, events, vars, zone);
+
+            for (int i = 0; i < observe.size(); i++) {
+                Step step = observe.get(i);
+                if (!step.node.containsKey("run")) {
+                    prepare(step, "observe[" + i + "]", vars);
+                    continue;
+                }
+                String where = "observe[" + i + "] " + step.node.get("run");
+                Outcome observed = executeV2(step, vars);
+                failOnUnconfiguredPorts(where);
+                Map<String, Object> expect = assertion(step.node.get("expect"), where + " 的 expect");
+                if (expect.containsKey("emits") || expect.containsKey("emits_include")) {
+                    throw new RunnerProblem(where + "：emits、emits_include 只能用在 then");
+                }
+                checkResult(where, expect, observed);
+                checkAssertion(where, expect, observed, vars, zone);
+            }
+        } finally {
+            world.end();
+        }
+    }
+
+    /** 展開 use（可以是 {@code <目錄>.<名稱>}），並收集 fixture 的 needs。 */
+    private List<Step> expandV2(List<Object> steps, String directory, Set<String> using, Set<String> needs) {
+        List<Step> out = new ArrayList<>();
+        for (Object item : steps) {
+            Map<String, Object> step = map(item, "步驟");
+            if (!step.containsKey("use")) {
+                out.add(new Step(step, directory));
+                continue;
+            }
+            String reference = String.valueOf(step.get("use"));
+            int dot = reference.indexOf('.');
+            String target = dot > 0 ? reference.substring(0, dot) : directory;
+            String name = dot > 0 ? reference.substring(dot + 1) : reference;
+            Map<String, Object> document = documents.get(target);
+            if (document == null) {
+                throw new RunnerProblem("fixture " + reference + "：沒有規格目錄 " + target + " 的 examples.yaml");
+            }
+            Map<String, Object> declared = map(document.get("fixtures"), target + " 的 fixtures");
+            if (!declared.containsKey(name)) {
+                throw new RunnerProblem("沒有 fixture " + reference);
+            }
+            Map<String, Object> fixture = map(declared.get(name), "fixture " + reference);
+            String id = target + "." + name;
+            if (!using.add(id)) {
+                throw new RunnerProblem("fixture 互相引用：" + reference);
+            }
+            needs.addAll(names(fixture.get("needs")));
+            out.addAll(expandV2(list(fixture.get("steps"), "fixture " + reference + " 的 steps"), target, using, needs));
+            using.remove(id);
+        }
+        return out;
+    }
+
+    /** 準備步驟：run（必須成功）、port（設定回傳值）、advance（時間前進）。 */
+    private void prepare(Step step, String where, Map<String, Object> vars) {
+        Map<String, Object> node = step.node;
+        if (node.containsKey("advance")) {
+            Duration amount;
+            try {
+                amount = Duration.parse(String.valueOf(node.get("advance")));
+            } catch (DateTimeParseException e) {
+                throw new RunnerProblem(where + "：advance 必須是 ISO 8601 期間（例如 PT1H）：" + node.get("advance"));
+            }
+            if (amount.isZero() || amount.isNegative()) {
+                throw new RunnerProblem(where + "：advance 只能前進：" + node.get("advance"));
+            }
+            world.advance(amount);
+        } else if (node.containsKey("port")) {
+            String[] parts = String.valueOf(node.get("port")).split("\\.");
+            if (parts.length < 2 || parts.length > 3) {
+                throw new RunnerProblem(where + "：port 必須是 <埠>.<操作> 或 <目錄>.<埠>.<操作>：" + node.get("port"));
+            }
+            if (!node.containsKey("returns")) {
+                throw new RunnerProblem(where + "：port 步驟必須有 returns：" + node.get("port"));
+            }
+            world.portReturns(parts[parts.length - 2], parts[parts.length - 1], substitute(node.get("returns"), vars));
+        } else {
+            Outcome outcome = executeV2(step, vars);
+            failOnUnconfiguredPorts(where + " " + node.get("run"));
+            if (!outcome.isSuccess()) {
+                throw new AssertionError("準備步驟 " + where + " " + node.get("run") + " 失敗：" + outcome);
+            }
+            saveV2(step, outcome, vars);
+        }
+    }
+
+    private Outcome executeV2(Step step, Map<String, Object> vars) {
+        Object run = step.node.get("run");
+        if (!(run instanceof String)) {
+            throw new RunnerProblem("步驟必須是 run、use、port、advance 其中一種：" + step.node);
+        }
+        Map<String, Object> declared = map(documents.get(step.directory).get("actors"), step.directory + " 的 actors");
+        Object as = step.node.get("as");
+        Map<String, Object> actor = map(declared.get(String.valueOf(as)), "actor " + as);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> input = (Map<String, Object>) substitute(map(step.node.get("input"), run + " 的 input"), vars);
+        return invoker.invoke(useCaseName((String) run), actor, input);
+    }
+
+    /** {@code <目錄>.<名稱>} 的名稱。執行器依名稱找類別，目錄只給檢查程式用。 */
+    private static String useCaseName(String reference) {
+        return reference.substring(reference.lastIndexOf('.') + 1);
+    }
+
+    private void failOnUnconfiguredPorts(String where) {
+        List<String> calls = world.takeUnconfiguredPortCalls();
+        if (!calls.isEmpty()) {
+            throw new AssertionError(where + "：執行到沒有設定 returns 的埠：" + String.join("、", calls));
+        }
+    }
+
+    private void saveV2(Step step, Outcome outcome, Map<String, Object> vars) {
+        Map<String, Object> save = map(step.node.get("save"), step.node.get("run") + " 的 save");
+        for (Map.Entry<String, Object> entry : save.entrySet()) {
+            String path = String.valueOf(entry.getValue());
+            Object value = outcome.getValue();
+            if (!isScalar(value)) {
+                TreePath parsed = TreePath.parse(path);
+                if (parsed.selectsMany()) {
+                    throw new RunnerProblem(step.node.get("run") + " 的 save 不能用 [*]、[k=v]：" + path);
+                }
+                List<Object> selected = parsed.select(world.tree(value), (a, b) -> false);
+                if (selected.isEmpty() || selected.get(0) == TreePath.MISSING) {
+                    throw new AssertionError(step.node.get("run") + " 的輸出沒有 " + path + "，無法存成 ${" + entry.getKey() + "}");
+                }
+                value = selected.get(0);
+            }
+            if (value == null) {
+                throw new AssertionError(step.node.get("run") + " 的輸出 " + path + " 是 null，無法存成 ${" + entry.getKey() + "}");
+            }
+            vars.put(entry.getKey(), value);
+        }
+    }
+
+    /** 展開 use_expect：具名斷言在下，直接寫的欄位蓋上去（與 spec_lint 相同）。 */
+    private Map<String, Object> assertion(Object node, String where) {
+        Map<String, Object> written = map(node, where);
+        if (!written.containsKey("use_expect")) {
+            return written;
+        }
+        String name = String.valueOf(written.get("use_expect"));
+        if (!expectations.containsKey(name)) {
+            throw new RunnerProblem(where + "：use_expect 引用了不存在的具名斷言 " + name);
+        }
+        Map<String, Object> base = map(expectations.get(name), "具名斷言 " + name);
+        if (base.containsKey("use_expect")) {
+            throw new RunnerProblem("具名斷言不能再引用具名斷言：" + name);
+        }
+        Map<String, Object> merged = new LinkedHashMap<>(base);
+        merged.putAll(written);
+        merged.remove("use_expect");
+        return merged;
+    }
+
+    /** output、absent、only。result 與 code 已經由 checkResult 判定。 */
+    private void checkAssertion(String where, Map<String, Object> assertion, Outcome outcome,
+                                Map<String, Object> vars, ZoneId zone) {
+        boolean hasOutputChecks = assertion.containsKey("output") || assertion.containsKey("absent")
+                || assertion.containsKey("only");
+        if ("REJECTED".equals(assertion.get("result"))) {
+            if (hasOutputChecks) {
+                throw new RunnerProblem(where + "：REJECTED 只能有 code");
+            }
+            return;
+        }
+        if (!hasOutputChecks) {
+            return;
+        }
+        Object tree = world.tree(outcome.getValue());
+        BiPredicate<Object, Object> equal = (expected, actual) -> same(expected, actual, zone);
+        List<String> problems = new ArrayList<>();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> output = (Map<String, Object>) substitute(map(assertion.get("output"), where + " 的 output"), vars, true);
+        for (Map.Entry<String, Object> entry : output.entrySet()) {
+            String key = entry.getKey();
+            if (!TreePath.isPath(key)) {
+                // 單純的屬性名稱：與版本 1 相同
+                if (!(tree instanceof Map) || !((Map<?, ?>) tree).containsKey(key)) {
+                    problems.add("輸出沒有欄位 " + key);
+                } else if (!same(entry.getValue(), ((Map<?, ?>) tree).get(key), zone)) {
+                    problems.add(key + " 預期 " + entry.getValue() + "，實際 " + ((Map<?, ?>) tree).get(key));
+                }
+                continue;
+            }
+            TreePath path = outputPath(where, key);
+            List<Object> selected = path.select(tree, equal);
+            if (selected.isEmpty()) {
+                problems.add(key + " 選不到任何一筆");
+            }
+            for (Object value : selected) {
+                if (value == TreePath.MISSING) {
+                    problems.add("輸出沒有 " + key);
+                } else if (!same(entry.getValue(), value, zone)) {
+                    problems.add(key + " 預期 " + entry.getValue() + "，實際 " + value);
+                }
+            }
+        }
+
+        for (Object item : list(substitute(assertion.get("absent"), vars), where + " 的 absent")) {
+            String key = String.valueOf(item);
+            TreePath path = outputPath(where, key);
+            List<Object> selected = path.select(tree, equal);
+            if (selected.isEmpty()) {
+                problems.add("absent " + key + " 選不到任何一筆");
+            }
+            for (Object value : selected) {
+                if (value != TreePath.MISSING && value != null) {
+                    problems.add(key + " 應該不存在或為 null，實際 " + value);
+                }
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> only = (Map<String, Object>) substitute(map(assertion.get("only"), where + " 的 only"), vars, true);
+        for (Map.Entry<String, Object> entry : only.entrySet()) {
+            String key = entry.getKey();
+            List<String> allowed = strings(entry.getValue(), where + " 的 only." + key);
+            List<Object> selected = outputPath(where, key).select(tree, equal);
+            if (selected.isEmpty()) {
+                problems.add("only " + key + " 選不到任何一筆");
+            }
+            for (Object value : selected) {
+                if (!(value instanceof Map)) {
+                    problems.add("only " + key + " 選到的不是物件：" + value);
+                    continue;
+                }
+                for (Map.Entry<?, ?> property : ((Map<?, ?>) value).entrySet()) {
+                    if (property.getValue() != null && !allowed.contains(String.valueOf(property.getKey()))) {
+                        problems.add(key + " 有清單以外的屬性 " + property.getKey() + "=" + property.getValue());
+                    }
+                }
+            }
+        }
+
+        if (!problems.isEmpty()) {
+            throw new AssertionError(where + "：" + String.join("；", problems));
+        }
+    }
+
+    private static TreePath outputPath(String where, String text) {
+        TreePath path = TreePath.parse(text);
+        if (path.usesIndex()) {
+            throw new RunnerProblem(where + "：a[0] 只能用在 save：" + text);
+        }
+        return path;
+    }
+
+    /** 事件（D-065 第 7 點）。被拒絕時一律不得有事件；emits 是完整的清單，emits_include 是部分比對。 */
+    private void checkEvents(Map<String, Object> then, Outcome outcome, List<ExampleWorld.EmittedEvent> events,
+                             Map<String, Object> vars, ZoneId zone) {
+        List<Object> have = new ArrayList<>();
+        for (ExampleWorld.EmittedEvent event : events) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("event", event.getName());
+            item.put("with", event.getProperties());
+            have.add(item);
+        }
+        if (!outcome.isSuccess()) {
+            if (!have.isEmpty()) {
+                throw new AssertionError("then：被拒絕卻發出了事件：" + events);
+            }
+            return;
+        }
+        if ("REJECTED".equals(then.get("result"))) {
+            return;
+        }
+        if (then.containsKey("emits")) {
+            List<Object> want = wantedEvents(then.get("emits"), "then.emits", vars);
+            if (want.size() != have.size() || !matchesOneToOne(want, have, zone)) {
+                throw new AssertionError("then.emits：預期剛好發出 " + want + "，實際 " + have);
+            }
+        }
+        if (then.containsKey("emits_include")) {
+            List<Object> want = wantedEvents(then.get("emits_include"), "then.emits_include", vars);
+            if (!matchesOneToOne(want, have, zone)) {
+                throw new AssertionError("then.emits_include：預期發出的事件包含 " + want + "，實際 " + have);
+            }
+        }
+    }
+
+    private List<Object> wantedEvents(Object node, String where, Map<String, Object> vars) {
+        List<Object> out = new ArrayList<>();
+        for (Object item : list(substitute(node, vars), where)) {
+            Map<String, Object> declared = map(item, where + " 的一項");
+            if (!(declared.get("event") instanceof String)) {
+                throw new RunnerProblem(where + " 的每一項必須有 event：" + item);
+            }
+            Map<String, Object> wanted = new LinkedHashMap<>();
+            wanted.put("event", declared.get("event"));
+            wanted.put("with", map(declared.get("with"), where + " 的 with"));
+            out.add(wanted);
+        }
+        return out;
+    }
+
+    private ZoneId localTimeZone() {
+        Object zone = profile.get("local_time_zone");
+        if (!(zone instanceof String)) {
+            throw new RunnerProblem("spec-profile.yaml 沒有 local_time_zone；spec_version 2 的規格需要 profile_version 2");
+        }
+        try {
+            return ZoneId.of((String) zone);
+        } catch (DateTimeException e) {
+            throw new RunnerProblem("spec-profile.yaml 的 local_time_zone 不是時區：" + zone);
+        }
+    }
+
+    private Instant clockStart(Map<String, Object> example) {
+        Map<String, Object> clock = map(example.get("clock"), "clock");
+        Object start = clock.containsKey("start") ? clock.get("start") : profile.get("clock_start");
+        Instant instant = instantWithZone(start);
+        if (instant == null) {
+            throw new RunnerProblem("時鐘的起始時間必須是帶時區的 ISO 8601 時間（範例的 clock.start 或 spec-profile.yaml 的 clock_start）：" + start);
+        }
+        return instant;
+    }
+
+    /** 規格裡帶時區的時間；不是的話回傳 null。YAML 沒加引號的時間會被讀成 Date。 */
+    private static Instant instantWithZone(Object value) {
+        if (value instanceof Date) {
+            return ((Date) value).toInstant();
+        }
+        if (value instanceof String) {
+            try {
+                return OffsetDateTime.parse((String) value).toInstant();
+            } catch (DateTimeParseException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    /** 實際值代表的時間點；不帶時區的時間依 zone 解讀。不是時間就回傳 null。 */
+    private static Instant instantOf(Object actual, ZoneId zone) {
+        if (actual instanceof Instant) {
+            return (Instant) actual;
+        }
+        if (actual instanceof OffsetDateTime) {
+            return ((OffsetDateTime) actual).toInstant();
+        }
+        if (actual instanceof ZonedDateTime) {
+            return ((ZonedDateTime) actual).toInstant();
+        }
+        if (actual instanceof LocalDateTime) {
+            return ((LocalDateTime) actual).atZone(zone).toInstant();
+        }
+        if (actual instanceof Date) {
+            return ((Date) actual).toInstant();
+        }
+        if (actual instanceof String) {
+            Instant withZone = instantWithZone(actual);
+            if (withZone != null) {
+                return withZone;
+            }
+            try {
+                return LocalDateTime.parse((String) actual).atZone(zone).toInstant();
+            } catch (DateTimeParseException e) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static List<String> strings(Object node, String what) {
+        List<String> out = new ArrayList<>();
+        for (Object item : list(node, what)) {
+            out.add(String.valueOf(item));
+        }
+        return out;
     }
 
     // ---------- 型別 ----------
