@@ -1,0 +1,40 @@
+# 試寫（第二輪）：抽選的最小規格，只寫到「建立得出案件」。不是律法。
+# 寫法：草案第四節第 4～8 項，加上第十三節 Q-10～Q-19 建議的寫法。
+spec_version: 2
+kind: aggregate
+name: SamplingBatch
+term: 抽選批次
+
+identity: { name: batchId, type: id, assigned_by: system }
+
+sources:
+  - { decision: D-024 }
+  - { doc: docs/02-ddd/state-machine.md, section: "§5" }
+  - { doc: docs/02-ddd/domain-events.md, section: "§5" }
+  - { doc: docs/02-ddd/permission-matrix.md, section: "§6" }
+
+enums:
+  - name: SamplingBatchStatus
+    values: [STARTED, COLLECTING_CANDIDATES, SAMPLING, COMPLETED, FAILED]
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§5.1" }]
+
+# Q-19：v2.0 提前納入最小的埠，只有宣告與 returns。
+ports:
+  - name: CandidateSource
+    term: 抽選母體的來源
+    operations:
+      - { name: queryCandidates, returns: "list<Candidate>" }
+
+# Q-16：還沒立法的轉移。
+# [殘留 R-2] state-machine §5.2 的觸發（beginCollect、runSampling…）是 ExecuteSampling 內部的步驟，不是 use case。
+# 從外面只看得到「執行完是 COMPLETED」，所以這 4 列只能留在這裡，永遠搬不進 transitions。
+deferred_transitions:
+  - { from: STARTED,               to: COLLECTING_CANDIDATES, by: beginCollect,      note: ExecuteSampling 內部的步驟 }
+  - { from: COLLECTING_CANDIDATES, to: SAMPLING,              by: runSampling,       note: ExecuteSampling 內部的步驟 }
+  - { from: SAMPLING,              to: COMPLETED,             by: samplingSucceeded, note: ExecuteSampling 內部的步驟 }
+  - { from: SAMPLING,              to: FAILED,                by: samplingFailed,    note: 失敗與重跑不在本次範圍 }
+
+deferred_behaviors:
+  - 抽選失敗與重跑、排除條件、同批次重複的案件、規則快照
+  - 批次的查詢與匯出

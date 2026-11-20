@@ -1,0 +1,31 @@
+# 試寫（第二輪）：提交的狀態機。不是律法。
+# Q-17：提交是另一個 aggregate，有自己的目錄；改變它的 use case 定義在 review-case/，by 寫成 <目錄>.<use case>。
+spec_version: 2
+kind: aggregate
+name: ReviewSubmission
+term: 審查提交
+
+identity: { name: submissionId, type: id, assigned_by: system }
+
+sources:
+  - { doc: docs/02-ddd/state-machine.md, section: "§4" }
+
+enums:
+  - name: SubmissionStatus
+    values: [DRAFT, SUBMITTED, SUPERSEDED]
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.1" }]
+  - name: ReviewStage
+    values: [INITIAL, REREVIEW]
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.1" }]
+
+transitions:
+  - { id: RS-T-01, from: DRAFT, to: DRAFT,     by: review-case.SaveInitialReviewDraft, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }   # Q-16：from 等於 to
+  - { id: RS-T-02, from: DRAFT, to: SUBMITTED, by: review-case.SubmitInitialReview,    status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+
+deferred_transitions:
+  - { from: SUBMITTED, to: SUPERSEDED, by: ReviseInitialReview, note: 修正已提交的初審；同時建立一份新的 SUBMITTED }
+  - { from: DRAFT,     to: DRAFT,      by: SaveRereviewDraft,   note: 複審 }
+  - { from: DRAFT,     to: SUBMITTED,  by: SubmitRereview,      note: 複審 }
+  - { from: SUBMITTED, to: SUPERSEDED, by: ReviseRereview,      note: 複審 }

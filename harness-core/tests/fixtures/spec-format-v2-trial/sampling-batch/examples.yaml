@@ -1,0 +1,76 @@
+# 試寫（第二輪）。不是律法。
+spec_version: 2
+kind: examples
+aggregate: SamplingBatch
+
+actors:
+  manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
+  manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
+  reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+
+fixtures:
+  two_candidates:
+    steps:
+      # Q-19：在 given 設定埠回傳什麼。
+      - port: CandidateSource.queryCandidates
+        returns:
+          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+          - { sourceCaseKey: MR-002, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+
+examples:
+  - name: creates_one_case_per_candidate
+    basis: [SB-EXE-S1, SB-EXE-S2]
+    given:
+      - use: review-project.active_project        # Q-17：引用另一個規格目錄的 fixture
+      - use: two_candidates
+    when:
+      run: ExecuteSampling
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { b: batchId }
+    then:
+      result: SUCCESS
+      emits:                                      # Q-15：完整的清單，不比順序
+        - { event: SamplingBatchStarted,       with: { batchId: "${b}", projectId: "${p}" } }
+        - { event: SamplingCandidatesPrepared, with: { batchId: "${b}" } }
+        - { event: ReviewCasesSelected,        with: { batchId: "${b}" } }
+        - { event: SamplingBatchCompleted,     with: { batchId: "${b}", projectId: "${p}" } }
+    observe:
+      - run: review-case.ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output:
+            content:                              # 直接寫清單：筆數相同、一對一配對（v1 的語意）
+              - { sourceCaseKey: MR-001, hospitalId: H-01, status: SELECTED_PENDING_ASSIGNMENT }
+              - { sourceCaseKey: MR-002, hospitalId: H-01, status: SELECTED_PENDING_ASSIGNMENT }
+
+  - name: rejects_sampling_by_a_non_manager
+    basis: [SB-G-01]
+    given: [{ use: review-project.active_project }]
+    when: { run: ExecuteSampling, as: reviewer_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_sampling_of_an_unknown_project
+    basis: [SB-G-02]
+    when: { run: ExecuteSampling, as: manager_h1, input: { projectId: no-such-project } }
+    then: { result: REJECTED, code: PROJECT_NOT_FOUND }
+
+  - name: rejects_sampling_across_hospitals
+    basis: [SB-G-03]
+    given: [{ use: review-project.active_project }]
+    when: { run: ExecuteSampling, as: manager_h2, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_sampling_of_a_project_not_activated
+    basis: [SB-EXE-01]
+    given:
+      - use: review-project.published_project
+      - use: two_candidates
+    when: { run: ExecuteSampling, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: PROJECT_NOT_ACTIVE }    # Q-15：被拒絕時執行器一律確認沒有事件，不必寫
+
+not_covered:
+  - item: 抽選母體回傳 0 筆
+    reason: 權威文件沒有寫 0 筆時批次是 COMPLETED 還是 FAILED；等抽選正式立法時裁決

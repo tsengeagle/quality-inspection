@@ -1,10 +1,12 @@
-# 規格格式 v1
+# 規格格式 v1、v2.0
 
 本目錄是問題側的規格：系統要做什麼、在什麼條件下得到什麼結果。它是律法（`law/manifest.txt` 的 `spec` 類），修改需要修法紀錄與簽章。
 
 格式由 `harness-core/spec_lint.py` 機械檢查，CI 的 `spec-check` 工作執行它。本文件與檢查程式不一致時，以檢查程式的行為為準，並修正本文件。
 
 2026-11-15 依負責人裁決定案（`docs/harness/10-spec-format.md` 記錄各項決定與理由）。
+
+第一到九節是格式 v1（`spec_version: 1`）。格式 v2.0（`spec_version: 2`，D-065）在第十節，只寫它和 v1 不同的地方。**執行器目前只能執行 `spec_version: 1` 的規格；在它支援之前，`specs/` 不得有 `spec_version: 2` 的規格（D-065 第 16 點）。**
 
 ## 一、現況
 
@@ -33,7 +35,7 @@ specs/
     OPEN-QUESTIONS.md          待裁決的問題（有 proposed 規則時才需要）
 ```
 
-檔案格式是 YAML。每個檔案開頭有 `spec_version: 1` 與 `kind`（`aggregate`、`usecases`、`examples`）。
+檔案格式是 YAML。每個檔案開頭有 `spec_version`（`1` 或 `2`，同一個目錄必須相同）與 `kind`（`aggregate`、`usecases`、`examples`）。
 
 ## 三、規則
 
@@ -114,6 +116,7 @@ specs/
 | `list<T>` | 有順序、可重複的清單。範例比對時不比順序（第四節「執行」） |
 | `T`（`input_types` 的名稱） | 輸入裡的物件結構。在 `usecases.yaml` 的 `input_types` 用名稱定義欄位，輸入的型別直接寫名稱或 `list<名稱>`。檢查程式目前不驗證名稱是否有定義 |
 | `ref <Aggregate>` | 指向另一個 aggregate 的 id。`external: true` 表示資料由外部系統提供 |
+| `datetime` | 一個時間點。範例裡寫 ISO 8601 加時區。只有 `spec_version: 2` 的規格能在範例裡比對它（第十節） |
 
 ## 六、檢查程式擋什麼、只列出什麼
 
@@ -121,7 +124,10 @@ specs/
 |---|---|
 | 擋下 | 第三節規則 1 到 7、第四節規則 2、3、5，以及 YAML 讀不進來、`spec_version` 或 `kind` 不對；第八節的封閉結構、分辨不了情境的範例、引用完整性（D-063） |
 | 無法評估（不算通過） | `spec-profile.yaml` 不存在、讀不進來、缺少任何一項或內容不合法（D-064）；`forbidden-vocabulary.txt` 不存在 |
+| 擋下（`spec_version: 2`，D-065） | 第十節的各項：斷言與路徑的寫法、沒有時區的時間、矩陣、事件沒有宣告、沒有範例的轉移、跨目錄的引用、埠 |
+| 無法評估（D-065） | 有 `spec_version: 2` 的規格，而 `spec-profile.yaml` 是 `profile_version: 1` |
 | 只列出（D-063） | `given`、`when`、`then`、`observe` 完全相同的兩個範例：可能是刻意的重複 |
+| 只列出（`spec_version: 2`，D-065） | `given`、`when` 相同、`result` 與 `code` 也相同，但其餘斷言不同的兩個範例；斷言了 `proposed` 事件的範例 |
 | 只列出 | 沒有任何範例涵蓋的規則；`basis` 含 `proposed` 規則的範例 |
 
 「只列出」的兩項原定在第 4 期完成後改為擋下。執行器已完成（第四節「執行」），改為擋下另案處理：`RP-INV-04` 由抽選的 use case 執行，現在擋下會卡住。
@@ -256,11 +262,124 @@ use case：
 | 欄位 | 型別 | 用途 |
 |---|---|---|
 | `kind` | 固定 `spec-profile` | |
-| `profile_version` | 固定 `1` | |
+| `profile_version` | `1` 或 `2` | `2` 多了 `clock_start`、`local_time_zone`。有 `spec_version: 2` 的規格時必須是 `2`（D-065） |
 | `actor_fields` | 名稱 → `str` 或 `str_list` | `examples.yaml` 的 `actors` 每一項允許的欄位。沒列的欄位照樣擋下 |
 | `usecase_actor_fields` | 名稱 → `str` 或 `str_list` | `usecases.yaml` 的 `actor` 允許的欄位 |
 | `error_categories` | 字串清單，不可重複 | `error_codes[].category` 允許的值 |
 | `guard_order` | `text`（字串）、`source`（`decision` 的清單） | guard 順序的說明（第三節規則 5）。只給人看，不檢查順序；`source` 的裁決要存在於決策紀錄 |
 
+| `clock_start` | 帶時區的 ISO 8601 時間 | 只有 `profile_version: 2`，必填。沒有寫 `clock` 的範例從這個時間開始 |
+| `local_time_zone` | `UTC` 或「地區/城市」 | 只有 `profile_version: 2`，必填。不帶時區的時間依這個時區解讀；執行器提供的時鐘也用這個時區。本專案是 `Asia/Taipei` |
+
 `actor_fields`、`usecase_actor_fields`、`error_categories` 不可以是空的。設定檔也是封閉結構，不認得的欄位判為內容不合法。
 
+## 十、格式 v2.0（D-065）
+
+寫 `spec_version: 2` 的目錄適用本節；沒有提到的部分與第一到九節相同。`spec_version: 1` 的目錄不受影響。
+
+理由與試寫的經過見 `docs/harness/15-spec-format-v2-draft.md` 第四、十三節。
+
+**執行器還不支援本節。** 檢查程式（`spec_lint`）已經支援；執行器要等下一個修法 PR。
+
+### 檔案
+
+- 版本 2 的目錄只有 `model.yaml` 是必要的。一個 aggregate 可以只有狀態機，改變它的 use case 定義在別的目錄。
+- 需要 `spec-profile.yaml` 是 `profile_version: 2`（第九節）。
+
+### 欄位表的差別
+
+| 檔案 | 加入 | 拿掉 |
+|---|---|---|
+| `model.yaml` | `transitions[].when`、`deferred_transitions[]`（`from`、`to`、`by`、`when`）、`ports[]`（`name`、`term`、`operations[]`：`name`、`returns`） | `attributes[].range`、`invariants[].enforced_by` |
+| `usecases.yaml` | `output_types`（名稱 → `name`、`type` 的清單）。命令與查詢的輸出都寫 `output.fields` | `input_note`、`success.output` |
+| `examples.yaml` | `expectations`（名稱 → 斷言）；範例的 `clock`（`start`）、`matrix`（`columns`、`key`、`rows`）；步驟的 `advance`、`port`、`returns`；`then` 與 `expect` 的斷言欄位（見下） | |
+
+`not_covered[].rules` 只能放規則 id。
+
+### 斷言
+
+`then`、`observe` 的 `expect`、具名斷言用同一組欄位：
+
+| 欄位 | 意思 |
+|---|---|
+| `result`、`code` | 與 v1 相同。`then.code` 必須定義在 `when` 那支 use case 所在目錄的 `error_codes` |
+| `output` | 部分比對。鍵可以是路徑 |
+| `absent` | 路徑的清單。選到的屬性必須不存在或為 null |
+| `only` | 路徑 → 欄位清單。選到的每一個物件，值不是 null 的屬性都必須在清單裡 |
+| `use_expect` | 指向 `expectations` 裡的具名斷言。具名斷言可以包含 `result`、`code`；不能再引用具名斷言 |
+| `emits`、`emits_include` | 只能用在 `then`，見「事件」 |
+
+- `then` 比對的是 `when` 的輸出。
+- `result` 是 `REJECTED` 時只能有 `code`。
+
+路徑：
+
+| 寫法 | 選到什麼 | 可以用在 |
+|---|---|---|
+| `.` | 輸出本身 | `only` |
+| `a.b` | 巢狀屬性 | 全部 |
+| `a[*]` | 清單的每一筆 | `output` 的鍵、`absent`、`only` |
+| `a[k=v]` | `k` 等於 `v` 的每一筆。多個條件用逗號；`v` 可以是 `${名稱}` | `output` 的鍵、`absent`、`only` |
+| `a[0]` | 第一筆。範例不得依賴它是哪一筆 | `save` |
+
+- `[*]`、`[k=v]` 選不到任何一筆時，斷言不成立。
+- `output` 裡直接寫清單，仍然是筆數相同、一對一配對。只想比對其中幾筆時，用路徑當鍵。
+
+### 時間
+
+- 範例裡的時間寫 ISO 8601 加時區。看起來像時間卻沒有時區的字串是問題。比對的是時間點。
+- 範例的 `clock: { start }` 指定起始時間；不寫就用設定檔的 `clock_start`。
+- 步驟 `advance: PT1H` 讓時間前進（ISO 8601 期間）。
+
+### 矩陣
+
+- `matrix.columns` 是欄名，`matrix.rows` 的每一列是一個範例，欄的值代入範例裡的 `${欄名}`。
+- `matrix.key` 必填，指定哪幾欄組成名稱。展開後的名稱是 `<name>.<值>.<值>`。
+- `key` 那幾欄的值只能用英數字與 `_` `-`，組合不得重複。
+- 欄名不得與 `save` 的變數同名（準備步驟存的變數也算）。
+- 範例名稱在同一個檔案裡不得重複。
+
+### 事件
+
+- `then.emits` 是完整的清單，不比順序；`then.emits_include` 是部分比對。每一項是 `event` 與 `with`（依屬性名稱部分比對）。
+- 事件必須在 `when` 那支 use case 的 `success.emits` 有宣告。事件 `X` 對到類別 `XEvent`。
+- `result` 是 `REJECTED` 時，執行器一律確認沒有發出任何事件；範例不必寫，也不能寫。
+- 斷言了 `proposed` 事件的範例，還不能當驗收依據。
+
+### 轉移
+
+- `transitions` 的每一條都必須至少被一個範例的 `basis` 引用，否則擋下。
+- 轉移可以有 `when`。同一個 `from`、同一支 use case 的多條轉移，`when` 必須不同。`from` 可以等於 `to`。
+- `deferred_transitions` 列出存在、但還沒立法的轉移。不需要 id，不需要範例。`from`、`to` 要是列舉的值；`by` 已經在規格裡的不能留在這裡。
+- 轉移、`deferred_transitions`、`terminal_states` 的狀態必須都屬於同一個列舉。
+
+### 跨目錄的引用
+
+| 引用 | 寫法 |
+|---|---|
+| fixture | `use: <目錄>.<名稱>`。變數一起帶過來 |
+| use case | `run: <目錄>.<名稱>`；同目錄的直接寫名稱 |
+| 轉移的 `by` | `by: <目錄>.<名稱>` |
+| 埠 | `port: <目錄>.<埠>.<操作>` |
+
+- 別的目錄的 use case 不必列在 `needs`。`needs` 只留給還沒立法的 use case。
+- `basis` 可以直接引用另一個目錄的規則 id。
+- 擋下的規格只能引用擋下的規格；草稿可以引用兩者。
+
+### 埠
+
+- `model.yaml` 的 `ports` 宣告問題側看得到的外部依賴。名稱是規格的詞彙，受禁用詞彙檢查。埠 `X` 對到介面 `XPort`，操作對到同名的方法。
+- 步驟 `port: <埠>.<操作>` 加 `returns`，設定這個操作在範例期間回傳什麼。
+- v2.0 只有 `returns`。失敗、呼叫紀錄、順序是 v2.1。
+- 範例執行到的埠沒有設定 `returns`，範例未通過。
+
+### 步驟
+
+每個步驟是 `run`、`use`、`port`、`advance` 其中一種。`when` 必須是 `run`。`as` 必須是 `actors` 裡的操作者。
+
+### 情境相同的範例
+
+兩個範例的 `given`（展開 fixture 後）、`when`、`clock` 相同時：
+
+- `result` 或 `code` 不同，擋下：兩者不可能同時通過。
+- 其餘的斷言不同，只列出：可能是各驗同一個輸出的不同面向。

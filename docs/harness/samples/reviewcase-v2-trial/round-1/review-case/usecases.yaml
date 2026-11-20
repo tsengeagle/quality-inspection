@@ -1,0 +1,210 @@
+# 試寫：ReviewCase 薄切片。不是律法。缺口清單見 ../README.md，待裁決的題目見 OPEN-QUESTIONS.md。
+spec_version: 2
+kind: usecases
+aggregate: ReviewCase
+
+sources:
+  - { decision: D-023 }
+  - { decision: D-024 }
+  - { decision: D-031 }
+  - { decision: D-033 }
+  - { decision: D-035 }
+  - { decision: D-037 }
+  - { decision: D-054 }
+  - { decision: D-055 }
+  - { doc: docs/02-ddd/application-service.md }
+  - { doc: docs/02-ddd/domain-events.md, section: "§6.2、§6.3、§6.4、§7.2" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§11.1、§11.3、§13.2" }
+
+error_codes:
+  - { code: ROLE_DENIED,                      category: denied,         status: decided,  source: [{ decision: D-023 }] }
+  - { code: HOSPITAL_SCOPE_MISMATCH,          category: denied,         status: decided,  source: [{ decision: D-024 }] }
+  - { code: ACCESS_DENIED,                    category: denied,         status: decided,  source: [{ decision: D-035 }] }
+  - { code: CASE_NOT_FOUND,                   category: not_found,      status: decided,  source: [{ decision: D-054 }] }
+  - { code: VALIDATION_ERROR,                 category: invalid_input,  status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: CASE_NOT_ASSIGNABLE,              category: rule_violation, status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: CASE_NOT_IN_INITIAL_REVIEW_STAGE, category: rule_violation, status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: NOT_ASSIGNED_REVIEWER,            category: denied,         status: proposed, question: Q-01 }
+  - { code: SUBMISSION_NOT_OWNED_BY_ACTOR,    category: denied,         status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: REQUIRED_ITEMS_NOT_ANSWERED,      category: rule_violation, status: proposed, question: Q-01 }
+  - { code: REREVIEWER_HAS_READ_INITIAL,      category: rule_violation, status: decided,  source: [{ decision: D-055 }] }
+
+# 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
+guards:
+  - id: RC-G-01
+    when: 操作者不具備這支 use case 的 actor.roles 中任何一個角色
+    outcome: { result: REJECTED, code: ROLE_DENIED }
+    status: decided
+    source: [{ decision: D-023 }]
+  - id: RC-G-02
+    when: caseId 找不到對應的案件
+    outcome: { result: REJECTED, code: CASE_NOT_FOUND }
+    status: decided
+    source: [{ decision: D-054 }]
+  - id: RC-G-03
+    when: 操作者的院區與案件的 hospitalId 不同
+    outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+    status: decided
+    source: [{ decision: D-024 }]
+
+usecases:
+
+  # ---------- 分派 ----------
+
+  - name: AssignReviewCase
+    kind: command
+    summary: 指派初審醫師與期限
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId,     type: id,       required: true }
+      - { name: reviewerId, type: id,       required: true }
+      - { name: dueAt,      type: datetime, required: true, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.3" }] }   # [缺口 B-06]
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-ASG-01
+        when: 案件的 status 不是 SELECTED_PENDING_ASSIGNMENT
+        outcome: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }, { doc: docs/02-ddd/state-machine.md, section: "§3.2" }]
+      - id: RC-ASG-02
+        when: reviewerId 或 dueAt 沒有給
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: proposed
+        question: Q-02
+    success:
+      state:
+        - { id: RC-ASG-S1, text: status = PENDING_INITIAL_REVIEW,           status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
+        - { id: RC-ASG-S2, text: reviewerId、dueAt 等於輸入,                 status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.3" }] }
+      emits:
+        - { event: ReviewCaseAssigned, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.2" }] }
+
+  # ---------- 初審提交 ----------
+
+  - name: StartInitialReview
+    kind: command
+    summary: 受指派的初審醫師開始初審，建立初審草稿
+    actor: { roles: [REVIEWER] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-STI-01
+        when: 操作者不是這個案件受指派的初審醫師
+        outcome: { result: REJECTED, code: NOT_ASSIGNED_REVIEWER }
+        status: proposed
+        question: Q-01
+      - id: RC-STI-02
+        when: 案件的 status 不是 PENDING_INITIAL_REVIEW
+        outcome: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }]
+    success:
+      output:
+        - { name: submissionId, type: id }
+      state:
+        - { id: RC-STI-S1, text: status = INITIAL_REVIEW_IN_PROGRESS,                         status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
+        - { id: RC-STI-S2, text: 建立一份初審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+      emits:
+        - { event: InitialReviewStarted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.3" }] }
+
+  - name: SubmitInitialReview
+    kind: command
+    summary: 提交初審；不固定、不進複審、不結案
+    actor: { roles: [REVIEWER] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-SUB-01
+        when: 操作者不是這份初審草稿的醫師
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_OWNED_BY_ACTOR }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2、§11.3" }]
+      - id: RC-SUB-02
+        when: 案件的 status 不是 INITIAL_REVIEW_IN_PROGRESS
+        outcome: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+        status: proposed
+        question: Q-01
+      - id: RC-SUB-03
+        when: 評分表有必答的題目沒有作答
+        outcome: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+        status: proposed
+        question: Q-01
+    success:
+      output:
+        - { name: submissionId, type: id }
+        - { name: caseStatus,   type: enum CaseStatus }
+        - { name: totalScore,   type: decimal(2) }
+      state:
+        - { id: RC-SUB-S1, text: status = INITIAL_REVIEW_COMPLETED，不論分數與品質線的關係,         status: decided, source: [{ decision: D-031 }, { decision: D-054 }] }
+        - { id: RC-SUB-S2, text: 初審提交的狀態是 SUBMITTED，submittedAt 是提交當時的時間,          status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+      emits:
+        - { event: ReviewSubmissionSubmitted, status: decided,  source: [{ doc: docs/02-ddd/domain-events.md, section: "§7.2" }] }
+        - { event: InitialReviewCompleted,    status: proposed, question: Q-03 }
+
+  # ---------- revision 歷程的讀取遮罩 ----------
+
+  - name: GetRevisionHistory
+    kind: query
+    summary: 查詢案件各階段、各版本的提交歷程；內容依角色遮罩
+    actor: { roles: [HOSPITAL_MANAGER, REVIEWER, REREVIEWER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    guard_exceptions:
+      - { guard: RC-G-03, text: SYSTEM_ADMIN 的讀取不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    rules:
+      - id: RC-RVH-01
+        when: 操作者同時具備兩個以上的角色
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-035 }, { decision: D-055 }]
+      - id: RC-RVH-02
+        when: 操作者是 REVIEWER 或 REREVIEWER，但不是這個案件該階段受指派的醫師，也沒有在該階段提交過
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5" }]
+      - id: RC-RVH-03
+        when: 操作者是 HOSPITAL_MANAGER、AUDITOR 或 REVIEWER，而且是這個案件現任或曾經的複審醫師
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-055 }]
+      - id: RC-RVH-04
+        when: 操作者是 HOSPITAL_MANAGER、AUDITOR 或 REVIEWER，而案件的複審指派歷史不完整
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-035 }, { decision: D-055 }]
+      # 一條規則只有一個結果，而「看得到什麼」不是結果。這三條的 outcome 都是 SUCCESS，差別只能寫在 text。
+      - id: RC-VIS-01
+        when: 操作者是 HOSPITAL_MANAGER、AUDITOR 或 REVIEWER，且通過以上檢查
+        text: 每一筆歷程都有 totalScore 與 comment
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5" }, { decision: D-055 }]
+      - id: RC-VIS-02
+        when: 操作者是 REREVIEWER，且通過以上檢查
+        text: 初審階段的每一筆歷程都沒有 totalScore 與 comment；本人複審階段的歷程照常
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-033 }, { rule: RC-INV-01 }]
+      - id: RC-VIS-03
+        when: 操作者是 SYSTEM_ADMIN
+        text: 每一筆歷程都沒有 totalScore 與 comment
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { rule: RC-INV-02 }]
+      - id: RC-VIS-04
+        when: 依 RC-VIS-01 准許讀取
+        text: 記下操作者讀過這個案件的完整初審；之後這個人不得被指派或改派為同案的複審醫師
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§13.2" }]
+      # [缺口 B-12] 輸出只能寫一份 fields，而且每一項只有 name、type：
+      #   - entries 的每一筆有哪些欄位，沒有地方定義（input_types 只給輸入用）。
+      #   - 三種角色拿到的欄位不同，寫不出「這個欄位只有某些角色有」。
+      fields:
+        - { name: caseId,  type: id }
+        - { name: entries, type: "list<RevisionEntry>" }

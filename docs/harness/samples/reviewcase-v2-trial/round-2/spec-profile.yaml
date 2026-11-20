@@ -1,0 +1,5 @@
+# 試寫：Q-14 建議在 specs/spec-profile.yaml 新增的兩項。不是律法；其他項目（actor_fields 等）照現行的設定檔，這裡不重複。
+kind: spec-profile
+profile_version: 2
+clock_start: "2026-11-19T09:00:00Z"     # 沒有寫 clock 的範例的起始時間
+local_time_zone: "Asia/Taipei"               # 不帶時區的時間依這個時區解讀；執行器提供的時鐘也用這個時區

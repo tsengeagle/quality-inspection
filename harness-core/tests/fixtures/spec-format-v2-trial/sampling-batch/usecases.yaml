@@ -1,0 +1,67 @@
+# 試寫（第二輪）。不是律法。
+spec_version: 2
+kind: usecases
+aggregate: SamplingBatch
+
+sources:
+  - { decision: D-023 }
+  - { decision: D-024 }
+  - { doc: docs/02-ddd/domain-events.md, section: "§5.1–§5.4" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2" }
+
+error_codes:
+  - { code: ROLE_DENIED,             category: denied,         status: decided,  source: [{ decision: D-023 }] }
+  - { code: HOSPITAL_SCOPE_MISMATCH, category: denied,         status: decided,  source: [{ decision: D-024 }] }
+  - { code: PROJECT_NOT_FOUND,       category: not_found,      status: proposed, question: Q-04 }
+  - { code: PROJECT_NOT_ACTIVE,      category: rule_violation, status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+
+guards:
+  - id: SB-G-01
+    when: 操作者不具備這支 use case 的 actor.roles 中任何一個角色
+    outcome: { result: REJECTED, code: ROLE_DENIED }
+    status: decided
+    source: [{ decision: D-023 }]
+  - id: SB-G-02
+    when: projectId 找不到對應的專案
+    outcome: { result: REJECTED, code: PROJECT_NOT_FOUND }
+    status: proposed
+    question: Q-04
+  - id: SB-G-03
+    when: 操作者的院區與專案的 hospitalId 不同
+    outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+    status: decided
+    source: [{ decision: D-024 }]
+
+# Q-18：輸出的巢狀結構。
+output_types:
+  Candidate:
+    - { name: sourceCaseKey,     type: text }
+    - { name: hospitalId,        type: id }
+    - { name: medicalRecordType, type: enum MedicalRecordType }
+
+usecases:
+  - name: ExecuteSampling
+    kind: command
+    summary: 對啟用中的專案執行一次抽選，為每個抽中的病歷建立審查案件
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [SB-G-01, SB-G-02, SB-G-03]
+    rules:
+      - id: SB-EXE-01
+        when: 專案的 status 不是 ACTIVE
+        outcome: { result: REJECTED, code: PROJECT_NOT_ACTIVE }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }, { doc: docs/02-ddd/permission-matrix.md, section: "§6" }]
+    success:
+      state:
+        - { id: SB-EXE-S1, text: 批次的 status = COMPLETED, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§5.2" }] }
+        - { id: SB-EXE-S2, text: 抽選母體回傳的每一筆各建立一個審查案件，status = SELECTED_PENDING_ASSIGNMENT，院區與病歷類型取自那一筆, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.5" }, { doc: docs/02-ddd/domain-events.md, section: "§5.3、§6.1" }] }
+      emits:
+        - { event: SamplingBatchStarted,       status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.1" }] }
+        - { event: SamplingCandidatesPrepared, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.2" }] }
+        - { event: ReviewCasesSelected,        status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.3" }] }
+        - { event: SamplingBatchCompleted,     status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.4" }] }
+    output:
+      fields:
+        - { name: batchId, type: id }

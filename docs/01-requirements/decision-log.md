@@ -2467,3 +2467,107 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `specs/spec-profile.yaml`、`specs/README.md` 第二、三、六、七、八、九節
 - `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`、`harness-core/VERSION`
 - 後續：缺口一的語法（v2.1 前補進格式 v2 草案第四節）；格式 v2.0、v2.1
+
+---
+
+## D-065 — 規格格式 v2.0：輸出斷言、清單路徑、時鐘、矩陣、事件、轉移、跨目錄引用、最小的埠
+
+### Status
+
+`accepted`（2026-11-20，依負責人對格式 v2 草案 Q-6、Q-7、Q-8、Q-10～Q-20 的裁決，以及對 D-065 草案三點的裁決：`local_time_zone` 用 `Asia/Taipei`；現有兩份規格先不升版；`spec_lint` 與執行器分成兩個修法 PR）
+
+### Decision
+
+1. **版本。**
+   - 本裁決的寫法只在 `spec_version: 2` 的目錄生效。同一個 `specs/` 裡，版本 1 與 2 的目錄可以並存。
+   - 同一個目錄的檔案版本必須相同。
+   - 版本 2 的目錄只有 `model.yaml` 是必要的：一個 aggregate 可以只有狀態機，改變它的 use case 定義在別的目錄。
+   - 版本 1 的目錄照 D-063、D-064，一個字都不必改，判決結果也不變。現有的 `specs/review-project/`、`specs/score-sheet/` 這次不升版。
+   - `http.yaml`、`http-common.yaml` 不變（D-061）。
+2. **斷言的欄位。** `then`、`observe` 的 `expect`、具名斷言共用一組欄位：`result`、`code`、`output`、`absent`、`only`、`use_expect`；`then` 另外可以有 `emits`、`emits_include`。
+   - `then` 比對 `when` 的輸出。
+   - `result` 是 `REJECTED` 時，只能有 `code`。
+   - `then.code` 必須定義在 `when` 那支 use case 所在目錄的 `error_codes`。
+3. **路徑。** `.`、`a.b`、`a[*]`、`a[k=v]`（只有等於；多個條件用逗號；值可以是 `${名稱}`）、`a[0]`。
+   - `output` 的鍵、`absent`、`only` 可以用 `a.b`、`a[*]`、`a[k=v]`；`only` 另外可以用 `.`。
+   - `a[0]` 只能用在 `save`；`save` 不能用 `[*]`、`[k=v]`。
+   - `[*]`、`[k=v]` 選不到任何一筆時，斷言不成立。
+   - `output` 裡直接寫的清單維持版本 1 的語意：筆數相同、一對一配對。
+4. **`absent` 與 `only`。**
+   - `absent`：選到的屬性不存在或為 null。
+   - `only`：選到的每一個物件，值不是 null 的屬性都必須在清單裡。
+   - JSON 的鍵是否存在，仍由 HTTP 契約的封閉形狀負責（D-061）。
+5. **時間。**
+   - 型別詞彙加 `datetime`。範例裡寫 ISO 8601 加時區；沒有時區的時間是問題。比對的是時間點。
+   - 範例可以寫 `clock: { start }`；步驟可以寫 `advance`（ISO 8601 期間，只能前進）。
+   - `spec-profile.yaml` 的 `profile_version: 2` 多兩項必填：`clock_start`、`local_time_zone`。
+   - `profile_version: 1` 仍然接受。但只要有版本 2 的規格而設定檔是版本 1，就判為無法評估，不使用預設值（D-064 第 1 點）。
+   - 本專案：`local_time_zone` 是 `Asia/Taipei`，`clock_start` 是 `2026-11-19T17:00:00+08:00`。
+   - 執行器提供固定的時鐘：起始值是範例的 `clock.start` 或設定檔的 `clock_start`，時區是 `local_time_zone`。
+6. **具名斷言與矩陣。**
+   - `examples.yaml` 加 `expectations`：名稱 → 第 2 點的欄位（不含事件）。具名斷言不能再引用具名斷言。
+   - 範例可以有 `matrix`：`columns`、`key`、`rows`。`key` 必填。
+   - 展開後的名稱是 `<name>.<key 的值，用 . 連接>`。`key` 那幾欄的值只能用英數字與 `_` `-`，組合不得重複。
+   - 欄的值代入範例裡的 `${欄名}`。欄名與 `save` 的變數名稱不得相同。
+   - 版本 2 的範例名稱在同一個檔案裡不得重複。
+7. **事件。**
+   - 事件 `X` 對到類別 `XEvent`。斷言的事件必須在 `when` 那支 use case 的 `success.emits` 有宣告。
+   - `emits` 是完整的清單，不比順序；`emits_include` 是部分比對。`with` 依屬性名稱部分比對。
+   - `then.result` 是 `REJECTED` 時，執行器一律確認沒有發出任何事件。
+   - 範例斷言了宣告為 `proposed` 的事件，列為還不能當驗收依據。
+8. **轉移。**
+   - `transitions` 的每一條必須至少被一個範例的 `basis` 引用，否則擋下。其餘規則仍然只列出。
+   - 轉移可以有 `when`。同一個 `from`、同一支 use case 的多條轉移，`when` 必須不同。`from` 可以等於 `to`。
+   - 加 `deferred_transitions`：`from`、`to`、`by`、`when`、`note`。`from`、`to` 核對列舉；`by` 已經在規格裡的不得留在這裡。
+9. **跨目錄的引用。**
+   - fixture、use case、轉移的 `by`、埠，都可以寫 `<目錄>.<名稱>`。型別的列舉名稱也可以這樣寫；檢查程式不核對型別名稱，與版本 1 相同。
+   - 別的目錄的 use case 寫 `<目錄>.<名稱>`，不必列在 `needs`。`needs` 只留給還沒立法的 use case。
+   - 擋下的規格只能引用擋下的規格；草稿可以引用兩者。
+10. **輸出的結構。**
+    - 加 `output_types`。命令與查詢的輸出都寫 `output.fields`；`success.output` 不再接受。
+    - 欄位對誰可見不寫進結構。
+11. **最小的埠。**
+    - `model.yaml` 可以宣告 `ports`：`name`、`term`、`operations`（`name`、`returns`）。埠與操作的名稱受禁用詞彙檢查。
+    - 步驟可以寫 `port: <埠>.<操作>` 加 `returns`。其他的埠設定與斷言屬於 v2.1。
+    - 埠 `X` 對到介面 `XPort`，操作對到同名的方法。只有規格宣告過的埠可以被替換。
+    - 範例執行到的埠沒有設定 `returns`，範例未通過。
+12. **情境相同的範例（部分取代 D-063 第 4 點）。**
+    - 兩個範例的 `given`、`when`（與 `clock`）相同時，`result` 或 `code` 不同才擋下。
+    - 其餘的斷言不同，只列出。
+    - 版本 1 的目錄仍照 D-063 第 4 點的條文檢查；它的 `then` 只有 `result` 與 `code`，結果相同。
+13. **用 use case 建立不出來的前提。** 不寫範例，列在 `not_covered`，由建構者的白箱測試負責。不提供直接寫入資料的寫法，也不把系統自己的儲存宣告成埠。
+14. **D-063 第 3 點的四項待改寫。**
+    - 版本 2 的目錄不接受 `success.output`、`input_note`、`invariants[].enforced_by`、`attributes[].range`；`not_covered[].rules` 核對是規則 id。
+    - 現有的兩份規格仍是版本 1，照舊接受。它們在升到版本 2 時改寫。
+15. **回歸樣本。** 格式 v2 草案第二輪的試寫放進 `harness-core/tests/fixtures/spec-format-v2-trial/`：
+    - 原樣必須零問題。
+    - 逐項改壞，每一種都要被擋下。
+16. **順序。**
+    - 本裁決與第一個修法 PR 一起生效：`decision-log.md`、`specs/README.md`、`specs/spec-profile.yaml`、`harness-core/spec_lint.py` 與測試、`harness-core/VERSION`（0.8.0）、修法紀錄。
+    - 第二個修法 PR：執行器。要做到第 2～7、9、11 點：輸出斷言與路徑、時鐘、矩陣展開、事件擷取、跨目錄的 fixture、埠的替身。
+    - **第二個修法 PR 合併之前，`specs/` 不得有版本 2 的規格**：檢查過得了，但沒有執行器能跑。
+    - 之後才是規格的修法 PR（從抽選到初審提交的直向切片）與建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：漏網紀錄 E-01、E-02 的根本回應是把 ReviewCase 立法，而格式版本 1 寫不出它的讀取遮罩、時間、狀態機與事件。
+- **兩輪試寫**：`docs/harness/samples/reviewcase-v2-trial/`。第一輪照格式 v2 草案原本的第四節，找出 12 個缺口；第二輪用本裁決的寫法重寫成直向切片。經過與理由見 `docs/harness/15-spec-format-v2-draft.md` 第十三、十四節。
+- **起草後補上的四處**（草案第十四節沒有，實作時加的）：
+  - 第 1 點：版本 2 的目錄只有 `model.yaml` 是必要的。試寫的 `review-submission/` 就是這種目錄。
+  - 第 2 點：`then.code` 要核對。版本 1 不核對 `then` 的代碼。
+  - 第 5 點：`profile_version: 1` 仍然接受。這樣安裝 `harness-core/` 的其他專案不必為了升級而改設定檔，用到版本 2 才需要。
+  - 第 6 點：版本 2 的範例名稱不得重複。矩陣展開後的名稱是身分，重複就分不出是哪一個。
+- **部分取代** D-063 第 4 點（第 12 點）。D-063 第 3 點的四項待改寫由第 14 點處理。
+- **D-064**：`spec-profile.yaml` 增加 `profile_version: 2`。本專案的設定檔升為 2。
+- **實作時的驗證**（2026-11-20）：
+  - 現有兩份規格零問題（82 條規則）。
+  - 第二輪試寫用正式的 `spec_lint`（`--report-only`）檢查：三個目錄 37 條規則，零問題。
+  - `test_spec_lint.py` 110 個測試全部通過，其中 41 個是這次新增的；原有的 69 個只改了一個（設定檔版本的訊息）。
+  - 執行器沒有動，也還不能執行版本 2 的規格。
+- **還沒有驗證的**：第 2～7、11 點的語意要等執行器實作才知道做不做得到。執行器做不到的部分，回頭修本裁決。
+
+### Mapping
+
+- `specs/README.md` 第二、五、六、九、十節；`specs/spec-profile.yaml`
+- `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`、`harness-core/tests/fixtures/spec-format-v2-trial/`、`harness-core/README.md`、`harness-core/VERSION`
+- 後續：執行器的修法 PR；直向切片的規格；格式 v2.1（C 組）
