@@ -1,0 +1,16 @@
+{
+  "id": "2026-11-21-d066-vertical-slice",
+  "decision": "D-066",
+  "reason": "D-066：從抽選到初審提交的直向切片立法（格式 v2.0）。新增 specs/sampling-batch/（ExecuteSampling）、specs/review-case/（ListReviewCases、AssignReviewCase、StartInitialReview、SaveInitialReviewDraft、SubmitInitialReview、GetRevisionHistory）、specs/review-submission/（提交的狀態機），內容來自格式 v2 草案第二輪試寫，依負責人對 M-0～M-3 的裁決修改：事件的 with 只用 domain-events.md 的欄位名稱，沒有最低必要欄位的事件只斷言發出者的 identity 並標 proposed（Q-06、Q-07）；抽選時專案不存在的代碼是 PROJECT_NOT_FOUND（decided）；輸入照 api-spec.md 攤平。law/coverage.txt 只把範例直接執行的七支 use case 與八個事件類別逐檔列為 legislated，aggregate 本身仍是 grandfathered。known-test-failures.txt 新增 34 個一開始就紅的範例（M-1 有 31 個、M-2 有 2 個、M-3 有 1 個），每一個都註明 M-1 修好之後的原因，由建構 PR 逐一移除。docs/03-contracts/api-spec.md §9.3 補上抽選的錯誤表；specs/README.md 第一節加上三個 aggregate；docs/harness/16-vertical-slice-draft.md 標為已裁決。本機確認：spec_lint 五個目錄零問題；後端完整測試 1095 個方法、失敗 34 個，與已知失敗清單完全相同；修改前 1057 個、失敗 0。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/sampling-batch/",
+    "specs/review-case/",
+    "specs/review-submission/",
+    "specs/README.md",
+    "law/coverage.txt",
+    "law/amendments/",
+    "services/quality-inspection-service/known-test-failures.txt"
+  ]
+}

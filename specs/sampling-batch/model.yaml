@@ -1,0 +1,42 @@
+# 格式說明見 ../README.md（規格格式 v2.0，第十節）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+# 範圍：從抽選到初審提交的直向切片（D-066）。只寫到「建立得出案件」。
+# 來源：docs/harness/samples/reviewcase-v2-trial/round-2/sampling-batch/（第二輪試寫）。
+spec_version: 2
+kind: aggregate
+name: SamplingBatch
+term: 抽選批次
+
+identity: { name: batchId, type: id, assigned_by: system }
+
+sources:
+  - { decision: D-024 }
+  - { decision: D-066 }
+  - { doc: docs/02-ddd/state-machine.md, section: "§5" }
+  - { doc: docs/02-ddd/domain-events.md, section: "§5" }
+  - { doc: docs/02-ddd/permission-matrix.md, section: "§6" }
+
+enums:
+  - name: SamplingBatchStatus
+    values: [STARTED, COLLECTING_CANDIDATES, SAMPLING, COMPLETED, FAILED]
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§5.1" }]
+
+# 抽選母體的來源是外部系統。v2.0 只有宣告與 returns（D-065 第 11 點）。
+ports:
+  - name: CandidateSource
+    term: 抽選母體的來源
+    operations:
+      - { name: queryCandidates, returns: "list<Candidate>" }
+
+# state-machine §5.2 的觸發（beginCollect、runSampling…）是 ExecuteSampling 內部的步驟，不是 use case。
+# 從外面只看得到「執行完是 COMPLETED」，所以這幾列留在這裡。
+deferred_transitions:
+  - { from: STARTED,               to: COLLECTING_CANDIDATES, by: beginCollect,      note: ExecuteSampling 內部的步驟 }
+  - { from: COLLECTING_CANDIDATES, to: SAMPLING,              by: runSampling,       note: ExecuteSampling 內部的步驟 }
+  - { from: SAMPLING,              to: COMPLETED,             by: samplingSucceeded, note: ExecuteSampling 內部的步驟 }
+  - { from: SAMPLING,              to: FAILED,                by: samplingFailed,    note: 失敗與重跑不在本次範圍 }
+
+deferred_behaviors:
+  - 抽選失敗與重跑、排除條件、同批次重複的案件、規則快照
+  - 批次的查詢與匯出
+  - 抽選母體回傳 0 筆時批次的結果
