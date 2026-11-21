@@ -1,0 +1,98 @@
+# 格式說明見 ../README.md（規格格式 v2.0，第十節）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+#
+# 每個範例的 basis 指向 usecases.yaml、model.yaml 或其他目錄的規則 id。
+# basis 裡只要有一條規則是 proposed，這個範例就還不能當驗收依據。
+# 沒有寫 clock 的範例從 spec-profile.yaml 的 clock_start 開始。
+spec_version: 2
+kind: examples
+aggregate: SamplingBatch
+
+actors:
+  manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
+  manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
+  reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+
+fixtures:
+  two_candidates:
+    steps:
+      - port: CandidateSource.queryCandidates
+        returns:
+          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+          - { sourceCaseKey: MR-002, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+
+examples:
+  - name: creates_one_case_per_candidate
+    basis: [SB-EXE-S1, SB-EXE-S2, SB-EXE-S3]
+    given:
+      - use: review-project.active_project
+      - use: two_candidates
+    when:
+      run: ExecuteSampling
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { b: batchId }
+    then:
+      result: SUCCESS
+      emits:                                      # 完整的清單，不比順序
+        - { event: SamplingBatchStarted,       with: { batchId: "${b}", projectId: "${p}" } }
+        - { event: SamplingCandidatesPrepared }
+        - { event: ReviewCasesSelected }
+        - { event: SamplingBatchCompleted,     with: { batchId: "${b}", projectId: "${p}" } }
+    observe:
+      - run: review-case.ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output:
+            content:                              # 直接寫清單：筆數相同、一對一配對
+              - { sourceCaseKey: MR-001, hospitalId: H-01, status: SELECTED_PENDING_ASSIGNMENT }
+              - { sourceCaseKey: MR-002, hospitalId: H-01, status: SELECTED_PENDING_ASSIGNMENT }
+
+  # 這兩個事件在 domain-events.md 沒有「最低必要欄位」，只斷言發出者的 identity（D-066 第 2 點）。
+  - name: intermediate_events_carry_the_batch
+    basis: [SB-EXE-S4]
+    given:
+      - use: review-project.active_project
+      - use: two_candidates
+    when:
+      run: ExecuteSampling
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { b: batchId }
+    then:
+      result: SUCCESS
+      emits_include:
+        - { event: SamplingCandidatesPrepared, with: { batchId: "${b}" } }
+        - { event: ReviewCasesSelected,        with: { batchId: "${b}" } }
+
+  - name: rejects_sampling_by_a_non_manager
+    basis: [SB-G-01]
+    given: [{ use: review-project.active_project }]
+    when: { run: ExecuteSampling, as: reviewer_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_sampling_of_an_unknown_project
+    basis: [SB-G-02]
+    when: { run: ExecuteSampling, as: manager_h1, input: { projectId: no-such-project } }
+    then: { result: REJECTED, code: PROJECT_NOT_FOUND }
+
+  - name: rejects_sampling_across_hospitals
+    basis: [SB-G-03]
+    given: [{ use: review-project.active_project }]
+    when: { run: ExecuteSampling, as: manager_h2, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_sampling_of_a_project_not_activated
+    basis: [SB-EXE-01]
+    given:
+      - use: review-project.published_project
+      - use: two_candidates
+    when: { run: ExecuteSampling, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: PROJECT_NOT_ACTIVE }    # 被拒絕時執行器一律確認沒有事件
+
+not_covered:
+  - item: 抽選母體回傳 0 筆
+    reason: 權威文件沒有寫 0 筆時批次是 COMPLETED 還是 FAILED；等抽選失敗與重跑立法時裁決
+  - item: 專案沒有已發布的版本
+    reason: 用 use case 建立不出「啟用中卻沒有已發布版本」的專案（啟用需要已發布，RP-ACT 系列）；由建構者的白箱測試負責（D-065 第 13 點）

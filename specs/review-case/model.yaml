@@ -1,0 +1,77 @@
+# 格式說明見 ../README.md（規格格式 v2.0，第十節）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+# 範圍：從抽選到初審提交的直向切片（D-066）。
+# 來源：docs/harness/samples/reviewcase-v2-trial/round-2/review-case/（第二輪試寫）。
+spec_version: 2
+kind: aggregate
+name: ReviewCase
+term: 審查案件
+
+identity: { name: caseId, type: id, assigned_by: system }
+
+sources:
+  - { decision: D-024 }
+  - { decision: D-031 }
+  - { decision: D-033 }
+  - { decision: D-035 }
+  - { decision: D-054 }
+  - { decision: D-055 }
+  - { decision: D-066 }
+  - { doc: docs/02-ddd/state-machine.md, section: "§3" }
+  - { doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1、§6" }
+
+enums:
+  - name: CaseStatus
+    values:
+      - SELECTED_PENDING_ASSIGNMENT
+      - PENDING_INITIAL_REVIEW
+      - INITIAL_REVIEW_IN_PROGRESS
+      - INITIAL_REVIEW_COMPLETED
+      - PENDING_REREVIEW
+      - REREVIEW_IN_PROGRESS
+      - RETURNED
+      - CLOSED
+      - CANCELLED
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.1" }]
+
+attributes:
+  - { name: hospitalId, type: id,              required: true,  mutable: false }
+  - { name: status,     type: enum CaseStatus, required: true,  initial: SELECTED_PENDING_ASSIGNMENT }
+  - { name: reviewerId, type: id,              required: false }
+  - { name: assignedAt, type: datetime,        required: false }
+  - { name: dueAt,      type: datetime,        required: false }
+
+transitions:
+  - { id: RC-T-01, from: SELECTED_PENDING_ASSIGNMENT, to: PENDING_INITIAL_REVIEW,     by: AssignReviewCase,    status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
+  - { id: RC-T-02, from: PENDING_INITIAL_REVIEW,      to: INITIAL_REVIEW_IN_PROGRESS, by: StartInitialReview,  status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
+  - { id: RC-T-03, from: INITIAL_REVIEW_IN_PROGRESS,  to: INITIAL_REVIEW_COMPLETED,   by: SubmitInitialReview, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-054 }] }
+
+# state-machine §3.2 其餘 13 列：規格裡看得到完整的狀態機，也看得到哪些還沒立法。
+deferred_transitions:
+  - { from: SELECTED_PENDING_ASSIGNMENT, to: CANCELLED,                  by: CancelReviewCase }
+  - { from: PENDING_INITIAL_REVIEW,      to: CANCELLED,                  by: CancelReviewCase }
+  - { from: INITIAL_REVIEW_IN_PROGRESS,  to: CANCELLED,                  by: CancelReviewCase }
+  - { from: PENDING_REREVIEW,            to: CANCELLED,                  by: CancelReviewCase }
+  - { from: INITIAL_REVIEW_IN_PROGRESS,  to: RETURNED,                   by: ReturnInitialReview }
+  - { from: RETURNED,                    to: PENDING_INITIAL_REVIEW,     by: ReopenInitialReview }
+  - { from: INITIAL_REVIEW_COMPLETED,    to: INITIAL_REVIEW_COMPLETED,   by: FixInitialReview,     when: 分數不大於品質線，或品質線沒有設定, note: D-054 第 3 點 }
+  - { from: INITIAL_REVIEW_COMPLETED,    to: PENDING_REREVIEW,           by: FixInitialReview,     when: 分數大於品質線, note: D-054 第 3 點 }
+  - { from: INITIAL_REVIEW_COMPLETED,    to: PENDING_REREVIEW,           by: SendToRereview,       note: 初審已固定，管理者手動送複審 }
+  - { from: INITIAL_REVIEW_COMPLETED,    to: CLOSED,                     by: CloseWithoutRereview, note: 初審已固定 }
+  - { from: PENDING_REREVIEW,            to: REREVIEW_IN_PROGRESS,       by: StartRereview }
+  - { from: REREVIEW_IN_PROGRESS,        to: REREVIEW_IN_PROGRESS,       by: SubmitRereview,       note: D-053 }
+  - { from: REREVIEW_IN_PROGRESS,        to: CLOSED,                     by: CloseRereview,        note: D-034、D-053 }
+
+terminal_states: [CLOSED, CANCELLED]
+
+invariants:
+  - id: RC-INV-02
+    text: SYSTEM_ADMIN 只取得 metadata，取不到任何階段的答案、分數、評語
+    status: decided
+    source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1" }]
+
+deferred_behaviors:
+  - 永久盲審（D-033）：複審醫師的遮罩要等複審指派立法，才建立得出「受指派的複審醫師」
+  - updatedAt（D-037）：本次範圍內沒有輸出它的查詢
+  - 讀過完整初審的人不得被指派為複審醫師（D-055 第 5 點）：拒絕發生在指派複審醫師
+  - 案件詳情與提交明細的讀取遮罩；修正已提交的初審
