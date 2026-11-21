@@ -9,20 +9,19 @@
 
 ### Q-01
 
-**錯誤代碼：權威文件寫的和程式用的不一樣。**
+**錯誤代碼：權威文件沒有寫的三種情況。**
 
-| 情況 | `api-spec.md` §4.2 | 程式（2026-11-20） |
-|---|---|---|
-| 指派時案件不是待指派 | `CASE_NOT_ASSIGNABLE` | `CASE_NOT_PENDING_ASSIGNMENT` |
-| 開始初審時案件不是待初審 | `CASE_NOT_IN_INITIAL_REVIEW_STAGE` | `CASE_NOT_PENDING_INITIAL_REVIEW` |
-| 提交初審、保存草稿的人不是草稿的醫師 | `SUBMISSION_NOT_OWNED_BY_ACTOR` | `NOT_SUBMISSION_OWNER` |
-| 開始初審的人不是受指派的醫師 | 表內沒有 | `NOT_ASSIGNED_REVIEWER` |
-| 提交初審時案件不是初審中 | 表內沒有 | `CASE_NOT_IN_PROGRESS` |
-| 提交初審時必答題沒有作答 | 表內沒有 | `REQUIRED_ITEMS_NOT_ANSWERED` |
+前三種情況（指派時案件不是待指派、開始初審時案件不是待初審、保存草稿或提交初審的人不是草稿的醫師）已由 D-066 第 6 點裁決：照 `api-spec.md` §4.2，程式改用 `CASE_NOT_ASSIGNABLE`、`CASE_NOT_IN_INITIAL_REVIEW_STAGE`、`SUBMISSION_NOT_OWNED_BY_ACTOR`。剩下的是 `api-spec.md` 沒有代碼的三種：
 
-- 前三列：規格照權威文件寫成 `decided`。程式的三個代碼都要改，對應的範例一開始是紅的（列在已知失敗清單）。
-- 後三列：權威文件沒有代碼，規格標 `proposed`。
-- `NOT_SUBMISSION_OWNER` 在 D-054 第 6 點（固定初審）是已裁決的代碼。要不要讓提交初審也用它、並修正 `api-spec.md`，是這一題的一部分。
+| 情況 | `api-spec.md` §4.2 | 程式（2026-11-21） | 規格（`proposed`） |
+|---|---|---|---|
+| 開始初審的人不是受指派的醫師 | 表內沒有 | `NOT_ASSIGNED_REVIEWER` | `NOT_ASSIGNED_REVIEWER`（`RC-STI-01`） |
+| 提交初審時案件不是初審中 | 表內沒有 | `CASE_NOT_IN_PROGRESS` | `CASE_NOT_IN_INITIAL_REVIEW_STAGE`（`RC-SUB-02`） |
+| 提交初審時必答題沒有作答 | 表內沒有 | `REQUIRED_ITEMS_NOT_ANSWERED` | `REQUIRED_ITEMS_NOT_ANSWERED`（`RC-SUB-03`） |
+
+- 第一、三列：規格與程式相同，範例已經是綠的（M-1 修好之後）。
+- 第二列：規格借用 `api-spec.md` 為開始初審定義的代碼，與程式不同，範例是紅的。
+- 裁決後把代碼補進 `api-spec.md` §4.2。
 
 ### Q-02
 
