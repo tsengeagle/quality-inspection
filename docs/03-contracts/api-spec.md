@@ -1064,7 +1064,7 @@ Accept: application/json
 }
 ```
 
-`dueAt` 為正式 command contract 的必填欄位。UI-011 可顯示 due date summary，但更細的 helper / validation policy 若未在 authority 定稿，不得由 frontend 自行發明。
+`dueAt` 為正式 command contract 的必填欄位（D-073：`dueAt` 必須帶時區，例如 `2026-04-10T23:59:59+08:00`；不帶時區回 400 `VALIDATION_ERROR`。）UI-011 可顯示 due date summary，但更細的 helper / validation policy 若未在 authority 定稿，不得由 frontend 自行發明。
 
 ---
 
@@ -1106,7 +1106,7 @@ Accept: application/json
 }
 ```
 
-`dueAt` 為必填。此處僅收斂 command requiredness，不宣稱更深的 due date business validation 已定稿。
+`dueAt` 為必填（D-073：`dueAt` 必須帶時區，例如 `2026-04-10T23:59:59+08:00`；不帶時區回 400 `VALIDATION_ERROR`。）此處僅收斂 command requiredness，不宣稱更深的 due date business validation 已定稿。
 
 對象曾讀過本案完整初審內容時回 `422 REREVIEWER_HAS_READ_INITIAL`（D-055 第 5 點，D-033 永久盲審）。
 
