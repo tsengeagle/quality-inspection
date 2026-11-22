@@ -1,7 +1,6 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.application.audit.AuditTrailEntry;
-import com.tzuchi.his.quality.inspection.application.audit.AuditTrailQueryCriteria;
 import com.tzuchi.his.quality.inspection.application.audit.ListAuditTrailsUseCase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.Page;
@@ -32,9 +31,8 @@ public class AuditController {
             @RequestParam(required = false) Instant to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        AuditTrailQueryCriteria criteria = new AuditTrailQueryCriteria(
-                aggregateType, aggregateId, hospitalId, eventName, from, to, page, size);
-        Page<AuditTrailEntry> result = listAuditTrailsUseCase.execute(actor, criteria);
+        Page<AuditTrailEntry> result = listAuditTrailsUseCase.execute(
+                actor, aggregateType, aggregateId, hospitalId, eventName, from, to, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 }

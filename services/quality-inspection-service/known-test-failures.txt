@@ -6,16 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-
-# ---- D-071：稽核的 detail 依 D-055 第 6 點遮罩。規格先立法，程式由建構 PR 配合（D-071 第 8 點）----
-# GetCaseLifecycle 回傳最外層清單，沒有 entries（D-071 第 6 點）；也還沒有遮罩
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lifecycle_masks_scored_detail_before_rereview
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lifecycle_masks_scored_detail_for_the_initial_reviewer
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lifecycle_masks_the_escalation_score_while_pending_rereview
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lifecycle_shows_scored_detail_after_close
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lifecycle_masks_scored_detail_for_a_historical_rereviewer
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lifecycle_gives_system_admin_no_detail
-# ListAuditTrails 的輸入是 criteria 物件，不是平的參數（D-071 第 6 點）；也還沒有遮罩，SYSTEM_ADMIN 拿得到 detail
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/audit_trails_mask_scored_rows_before_rereview
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/audit_trails_show_scored_rows_after_close
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/audit_trails_give_system_admin_no_detail

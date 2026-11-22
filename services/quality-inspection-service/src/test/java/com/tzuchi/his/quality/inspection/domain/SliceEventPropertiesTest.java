@@ -76,7 +76,7 @@ class SliceEventPropertiesTest {
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("r1", e.getAssignedReviewerId()),
-                () -> assertEquals("{\"reviewerId\":\"r1\",\"dueAt\":\"2026-12-01T17:00\"}", e.getDetail()));
+                () -> assertEquals("{\"reviewerId\":\"r1\",\"dueAt\":\"2026-12-01T09:00:00Z\"}", e.getDetail()));
     }
 
     @Test

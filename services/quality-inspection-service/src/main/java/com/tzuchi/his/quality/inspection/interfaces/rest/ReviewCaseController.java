@@ -172,7 +172,7 @@ public class ReviewCaseController {
     public ResponseEntity<ApiResponse<List<AuditTrailEntry>>> getCaseLifecycle(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
-        List<AuditTrailEntry> entries = getCaseLifecycleUseCase.execute(actor, caseId);
+        List<AuditTrailEntry> entries = getCaseLifecycleUseCase.execute(actor, caseId).getEntries();
         return ResponseEntity.ok(ApiResponse.ok(entries));
     }
 
