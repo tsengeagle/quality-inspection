@@ -383,7 +383,7 @@ test.describe('Wave 5 command-flow limited wiring smoke', () => {
 
     expect(requestBody).toEqual({
       reviewerId: 'reviewer-1',
-      dueAt: '2026-04-20T12:00:00'
+      dueAt: '2026-04-20T12:00:00+08:00'
     });
     await expect(page.getByText('初審指派已送出。')).toBeVisible();
     await expect(page.locator('.mode-indicator-strip__label')).toHaveText('初審改派');

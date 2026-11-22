@@ -242,7 +242,7 @@ class RereviewApiTest {
 
         // Step 1: Assign rereviewer
         String assignBody = "{\"rereviewerId\":\"" + REREVIEWER_ID + 
-                "\",\"dueAt\":\"2026-06-30T23:59:00\"}";
+                "\",\"dueAt\":\"2026-06-30T23:59:00+08:00\"}";
         mockMvc.perform(post(BASE + "/" + CASE_ID + "/assign-rereviewer")
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -474,7 +474,7 @@ class RereviewApiTest {
         seedCaseInPendingRereview();
 
         String assignBody = "{\"rereviewerId\":\"" + REVIEWER_ID + 
-                "\",\"dueAt\":\"2026-06-30T23:59:00\"}";
+                "\",\"dueAt\":\"2026-06-30T23:59:00+08:00\"}";
         mockMvc.perform(post(BASE + "/" + CASE_ID + "/assign-rereviewer")
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)

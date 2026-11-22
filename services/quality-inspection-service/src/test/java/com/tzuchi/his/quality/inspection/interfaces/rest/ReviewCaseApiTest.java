@@ -16,6 +16,8 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,6 +33,7 @@ class ReviewCaseApiTest {
     @Autowired private ReviewCaseJpaRepository jpaRepository;
 
     private static final String BASE = "/review-cases";
+    private static final ZoneOffset TAIPEI_OFFSET = ZoneOffset.ofHours(8);
     private final String hmToken = TestTokenFactory.hospitalManagerToken();
     private final String saToken = TestTokenFactory.systemAdminToken();
 
@@ -69,7 +72,7 @@ class ReviewCaseApiTest {
 
         AssignReviewerRequest req = new AssignReviewerRequest();
         req.setReviewerId("reviewer-1");
-        req.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        req.setDueAt(OffsetDateTime.of(2026, 2, 1, 23, 59, 0, 0, TAIPEI_OFFSET));
 
         mockMvc.perform(post(BASE + "/c1/assign-reviewer")
                         .header("api-key", hmToken)
@@ -83,7 +86,7 @@ class ReviewCaseApiTest {
     void assignReviewer_missingReviewerId_shouldReturn400() throws Exception {
         seedCase("c1", CaseStatus.SELECTED_PENDING_ASSIGNMENT);
 
-        String body = "{\"dueAt\":\"2026-02-01T23:59:00\"}";
+        String body = "{\"dueAt\":\"2026-02-01T23:59:00+08:00\"}";
 
         mockMvc.perform(post(BASE + "/c1/assign-reviewer")
                         .header("api-key", hmToken)
@@ -98,7 +101,7 @@ class ReviewCaseApiTest {
 
         AssignReviewerRequest req = new AssignReviewerRequest();
         req.setReviewerId("reviewer-1");
-        req.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        req.setDueAt(OffsetDateTime.of(2026, 2, 1, 23, 59, 0, 0, TAIPEI_OFFSET));
 
         mockMvc.perform(post(BASE + "/c1/assign-reviewer")
                         .header("api-key", saToken)
@@ -111,7 +114,7 @@ class ReviewCaseApiTest {
     void assignReviewer_notFound_shouldReturn404() throws Exception {
         AssignReviewerRequest req = new AssignReviewerRequest();
         req.setReviewerId("reviewer-1");
-        req.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        req.setDueAt(OffsetDateTime.of(2026, 2, 1, 23, 59, 0, 0, TAIPEI_OFFSET));
 
         mockMvc.perform(post(BASE + "/no-such/assign-reviewer")
                         .header("api-key", hmToken)
@@ -126,7 +129,7 @@ class ReviewCaseApiTest {
 
         AssignReviewerRequest req = new AssignReviewerRequest();
         req.setReviewerId("reviewer-2");
-        req.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        req.setDueAt(OffsetDateTime.of(2026, 2, 1, 23, 59, 0, 0, TAIPEI_OFFSET));
 
         mockMvc.perform(post(BASE + "/c1/assign-reviewer")
                         .header("api-key", hmToken)
@@ -144,7 +147,7 @@ class ReviewCaseApiTest {
 
         ReassignReviewerRequest req = new ReassignReviewerRequest();
         req.setReviewerId("reviewer-2");
-        req.setDueAt(LocalDateTime.of(2026, 3, 1, 23, 59));
+        req.setDueAt(OffsetDateTime.of(2026, 3, 1, 23, 59, 0, 0, TAIPEI_OFFSET));
 
         mockMvc.perform(post(BASE + "/c1/reassign-reviewer")
                         .header("api-key", hmToken)
@@ -159,7 +162,7 @@ class ReviewCaseApiTest {
 
         ReassignReviewerRequest req = new ReassignReviewerRequest();
         req.setReviewerId("reviewer-2");
-        req.setDueAt(LocalDateTime.of(2026, 3, 1, 23, 59));
+        req.setDueAt(OffsetDateTime.of(2026, 3, 1, 23, 59, 0, 0, TAIPEI_OFFSET));
 
         mockMvc.perform(post(BASE + "/c1/reassign-reviewer")
                         .header("api-key", hmToken)

@@ -36,6 +36,8 @@ export interface CaseAssignmentContext {
   effectiveDueAt?: string;
 }
 
+
+const TAIPEI_OFFSET = '+08:00';
 @Component({
   selector: 'app-case-assignment-page',
   templateUrl: './case-assignment-page.component.html',
@@ -559,6 +561,7 @@ export class CaseAssignmentPageComponent implements OnInit {
     return this.normalizeDueAtInput(value) !== null;
   }
 
+  // D-073 第 4 點：datetime-local 的牆上時刻一律當成台北時間，送出時加上 +08:00，不依賴瀏覽器的時區。
   private normalizeDueAtInput(value: string): string | null {
     const trimmedValue = value.trim();
     if (!trimmedValue) {
@@ -566,11 +569,11 @@ export class CaseAssignmentPageComponent implements OnInit {
     }
 
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmedValue)) {
-      return `${trimmedValue}:00`;
+      return `${trimmedValue}:00${TAIPEI_OFFSET}`;
     }
 
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(trimmedValue)) {
-      return trimmedValue;
+      return `${trimmedValue}${TAIPEI_OFFSET}`;
     }
 
     return null;

@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class ResourceNotFoundErrorCodeApiTest {
 
-    private static final String ASSIGN_BODY = "{\"rereviewerId\":\"rr2\",\"dueAt\":\"2026-12-31T23:59:00\"}";
+    private static final String ASSIGN_BODY = "{\"rereviewerId\":\"rr2\",\"dueAt\":\"2026-12-31T23:59:00+08:00\"}";
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper mapper;
