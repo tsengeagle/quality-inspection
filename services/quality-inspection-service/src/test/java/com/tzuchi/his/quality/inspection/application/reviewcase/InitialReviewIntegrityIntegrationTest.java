@@ -176,7 +176,9 @@ class InitialReviewIntegrityIntegrationTest {
             else if (operation.equals("submit")) submit.execute(context, "c1");
             else saveDraft.execute(context, "c1", operation.equals("draftEmpty") ? Collections.emptyList() : answers("false"), "changed");
         });
-        assertTrue(failure instanceof DomainStateConflictException || failure instanceof AccessDeniedException,
+        // D-067 第 1 點：提交時案件不是初審中是 422 的 CASE_NOT_IN_INITIAL_REVIEW_STAGE
+        assertTrue(failure instanceof DomainStateConflictException || failure instanceof AccessDeniedException
+                        || failure instanceof DomainRuleViolationException,
                 "Expected an explicit authorization/integrity rejection: " + failure);
         assertEquals(before, snapshot());
         assertEquals(beforeEvents, events.stream(DomainEvent.class).count());
@@ -225,7 +227,8 @@ class InitialReviewIntegrityIntegrationTest {
         assertEquals(0, s3.getTotalScore().compareTo(rc.getInitialReviewScore()));
         assertEquals(0, s3.getTotalScore().compareTo(rc.getFinalScore()));
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
-        assertEquals(4, audit.count());
+        // D-067 第 3 點：提交初審多一筆 InitialReviewCompleted
+        assertEquals(5, audit.count());
     }
 
     @Test

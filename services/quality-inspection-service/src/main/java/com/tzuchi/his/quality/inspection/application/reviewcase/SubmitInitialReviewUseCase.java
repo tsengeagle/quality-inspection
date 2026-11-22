@@ -7,9 +7,12 @@ import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
+import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
+import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.InitialReviewCompletedEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
@@ -35,6 +38,7 @@ public class SubmitInitialReviewUseCase {
 
     private final ReviewCaseRepository caseRepository;
     private final ReviewSubmissionRepository submissionRepository;
+    private final ReviewProjectRepository projectRepository;
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
@@ -42,12 +46,14 @@ public class SubmitInitialReviewUseCase {
 
     public SubmitInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                        ReviewSubmissionRepository submissionRepository,
+                                       ReviewProjectRepository projectRepository,
                                        ScoreSheetRepository scoreSheetRepository,
                                        DomainEventPublisher eventPublisher,
                                        ScoreCalculationService scoreCalculationService,
                                        Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
+        this.projectRepository = projectRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
@@ -78,8 +84,8 @@ public class SubmitInitialReviewUseCase {
         }
 
         if (reviewCase.getStatus() != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
-            throw new DomainStateConflictException(
-                    "CASE_NOT_IN_PROGRESS",
+            throw new DomainRuleViolationException(
+                    "CASE_NOT_IN_INITIAL_REVIEW_STAGE",
                     "Case must be in INITIAL_REVIEW_IN_PROGRESS. Current: " + reviewCase.getStatus());
         }
 
@@ -122,6 +128,11 @@ public class SubmitInitialReviewUseCase {
                     "Required items not answered: " + String.join(", ", missingRequired));
         }
 
+        // D-067: InitialReviewCompleted carries the quality threshold of the project's current version
+        ReviewProject project = projectRepository.findById(reviewCase.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
+                        "Project not found: " + reviewCase.getProjectId()));
+
         // Recalculate final scores
         List<AnswerItem> rawItems = currentAnswers.stream()
                 .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
@@ -144,6 +155,11 @@ public class SubmitInitialReviewUseCase {
                 this, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 submission.getSubmissionId(), result.getTotalScore(), actor.getUserId()));
+        eventPublisher.publish(new InitialReviewCompletedEvent(
+                this, actor.getUserId(), actor.getUserName(),
+                reviewCase.getHospitalId(), caseId, reviewCase.getProjectId(),
+                submission.getSubmissionId(), actor.getUserId(), result.getTotalScore(),
+                project.getCurrentVersion().getQualityThreshold()));
 
         return new SubmitInitialReviewResult(
                 submission.getSubmissionId(),

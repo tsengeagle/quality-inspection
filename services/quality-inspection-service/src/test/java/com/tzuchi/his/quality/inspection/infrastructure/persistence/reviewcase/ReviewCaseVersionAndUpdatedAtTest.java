@@ -96,7 +96,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
         assertThat(jpa.findById("c1").orElseThrow().getVersion()).isZero();
 
         ReviewCase changed = repository.findById("c1").orElseThrow();
-        changed.assignReviewer("doctor", null, LocalDateTime.now());
+        changed.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
         repository.save(changed);
         assertThat(updatedAt("c1")).isEqualTo(Instant.parse("2026-11-16T11:00:00Z"));
         assertThat(jpa.findById("c1").orElseThrow().getVersion()).isEqualTo(1L);
@@ -108,7 +108,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
         clock.set("2026-11-16T09:00:00Z");
 
         ReviewCase changed = repository.findById("c1").orElseThrow();
-        changed.assignReviewer("doctor", null, LocalDateTime.now());
+        changed.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
         repository.save(changed);
 
         assertThat(updatedAt("c1")).isEqualTo(Instant.parse("2026-11-16T10:00:00Z"));
@@ -127,7 +127,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
         assertThat(updatedAt("legacy")).isNull();
 
         ReviewCase changed = repository.findById("legacy").orElseThrow();
-        changed.assignReviewer("doctor", null, LocalDateTime.now());
+        changed.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
         repository.save(changed);
         assertThat(updatedAt("legacy")).isEqualTo(Instant.parse("2026-11-16T10:00:00Z"));
     }
@@ -143,7 +143,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
             ReviewCase stale = repository.findById("c1").orElseThrow();
             inner.executeWithoutResult(s -> {
                 ReviewCase first = repository.findById("c1").orElseThrow();
-                first.assignReviewer("first-doctor", null, LocalDateTime.now());
+                first.assignReviewer("first-doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
                 repository.save(first);
             });
             stale.cancel("stale writer", LocalDateTime.now());

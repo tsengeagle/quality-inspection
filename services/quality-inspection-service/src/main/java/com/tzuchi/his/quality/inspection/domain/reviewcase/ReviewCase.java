@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.domain.reviewcase;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
 import java.math.BigDecimal;
@@ -144,11 +145,17 @@ public class ReviewCase {
     // --- B3a Domain Methods ---
 
     public void assignReviewer(String reviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
+        // D-067 第 2 點：輸入檢查在狀態檢查之前
+        if (reviewerId == null || reviewerId.isBlank()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "reviewerId must not be blank");
+        }
+        if (dueAt == null) {
+            throw new DomainValidationException("VALIDATION_ERROR", "dueAt must not be null");
+        }
         if (this.status != CaseStatus.SELECTED_PENDING_ASSIGNMENT) {
             throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
                     "Cannot assign reviewer: case status is " + this.status);
         }
-        Objects.requireNonNull(reviewerId, "reviewerId must not be null");
         Objects.requireNonNull(assignedAt, "assignedAt must not be null");
         this.reviewerAssignment = new ReviewerAssignment(reviewerId, assignedAt);
         this.dueAt = dueAt;
