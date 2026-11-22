@@ -1,0 +1,14 @@
+{
+  "id": "2026-11-22-d074-request-side-examples",
+  "decision": "D-074",
+  "reason": "D-074：規格格式 v2.1，請求端的範例（修法 PR 一：格式與 spec_lint）。負責人對 docs/harness/24-request-side-examples-draft.md 的 R-1～R-8 全部照建議裁決，並同意查證後新增的院區覆寫檢查。decision-log 新增 D-074，內容有四部分：一、範圍只限 use case 範例看不到的行為。二、examples.yaml 的 when 新增 http 步驟（method、path、body、body_raw、query）；body_raw 不受時間帶時區的限制，只能用在被拒絕的範例或沒有外殼的回應；then 沿用 use case 範例的寫法，狀態碼由 http-common.yaml 推得；沒有外殼的回應寫 then: { status, body: empty }；as: anonymous；given、observe、fixture 不允許 http。三、執行器要確認 quality-inspection.hospital-id 是空的。四、三項查證的紀錄，並註記 D-072 違憲清單第 2 項由 #136 修正。harness-core/spec_lint.py：http 步驟、body_raw、沒有外殼的 then、code 必須在 error_codes 或 transport_codes、role_claims 必須涵蓋角色、目錄有 http.yaml 時端點必須存在；tests/test_spec_lint.py 新增 SpecLintHttpStepTest（15 個）。specs/spec-profile.yaml 新增 role_claims；specs/README.md 新增第十一節。docs/harness/24 標為已裁決，並新增第十二節「查證」；新增 docs/harness/25-topic-backlog.md；README 加索引。執行器與範例在修法 PR 二。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/README.md",
+    "specs/spec-profile.yaml",
+    "harness-core/spec_lint.py",
+    "harness-core/tests/",
+    "law/amendments/"
+  ]
+}

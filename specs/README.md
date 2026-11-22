@@ -1,4 +1,4 @@
-# 規格格式 v1、v2.0
+# 規格格式 v1、v2.0、v2.1
 
 本目錄是問題側的規格：系統要做什麼、在什麼條件下得到什麼結果。它是律法（`law/manifest.txt` 的 `spec` 類），修改需要修法紀錄與簽章。
 
@@ -413,3 +413,51 @@ use case：
 - 只有 `model.yaml` 的 `ports` 宣告過的埠會被替換，而且只在版本 2 的範例期間。版本 1 的範例用原本的實作。
 - 被替換的埠，程式必須依介面（`XPort`）注入。依實作類別注入，驗收測試啟動時就會失敗。
 - 時鐘只管得到注入的 `Clock`。直接取系統時間的程式不受 `clock`、`advance` 影響。
+
+## 十一、格式 v2.1：請求端的範例（D-074）
+
+v2.1 只是新增，既有的範例意思不變，檔案仍是 `spec_version: 2`。用途是寫 use case 範例看不到的行為：請求本文的讀取（格式、型別、時區）、認證、錯誤代碼對到的 HTTP 狀態碼與外殼。業務規則仍只寫在 use case 範例，不在兩層重複（D-074 第 1 點）。
+
+**限制**：本節由兩個修法 PR 完成。第一個（格式與 `spec_lint`）合併之後、第二個（執行器）合併之前，`specs/` 不得出現 `http` 步驟（D-074 第 9 點）。
+
+### `http` 步驟
+
+只能用在 `when`。`given`、`observe` 與 fixture 都不行，準備狀態一律走 use case。
+
+```yaml
+when:
+  http:
+    method: POST                                  # GET、POST、PUT、PATCH、DELETE
+    path: "/review-cases/${c}/assign-reviewer"    # 以 / 開頭，可用 ${變數}；不含 query，也不含 base_path
+    body: { reviewerId: u-r1, dueAt: "2026-11-26T23:59:00+08:00" }
+  as: manager_h1                                  # 或 anonymous：不帶 api-key
+then: { result: SUCCESS }
+```
+
+| 欄位 | 說明 |
+|---|---|
+| `method`、`path` | 目錄有 `http.yaml` 時，必須是其中的端點（路徑參數 `{x}` 對到任何值）；沒有時只檢查寫法 |
+| `body` | 對應表，轉成 JSON 送出。照常檢查，包括時間要帶時區（D-065 第 5 點） |
+| `body_raw` | 原始字串，原封不動送出。不受時間帶時區的限制，也不檢查內容；只能用在 `then.result` 是 `REJECTED` 的範例，或沒有外殼的回應。與 `body` 擇一 |
+| `query` | 對應表，同 `body` 的檢查 |
+| `as` | `actors` 的操作者，或 `anonymous`。`anonymous` 只能用在 `http` 步驟 |
+
+`http` 步驟不能有 `input`、`save`、`expect`。
+
+### 操作者與 `api-key`
+
+執行器依操作者產生請求的 `api-key`（JWT）：`user` 是 `user_id`，`hospital` 是 `hospital_id`，`roles` 經 `spec-profile.yaml` 的 `role_claims` 轉成 `user_role`。`role_claims` 必須涵蓋 `http` 步驟用到的每一個角色。
+
+執行器在跑 `http` 範例之前，先確認程式沒有以設定覆寫院區（本專案是 `quality-inspection.hospital-id`）；有覆寫時停下來，不執行範例（D-074 第 7 點）。
+
+### `then`
+
+- 寫法與 use case 範例相同：`result`、`code`、`output`、`absent`、`only`、`emits`、`emits_include`。`output` 等比對回應外殼的 `data`，`code` 比對 `error.code`。
+- `code` 必須在本目錄的 `error_codes`，或 `http-common.yaml` 的 `transport_codes`。
+- HTTP 狀態碼不寫，執行器依 `http-common.yaml` 推得並檢查：`transport_codes` 列出的代碼用它的狀態碼，其他依 `status_by_category`。外殼的形狀由 HTTP 契約（第七節）檢查。
+- **沒有外殼的回應**（例如框架預設的空本文）：寫 `then: { status: 400, body: empty }`，只能有這兩項，且必須與 `body_raw` 一起用。
+- 事件：回應不是 2xx 就算被拒絕，被拒絕時一律不得有事件，與 use case 範例相同（D-065 第 7 點）。
+
+### 情境相同的範例
+
+`http` 步驟與 `run` 一樣納入「given、when 相同」的比較。
