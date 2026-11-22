@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-22-d069-rereview-slice",
+  "decision": "D-069",
+  "reason": "D-069：複審切片（初審固定到複審結案），負責人對 docs/harness/19-rereview-slice-draft.md 裁決：S-1、S-2、S-4～S-6 照建議，S-3 改成 422 並修 D-053。decision-log：新增 D-069；D-053 第 5 點的 CASE_NOT_REREVIEW_IN_PROGRESS 改成 CASE_NOT_IN_REREVIEW_STAGE（422）。specs/review-case/：新增七支 use case（FixInitialReview、SendToRereview、AssignRereviewer、StartRereview、SaveRereviewDraft、SubmitRereview、CloseRereview）、轉移 RC-T-04～RC-T-09、RC-G-04、13 個錯誤代碼、CaseSummary 加 rereviewerId、41 個範例與 fixture（含一個 RANGE 題目的專案，因為 FIXED 題目作答一律滿分，做不出不大於品質線的分數）；四條事件欄位規則標 proposed（OPEN-QUESTIONS.md Q-08）；deferred_transitions、deferred_behaviors、not_covered 跟著改。specs/review-submission/：RS-T-03、RS-T-04。docs/03-contracts/api-spec.md：§4.2 改 CASE_NOT_ASSIGNABLE、CASE_NOT_IN_REREVIEW_STAGE 的說明，補 NO_REREVIEWER_ASSIGNED、REREVIEWER_SAME_AS_REVIEWER、SUBMISSION_NOT_DRAFT、SUBMISSION_NOT_SUBMITTED；結案端點的錯誤表改代碼。docs/02-ddd/domain-events.md：§6.5 補手工送複審，新增 §6.12 InitialReviewFixed。law/coverage.txt：七支 use case 與六個事件類別列為 legislated（三個改名後的類別由建構 PR 建立）。known-test-failures.txt：新增 36 個紅的範例，35 個因為 execute 還收 Command 物件、1 個因為事件類別還是舊名稱，由建構 PR 移除。specs/README.md 第一節更新；docs/harness/19 標為已裁決。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/",
+    "specs/review-submission/",
+    "specs/README.md",
+    "law/amendments/",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt"
+  ]
+}

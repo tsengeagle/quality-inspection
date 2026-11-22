@@ -82,3 +82,20 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/ReviewSubmissionSubmittedEvent.java  legislated  specs/review-case/
 # D-067 第 3 點：建構 PR 新增的初審完成事件。檔案由建構 PR 建立，先列在這裡。
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/InitialReviewCompletedEvent.java             legislated  specs/review-case/
+
+# ---- 已立法：初審固定到複審結案的複審切片（D-069 第 1 點）。寫在目錄那幾列之後，以最後一行為準 ----
+# 只列範例直接執行的 use case 與事件類別；改派、修正、不經複審結案、取消、退回仍是暫准。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/FixInitialReviewUseCase.java                       legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SendToRereviewUseCase.java                         legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/AssignRereviewerUseCase.java                       legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/StartRereviewUseCase.java                          legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SaveRereviewDraftUseCase.java                      legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SubmitRereviewUseCase.java                         legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/CloseRereviewUseCase.java                          legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/InitialReviewFixedEvent.java                      legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/RereviewerAssignedEvent.java                      legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/RereviewStartedEvent.java                         legislated  specs/review-case/
+# D-069 第 4 點：建構 PR 把下面三個類別從舊名稱改名（CaseEscalatedToRereviewEvent、RereviewSubmittedEvent、RereviewCaseClosedEvent）。檔案由建構 PR 建立，先列在這裡。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseEscalatedToRereviewEvent.java           legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/RereviewCompletedEvent.java                       legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseClosedEvent.java                        legislated  specs/review-case/

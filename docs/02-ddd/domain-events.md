@@ -467,6 +467,7 @@
 * `InitialReviewCompleted` 後
 * 初審結果已固定且 `totalScore > qualityThreshold`
 * 狀態轉為 `PENDING_REREVIEW`
+* 或：管理者手工送複審（初審已固定、沒有自動進複審的案件）成功，狀態轉為 `PENDING_REREVIEW`（D-069）。手工送複審時 `triggeredBySubmissionId`、`qualityThreshold` 是 null
 
 ### 最低必要欄位
 
@@ -595,6 +596,38 @@
 
 * `CANCELLED` 後不得再審
 * `CANCELLED` 後不得 revision
+
+---
+
+## 6.12 `InitialReviewFixed`
+
+### Emitted By
+
+* `ReviewCase`
+
+### 業務意義
+
+初審醫師固定了本案目前有效的初審結果（D-031、D-054）。
+
+### 發布條件
+
+* 固定初審成功（D-054）
+* 分數大於品質線時，另外發布 `ReviewCaseEscalatedToRereview`（§6.5）
+
+### 最低必要欄位（D-069）
+
+```json
+{
+  "eventName": "InitialReviewFixed",
+  "caseId": "RC-20260402-0001",
+  "submissionId": "SUB-INIT-001",
+  "occurredAt": "2026-04-02T14:10:01+08:00"
+}
+```
+
+### 補充
+
+* 不帶分數（D-054 第 8 點）
 
 ---
 

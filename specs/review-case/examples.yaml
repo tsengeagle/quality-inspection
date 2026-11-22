@@ -13,6 +13,7 @@ actors:
   reviewer_h1:   { user: u-r1,  roles: [REVIEWER],             hospital: H-01 }
   reviewer2_h1:  { user: u-r2,  roles: [REVIEWER],             hospital: H-01 }
   rereviewer_h1: { user: u-rr1, roles: [REREVIEWER],           hospital: H-01 }
+  rereviewer2_h1: { user: u-rr2, roles: [REREVIEWER],          hospital: H-01 }
   auditor_h1:    { user: u-au1, roles: [AUDITOR],              hospital: H-01 }
   admin:         { user: u-a1,  roles: [SYSTEM_ADMIN],         hospital: H-09 }
   dual_role_h1:  { user: u-d1,  roles: [REVIEWER, REREVIEWER], hospital: H-01 }
@@ -65,6 +66,116 @@ fixtures:
       - run: SubmitInitialReview
         as: reviewer_h1
         input: { caseId: "${c}" }
+
+  # 複審切片（D-069）。專案的品質線是 5（review-project.draft_project）。
+  # review-project 的評分表只有一個 FIXED 題目（滿分 20），作答就得 20 分：固定時一定自動進複審。
+  # 要留在 INITIAL_REVIEW_COMPLETED，另建一個專案，題目是 RANGE（依作答給分），初審作答 5 分（不大於品質線）。
+  low_score_completed_case:
+    steps:
+      - run: review-project.CreateReviewProject
+        as: manager_h1
+        input: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5 }
+        save: { p: projectId }
+      - run: score-sheet.CreateScoreSheetDraft
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { s: scoreSheetId }
+      - run: score-sheet.UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: RANGE, maxScore: "20", weight: "1", requiredRule: ALWAYS_REQUIRED }
+      - run: score-sheet.PublishScoreSheetVersion
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        save: { sv: scoreSheetVersionId }
+      - run: review-project.BindScoreSheetToProject
+        as: manager_h1
+        input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+      - run: review-project.PublishReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+      - run: review-project.ActivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+      - port: sampling-batch.CandidateSource.queryCandidates
+        returns:
+          - { sourceCaseKey: MR-002, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+      - run: sampling-batch.ExecuteSampling
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { b: batchId }
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        save: { c: "content[0].caseId" }
+      - run: AssignReviewCase
+        as: manager_h1
+        input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" }
+      - run: StartInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        save: { s1: submissionId }
+      - run: SaveInitialReviewDraft
+        as: reviewer_h1
+        input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "5" }], comment: "初審評語" }
+      - run: SubmitInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+
+  low_score_fixed_case:
+    steps:
+      - use: low_score_completed_case
+      - run: FixInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}", submissionId: "${s1}" }
+
+  case_in_PENDING_REREVIEW:
+    steps:
+      - use: case_in_INITIAL_REVIEW_COMPLETED
+      - run: FixInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}", submissionId: "${s1}" }
+
+  rereviewer_assigned:
+    steps:
+      - use: case_in_PENDING_REREVIEW
+      - run: AssignRereviewer
+        as: manager_h1
+        input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" }
+
+  case_in_REREVIEW_IN_PROGRESS:
+    steps:
+      - use: rereviewer_assigned
+      - run: StartRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}" }
+        save: { s2: submissionId }
+
+  rereview_answered:
+    steps:
+      - use: case_in_REREVIEW_IN_PROGRESS
+      - run: SaveRereviewDraft
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "10" }], comment: "複審評語" }
+
+  rereview_submitted:
+    steps:
+      - use: rereview_answered
+      - run: SubmitRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" }
+
+  case_in_CLOSED:
+    steps:
+      - use: rereview_submitted
+      - run: CloseRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}" }
 
 # 具名斷言可以包含 result 與 code，所以矩陣的一列可以是「被拒絕」。
 expectations:
@@ -330,6 +441,374 @@ examples:
     when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
     then: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
 
+  # ---------- FixInitialReview（D-069） ----------
+
+  - name: fixes_and_escalates_above_the_quality_line
+    basis: [RC-T-05, RC-FIX-S1, RC-FIX-S3, RC-FIX-S4, RC-FIX-S5]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: FixInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then:
+      result: SUCCESS
+      output: { caseId: "${c}", caseStatus: PENDING_REREVIEW, submissionId: "${s1}", fixedAt: "2026-11-19T09:00:00Z" }
+      emits:
+        - { event: InitialReviewFixed, with: { caseId: "${c}", submissionId: "${s1}" } }
+        - event: ReviewCaseEscalatedToRereview
+          with: { caseId: "${c}", projectId: "${p}", triggeredBySubmissionId: "${s1}", initialScore: "20", qualityThreshold: 5 }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: PENDING_REREVIEW } } }
+
+  - name: fixes_without_escalation_at_the_quality_line
+    basis: [RC-T-04, RC-FIX-S2]
+    given: [{ use: low_score_completed_case }]
+    when: { run: FixInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then:
+      result: SUCCESS
+      output: { caseStatus: INITIAL_REVIEW_COMPLETED }
+      emits:
+        - { event: InitialReviewFixed }
+
+  - name: rejects_fix_by_another_reviewer
+    basis: [RC-FIX-06]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: FixInitialReview, as: reviewer2_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then: { result: REJECTED, code: NOT_SUBMISSION_OWNER }
+
+  - name: rejects_fixing_twice
+    basis: [RC-FIX-02]
+    given: [{ use: low_score_fixed_case }]
+    when: { run: FixInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+
+  - name: rejects_fix_before_submit
+    basis: [RC-FIX-03]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: FixInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then: { result: REJECTED, code: CASE_NOT_INITIAL_REVIEW_COMPLETED }
+
+  - name: rejects_fix_of_a_closed_case
+    basis: [RC-FIX-01]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: FixInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then: { result: REJECTED, code: CASE_TERMINAL }
+
+  - name: rejects_fix_of_an_unknown_submission
+    basis: [RC-G-04]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: FixInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: no-such-submission } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_FOUND }
+
+  # ---------- SendToRereview（D-069） ----------
+
+  - name: sends_to_rereview_manually
+    basis: [RC-T-06, RC-SND-S1, RC-SND-S2]
+    given: [{ use: low_score_fixed_case }]
+    when: { run: SendToRereview, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseEscalatedToRereview, with: { caseId: "${c}", projectId: "${p}" } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: PENDING_REREVIEW } } }
+
+  - name: rejects_send_before_fixing
+    basis: [RC-SND-02]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: SendToRereview, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+
+  - name: rejects_send_of_a_case_already_in_rereview
+    basis: [RC-SND-01]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: SendToRereview, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_INITIAL_REVIEW_COMPLETED }
+
+  # ---------- AssignRereviewer（D-069） ----------
+
+  - name: assigns_a_rereviewer
+    basis: [RC-ARR-S1]
+    derived_from: [TS-RR-001]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: RereviewerAssigned }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: PENDING_REREVIEW, rereviewerId: u-rr1 } } }
+
+  - name: rereviewer_assigned_carries_the_case
+    basis: [RC-ARR-S2]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: RereviewerAssigned, with: { caseId: "${c}" } }
+
+  - name: rejects_the_initial_reviewer_as_rereviewer
+    basis: [RC-ARR-03]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-r1, dueAt: "2026-12-03T23:59:59Z" } }
+    then: { result: REJECTED, code: REREVIEWER_SAME_AS_REVIEWER }
+
+  - name: rejects_rereviewer_assignment_before_rereview
+    basis: [RC-ARR-01]
+    given: [{ use: low_score_fixed_case }]
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" } }
+    then: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+
+  - name: rejects_rereviewer_assignment_without_a_due_date
+    basis: [RC-ARR-02]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr1 } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  # ---------- StartRereview（D-069） ----------
+
+  - name: starts_the_rereview
+    basis: [RC-T-07, RC-STR-S1, RC-STR-S2]
+    derived_from: [TS-RR-002]
+    given: [{ use: rereviewer_assigned }]
+    when:
+      run: StartRereview
+      as: rereviewer_h1
+      input: { caseId: "${c}" }
+      save: { s2: submissionId }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: RereviewStarted }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: REREVIEW_IN_PROGRESS } } }
+      - run: GetRevisionHistory
+        as: manager_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            "entries[stage=REREVIEW]": { submissionId: "${s2}", status: DRAFT, revisionNo: 1, reviewerId: u-rr1 }
+
+  - name: rereview_started_carries_the_case
+    basis: [RC-STR-S3]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: StartRereview, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: RereviewStarted, with: { caseId: "${c}" } }
+
+  - name: rejects_start_by_another_rereviewer
+    basis: [RC-STR-01]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: StartRereview, as: rereviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: NOT_ASSIGNED_REREVIEWER }
+
+  - name: rejects_start_without_an_assigned_rereviewer
+    basis: [RC-STR-03]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: StartRereview, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: NO_REREVIEWER_ASSIGNED }
+
+  - name: rejects_start_of_a_rereview_already_started
+    basis: [RC-STR-02]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when: { run: StartRereview, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+
+  # ---------- SaveRereviewDraft（D-069） ----------
+
+  - name: saves_the_rereview_draft
+    basis: [RS-T-03, RC-RDR-S1]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when:
+      run: SaveRereviewDraft
+      as: rereviewer_h1
+      input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "10" }], comment: "複審評語" }
+    then: { result: SUCCESS }
+    observe:
+      - run: GetRevisionHistory
+        as: manager_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output: { "entries[stage=REREVIEW]": { status: DRAFT, comment: "複審評語" } }
+
+  - name: rejects_rereview_draft_without_any_change
+    basis: [RC-RDR-09]
+    given: [{ use: rereview_answered }]
+    when:
+      run: SaveRereviewDraft
+      as: rereviewer_h1
+      input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "10" }], comment: "複審評語" }
+    then: { result: REJECTED, code: NO_CHANGES }
+
+  - name: rejects_rereview_draft_by_another_rereviewer
+    basis: [RC-RDR-03]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when: { run: SaveRereviewDraft, as: rereviewer2_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "10" }] } }
+    then: { result: REJECTED, code: NOT_ASSIGNED_REREVIEWER }
+
+  - name: rejects_rereview_draft_on_the_initial_submission
+    basis: [RC-RDR-05]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when: { run: SaveRereviewDraft, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "10" }] } }
+    then: { result: REJECTED, code: CONFLICT }
+
+  - name: rejects_rereview_draft_after_submit
+    basis: [RC-RDR-07]
+    given: [{ use: rereview_submitted }]
+    when: { run: SaveRereviewDraft, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "12" }] } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_DRAFT }
+
+  - name: rejects_rereview_draft_before_rereview_started
+    basis: [RC-RDR-02]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: SaveRereviewDraft, as: rereviewer_h1, input: { caseId: "${c}", submissionId: no-such-submission, answers: [{ itemId: I1, answerValue: "10" }] } }
+    then: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+
+  - name: rejects_rereview_draft_of_a_closed_case
+    basis: [RC-RDR-01]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: SaveRereviewDraft, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "12" }] } }
+    then: { result: REJECTED, code: CASE_TERMINAL }
+
+  # ---------- SubmitRereview（D-069） ----------
+
+  - name: submits_the_rereview_without_closing
+    basis: [RC-T-08, RS-T-04, RC-SRR-S1, RC-SRR-S2, RC-SRR-S4]
+    derived_from: [TS-RR-003]
+    given:
+      - use: rereview_answered
+      - advance: PT2H
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" } }
+    then:
+      result: SUCCESS
+      output: { submissionId: "${s2}", status: SUBMITTED, caseId: "${c}", caseStatus: REREVIEW_IN_PROGRESS }
+      absent: [finalScore, initialReviewScore, initialScore]
+      emits_include:
+        - { event: RereviewCompleted }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: REREVIEW_IN_PROGRESS } } }
+      - run: GetRevisionHistory
+        as: manager_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            "entries[stage=REREVIEW]": { submissionId: "${s2}", status: SUBMITTED, totalScore: "20", submittedAt: "2026-11-19T11:00:00Z" }
+
+  - name: rereview_completed_carries_the_case
+    basis: [RC-SRR-S3]
+    given: [{ use: rereview_answered }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" } }
+    then:
+      result: SUCCESS
+      emits_include:
+        - { event: RereviewCompleted, with: { caseId: "${c}" } }
+
+  - name: rejects_rereview_submit_by_another_rereviewer
+    basis: [RC-SRR-03]
+    derived_from: [TS-RR-004]
+    given: [{ use: rereview_answered }]
+    when: { run: SubmitRereview, as: rereviewer2_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then: { result: REJECTED, code: NOT_ASSIGNED_REREVIEWER }
+
+  - name: rejects_rereview_submit_twice
+    basis: [RC-SRR-07]
+    given: [{ use: rereview_submitted }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_DRAFT }
+
+  - name: rejects_rereview_submit_on_the_initial_submission
+    basis: [RC-SRR-05]
+    given: [{ use: rereview_answered }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then: { result: REJECTED, code: CONFLICT }
+
+  - name: rejects_rereview_submit_before_rereview_started
+    basis: [RC-SRR-02]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: no-such-submission } }
+    then: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+
+  - name: rejects_rereview_submit_of_a_closed_case
+    basis: [RC-SRR-01]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" } }
+    then: { result: REJECTED, code: CASE_TERMINAL }
+
+  # ---------- CloseRereview（D-069） ----------
+
+  - name: closes_after_rereview
+    basis: [RC-T-09, RC-CLR-S1, RC-CLR-S3]
+    given: [{ use: rereview_submitted }]
+    when: { run: CloseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then:
+      result: SUCCESS
+      output: { caseId: "${c}", caseStatus: CLOSED, submissionId: "${s2}" }
+      absent: [finalScore, initialReviewScore, initialScore]
+      emits:
+        - { event: ReviewCaseClosed }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: CLOSED } } }
+
+  - name: review_case_closed_carries_the_case
+    basis: [RC-CLR-S2]
+    given: [{ use: rereview_submitted }]
+    when: { run: CloseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseClosed, with: { caseId: "${c}" } }
+
+  - name: rejects_closing_a_draft
+    basis: [RC-CLR-06]
+    given: [{ use: rereview_answered }]
+    when: { run: CloseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_SUBMITTED }
+
+  - name: rejects_closing_twice
+    basis: [RC-CLR-01]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: CloseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then: { result: REJECTED, code: CASE_TERMINAL }
+
+  - name: rejects_close_by_another_rereviewer
+    basis: [RC-CLR-05]
+    given: [{ use: rereview_submitted }]
+    when: { run: CloseRereview, as: rereviewer2_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then: { result: REJECTED, code: NOT_SUBMISSION_OWNER }
+
+  - name: rejects_closing_the_initial_submission
+    basis: [RC-CLR-04]
+    given: [{ use: rereview_submitted }]
+    when: { run: CloseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s1}" } }
+    then: { result: REJECTED, code: CONFLICT }
+
+  - name: rejects_close_before_rereview_started
+    basis: [RC-CLR-02]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: CloseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: no-such-submission } }
+    then: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+
   # ---------- GetRevisionHistory：角色 × 狀態 ----------
 
   - name: revision_history_visibility
@@ -373,4 +852,14 @@ not_covered:
   - item: 逾期
     reason: 權威文件沒有已裁決的逾期規則（api-spec §10.3：期限的檢核尚未定稿），也沒有輸出欄位表示逾期
   - item: 準備步驟的操作者讀過完整初審
-    reason: 矩陣裡 manager_h1、auditor_h1、reviewer_h1 的讀取會留下讀取者紀錄（D-055 第 5 點）。本次範圍沒有指派複審醫師，所以不影響結果；複審立法時要留意
+    reason: 矩陣與觀察步驟裡 manager_h1、auditor_h1、reviewer_h1 的讀取會留下讀取者紀錄（D-055 第 5 點）。受派的複審醫師只有 u-rr1，它在準備步驟裡沒有讀過初審，所以不影響結果
+  - item: 讀過完整初審的人不得被指派為複審醫師（D-055 第 5 點）
+    reason: 讀取紀錄由完整初審的讀取產生；要做出「讀過、之後才受派」，需要以 REREVIEWER 以外的角色讀取、再以同一人受派，本次範圍做不出來（D-069）
+  - item: 初審固定的目標不是本案目前有效的初審結果、仍是草稿（RC-FIX-04、RC-FIX-05）
+    reason: 案件在 INITIAL_REVIEW_COMPLETED 時，唯一的初審提交就是目前有效、已提交的那份；要做出別的情況需要修正已提交的初審，不在本次範圍
+  - item: 提交不存在（RC-RDR-04、RC-SRR-04、RC-CLR-03）與不是目前有效的複審結果（RC-RDR-08、RC-SRR-08、RC-CLR-07）
+    reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。不是目前有效的複審結果需要修正已提交的複審，不在本次範圍
+  - item: 保存複審草稿、提交複審是否發出 ReviewDraftSaved、ReviewSubmissionSubmitted（domain-events.md §7.1、§7.2）
+    reason: 兩節寫的是提交（不分階段）的事件；程式在複審沒有發出。D-069 沒有裁決，提交複審的範例用 emits_include，不斷言完整的事件清單
+  - item: 複審提交的 finalScore 加權（D-012、D-020）
+    reason: 本次範圍內沒有輸出 finalScore 的查詢；複審醫師的輸出依 D-033 不得有它
