@@ -11,4 +11,6 @@ public class SamplingCandidatesPreparedEvent extends DomainEvent {
               String.format("{\"populationCount\":%d,\"eligibleCount\":%d,\"excludedCount\":%d}",
                       populationCount, eligibleCount, excludedCount));
     }
+
+    public String getBatchId() { return getEntityId(); }
 }

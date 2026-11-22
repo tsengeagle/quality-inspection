@@ -5,6 +5,7 @@ import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryCriteria;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryPort;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,9 +31,8 @@ class ListReviewCasesUseCaseTest {
     @Test
     void hospitalManager_canListCases() {
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20);
 
-        Page<ReviewCaseSummary> result = useCase.execute(actor, criteria);
+        Page<ReviewCaseSummary> result = useCase.execute(actor, null, null, null, null, null, null, null, 0, 20);
 
         assertNotNull(result);
         assertEquals(0, result.getContent().size());
@@ -41,9 +41,8 @@ class ListReviewCasesUseCaseTest {
     @Test
     void reviewer_canListCases() {
         ActorContext actor = new ActorContext("r1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20);
 
-        Page<ReviewCaseSummary> result = useCase.execute(actor, criteria);
+        Page<ReviewCaseSummary> result = useCase.execute(actor, null, null, null, null, null, null, null, 0, 20);
 
         assertNotNull(result);
     }
@@ -51,9 +50,8 @@ class ListReviewCasesUseCaseTest {
     @Test
     void unknownRole_shouldThrowUnauthorized() {
         ActorContext actor = new ActorContext("u1", "Nobody", EnumSet.noneOf(DomainRole.class), Optional.empty());
-        ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20);
 
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, criteria));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, null, null, null, null, null, null, null, 0, 20));
     }
 
     @Test
@@ -62,9 +60,8 @@ class ListReviewCasesUseCaseTest {
                 Collections.singletonList(new ReviewCaseSummary("c1", "p1", "b1", "H001", "CLOSED", "r1", null, "OUTPATIENT", "SK-1", null, null, null, null)),
                 0, 20, 1));
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20);
 
-        Page<ReviewCaseSummary> result = useCase.execute(actor, criteria);
+        Page<ReviewCaseSummary> result = useCase.execute(actor, null, null, null, null, null, null, null, 0, 20);
 
         assertEquals(1, result.getContent().size());
         assertEquals("c1", result.getContent().get(0).getCaseId());
@@ -74,10 +71,10 @@ class ListReviewCasesUseCaseTest {
     void nonAdmin_queriesOwnHospital_ignoringRequestedHospital() {
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        useCase.execute(actor, new ReviewCaseQueryCriteria("H002", null, null, null, null, null, null, 0, 20));
+        useCase.execute(actor, "H002", null, null, null, null, null, null, 0, 20);
         assertEquals("H001", queryPort.lastCriteria.getHospitalId());
 
-        useCase.execute(actor, new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20));
+        useCase.execute(actor, null, null, null, null, null, null, null, 0, 20);
         assertEquals("H001", queryPort.lastCriteria.getHospitalId());
     }
 
@@ -85,11 +82,33 @@ class ListReviewCasesUseCaseTest {
     void systemAdmin_mayQueryAnyHospital() {
         ActorContext actor = new ActorContext("u1", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        useCase.execute(actor, new ReviewCaseQueryCriteria("H002", null, null, null, null, null, null, 0, 20));
+        useCase.execute(actor, "H002", null, null, null, null, null, null, 0, 20);
         assertEquals("H002", queryPort.lastCriteria.getHospitalId());
 
-        useCase.execute(actor, new ReviewCaseQueryCriteria(null, null, null, null, null, null, null, 0, 20));
+        useCase.execute(actor, null, null, null, null, null, null, null, 0, 20);
         assertNull(queryPort.lastCriteria.getHospitalId());
+    }
+
+    @Test
+    void pageAndSize_defaultWhenNotGiven() {
+        ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        useCase.execute(actor, null, null, "b1", CaseStatus.PENDING_INITIAL_REVIEW, null, null, null, null, null);
+
+        assertEquals(0, queryPort.lastCriteria.getPage());
+        assertEquals(20, queryPort.lastCriteria.getSize());
+        assertEquals("b1", queryPort.lastCriteria.getBatchId());
+        assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, queryPort.lastCriteria.getStatus());
+    }
+
+    @Test
+    void size_isCappedAt100() {
+        ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+
+        useCase.execute(actor, null, null, null, null, null, null, null, 2, 500);
+
+        assertEquals(2, queryPort.lastCriteria.getPage());
+        assertEquals(100, queryPort.lastCriteria.getSize());
     }
 
     // --- InMemory test double ---

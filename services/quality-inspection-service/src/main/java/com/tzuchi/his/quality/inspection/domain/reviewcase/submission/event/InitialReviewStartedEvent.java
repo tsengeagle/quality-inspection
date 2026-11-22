@@ -14,4 +14,6 @@ public class InitialReviewStartedEvent extends DomainEvent {
               hospitalId, "ReviewCase", caseId, "INITIAL_REVIEW_STARTED",
               String.format("{\"reviewerId\":\"%s\",\"submissionId\":\"%s\"}", reviewerId, submissionId));
     }
+
+    public String getCaseId() { return getEntityId(); }
 }

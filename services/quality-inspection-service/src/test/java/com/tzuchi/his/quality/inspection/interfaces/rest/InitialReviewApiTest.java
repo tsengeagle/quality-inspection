@@ -228,11 +228,12 @@ class InitialReviewApiTest {
     }
 
     @Test
-    void startInitialReview_wrongState_shouldReturn409() throws Exception {
+    void startInitialReview_wrongState_shouldReturn422() throws Exception {
         seedInProgressCaseWithSubmission();
         mockMvc.perform(post(BASE + "/c1/initial-review/start")
                         .header("api-key", reviewerToken))
-                .andExpect(status().isConflict());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("CASE_NOT_IN_INITIAL_REVIEW_STAGE"));
     }
 
     // --- SAVE DRAFT ---

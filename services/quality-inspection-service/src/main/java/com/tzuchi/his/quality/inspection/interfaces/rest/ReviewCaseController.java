@@ -10,7 +10,6 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentBootstrapView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateView;
-import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryCriteria;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryView;
@@ -130,10 +129,9 @@ public class ReviewCaseController {
                 throw new BadRequestException("Invalid status: " + status);
             }
         }
-        ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(
+        Page<ReviewCaseSummary> result = listReviewCasesUseCase.execute(actor,
                 hospitalId, projectId, batchId, caseStatus,
                 reviewerId, rereviewerId, medicalRecordType, page, size);
-        Page<ReviewCaseSummary> result = listReviewCasesUseCase.execute(actor, criteria);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

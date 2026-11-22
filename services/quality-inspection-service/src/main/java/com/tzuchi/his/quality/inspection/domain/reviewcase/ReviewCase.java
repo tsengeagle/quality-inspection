@@ -145,7 +145,7 @@ public class ReviewCase {
 
     public void assignReviewer(String reviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
         if (this.status != CaseStatus.SELECTED_PENDING_ASSIGNMENT) {
-            throw new DomainStateConflictException("CASE_NOT_PENDING_ASSIGNMENT",
+            throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
                     "Cannot assign reviewer: case status is " + this.status);
         }
         Objects.requireNonNull(reviewerId, "reviewerId must not be null");
@@ -201,7 +201,7 @@ public class ReviewCase {
 
     public void startInitialReview(String submissionId, String scoreSheetVersionRef) {
         if (this.status != CaseStatus.PENDING_INITIAL_REVIEW) {
-            throw new DomainStateConflictException("CASE_NOT_PENDING_INITIAL_REVIEW",
+            throw new DomainRuleViolationException("CASE_NOT_IN_INITIAL_REVIEW_STAGE",
                     "Case must be in PENDING_INITIAL_REVIEW to start. Current: " + this.status);
         }
         Objects.requireNonNull(submissionId, "submissionId must not be null");

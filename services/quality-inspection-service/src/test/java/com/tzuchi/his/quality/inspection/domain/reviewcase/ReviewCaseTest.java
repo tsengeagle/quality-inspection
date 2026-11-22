@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.reviewcase;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
@@ -66,8 +67,9 @@ class ReviewCaseTest {
     void assignReviewer_fromNonSelectedPending_shouldThrow() {
         ReviewCase rc = createPendingInitialReview(); // already PENDING_INITIAL_REVIEW
 
-        assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> rc.assignReviewer("reviewer-2", DUE, LocalDateTime.now()));
+        assertEquals("CASE_NOT_ASSIGNABLE", e.getErrorCode());
     }
 
     @Test
@@ -235,8 +237,9 @@ class ReviewCaseTest {
     void startInitialReview_fromNonPending_shouldThrow() {
         ReviewCase rc = createPendingAssignment(); // SELECTED_PENDING_ASSIGNMENT
 
-        assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> rc.startInitialReview("sub-1", "ss-v1"));
+        assertEquals("CASE_NOT_IN_INITIAL_REVIEW_STAGE", e.getErrorCode());
     }
 
     @Test

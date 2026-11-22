@@ -6,6 +6,7 @@ import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryCriteria;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryPort;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +23,22 @@ public class ListReviewCasesUseCase {
         this.queryPort = queryPort;
     }
 
-    public Page<ReviewCaseSummary> execute(ActorContext actor, ReviewCaseQueryCriteria criteria) {
+    /**
+     * 輸入依規格的名稱攤平（D-066 第 4 點）。沒給的條件是 null；page、size 沒給時是第 0 頁、每頁 20，size 上限 100。
+     */
+    public Page<ReviewCaseSummary> execute(ActorContext actor, String hospitalId, String projectId,
+                                           String batchId, CaseStatus status, String reviewerId,
+                                           String rereviewerId, String medicalRecordType,
+                                           Integer page, Integer size) {
         actor.requireAnyRole(
                 DomainRole.HOSPITAL_MANAGER, DomainRole.REVIEWER,
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
 
-        Page<ReviewCaseSummary> raw = queryPort.findCases(
-                criteria.withHospitalId(actor.readScopeHospitalId(criteria.getHospitalId())));
+        ReviewCaseQueryCriteria criteria = new ReviewCaseQueryCriteria(
+                actor.readScopeHospitalId(hospitalId), projectId, batchId, status,
+                reviewerId, rereviewerId, medicalRecordType,
+                page == null ? 0 : page, size == null ? 0 : size);
+        Page<ReviewCaseSummary> raw = queryPort.findCases(criteria);
         String projectionType = actor.hasRole(DomainRole.SYSTEM_ADMIN) ? "METADATA_ONLY" : "FULL";
         List<ReviewCaseSummary> enriched = raw.getContent().stream()
                 .map(s -> s.withProjectionType(projectionType))

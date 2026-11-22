@@ -16,4 +16,6 @@ public class ReviewDraftSavedEvent extends DomainEvent {
               hospitalId, "ReviewSubmission", submissionId, "DRAFT_SAVED",
               String.format("{\"caseId\":\"%s\",\"totalScore\":%s}", caseId, totalScore));
     }
+
+    public String getSubmissionId() { return getEntityId(); }
 }

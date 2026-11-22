@@ -73,7 +73,7 @@ public class SubmitInitialReviewUseCase {
                         "Case references an unavailable INITIAL submission"));
 
         if (!actor.getUserId().equals(submission.getReviewerId())) {
-            throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
+            throw new AccessDeniedException("SUBMISSION_NOT_OWNED_BY_ACTOR",
                     "Only the reviewer who owns this submission can submit");
         }
 
