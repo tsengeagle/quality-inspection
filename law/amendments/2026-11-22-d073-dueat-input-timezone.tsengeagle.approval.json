@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-22-d073-dueat-input-timezone",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:6273b4b955a130b219bec2697406d8282089a296d6bfb3ff8ae1c5e885f01552",
+  "reviewed_commit": "70cfe9edd95463f216eb1ee99e19d51b75a5a420",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEA/adRgvsre9grS+SNgUAaANYIeS3lAKwFmSqliKVtP0Kdb2tp0RLB0\nO1hcMi8iF1Ih07gt8Gqw569FU/nrRoQFAQAAAEE=\n-----END SSH SIGNATURE-----\n"
+}
