@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-22-d072-constitution-datetime",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:3bf1a93794ad5153cfa5f64864e5fecde61d3dd3e7c79a371627b2b1afd33223",
+  "reviewed_commit": "9019e501fdba39fdf8f004ffa62cf74bf4929053",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEDKIbmy0Z//PsKM63jEHFzhgU9l7KSmA+/416jfhuv8vKlQ/fzgc4/a\nNmyBTjB4lwNWUAj+ySrT1TN1Gm9wVQgHAQAAAD4=\n-----END SSH SIGNATURE-----\n"
+}

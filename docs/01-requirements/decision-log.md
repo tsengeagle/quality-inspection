@@ -44,6 +44,21 @@ decision_status:
 
 ---
 
+## 憲法草案
+
+> 本節是全專案原則，位階高於本檔所有個案裁決（D-xxx）。後續裁決不得牴觸本節；要牴觸，必須先以新的裁決修改本節的條文。本節預定提升為獨立的憲法文件，提升之前以這裡為準（D-072）。
+>
+> 條文以「第 N 條」編號，與 D-xxx 分開。頒布與修改都以個案裁決記錄，條文旁註明出處；條文只放在本節，不在其他地方重複。
+
+### 第一條　日期時間的表示（D-072 頒布）
+
+1. 凡是表示某一時刻的值，跨出程式邊界時一律使用 ISO-8601 延伸格式，帶時區位移（`Z` 或 `±hh:mm`），而且秒必須寫出。程式邊界包括 HTTP 請求與回應、事件的欄位、稽核 `detail`、匯出、規格範例，以及資料庫以外的任何儲存或傳遞。
+2. 輸出一律正規化為 UTC（`Z`）。輸入接受任何位移；不帶時區的輸入一律拒絕（`VALIDATION_ERROR`）。
+3. 程式內部以時間點表示（Java 用 `Instant`）。業務上需要「當地日期」的地方，一律以 `Asia/Taipei` 換算，換算的位置必須在裁決中寫明。
+4. 只有日期、沒有時刻的值（`YYYY-MM-DD`）不受第 1 點約束，但必須由裁決明文指定，並寫明以哪個時區解讀。
+
+---
+
 ## 4. 決策清單
 
 ---
@@ -2867,3 +2882,46 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `law/coverage.txt`：`application/audit/` → `legislated specs/review-case/`
 - `services/quality-inspection-service/known-test-failures.txt`
 - 後續：建構 PR
+
+---
+
+## D-072 — 頒布憲法草案第一條：日期時間的表示
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/22-constitution-datetime-draft.md` 的 T-1～T-5 全部照建議裁決）
+
+### Decision
+
+1. **憲法草案（T-2）**：在本檔「4. 決策清單」之前新增「憲法草案」一節。該節位階高於所有個案裁決，後續裁決不得牴觸，要牴觸必須先修改條文。該節預定提升為獨立的憲法文件。
+2. **第一條（T-1 選 A）**：條文見「憲法草案」第一條。輸出一律是 UTC `Z`，不帶時區的輸入一律拒絕。
+3. **`dueAt` 的意思**：負責人確認，需求中的 `dueAt` 是一個確切的時刻，不是日期。所以它適用第一條第 1～3 點，不適用第 4 點。
+4. **違憲清單（T-3 選 A）**：下列是頒布時已知的違憲處。修正之前暫時容許，但不得擴大；新寫的程式與規格必須合憲；每修正一處，就在本條註明修正的 PR。建議依下列順序修正，各項的細節由各自的裁決或建構 PR 決定：
+   1. 稽核 `detail`：`ASSIGNED`（`ReviewCaseAssignedEvent`）、`REASSIGNED`（`ReviewCaseReassignedEvent`）的 `dueAt` 以 `LocalDateTime.toString()` 寫入，不帶時區，秒數是 0 時還會省略。
+   2. HTTP 的輸入：指派、改派初審醫師與複審醫師的 `dueAt` 接受不帶時區的值。修正前要先確認前端送出的格式。
+   3. HTTP 的輸出：案件列表、詳情、指派畫面的 view，以及匯出的 `closedAt`，時間以 `LocalDateTime` 輸出，不帶時區。
+   4. domain 與 persistence：`ReviewCase` 的 `dueAt`、`assignedAt`、`closedAt`、`cancelledAt`、`rereviewerDueAt`、`rereviewerAssignedAt` 是 `LocalDateTime`。這六個值代表台北的牆上時刻，改成 `Instant` 時以 `Asia/Taipei` 換算。正式資料庫還沒有資料（D-045）。
+   5. `specs/spec-profile.yaml` 的 `local_time_zone`：用來解讀不帶時區的時間。改成只用於第一條第 3、4 點的業務換算。
+   6. 文件：`domain-events.md` 的時間範例帶 `+08:00`，改成 UTC `Z`。`api-spec.md` 其他章節的時間範例也一樣，隨相關的 PR 修改。
+5. **稽核 `detail`（T-4）**：為了合憲而修改 `detail` 的時間表示，不受 D-066 第 2 點、D-069 第 4 點「`detail` 逐字不變」的限制；其他內容仍然逐字不變。已寫入的稽核紀錄只增不改，不補改，同一種 action 會有新舊兩種格式並存。
+6. **D-071 的建構 PR（T-5 選 A）**：
+   - 一併修正違憲清單第 1 項的 `ASSIGNED`：`dueAt` 以 `Asia/Taipei` 換成時間點，輸出 UTC，例如 `"dueAt":"2026-11-26T23:59:59Z"`。
+   - D-071 規格的兩個範例已經是這個值，不用修改。
+   - `REASSIGNED` 屬於改派，還沒有立法，留在清單上。
+7. **本次的修改**：只改文件，包括本檔、`api-spec.md` §3.3、`api-spec.md` 14.1，以及 `docs/harness/22`。程式不動（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-071 建構 PR 的兩個範例，預期 `ASSIGNED` 的 `detail` 帶 `Z`，程式寫出的不帶時區。查證後發現，專案沒有全專案層級的時間規定。`api-spec.md` §3.3 只寫「ISO-8601」，`spec-profile.yaml` 的 `local_time_zone` 反而容許不帶時區的時間。
+- **草案與查證**：`docs/harness/22-constitution-datetime-draft.md`（main = `ee21979`）。共有 42 個檔案使用 `LocalDateTime`，沒有任何檔案使用 `OffsetDateTime` 或 `ZonedDateTime`。
+- **與既有裁決的關係**：
+  - D-037、D-054、D-057 的 UTC 時間點已經合憲。
+  - D-066、D-069 的「`detail` 不變」由第 5 點加上例外。
+- **還沒有查證的**：前端送出 `dueAt` 的格式（違憲清單第 2 項）。
+
+### Mapping
+
+- `docs/01-requirements/decision-log.md`「憲法草案」第一條
+- `docs/03-contracts/api-spec.md` §3.3（改成引用第一條）、14.1（新舊格式並存）
+- 後續：D-071 建構 PR（違憲清單第 1 項的 `ASSIGNED`）；違憲清單其餘各項
+

@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-22-d072-constitution-datetime",
+  "decision": "D-072",
+  "reason": "D-072：頒布憲法草案第一條（日期時間的表示）。負責人對 docs/harness/22-constitution-datetime-draft.md 的 T-1～T-5 全部照建議裁決，並確認 dueAt 是確切的時刻。decision-log：在「4. 決策清單」之前新增「憲法草案」一節（位階高於個案裁決，預定提升為獨立憲法）與第一條：ISO-8601、必帶時區、秒必寫、輸出 UTC Z、拒絕不帶時區的輸入、內部用 Instant、業務日期以 Asia/Taipei 換算；新增 D-072：六項違憲清單、稽核 detail 的時間表示不受 D-066／D-069 逐字不變限制、新舊格式並存、D-071 建構 PR 一併修正 ASSIGNED。api-spec §3.3 改成引用第一條，14.1 註明新舊格式並存。docs/harness/22 標為已裁決、README 加索引。程式與規格都沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/amendments/"
+  ]
+}

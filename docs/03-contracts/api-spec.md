@@ -53,8 +53,8 @@ Accept: application/json
 
 ### 3.3 時間格式
 
-* ISO-8601
-* 範例：`2026-04-02T14:10:00+08:00`
+* 依 `decision-log.md`「憲法草案」第一條（D-072）：ISO-8601 延伸格式，必須帶時區、寫出秒；輸出一律 UTC，例如 `2026-04-02T06:10:00Z`；不帶時區的輸入回 `VALIDATION_ERROR`。
+* 目前程式仍有違憲處（D-072 第 4 點的清單），修正之前以該清單為準。本文件其他章節帶 `+08:00` 的範例，隨相關的 PR 改成 UTC。
 
 ### 3.4 ID 命名
 
@@ -1587,6 +1587,7 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * 持有 `REREVIEWER` 或 `SYSTEM_ADMIN`：所有紀錄都不含 `detail`。
 * 帶分數的 action（`INITIAL_REVIEW_COMPLETED`、`CASE_ESCALATED_TO_REREVIEW`、`REREVIEW_SUBMITTED`、`REREVIEW_REVISED`、`CASE_CLOSED_WITHOUT_REREVIEW`）：案件目前的狀態不是 `REREVIEW_IN_PROGRESS`／`CLOSED`／`CANCELLED`、讀者是現任或歷史複審醫師，或複審指派歷史不完整時，該筆 `detail` 為 `null`。
 * 讀取不寫入初審讀取者紀錄。
+* `detail` 的時間表示依 D-072 第 5 點：新紀錄帶時區（UTC），修正之前已寫入的紀錄不補改，新舊格式並存。
 
 ---
 
