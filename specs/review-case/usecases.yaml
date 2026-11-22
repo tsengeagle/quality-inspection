@@ -15,6 +15,7 @@ sources:
   - { decision: D-054 }
   - { decision: D-055 }
   - { decision: D-066 }
+  - { decision: D-067 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2、§6.3、§6.4、§7.1、§7.2" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§11.1–§11.3、§13.2" }
 
@@ -28,8 +29,8 @@ error_codes:
   - { code: CASE_NOT_ASSIGNABLE,              category: rule_violation, status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
   - { code: CASE_NOT_IN_INITIAL_REVIEW_STAGE, category: rule_violation, status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
   - { code: SUBMISSION_NOT_OWNED_BY_ACTOR,    category: denied,         status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
-  - { code: NOT_ASSIGNED_REVIEWER,            category: denied,         status: proposed, question: Q-01 }
-  - { code: REQUIRED_ITEMS_NOT_ANSWERED,      category: rule_violation, status: proposed, question: Q-01 }
+  - { code: NOT_ASSIGNED_REVIEWER,            category: denied,         status: decided,  source: [{ decision: D-067 }] }
+  - { code: REQUIRED_ITEMS_NOT_ANSWERED,      category: rule_violation, status: decided,  source: [{ decision: D-067 }] }
 
 # 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
 guards:
@@ -74,6 +75,7 @@ output_types:
     - { name: submittedAt,  type: datetime }
     - { name: totalScore,   type: decimal(2) }
     - { name: comment,      type: text }
+    - { name: supersededBySubmissionId, type: id }
 
 usecases:
 
@@ -120,8 +122,8 @@ usecases:
       - id: RC-ASG-02
         when: reviewerId 或 dueAt 沒有給
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
-        status: proposed
-        question: Q-02
+        status: decided
+        source: [{ decision: D-067 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3" }]
     success:
       state:
         - { id: RC-ASG-S1, text: status = PENDING_INITIAL_REVIEW,                  status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
@@ -143,8 +145,8 @@ usecases:
       - id: RC-STI-01
         when: 操作者不是這個案件受指派的初審醫師
         outcome: { result: REJECTED, code: NOT_ASSIGNED_REVIEWER }
-        status: proposed
-        question: Q-01
+        status: decided
+        source: [{ decision: D-067 }]
       - id: RC-STI-02
         when: 案件的 status 不是 PENDING_INITIAL_REVIEW
         outcome: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
@@ -154,7 +156,7 @@ usecases:
       state:
         - { id: RC-STI-S1, text: status = INITIAL_REVIEW_IN_PROGRESS,                          status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
         - { id: RC-STI-S2, text: 建立一份初審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
-        - { id: RC-STI-S3, text: InitialReviewStarted 帶有 caseId, status: proposed, question: Q-07 }
+        - { id: RC-STI-S3, text: InitialReviewStarted 帶有 caseId、submissionId 與 reviewerId, status: decided, source: [{ decision: D-067 }, { doc: docs/02-ddd/domain-events.md, section: "§6.3" }] }
       emits:
         - { event: InitialReviewStarted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.3" }] }
     output:
@@ -184,7 +186,7 @@ usecases:
     success:
       state:
         - { id: RC-DRF-S1, text: 草稿的答案與評語等於輸入, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
-        - { id: RC-DRF-S2, text: ReviewDraftSaved 帶有 submissionId, status: proposed, question: Q-07 }
+        - { id: RC-DRF-S2, text: ReviewDraftSaved 帶有 submissionId 與 caseId, status: decided, source: [{ decision: D-067 }, { doc: docs/02-ddd/domain-events.md, section: "§7.1" }] }
       emits:
         - { event: ReviewDraftSaved, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§7.1" }] }
 
@@ -204,21 +206,22 @@ usecases:
       - id: RC-SUB-02
         when: 案件的 status 不是 INITIAL_REVIEW_IN_PROGRESS
         outcome: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
-        status: proposed
-        question: Q-01
+        status: decided
+        source: [{ decision: D-067 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }]
       - id: RC-SUB-03
         when: 評分表有必答的題目沒有作答
         outcome: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
-        status: proposed
-        question: Q-01
+        status: decided
+        source: [{ decision: D-067 }]
     success:
       state:
         - { id: RC-SUB-S1, text: status = INITIAL_REVIEW_COMPLETED，不論分數與品質線的關係, status: decided, source: [{ decision: D-031 }, { decision: D-054 }] }
         - { id: RC-SUB-S2, text: 初審提交的狀態是 SUBMITTED，submittedAt 是提交當時的時間,  status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
         - { id: RC-SUB-S3, text: ReviewSubmissionSubmitted 帶有 caseId 與 submissionId, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§7.2" }, { decision: D-066 }] }
+        - { id: RC-SUB-S4, text: InitialReviewCompleted 帶有 caseId 與 submissionId, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.4" }, { decision: D-067 }] }
       emits:
         - { event: ReviewSubmissionSubmitted, status: decided,  source: [{ doc: docs/02-ddd/domain-events.md, section: "§7.2" }] }
-        - { event: InitialReviewCompleted,    status: proposed, question: Q-03 }
+        - { event: InitialReviewCompleted,    status: decided,  source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.4" }, { decision: D-067 }] }
     output:
       fields:
         - { name: submissionId, type: id }
@@ -261,10 +264,10 @@ usecases:
         source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { rule: RC-INV-02 }]
       - id: RC-VIS-05
         when: 操作者是 SYSTEM_ADMIN
-        text: 每一筆歷程只有 submissionId、stage、revisionNo、status、submittedAt
+        text: 每一筆歷程只有 submissionId、stage、revisionNo、status、submittedAt、reviewerId、supersededBySubmissionId（permission-matrix 的 submittedBy 是 reviewerId；isCurrentEffective 由 status 與 supersededBySubmissionId 表示）
         outcome: { result: SUCCESS }
-        status: proposed
-        question: Q-05
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { decision: D-067 }]
     output:
       status: decided
       source: [{ doc: docs/03-contracts/api-spec.md, section: "§13.2" }]

@@ -49,7 +49,7 @@ examples:
               - { sourceCaseKey: MR-001, hospitalId: H-01, status: SELECTED_PENDING_ASSIGNMENT }
               - { sourceCaseKey: MR-002, hospitalId: H-01, status: SELECTED_PENDING_ASSIGNMENT }
 
-  # 這兩個事件在 domain-events.md 沒有「最低必要欄位」，只斷言發出者的 identity（D-066 第 2 點）。
+  # 欄位依 D-067（Q-06）：母體兩筆、沒有排除、兩筆都抽中。
   - name: intermediate_events_carry_the_batch
     basis: [SB-EXE-S4]
     given:
@@ -63,8 +63,8 @@ examples:
     then:
       result: SUCCESS
       emits_include:
-        - { event: SamplingCandidatesPrepared, with: { batchId: "${b}" } }
-        - { event: ReviewCasesSelected,        with: { batchId: "${b}" } }
+        - { event: SamplingCandidatesPrepared, with: { batchId: "${b}", populationCount: 2, eligibleCount: 2, excludedCount: 0 } }
+        - { event: ReviewCasesSelected,        with: { batchId: "${b}", selectedCount: 2 } }
 
   - name: rejects_sampling_by_a_non_manager
     basis: [SB-G-01]

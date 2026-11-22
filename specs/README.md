@@ -14,8 +14,8 @@
 |---|---|---|
 | `ReviewProject` | `specs/review-project/` | 2026-11-15 由 `spec-draft/` 升格（升格條件見 `docs/harness/03-harness-plan.md` 第二節）。44 條規則全部 `decided`，含評分表升格時加入的綁定（`BindScoreSheetToProject`，D-050 第 8 點）與列表、版本查詢（D-062）；46 個範例；D-062 的 4 個已由 #104 修正，範例全部通過。沒有範例的規則：`RP-INV-04`（由抽選的 use case 執行）、`RP-BND-03`（範例拿不到未發布的版本 id）。沒有待裁決的題目 |
 | `ScoreSheetDefinition` | `specs/score-sheet/` | 2026-11-15 由 `spec-draft/` 升格。38 條規則全部 `decided`（D-050）；36 個範例。程式已照規格修改（PR #41、#42），範例全部通過 |
-| `SamplingBatch` | `specs/sampling-batch/` | 2026-11-21 立法（D-066，格式 v2.0）：從抽選到初審提交的直向切片，只有 `ExecuteSampling`。8 條規則，1 條 `proposed`（Q-06）；6 個範例，3 個是紅的（M-2、M-3），列在已知失敗清單，等建構 PR |
-| `ReviewCase` | `specs/review-case/` | 2026-11-21 立法（D-066，格式 v2.0）：列出、指派、開始初審、保存草稿、提交初審、revision 歷程。33 條規則，7 條 `proposed`（Q-01、Q-02、Q-05、Q-07）；32 個範例（含矩陣展開），31 個是紅的，列在已知失敗清單，等建構 PR 與 Q-01～Q-03、Q-05 的裁決。複審、結案、取消、退回、修正還沒有立法（`model.yaml` 的 `deferred_transitions`） |
+| `SamplingBatch` | `specs/sampling-batch/` | 2026-11-21 立法（D-066，格式 v2.0）：從抽選到初審提交的直向切片，只有 `ExecuteSampling`。8 條規則全部 `decided`（Q-06 由 D-067 裁決）；6 個範例，1 個是紅的（D-067 第 5 點），列在已知失敗清單，等建構 PR |
+| `ReviewCase` | `specs/review-case/` | 2026-11-21 立法（D-066，格式 v2.0）：列出、指派、開始初審、保存草稿、提交初審、revision 歷程。34 條規則全部 `decided`（Q-01、Q-02、Q-03、Q-05、Q-07 由 D-067 裁決）；33 個範例（含矩陣展開），6 個是紅的（D-067 第 1～3、6 點），列在已知失敗清單，等建構 PR。複審、結案、取消、退回、修正還沒有立法（`model.yaml` 的 `deferred_transitions`） |
 | `ReviewSubmission` | `specs/review-submission/` | 2026-11-21 立法（D-066，格式 v2.0）：只有狀態機（2 條轉移），改變它的 use case 在 `review-case/` |
 
 尚未轉換的 aggregate 以 `docs/01-requirements` 到 `docs/04-testing` 為準。

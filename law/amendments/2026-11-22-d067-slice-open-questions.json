@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-22-d067-slice-open-questions",
+  "decision": "D-067",
+  "reason": "D-067：直向切片的六題待裁決，負責人對 docs/harness/17-slice-open-questions-draft.md 十項待決全部照建議裁決。specs/review-case/：RC-STI-01（NOT_ASSIGNED_REVIEWER）、RC-SUB-02（CASE_NOT_IN_INITIAL_REVIEW_STAGE，與開始初審共用）、RC-SUB-03（REQUIRED_ITEMS_NOT_ANSWERED）、RC-ASG-02（VALIDATION_ERROR，新增沒給 dueAt 的範例）、InitialReviewCompleted 的 emits 與新規則 RC-SUB-S4、RC-VIS-05（照 permission-matrix §5.1 接受程式的七個欄位，RevisionEntry 補 supersededBySubmissionId）、RC-STI-S3、RC-DRF-S2（事件欄位）改為 decided；specs/sampling-batch/：SB-EXE-S4（兩個中間事件的計數）改為 decided；兩份 OPEN-QUESTIONS.md 清空。docs/02-ddd/domain-events.md §5.2、§5.3、§6.3、§7.1 補最低必要欄位；docs/03-contracts/api-spec.md §4.2 補兩個代碼並放寬 CASE_NOT_IN_INITIAL_REVIEW_STAGE 的說明，§13.2 寫明 SYSTEM_ADMIN 的欄位。law/coverage.txt 先把建構 PR 要新增的 InitialReviewCompletedEvent.java 列為 legislated。known-test-failures.txt：admin_history_is_a_whitelist 變綠刪除；新增 rejects_assign_without_a_due_date、intermediate_events_carry_the_batch、initial_review_started_carries_the_case、draft_saved_carries_the_submission 四個（D-067 新增的斷言，程式還沒配合），連同原有的三個共 7 個，每一個註明 D-067 對應的點與實際的失敗原因，由建構 PR 逐一移除。specs/README.md 第一節更新現況；docs/harness/17 標為已裁決。本機確認（JDK 17）：spec_lint（CI 參數）零問題；後端完整測試 1107 個方法、失敗 7 個，與已知失敗清單完全相同，建置通過。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/",
+    "specs/sampling-batch/",
+    "specs/README.md",
+    "law/coverage.txt",
+    "law/amendments/",
+    "services/quality-inspection-service/known-test-failures.txt"
+  ]
+}

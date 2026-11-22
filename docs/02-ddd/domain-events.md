@@ -243,6 +243,19 @@
 * 候選母體已建立
 * `populationCount` / `eligibleCount` / `excludedCount` 已可確定
 
+### 最低必要欄位（D-067）
+
+```json
+{
+  "eventName": "SamplingCandidatesPrepared",
+  "batchId": "BATCH-001",
+  "populationCount": 1200,
+  "eligibleCount": 300,
+  "excludedCount": 40,
+  "occurredAt": "2026-04-02T02:10:00+08:00"
+}
+```
+
 ---
 
 ## 5.3 `ReviewCasesSelected`
@@ -265,6 +278,17 @@
 * 本事件代表「被選中」
 * 不等於每個 `ReviewCase` 實體都已完成建立
 * 實際 case entity 建立後，仍可再發 `ReviewCaseCreated`
+
+### 最低必要欄位（D-067）
+
+```json
+{
+  "eventName": "ReviewCasesSelected",
+  "batchId": "BATCH-001",
+  "selectedCount": 30,
+  "occurredAt": "2026-04-02T02:10:00+08:00"
+}
+```
 
 ---
 
@@ -380,6 +404,18 @@
 
 * `startInitialReview()` 成功
 * 狀態轉為 `INITIAL_REVIEW_IN_PROGRESS`
+
+### 最低必要欄位（D-067）
+
+```json
+{
+  "eventName": "InitialReviewStarted",
+  "caseId": "RC-001",
+  "submissionId": "SUB-INIT-001",
+  "reviewerId": "DOC-123",
+  "occurredAt": "2026-04-02T02:10:00+08:00"
+}
+```
 
 ---
 
@@ -584,6 +620,19 @@
 
 * draft saved 不代表案件主狀態一定改變
 * 是否發布此事件，可視系統是否需要草稿稽核追蹤決定
+
+### 最低必要欄位（D-067）
+
+```json
+{
+  "eventName": "ReviewDraftSaved",
+  "submissionId": "SUB-INIT-001",
+  "caseId": "RC-001",
+  "occurredAt": "2026-04-02T02:10:00+08:00"
+}
+```
+
+草稿分數不列為必要欄位（D-067 第 6 點）。
 
 ---
 

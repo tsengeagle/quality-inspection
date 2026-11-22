@@ -135,7 +135,9 @@ Accept: application/json
 | `DUPLICATE_SELECTED_CASE_IN_BATCH` |         409 | 同批次重複抽中同一案件               |
 | `CASE_NOT_ASSIGNABLE`              |         422 | 案件目前不可指派                  |
 | `REREVIEWER_HAS_READ_INITIAL`      |         422 | 指派或改派的複審醫師曾讀過本案完整初審（D-055） |
-| `CASE_NOT_IN_INITIAL_REVIEW_STAGE` |         422 | 案件不在可開始初審狀態               |
+| `CASE_NOT_IN_INITIAL_REVIEW_STAGE` |         422 | 案件不在該初審操作要求的狀態（開始初審、提交初審；D-067） |
+| `NOT_ASSIGNED_REVIEWER`            |         403 | 開始初審的人不是受指派的初審醫師（D-067） |
+| `REQUIRED_ITEMS_NOT_ANSWERED`      |         422 | 提交初審時有必答題沒有作答（D-067）   |
 | `CASE_NOT_IN_REREVIEW_STAGE`       |         422 | 案件不在可開始複審狀態               |
 | `CASE_ALREADY_CLOSED`              |         409 | 案件已結案                     |
 | `CASE_ALREADY_CANCELLED`           |         409 | 案件已取消                     |
@@ -1530,9 +1532,11 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * `HOSPITAL_MANAGER`
 * `AUDITOR`
 * `REVIEWER` / `REREVIEWER`：合法範圍內
-* `SYSTEM_ADMIN`：metadata only
+* `SYSTEM_ADMIN`：metadata only。每一筆只有 `submissionId`、`stage`、`revisionNo`、`status`、`submittedAt`、`reviewerId`、`supersededBySubmissionId`，依 `permission-matrix.md` §5.1（D-067 第 4 點）
 
 #### Response
+
+下面是回應的範例，不分角色，不是任何角色的欄位清單。
 
 ```json
 {

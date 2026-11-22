@@ -2647,3 +2647,52 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `law/coverage.txt`、`services/quality-inspection-service/known-test-failures.txt`
 - `docs/03-contracts/api-spec.md` §9.3
 - 後續：建構 PR（第 2～4、6 點）；Q-01（後三列）、Q-02、Q-03、Q-05～Q-07 的裁決
+
+## D-067 — 直向切片的六題待裁決：錯誤代碼、指派的輸入檢查、初審完成事件、SYSTEM_ADMIN 的歷程欄位、四個事件的欄位
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/17-slice-open-questions-draft.md` 十項待決全部照建議裁決）
+
+### Decision
+
+1. **錯誤代碼（試寫 Q-01 的後三列）。**
+   - 開始初審的人不是受指派的醫師：`NOT_ASSIGNED_REVIEWER`，分類 `denied`（403），照程式。
+   - 提交初審時案件不是初審中：`CASE_NOT_IN_INITIAL_REVIEW_STAGE`，分類 `rule_violation`（422），與開始初審共用。`api-spec.md` §4.2 的說明放寬為「案件不在該初審操作要求的狀態」。建構 PR 把 `SubmitInitialReviewUseCase` 的 `CASE_NOT_IN_PROGRESS`（409）改成這個代碼。
+   - 提交初審時必答題沒有作答：`REQUIRED_ITEMS_NOT_ANSWERED`，分類 `rule_violation`（422），照程式。
+   - 三個代碼都補進 `api-spec.md` §4.2。
+   - 不在本裁決：保存草稿時案件不是初審中（程式回 `CASE_NOT_IN_PROGRESS`，規格沒有這條規則），以及複審的 `NOT_ASSIGNED_REREVIEWER` 是 422、初審的 `NOT_ASSIGNED_REVIEWER` 是 403 的不一致。
+2. **指派時沒有給 `reviewerId` 或 `dueAt`（Q-02）。**
+   - 回 `VALIDATION_ERROR`（400），由 domain 檢查，不依賴 HTTP 層的註記。依據 `api-spec.md` §10.3（`dueAt` 必填）、`state-machine.md` §3.2（要有 reviewer），先例是 `ReviewProject` 的 `DomainValidationException("VALIDATION_ERROR")`。
+   - 建構 PR：`ReviewCase.assignReviewer` 在狀態檢查之前，對 null 的 `reviewerId`、`dueAt` 丟 `DomainValidationException("VALIDATION_ERROR")`。`reassignReviewer` 不在切片內，不動。
+3. **提交初審發出 `InitialReviewCompleted`（Q-03）。**
+   - 照 `domain-events.md` §6.4、§9.1、§9.2：提交初審成功後，除了 `ReviewSubmissionSubmitted`，再發出 `InitialReviewCompleted`。前者是 submission 的事實，後者是案件的事實。
+   - 欄位照 §6.4：`caseId`、`projectId`、`submissionId`、`reviewerId`、`totalScore`、`qualityThreshold`。`qualityThreshold` 取自專案目前的版本，沒有品質線時是 null（D-019）。規格斷言 `caseId`、`submissionId`（`RC-SUB-S4`）。
+   - 建構 PR：新增 `domain/reviewcase/event/InitialReviewCompletedEvent.java`，由 `SubmitInitialReviewUseCase` 在 `completeInitialReview` 之後發出。稽核的 `detail` 帶分數，已由 D-033 的遮罩涵蓋。`law/coverage.txt` 在本裁決的修法 PR 先把這個檔案列為 `legislated`。
+   - 建構 PR 同時確認稽核頁與案件生命週期頁多出「初審完成」一筆的顯示，只確認，不改設計。
+4. **SYSTEM_ADMIN 的 revision 歷程欄位（Q-05）。**
+   - 照 `permission-matrix.md` §5.1 的白名單（共用欄位加 UI-014 的延伸欄位）。程式現有的七個欄位都在範圍內：`submissionId`、`stage`、`revisionNo`、`status`、`submittedAt`、`reviewerId`、`supersededBySubmissionId`。對應：`submittedBy` 是 `reviewerId`；`isCurrentEffective` 由 `status` 與 `supersededBySubmissionId` 表示；`submissionId` 是每一筆的 identity。
+   - `api-spec.md` §13.2 的回應是不分角色的範例，不是 SYSTEM_ADMIN 的白名單；補一句 SYSTEM_ADMIN 看到的欄位。程式不改。
+5. **`SamplingCandidatesPrepared`、`ReviewCasesSelected` 的欄位（Q-06）。**
+   - `SamplingCandidatesPrepared`：`batchId`、`populationCount`、`eligibleCount`、`excludedCount`。`ReviewCasesSelected`：`batchId`、`selectedCount`。補進 `domain-events.md` §5.2、§5.3。
+   - 建構 PR：照 D-066 第 2 點的做法加欄位與取得方法，`detail` 逐字不變。
+6. **`InitialReviewStarted`、`ReviewDraftSaved` 的欄位（Q-07）。**
+   - `InitialReviewStarted`：`caseId`、`submissionId`、`reviewerId`。`ReviewDraftSaved`：`submissionId`、`caseId`。草稿分數不列為必要欄位：它會一直變，又是要遮罩的資料；程式的 `detail` 照舊帶它，稽核不變。補進 `domain-events.md` §6.3、§7.1。
+   - 建構 PR：同第 5 點。
+7. **一開始是紅的範例。** 照 D-066 第 5 點：本裁決與規格一起生效時，第 1～3、5、6 點的程式還沒改，對應的範例在同一個修法 PR 加進 `known-test-failures.txt`，由建構 PR 逐一移除。第 4 點的範例在修法 PR 就變綠，從清單刪除。
+8. **順序。** 本裁決、規格、`domain-events.md`、`api-spec.md`、`law/coverage.txt`、`known-test-failures.txt` 在同一個修法 PR；之後是建構 PR（第 1～3、5、6 點）。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-066 的建構 PR（#121）之後，已知失敗清單剩 4 個範例，各在等 Q-01（第二列）、Q-02、Q-03、Q-05 的裁決；Q-06、Q-07 決定四個事件的斷言能不能升為 `decided`。
+- **草案與查證**：`docs/harness/17-slice-open-questions-draft.md`（main = `922f256` 的程式現況、權威文件、選項與理由）。
+- **D-066**：第 2 點的「沒有最低必要欄位的事件只斷言 identity」，本裁決第 5、6 點補上欄位後不再適用於這四個事件。
+- **D-033**：第 3、6 點的分數由既有的稽核遮罩涵蓋。
+
+### Mapping
+
+- `specs/review-case/`、`specs/sampling-batch/`（規則改為 `decided`，`OPEN-QUESTIONS.md` 清空）
+- `docs/02-ddd/domain-events.md` §5.2、§5.3、§6.3、§7.1
+- `docs/03-contracts/api-spec.md` §4.2、§13.2
+- `law/coverage.txt`、`services/quality-inspection-service/known-test-failures.txt`
+- 後續：建構 PR（第 1～3、5、6 點）

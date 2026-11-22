@@ -8,15 +8,19 @@
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
 
 
-# ---- D-066：抽選到初審提交的直向切片。規格先立法，程式由建構 PR 配合（D-066 第 5 點）----
-# 以下 34 個範例在規格合併時是紅的。M-1～M-3 見 D-066 第 2～4 點；Q-xx 見 specs/<目錄>/OPEN-QUESTIONS.md。
-# 每一行的原因是「M-1 修好之後」的原因（2026-11-21 以暫時攤平 ListReviewCases 的本機實驗確認，未提交）。
+# ---- D-066、D-067：抽選到初審提交的直向切片。規格先立法，程式由建構 PR 配合（D-066 第 5 點、D-067 第 7 點）----
+# D-066 的 34 個已由 #121 修好 30 個；剩下的 4 個在 D-067 裁決後，與 D-067 新增斷言的範例一起列在下面。
+# 每一行的原因是 2026-11-22 對 main（922f256）加上 D-067 規格實際執行的結果。
 #
-# M-1 之後還有 M-2 與 Q-03：程式沒有 InitialReviewCompleted
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/submitting_emits_exactly_two_events
-# M-1 之後還有 Q-01（第二列，proposed）：提交時案件不是初審中的代碼
+# D-067 第 1 點：提交時案件不是初審中，程式回 CASE_NOT_IN_PROGRESS
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_submit_of_a_review_already_submitted
-# M-1 之後還有 Q-02：沒有給 reviewerId 時沒有錯誤代碼
+# D-067 第 2 點：沒給 reviewerId 時丟 NullPointerException；沒給 dueAt 時照樣指派成功
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_assign_without_a_reviewer
-# M-1 之後還有 Q-05：SYSTEM_ADMIN 的歷程多了 reviewerId
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/admin_history_is_a_whitelist
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_assign_without_a_due_date
+# D-067 第 3 點：程式沒有 InitialReviewCompleted
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/submitting_emits_exactly_two_events
+# D-067 第 5 點：事件類別沒有計數的屬性
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/intermediate_events_carry_the_batch
+# D-067 第 6 點：InitialReviewStarted 沒有 submissionId、reviewerId；ReviewDraftSaved 沒有 caseId
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/initial_review_started_carries_the_case
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/draft_saved_carries_the_submission

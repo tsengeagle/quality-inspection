@@ -80,3 +80,5 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/InitialReviewStartedEvent.java       legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/ReviewDraftSavedEvent.java           legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/ReviewSubmissionSubmittedEvent.java  legislated  specs/review-case/
+# D-067 第 3 點：建構 PR 新增的初審完成事件。檔案由建構 PR 建立，先列在這裡。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/InitialReviewCompletedEvent.java             legislated  specs/review-case/
