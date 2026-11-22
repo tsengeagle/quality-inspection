@@ -133,12 +133,16 @@ Accept: application/json
 | `ITEM_NOT_FOUND`                   |         422 | 更新命令指向不存在的題目（D-050）     |
 | `BATCH_NOT_RETRYABLE`              |         422 | 批次不可重跑                    |
 | `DUPLICATE_SELECTED_CASE_IN_BATCH` |         409 | 同批次重複抽中同一案件               |
-| `CASE_NOT_ASSIGNABLE`              |         422 | 案件目前不可指派                  |
+| `CASE_NOT_ASSIGNABLE`              |         422 | 案件目前不可指派（指派初審醫師；指派複審醫師時案件不是 `PENDING_REREVIEW`，D-069） |
 | `REREVIEWER_HAS_READ_INITIAL`      |         422 | 指派或改派的複審醫師曾讀過本案完整初審（D-055） |
 | `CASE_NOT_IN_INITIAL_REVIEW_STAGE` |         422 | 案件不在該初審操作要求的狀態（開始初審、保存初審草稿、提交初審；D-067、D-068） |
 | `NOT_ASSIGNED_REVIEWER`            |         403 | 開始初審的人不是受指派的初審醫師（D-067） |
 | `REQUIRED_ITEMS_NOT_ANSWERED`      |         422 | 提交初審時有必答題沒有作答（D-067）   |
-| `CASE_NOT_IN_REREVIEW_STAGE`       |         422 | 案件不在可開始複審狀態               |
+| `CASE_NOT_IN_REREVIEW_STAGE`       |         422 | 案件不在該複審操作要求的狀態（開始複審、保存複審草稿、提交複審、複審結案；D-069） |
+| `NO_REREVIEWER_ASSIGNED`           |         422 | 開始複審時案件還沒有指派複審醫師（D-069） |
+| `REREVIEWER_SAME_AS_REVIEWER`      |         422 | 指派的複審醫師是本案的初審醫師（D-017、D-069） |
+| `SUBMISSION_NOT_DRAFT`             |         409 | 保存或提交的複審提交已不是草稿（D-069） |
+| `SUBMISSION_NOT_SUBMITTED`         |         409 | 固定或結案的目標仍是草稿（D-053、D-054） |
 | `NOT_ASSIGNED_REREVIEWER`          |         403 | 操作者不是受指派的複審醫師（開始、保存草稿、提交、修正複審；D-068） |
 | `CASE_ALREADY_CLOSED`              |         409 | 案件已結案                     |
 | `CASE_ALREADY_CANCELLED`           |         409 | 案件已取消                     |
@@ -1901,7 +1905,7 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 | `ROLE_DENIED` | 403 | 不是 `REREVIEWER` |
 | `HOSPITAL_SCOPE_MISMATCH` | 403 | 院區不符 |
 | `CASE_TERMINAL` | 409 | 案件已是 `CLOSED` 或 `CANCELLED`（含重複結案） |
-| `CASE_NOT_REREVIEW_IN_PROGRESS` | 409 | 案件不在複審中 |
+| `CASE_NOT_IN_REREVIEW_STAGE` | 422 | 案件不在複審中（D-069 修改，原為 `409 CASE_NOT_REREVIEW_IN_PROGRESS`） |
 | `CONFLICT` | 409 | 結案目標不屬於本案、不是複審階段，或不是目前有效版本 |
 | `SUBMISSION_NOT_SUBMITTED` | 409 | 結案目標仍是草稿 |
 | `NOT_SUBMISSION_OWNER` | 403 | 不是這份有效結果的提交者 |

@@ -23,9 +23,9 @@ enums:
 transitions:
   - { id: RS-T-01, from: DRAFT, to: DRAFT,     by: review-case.SaveInitialReviewDraft, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
   - { id: RS-T-02, from: DRAFT, to: SUBMITTED, by: review-case.SubmitInitialReview,    status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+  - { id: RS-T-03, from: DRAFT, to: DRAFT,     by: review-case.SaveRereviewDraft,      status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-069 }] }
+  - { id: RS-T-04, from: DRAFT, to: SUBMITTED, by: review-case.SubmitRereview,         status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-069 }] }
 
 deferred_transitions:
   - { from: SUBMITTED, to: SUPERSEDED, by: ReviseInitialReview, note: 修正已提交的初審；同時建立一份新的 SUBMITTED }
-  - { from: DRAFT,     to: DRAFT,      by: SaveRereviewDraft,   note: 複審 }
-  - { from: DRAFT,     to: SUBMITTED,  by: SubmitRereview,      note: 複審 }
   - { from: SUBMITTED, to: SUPERSEDED, by: ReviseRereview,      note: 複審 }

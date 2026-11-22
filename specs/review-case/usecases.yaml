@@ -5,20 +5,26 @@ kind: usecases
 aggregate: ReviewCase
 
 sources:
+  - { decision: D-017 }
   - { decision: D-023 }
   - { decision: D-024 }
   - { decision: D-031 }
+  - { decision: D-032 }
+  - { decision: D-033 }
+  - { decision: D-034 }
   - { decision: D-035 }
   - { decision: D-038 }
   - { decision: D-042 }
   - { decision: D-047 }
+  - { decision: D-053 }
   - { decision: D-054 }
   - { decision: D-055 }
   - { decision: D-066 }
   - { decision: D-067 }
   - { decision: D-068 }
-  - { doc: docs/02-ddd/domain-events.md, section: "§6.2、§6.3、§6.4、§7.1、§7.2" }
-  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§11.1–§11.3、§13.2" }
+  - { decision: D-069 }
+  - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.9、§6.12、§7.1、§7.2" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.10、§11.1–§11.3、§12.1–§12.3、§13.2、D-034 複審獨立 Close Command 對齊" }
 
 error_codes:
   - { code: ROLE_DENIED,                      category: denied,         status: decided,  source: [{ decision: D-023 }] }
@@ -32,6 +38,18 @@ error_codes:
   - { code: SUBMISSION_NOT_OWNED_BY_ACTOR,    category: denied,         status: decided,  source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
   - { code: NOT_ASSIGNED_REVIEWER,            category: denied,         status: decided,  source: [{ decision: D-067 }] }
   - { code: REQUIRED_ITEMS_NOT_ANSWERED,      category: rule_violation, status: decided,  source: [{ decision: D-067 }] }
+  - { code: SUBMISSION_NOT_FOUND,              category: not_found,      status: decided,  source: [{ decision: D-054 }] }
+  - { code: CASE_TERMINAL,                     category: conflict,       status: decided,  source: [{ decision: D-053 }, { decision: D-054 }] }
+  - { code: INVALID_STATE_TRANSITION,          category: conflict,       status: decided,  source: [{ decision: D-054 }] }
+  - { code: CASE_NOT_INITIAL_REVIEW_COMPLETED, category: conflict,       status: decided,  source: [{ decision: D-054 }, { doc: docs/03-contracts/api-spec.md, section: "§10.10" }] }
+  - { code: CONFLICT,                          category: conflict,       status: decided,  source: [{ decision: D-053 }, { decision: D-054 }] }
+  - { code: SUBMISSION_NOT_SUBMITTED,          category: conflict,       status: decided,  source: [{ decision: D-053 }, { decision: D-054 }] }
+  - { code: SUBMISSION_NOT_DRAFT,              category: conflict,       status: decided,  source: [{ decision: D-069 }] }
+  - { code: NOT_SUBMISSION_OWNER,              category: denied,         status: decided,  source: [{ decision: D-053 }, { decision: D-054 }] }
+  - { code: CASE_NOT_IN_REREVIEW_STAGE,        category: rule_violation, status: decided,  source: [{ decision: D-069 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: NOT_ASSIGNED_REREVIEWER,           category: denied,         status: decided,  source: [{ decision: D-068 }] }
+  - { code: NO_REREVIEWER_ASSIGNED,            category: rule_violation, status: decided,  source: [{ decision: D-069 }] }
+  - { code: REREVIEWER_SAME_AS_REVIEWER,       category: rule_violation, status: decided,  source: [{ decision: D-017 }, { decision: D-069 }] }
 
 # 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
 guards:
@@ -50,6 +68,11 @@ guards:
     outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
     status: decided
     source: [{ decision: D-024 }]
+  - id: RC-G-04
+    when: submissionId 找不到對應的提交
+    outcome: { result: REJECTED, code: SUBMISSION_NOT_FOUND }
+    status: decided
+    source: [{ decision: D-054 }]
 
 input_types:
   AnswerInput:
@@ -65,6 +88,7 @@ output_types:
     - { name: sourceCaseKey, type: text }
     - { name: status,        type: enum CaseStatus }
     - { name: reviewerId,    type: id }
+    - { name: rereviewerId,  type: id }
     - { name: assignedAt,    type: datetime }
     - { name: dueAt,         type: datetime }
   RevisionEntry:
@@ -233,6 +257,344 @@ usecases:
         - { name: submissionId, type: id }
         - { name: caseStatus,   type: enum CaseStatus }
         - { name: totalScore,   type: decimal(2) }
+
+  # ---------- 初審固定與送複審（D-069） ----------
+
+  - name: FixInitialReview
+    kind: command
+    summary: 初審醫師固定自己目前有效的初審結果；分數大於品質線就進複審
+    actor: { roles: [REVIEWER] }
+    input:
+      - { name: caseId,       type: id, required: true }
+      - { name: submissionId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-04, RC-G-03]
+    rules:
+      - id: RC-FIX-01
+        when: 案件的 status 是 CLOSED 或 CANCELLED
+        outcome: { result: REJECTED, code: CASE_TERMINAL }
+        status: decided
+        source: [{ decision: D-054 }]
+      - id: RC-FIX-02
+        when: 案件的初審已經固定
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        status: decided
+        source: [{ decision: D-054 }]
+      - id: RC-FIX-03
+        when: 案件的 status 不是 INITIAL_REVIEW_COMPLETED
+        outcome: { result: REJECTED, code: CASE_NOT_INITIAL_REVIEW_COMPLETED }
+        status: decided
+        source: [{ decision: D-054 }]
+      - id: RC-FIX-04
+        when: 這份提交不屬於本案、不是初審階段，或不是本案目前有效的初審結果
+        outcome: { result: REJECTED, code: CONFLICT }
+        status: decided
+        source: [{ decision: D-054 }]
+      - id: RC-FIX-05
+        when: 這份提交還是草稿
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_SUBMITTED }
+        status: decided
+        source: [{ decision: D-054 }]
+      - id: RC-FIX-06
+        when: 操作者不是這份提交的醫師
+        outcome: { result: REJECTED, code: NOT_SUBMISSION_OWNER }
+        status: decided
+        source: [{ decision: D-054 }]
+    success:
+      state:
+        - { id: RC-FIX-S1, text: 被固定那份提交的分數大於專案的品質線時，status = PENDING_REREVIEW, status: decided, source: [{ decision: D-031 }, { decision: D-054 }] }
+        - { id: RC-FIX-S2, text: 分數不大於品質線，或品質線沒有設定時，status 維持 INITIAL_REVIEW_COMPLETED, status: decided, source: [{ decision: D-054 }] }
+        - { id: RC-FIX-S3, text: 輸出的 fixedAt 是固定當時的時間, status: decided, source: [{ decision: D-054 }] }
+        - { id: RC-FIX-S4, text: InitialReviewFixed 帶有 caseId 與 submissionId，不帶分數, status: decided, source: [{ decision: D-054 }, { decision: D-069 }, { doc: docs/02-ddd/domain-events.md, section: "§6.12" }] }
+        - { id: RC-FIX-S5, text: 進複審時，ReviewCaseEscalatedToRereview 帶有 caseId、projectId、triggeredBySubmissionId、initialScore、qualityThreshold, status: decided, source: [{ decision: D-069 }, { doc: docs/02-ddd/domain-events.md, section: "§6.5" }] }
+      emits:
+        - { event: InitialReviewFixed,            status: decided, source: [{ decision: D-054 }, { doc: docs/02-ddd/domain-events.md, section: "§6.12" }] }
+        - { event: ReviewCaseEscalatedToRereview, status: decided, source: [{ decision: D-054 }, { doc: docs/02-ddd/domain-events.md, section: "§6.5" }] }
+    output:
+      status: decided
+      source: [{ decision: D-054 }]
+      fields:
+        - { name: caseId,       type: id }
+        - { name: caseStatus,   type: enum CaseStatus }
+        - { name: submissionId, type: id }
+        - { name: fixedAt,      type: datetime }
+
+  - name: SendToRereview
+    kind: command
+    summary: 管理者把初審已固定、沒有自動進複審的案件送複審
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-SND-01
+        when: 案件的 status 不是 INITIAL_REVIEW_COMPLETED
+        outcome: { result: REJECTED, code: CASE_NOT_INITIAL_REVIEW_COMPLETED }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.10" }]
+      - id: RC-SND-02
+        when: 案件的初審還沒有固定
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        status: decided
+        source: [{ decision: D-054 }]
+    success:
+      state:
+        - { id: RC-SND-S1, text: status = PENDING_REREVIEW, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.10" }] }
+        - { id: RC-SND-S2, text: ReviewCaseEscalatedToRereview 帶有 caseId 與 projectId, status: decided, source: [{ decision: D-069 }, { doc: docs/02-ddd/domain-events.md, section: "§6.5" }] }
+      emits:
+        - { event: ReviewCaseEscalatedToRereview, status: decided, source: [{ decision: D-069 }, { doc: docs/02-ddd/domain-events.md, section: "§6.5" }] }
+
+  # ---------- 複審（D-069） ----------
+
+  - name: AssignRereviewer
+    kind: command
+    summary: 指派複審醫師與期限
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId,       type: id,       required: true }
+      - { name: rereviewerId, type: id,       required: true }
+      - { name: dueAt,        type: datetime, required: true, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.5" }] }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-ARR-01
+        when: 案件的 status 不是 PENDING_REREVIEW
+        outcome: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+        status: decided
+        source: [{ decision: D-069 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }]
+      - id: RC-ARR-02
+        when: rereviewerId 或 dueAt 沒有給
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-069 }, { doc: docs/03-contracts/api-spec.md, section: "§10.5" }]
+      - id: RC-ARR-03
+        when: rereviewerId 是本案的初審醫師
+        outcome: { result: REJECTED, code: REREVIEWER_SAME_AS_REVIEWER }
+        status: decided
+        source: [{ decision: D-017 }]
+    success:
+      state:
+        - { id: RC-ARR-S1, text: rereviewerId 等於輸入，status 維持 PENDING_REREVIEW, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.5" }, { scenario: TS-RR-001 }] }
+        - { id: RC-ARR-S2, text: RereviewerAssigned 帶有 caseId, status: proposed, question: Q-08 }
+      emits:
+        - { event: RereviewerAssigned, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.6" }] }
+
+  - name: StartRereview
+    kind: command
+    summary: 受指派的複審醫師開始複審，建立複審草稿
+    actor: { roles: [REREVIEWER] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-STR-01
+        when: 案件已指派複審醫師，但操作者不是
+        outcome: { result: REJECTED, code: NOT_ASSIGNED_REREVIEWER }
+        status: decided
+        source: [{ decision: D-068 }]
+      - id: RC-STR-02
+        when: 案件的 status 不是 PENDING_REREVIEW
+        outcome: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+        status: decided
+        source: [{ decision: D-069 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }]
+      - id: RC-STR-03
+        when: 案件還沒有指派複審醫師
+        outcome: { result: REJECTED, code: NO_REREVIEWER_ASSIGNED }
+        status: decided
+        source: [{ decision: D-069 }]
+    success:
+      state:
+        - { id: RC-STR-S1, text: status = REREVIEW_IN_PROGRESS, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { scenario: TS-RR-002 }] }
+        - { id: RC-STR-S2, text: 建立一份複審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-069 }] }
+        - { id: RC-STR-S3, text: RereviewStarted 帶有 caseId, status: proposed, question: Q-08 }
+      emits:
+        - { event: RereviewStarted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.7" }] }
+    output:
+      fields:
+        - { name: submissionId, type: id }
+
+  - name: SaveRereviewDraft
+    kind: command
+    summary: 保存複審草稿的答案與評語
+    actor: { roles: [REREVIEWER] }
+    input:
+      - { name: caseId,       type: id,                  required: true }
+      - { name: submissionId, type: id,                  required: true }
+      - { name: answers,      type: "list<AnswerInput>", required: true }
+      - { name: comment,      type: text,                required: false }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-RDR-01
+        when: 案件的 status 是 CLOSED 或 CANCELLED
+        outcome: { result: REJECTED, code: CASE_TERMINAL }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-RDR-02
+        when: 案件的 status 不是 REREVIEW_IN_PROGRESS
+        outcome: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+        status: decided
+        source: [{ decision: D-069 }]
+      - id: RC-RDR-03
+        when: 操作者不是這個案件受指派的複審醫師
+        outcome: { result: REJECTED, code: NOT_ASSIGNED_REREVIEWER }
+        status: decided
+        source: [{ decision: D-068 }]
+      - id: RC-RDR-04
+        when: submissionId 找不到對應的提交
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_FOUND }
+        status: decided
+        source: [{ decision: D-069 }]
+      - id: RC-RDR-05
+        when: 這份提交不屬於本案，或不是複審階段
+        outcome: { result: REJECTED, code: CONFLICT }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-RDR-06
+        when: 操作者不是這份提交的醫師
+        outcome: { result: REJECTED, code: NOT_SUBMISSION_OWNER }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-RDR-07
+        when: 這份提交不是草稿
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_DRAFT }
+        status: decided
+        source: [{ decision: D-069 }]
+      - id: RC-RDR-08
+        when: 這份提交不是本案目前有效的複審結果
+        outcome: { result: REJECTED, code: CONFLICT }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-RDR-09
+        when: 答案與評語和已保存的草稿完全相同
+        outcome: { result: REJECTED, code: NO_CHANGES, no_change: true }
+        status: decided
+        source: [{ decision: D-038 }]
+    success:
+      state:
+        - { id: RC-RDR-S1, text: 草稿的答案與評語等於輸入, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+
+  - name: SubmitRereview
+    kind: command
+    summary: 提交複審；系統計分、計算 finalScore，不結案
+    actor: { roles: [REREVIEWER] }
+    input:
+      - { name: caseId,       type: id,                  required: true }
+      - { name: submissionId, type: id,                  required: true, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§12.3" }] }
+      - { name: answers,      type: "list<AnswerInput>", required: false }
+      - { name: comment,      type: text,                required: false }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-SRR-01
+        when: 案件的 status 是 CLOSED 或 CANCELLED
+        outcome: { result: REJECTED, code: CASE_TERMINAL }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-SRR-02
+        when: 案件的 status 不是 REREVIEW_IN_PROGRESS
+        outcome: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+        status: decided
+        source: [{ decision: D-069 }]
+      - id: RC-SRR-03
+        when: 操作者不是這個案件受指派的複審醫師
+        outcome: { result: REJECTED, code: NOT_ASSIGNED_REREVIEWER }
+        status: decided
+        source: [{ decision: D-068 }, { scenario: TS-RR-004 }]
+      - id: RC-SRR-04
+        when: submissionId 找不到對應的提交
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_FOUND }
+        status: decided
+        source: [{ decision: D-069 }]
+      - id: RC-SRR-05
+        when: 這份提交不屬於本案，或不是複審階段
+        outcome: { result: REJECTED, code: CONFLICT }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-SRR-06
+        when: 操作者不是這份提交的醫師
+        outcome: { result: REJECTED, code: NOT_SUBMISSION_OWNER }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-SRR-07
+        when: 這份提交不是草稿
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_DRAFT }
+        status: decided
+        source: [{ decision: D-069 }]
+      - id: RC-SRR-08
+        when: 這份提交不是本案目前有效的複審結果
+        outcome: { result: REJECTED, code: CONFLICT }
+        status: decided
+        source: [{ decision: D-053 }]
+    success:
+      state:
+        - { id: RC-SRR-S1, text: status 維持 REREVIEW_IN_PROGRESS，不結案、不固定, status: decided, source: [{ decision: D-032 }, { decision: D-053 }, { scenario: TS-RR-003 }] }
+        - { id: RC-SRR-S2, text: 複審提交的狀態是 SUBMITTED，submittedAt 是提交當時的時間；totalScore 由系統依評分表計算, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-032 }] }
+        - { id: RC-SRR-S3, text: RereviewCompleted 帶有 caseId, status: proposed, question: Q-08 }
+        - { id: RC-SRR-S4, text: 輸出沒有 finalScore，也沒有初審的分數, status: decided, source: [{ decision: D-033 }, { decision: D-053 }] }
+      emits:
+        - { event: RereviewCompleted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.8" }] }
+    output:
+      fields:
+        - { name: submissionId, type: id }
+        - { name: status,       type: enum SubmissionStatus }
+        - { name: caseId,       type: id }
+        - { name: caseStatus,   type: enum CaseStatus }
+
+  - name: CloseRereview
+    kind: command
+    summary: 目前有效複審結果的提交醫師結案；結案即固定複審結果
+    actor: { roles: [REREVIEWER] }
+    input:
+      - { name: caseId,       type: id, required: true }
+      - { name: submissionId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-CLR-01
+        when: 案件的 status 是 CLOSED 或 CANCELLED（含重複結案）
+        outcome: { result: REJECTED, code: CASE_TERMINAL }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-CLR-02
+        when: 案件的 status 不是 REREVIEW_IN_PROGRESS
+        outcome: { result: REJECTED, code: CASE_NOT_IN_REREVIEW_STAGE }
+        status: decided
+        source: [{ decision: D-069 }]
+      - id: RC-CLR-03
+        when: submissionId 找不到對應的提交
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_FOUND }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-CLR-04
+        when: 這份提交不屬於本案，或不是複審階段
+        outcome: { result: REJECTED, code: CONFLICT }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-CLR-05
+        when: 操作者不是這份提交的醫師
+        outcome: { result: REJECTED, code: NOT_SUBMISSION_OWNER }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-CLR-06
+        when: 這份提交還是草稿
+        outcome: { result: REJECTED, code: SUBMISSION_NOT_SUBMITTED }
+        status: decided
+        source: [{ decision: D-053 }]
+      - id: RC-CLR-07
+        when: 這份提交不是本案目前有效的複審結果
+        outcome: { result: REJECTED, code: CONFLICT }
+        status: decided
+        source: [{ decision: D-053 }]
+    success:
+      state:
+        - { id: RC-CLR-S1, text: status = CLOSED, status: decided, source: [{ decision: D-034 }, { decision: D-053 }] }
+        - { id: RC-CLR-S2, text: ReviewCaseClosed 帶有 caseId, status: proposed, question: Q-08 }
+        - { id: RC-CLR-S3, text: 輸出沒有 finalScore, status: decided, source: [{ decision: D-033 }, { decision: D-053 }] }
+      emits:
+        - { event: ReviewCaseClosed, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.9" }, { decision: D-053 }] }
+    output:
+      status: decided
+      source: [{ decision: D-053 }]
+      fields:
+        - { name: caseId,       type: id }
+        - { name: caseStatus,   type: enum CaseStatus }
+        - { name: submissionId, type: id }
 
   # ---------- revision 歷程 ----------
 

@@ -1967,7 +1967,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
    | 案件或提交不存在 | 既有的資源不存在代碼 |
    | 院區不符 | `HOSPITAL_SCOPE_MISMATCH` |
    | 案件已是 `CLOSED` 或 `CANCELLED` | `CASE_TERMINAL` |
-   | 案件不在 `REREVIEW_IN_PROGRESS` | `CASE_NOT_REREVIEW_IN_PROGRESS` |
+   | 案件不在 `REREVIEW_IN_PROGRESS` | `CASE_NOT_IN_REREVIEW_STAGE`（D-069 第 3 點修改，原為 `CASE_NOT_REREVIEW_IN_PROGRESS`） |
    | 結案目標不屬於本案、不是複審階段，或不是目前有效版本（已被取代、過期） | `CONFLICT` |
    | 結案目標仍是草稿 | `SUBMISSION_NOT_SUBMITTED` |
    | 操作者不是這份有效結果的提交者 | `NOT_SUBMISSION_OWNER` |
@@ -1982,6 +1982,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - 第 2 點與 D-033 一致。現行的複審提交回應會把 `finalScore` 回給複審醫師，違反 D-033；`RereviewApiTest#fullRereviewFlow` 還預期這個欄位存在。這兩處在實作時一併修正，不需要另外裁決。
 - 第 3 點不新增欄位，因此不受 D-045「正式資料庫與 migration 工具未定前不得新增欄位」限制。
 - 第 5 點的代碼都是現有複審提交與複審 revision 已在使用的代碼。
+- 2026-11-22 依 D-069 第 3 點修改第 5 點：案件不在 `REREVIEW_IN_PROGRESS` 改回 `CASE_NOT_IN_REREVIEW_STAGE`（422），與初審的 `CASE_NOT_IN_INITIAL_REVIEW_STAGE` 對稱；`CASE_NOT_REREVIEW_IN_PROGRESS`（409）停用。其餘代碼不變。
 - 不在本決策範圍：初審的「固定」（D-031、DD-03）在程式裡同樣尚未實作，另案處理。
 
 ### Mapping
@@ -2739,3 +2740,59 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/03-contracts/api-spec.md` §4.2
 - `services/quality-inspection-service/known-test-failures.txt`
 - 後續：建構 PR（第 1～3 點）
+
+---
+
+## D-069 — 複審切片：初審固定到複審結案的立法範圍、狀態錯誤代碼、事件名稱
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/19-rereview-slice-draft.md` 裁決：S-1、S-2、S-4～S-6 照建議；S-3 不照建議，改成 422 並修 D-053）
+
+### Decision
+
+1. **範圍（S-1）。** 立法七支 use case：`FixInitialReview`（含分數大於品質線時自動進複審）、`SendToRereview`、`AssignRereviewer`、`StartRereview`、`SaveRereviewDraft`、`SubmitRereview`、`CloseRereview`。送複審前必須固定初審（D-054），開始複審前必須指派複審醫師，所以前兩支與指派一起納入。
+   - 不納入，維持暫准：改派複審醫師、修正已提交的初審與複審、不經複審結案、取消、退回與重開、讀取遮罩。
+   - `law/coverage.txt` 把七支 use case 與它們發出的事件類別列為 `legislated`。
+2. **指派複審醫師、開始複審的狀態錯誤（S-2）。**
+   - 指派複審醫師時案件不是 `PENDING_REREVIEW`：`CASE_NOT_ASSIGNABLE`，分類 `rule_violation`（422），與指派初審醫師相同。`api-spec.md` §4.2 的說明加上「指派複審醫師」。
+   - 開始複審時案件不是 `PENDING_REREVIEW`：`CASE_NOT_IN_REREVIEW_STAGE`（422，見第 3 點）。
+   - 開始複審時還沒有指派：`NO_REREVIEWER_ASSIGNED`（422）；指派的複審醫師是本案初審醫師：`REREVIEWER_SAME_AS_REVIEWER`（422，D-017）。兩者照程式，補進 §4.2。
+   - 指派複審醫師時 `rereviewerId` 或 `dueAt` 沒有給：`VALIDATION_ERROR`（`api-spec.md` §10.5「`dueAt` 為必填」），與指派初審醫師（D-067）相同。
+   - 建構 PR：`ReviewCase.assignRereviewer`、`reassignRereviewer`、`startRereview` 的 `CASE_NOT_PENDING_REREVIEW`（409）改成上述代碼與 `DomainRuleViolationException`。改派不在立法範圍，但共用同一個檢查，代碼一起變，行為不變；`CASE_NOT_PENDING_REREVIEW` 停用。指派複審醫師補上輸入的必填檢查。
+3. **草稿、提交、結案的狀態錯誤（S-3）。**
+   - 開始複審、保存複審草稿、提交複審、複審結案時案件不在該操作要求的狀態，共用 `CASE_NOT_IN_REREVIEW_STAGE`，分類 `rule_violation`（422）。§4.2 的說明放寬為「案件不在該複審操作要求的狀態」，與初審的 `CASE_NOT_IN_INITIAL_REVIEW_STAGE`（D-067、D-068）對稱。
+   - 修 D-053 第 5 點：原本的 `CASE_NOT_REREVIEW_IN_PROGRESS`（409）停用。`api-spec.md` 結案端點的錯誤表一併改。
+   - 建構 PR：`SaveRereviewDraftUseCase`、`SubmitRereviewUseCase`、`CloseRereviewUseCase`，以及 `ReviewCase.completeRereview`、`closeAfterRereview` 改成這個代碼與 `DomainRuleViolationException`。
+   - 不變：`SUBMISSION_NOT_DRAFT`、`SUBMISSION_NOT_SUBMITTED`、`CONFLICT`、`NOT_SUBMISSION_OWNER`、`CASE_TERMINAL` 照 D-053、D-054。`SUBMISSION_NOT_DRAFT`、`SUBMISSION_NOT_SUBMITTED`（409）補進 §4.2。
+4. **事件的名稱與欄位（S-4）。**
+   - 規格用 `domain-events.md` 的名稱，程式改類別名稱：`CaseEscalatedToRereviewEvent` → `ReviewCaseEscalatedToRereviewEvent`、`RereviewSubmittedEvent` → `RereviewCompletedEvent`、`RereviewCaseClosedEvent` → `ReviewCaseClosedEvent`。不經複審結案的 `CaseClosedWithoutRereviewEvent` 不在範圍，不動。
+   - 稽核紀錄不變：稽核存的是建構式寫死的 `action` 與 `detail`，不存類別名稱（2026-11-22 查證，見草案第六節）。改名時 `action` 與 `detail` 逐字不變，照 D-066 第 2 點由測試確認。`GET /audit-trails` 的 `eventName` 實際比對 `action`，它的值要不要對齊 `domain-events.md`，等稽核查詢立法。
+   - `ReviewCaseEscalatedToRereview` 照 §6.5 的最低必要欄位：`caseId`、`projectId`、`triggeredBySubmissionId`、`initialScore`、`qualityThreshold`。§6.5 補上「管理者手工送複審也發布本事件」；手工時 `triggeredBySubmissionId`、`qualityThreshold` 是 null。
+   - `InitialReviewFixed` 補進 `domain-events.md`（§6.12）：`caseId`、`submissionId`，不帶分數（D-054 第 8 點）。
+   - 其他四個事件（`RereviewerAssigned`、`RereviewStarted`、`RereviewCompleted`、`ReviewCaseClosed`）文件沒有最低必要欄位：規格只斷言 `caseId`，標 `proposed`（`OPEN-QUESTIONS.md` Q-08）。
+   - 建構 PR：三個類別改名；`ReviewCaseEscalatedToRereviewEvent`、`InitialReviewFixedEvent` 加上述欄位與取得方法；其他四個事件加 `caseId` 的取得方法。
+5. **盲審與讀過初審的人（S-5）。**
+   - 提交複審、複審結案的輸出不得有 `finalScore` 與初審分數（D-033、D-053 第 2 點），規格以 `absent` 斷言。
+   - 讀過完整初審的人不得受派（D-055 第 5 點）延後到讀取遮罩立法：範例做不出「讀過、之後才受派」的狀態。`REREVIEWER_SAME_AS_REVIEWER`（D-017）納入。
+6. **品質線與權重取自專案目前的版本（S-6）。** 不立規則，併入 D-068 第 4 點，等專案版本管理立法時一起決定（案件要不要記專案版本）。
+7. **輸入。** 七支 use case 的輸入照規格的名稱攤平（D-066 M-1-2）。保存複審草稿的輸入沒有分數：分數在提交時由系統依評分表計算，與初審相同。
+8. **一開始是紅的範例。** 照 D-066 第 5 點，本裁決的修法 PR 把紅的範例加進 `known-test-failures.txt`，由建構 PR 移除。
+9. **順序。** 本裁決、規格、`api-spec.md`、`domain-events.md`、`law/coverage.txt`、`known-test-failures.txt` 在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-066～D-068 立法了抽選到初審提交；負責人 2026-11-22 同意下一個切片是送複審到結案。
+- **草案與查證**：`docs/harness/19-rereview-slice-draft.md`（main = `b351b03` 的程式現況、權威文件、選項與理由；含事件類別與稽核的查證）。
+- **D-053**：第 3 點修改其第 5 點的一個代碼。
+- **D-066**：第 4 點照其第 2 點（事件欄位、`detail` 逐字不變）；第 7 點照其 M-1-2（攤平輸入）。
+- **D-068**：第 6 點併入其第 4 點。
+- **不在本裁決**：`domain-events.md` §7.1、§7.2 的 `ReviewDraftSaved`、`ReviewSubmissionSubmitted` 寫的是提交（不分階段）的事件，程式在複審沒有發出；規格的提交複審範例用 `emits_include`，不斷言完整的事件清單。提交複審沒有必答題檢查（初審有，D-067）。兩者等複審的後續題裁決。
+
+### Mapping
+
+- `specs/review-case/`（`RC-T-04`～`RC-T-09`、`RC-G-04`、`RC-FIX-*`、`RC-SND-*`、`RC-ARR-*`、`RC-STR-*`、`RC-RDR-*`、`RC-SRR-*`、`RC-CLR-*`、`OPEN-QUESTIONS.md` Q-08）、`specs/review-submission/`（`RS-T-03`、`RS-T-04`）
+- `docs/03-contracts/api-spec.md` §4.2、D-034 複審獨立 Close Command 對齊
+- `docs/02-ddd/domain-events.md` §6.5、§6.12
+- `law/coverage.txt`、`services/quality-inspection-service/known-test-failures.txt`
+- 後續：建構 PR
