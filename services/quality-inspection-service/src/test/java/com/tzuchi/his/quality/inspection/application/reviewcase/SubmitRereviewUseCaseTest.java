@@ -4,7 +4,6 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.SubmitRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -123,12 +122,9 @@ class SubmitRereviewUseCaseTest {
         seedRereviewInProgressCase();
         seedRereviewDraftWithAnswers();
 
-        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(SUBMISSION_ID);
         // Don't pass answers — use existing draft answers
 
-        SubmitRereviewResult result = useCase.execute(rereviewerActor(), cmd);
+        SubmitRereviewResult result = useCase.execute(rereviewerActor(), CASE_ID, SUBMISSION_ID, null, null);
 
         assertNotNull(result.getSubmissionId());
         assertEquals("SUBMITTED", result.getStatus());
@@ -160,10 +156,7 @@ class SubmitRereviewUseCaseTest {
         seedScoreSheet();
         seedRereviewInProgressCase();
         seedRereviewDraftWithAnswers();
-        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(SUBMISSION_ID);
-        useCase.execute(rereviewerActor(), cmd);
+        useCase.execute(rereviewerActor(), CASE_ID, SUBMISSION_ID, null, null);
         ReviewCase saved = caseRepo.findById(CASE_ID).orElseThrow();
         assertNotEquals(CaseStatus.CLOSED, saved.getStatus());
         assertNull(saved.getClosedAt());
@@ -176,14 +169,11 @@ class SubmitRereviewUseCaseTest {
         seedRereviewInProgressCase();
         seedRereviewDraftWithAnswers();
 
-        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(SUBMISSION_ID);
 
         ActorContext wrongActor = new ActorContext("someone-else", "Other",
                 EnumSet.of(DomainRole.REREVIEWER), Optional.of(HOSPITAL_ID));
         // D-068 第 2 點
-        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, cmd));
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, CASE_ID, SUBMISSION_ID, null, null));
         assertEquals("NOT_ASSIGNED_REREVIEWER", ex.getErrorCode());
     }
 
@@ -194,13 +184,10 @@ class SubmitRereviewUseCaseTest {
         seedRereviewInProgressCase();
         seedRereviewDraftWithAnswers();
 
-        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(SUBMISSION_ID);
 
         ActorContext reviewer = new ActorContext(REREVIEWER_ID, "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of(HOSPITAL_ID));
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, CASE_ID, SUBMISSION_ID, null, null));
     }
 
     @Test
@@ -210,13 +197,10 @@ class SubmitRereviewUseCaseTest {
         seedRereviewInProgressCase();
         seedRereviewDraftWithAnswers();
 
-        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(SUBMISSION_ID);
 
         ActorContext wrongHospital = new ActorContext(REREVIEWER_ID, "ReReviewer",
                 EnumSet.of(DomainRole.REREVIEWER), Optional.of("OTHER_HOSPITAL"));
-        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, CASE_ID, SUBMISSION_ID, null, null));
     }
 
     @ParameterizedTest
@@ -260,14 +244,11 @@ class SubmitRereviewUseCaseTest {
         caseRepo.save(reviewCase);
         List<Object> beforeCase = caseState(reviewCase);
         Map<String, List<Object>> beforeSubmissions = submissionState();
-        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(SUBMISSION_ID);
 
         ActorContext actor = scenario.equals("wrongHospital")
                 ? new ActorContext(REREVIEWER_ID, "ReReviewer", EnumSet.of(DomainRole.REREVIEWER), Optional.of("OTHER"))
                 : rereviewerActor();
-        RuntimeException failure = assertThrows(RuntimeException.class, () -> useCase.execute(actor, cmd));
+        RuntimeException failure = assertThrows(RuntimeException.class, () -> useCase.execute(actor, CASE_ID, SUBMISSION_ID, null, null));
         assertTrue(failure instanceof DomainStateConflictException
                 || failure instanceof com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException
                 || failure instanceof com.tzuchi.his.quality.inspection.application.common.AccessDeniedException,

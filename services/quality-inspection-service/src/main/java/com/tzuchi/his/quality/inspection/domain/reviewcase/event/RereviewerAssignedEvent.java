@@ -12,4 +12,6 @@ public class RereviewerAssignedEvent extends DomainEvent {
                                     String detail) {
         super(source, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEWER_ASSIGNED", detail);
     }
+
+    public String getCaseId() { return getEntityId(); }
 }

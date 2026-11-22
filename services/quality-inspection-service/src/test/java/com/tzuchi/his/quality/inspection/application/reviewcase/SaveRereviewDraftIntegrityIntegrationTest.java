@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.SaveRereviewDraftCommand;
+import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
@@ -91,15 +92,7 @@ class SaveRereviewDraftIntegrityIntegrationTest {
         return new ActorContext("doctor", "Doctor", EnumSet.of(DomainRole.REREVIEWER), Optional.of("H001"));
     }
 
-    private SaveRereviewDraftCommand command() {
-        SaveRereviewDraftCommand cmd = new SaveRereviewDraftCommand();
-        cmd.setCaseId("c1");
-        cmd.setSubmissionId("s1");
-        cmd.setAnswers(Collections.singletonList(AnswerItem.ofRaw("Q1", "changed")));
-        cmd.setTotalScore(new BigDecimal("99"));
-        cmd.setComment("changed comment");
-        return cmd;
-    }
+    private static final List<AnswerInput> CHANGED_ANSWERS = Collections.singletonList(new AnswerInput("Q1", "changed"));
 
     @ParameterizedTest
     @ValueSource(strings = {"otherCase", "otherHospitalSubmission", "otherHospitalCase", "initialStage",
@@ -107,14 +100,14 @@ class SaveRereviewDraftIntegrityIntegrationTest {
             "SELECTED_PENDING_ASSIGNMENT", "PENDING_INITIAL_REVIEW", "INITIAL_REVIEW_IN_PROGRESS",
             "INITIAL_REVIEW_COMPLETED", "RETURNED", "PENDING_REREVIEW", "CLOSED", "CANCELLED"})
     void illegalDraftWrite_rejectsWithoutPersistedChangesOrEvents(String scenario) throws Exception {
-        SaveRereviewDraftCommand cmd = command();
+        String[] target = {"c1", "s1"}; // caseId, submissionId
         ReviewSubmissionEntity sub = submissions.findById("s1").orElseThrow();
         ReviewCaseEntity rc = cases.findById("c1").orElseThrow();
-        if (scenario.equals("otherCase")) cmd.setSubmissionId("s2");
-        if (scenario.equals("otherHospitalSubmission")) cmd.setSubmissionId("s3");
+        if (scenario.equals("otherCase")) target[1] = "s2";
+        if (scenario.equals("otherHospitalSubmission")) target[1] = "s3";
         if (scenario.equals("otherHospitalCase")) {
-            cmd.setCaseId("c3");
-            cmd.setSubmissionId("s3");
+            target[0] = "c3";
+            target[1] = "s3";
         }
         if (scenario.equals("initialStage")) sub.setStage(ReviewStage.INITIAL);
         if (scenario.equals("otherOwner")) sub.setReviewerId("other-doctor");
@@ -139,8 +132,11 @@ class SaveRereviewDraftIntegrityIntegrationTest {
         long beforeEvents = events.stream(DomainEvent.class).count();
         long beforeAudit = audit.count();
 
-        RuntimeException failure = assertThrows(RuntimeException.class, () -> useCase.execute(actor(), cmd));
-        assertTrue(failure instanceof DomainStateConflictException || failure instanceof AccessDeniedException,
+        RuntimeException failure = assertThrows(RuntimeException.class,
+                () -> useCase.execute(actor(), target[0], target[1], CHANGED_ANSWERS, "changed comment"));
+        // D-069 第 3 點：案件狀態不對是 DomainRuleViolationException（CASE_NOT_IN_REREVIEW_STAGE）
+        assertTrue(failure instanceof DomainStateConflictException || failure instanceof DomainRuleViolationException
+                        || failure instanceof AccessDeniedException,
                 "Expected an explicit integrity/authorization guard: " + failure);
         assertEquals(beforeSubmissions, submissionSnapshot());
         assertEquals(beforeCases, caseSnapshot());
@@ -149,15 +145,16 @@ class SaveRereviewDraftIntegrityIntegrationTest {
     }
 
     @Test
-    void currentOwnedDraft_savesAnswersScoreAndComment() throws Exception {
+    void currentOwnedDraft_savesAnswersAndCommentAndKeepsScore() throws Exception {
         Map<String, String> beforeCases = caseSnapshot();
-        SaveDraftResult result = useCase.execute(actor(), command());
+        SaveDraftResult result = useCase.execute(actor(), "c1", "s1", CHANGED_ANSWERS, "changed comment");
         ReviewSubmissionEntity saved = submissions.findById("s1").orElseThrow();
         assertEquals("DRAFT", result.getStatus());
         assertEquals(SubmissionStatus.DRAFT, saved.getStatus());
         assertEquals(ReviewStage.REREVIEW, saved.getStage());
         assertEquals("changed", saved.getAnswerSet().get(0).getAnswerValue());
-        assertEquals(0, new BigDecimal("99").compareTo(saved.getTotalScore()));
+        // D-069 第 7 點：分數不是草稿的輸入，維持原值
+        assertEquals(0, new BigDecimal("12").compareTo(saved.getTotalScore()));
         assertEquals("changed comment", saved.getComment());
         // D-037：草稿儲存是案件的業務更新，只推進案件的 updatedAt 與版本，其他案件欄位不變。
         assertEquals(withoutCaseTimeAndVersion(beforeCases), withoutCaseTimeAndVersion(caseSnapshot()));

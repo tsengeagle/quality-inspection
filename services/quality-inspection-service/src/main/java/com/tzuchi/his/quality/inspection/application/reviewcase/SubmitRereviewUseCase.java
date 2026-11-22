@@ -4,7 +4,8 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.SubmitRereviewCommand;
+import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
@@ -15,7 +16,7 @@ import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.event.RereviewSubmittedEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.RereviewCompletedEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
@@ -58,16 +59,18 @@ public class SubmitRereviewUseCase {
     }
 
     @Transactional
-    public SubmitRereviewResult execute(ActorContext actor, SubmitRereviewCommand cmd) {
+    public SubmitRereviewResult execute(ActorContext actor, String caseId, String submissionId,
+                                        List<AnswerInput> answers, String comment) {
         actor.requireRole(DomainRole.REREVIEWER);
 
-        ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
         if (reviewCase.getStatus() != CaseStatus.REREVIEW_IN_PROGRESS) {
-            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+            // D-069 第 3 點：複審的狀態錯誤共用一個代碼（422）
+            throw new DomainRuleViolationException("CASE_NOT_IN_REREVIEW_STAGE",
                     "Case must be in REREVIEW_IN_PROGRESS to submit");
         }
 
@@ -78,8 +81,8 @@ public class SubmitRereviewUseCase {
                     "Only the assigned rereviewer can submit this rereview");
         }
 
-        ReviewSubmission submission = submissionRepository.findById(cmd.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + cmd.getSubmissionId()));
+        ReviewSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + submissionId));
 
         if (!reviewCase.getCaseId().equals(submission.getCaseId())
                 || submission.getStage() != ReviewStage.REREVIEW) {
@@ -106,8 +109,8 @@ public class SubmitRereviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND", "ScoreSheetDefinition not found: " + reviewCase.getScoreSheetVersionRef()));
 
         // Get current answers (from command if provided, else from draft)
-        List<AnswerItem> currentAnswers = cmd.getAnswers() != null
-                ? cmd.getAnswers()
+        List<AnswerItem> currentAnswers = answers != null
+                ? answers.stream().map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue())).collect(Collectors.toList())
                 : submission.getAnswerSet();
 
         // Calculate scores server-side
@@ -118,7 +121,7 @@ public class SubmitRereviewUseCase {
 
         // Update draft with scored answers, then submit
         LocalDateTime now = LocalDateTime.now(clock);
-        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), cmd.getComment(), now);
+        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, now);
         submission.submit(now);
         submissionRepository.save(submission);
 
@@ -134,7 +137,7 @@ public class SubmitRereviewUseCase {
                 version.getRereviewWeight());
         caseRepository.save(reviewCase);
 
-        eventPublisher.publish(new RereviewSubmittedEvent(
+        eventPublisher.publish(new RereviewCompletedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
                 reviewCase.getCaseId(),
                 String.format("{\"rereviewScore\":%s,\"finalScore\":%s}",
@@ -143,7 +146,7 @@ public class SubmitRereviewUseCase {
         return new SubmitRereviewResult(
                 submission.getSubmissionId(),
                 submission.getStatus().name(),
-                cmd.getCaseId(),
+                caseId,
                 reviewCase.getStatus().name());
     }
 }

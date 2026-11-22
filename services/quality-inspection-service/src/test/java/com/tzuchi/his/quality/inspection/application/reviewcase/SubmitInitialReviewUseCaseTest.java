@@ -250,7 +250,7 @@ class SubmitInitialReviewUseCaseTest {
         assertFalse(savedCase.isInitialReviewFixed());
         assertFalse(result.isRereviewRequired());
         assertTrue(eventPublisher.events.stream().noneMatch(
-                e -> e instanceof com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseEscalatedToRereviewEvent));
+                e -> e instanceof com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseEscalatedToRereviewEvent));
     }
 
     @Test

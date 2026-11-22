@@ -305,8 +305,16 @@ public class ReviewCase {
     }
 
     public void assignRereviewer(String rereviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
+        // D-069 第 2 點：與指派初審醫師相同，輸入檢查在狀態檢查之前
+        if (rereviewerId == null || rereviewerId.isBlank()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "rereviewerId must not be blank");
+        }
+        if (dueAt == null) {
+            throw new DomainValidationException("VALIDATION_ERROR", "dueAt must not be null");
+        }
         if (this.status != CaseStatus.PENDING_REREVIEW) {
-            throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
+            // D-069 第 2 點：與初審的對應操作一致（422）
+            throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
                     "Can only assign rereviewer in PENDING_REREVIEW. Current: " + this.status);
         }
         Objects.requireNonNull(rereviewerId, "rereviewerId must not be null");
@@ -322,7 +330,8 @@ public class ReviewCase {
 
     public void reassignRereviewer(String rereviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
         if (this.status != CaseStatus.PENDING_REREVIEW) {
-            throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
+            // D-069 第 2 點：與初審的對應操作一致（422）
+            throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
                     "Can only reassign rereviewer in PENDING_REREVIEW. Current: " + this.status);
         }
         Objects.requireNonNull(rereviewerId, "rereviewerId must not be null");
@@ -338,7 +347,8 @@ public class ReviewCase {
 
     public void startRereview(String actorId) {
         if (this.status != CaseStatus.PENDING_REREVIEW) {
-            throw new DomainStateConflictException("CASE_NOT_PENDING_REREVIEW",
+            // D-069 第 2 點：與初審的對應操作一致（422）
+            throw new DomainRuleViolationException("CASE_NOT_IN_REREVIEW_STAGE",
                     "Can only start rereview in PENDING_REREVIEW. Current: " + this.status);
         }
         if (this.rereviewerAssignment == null) {
@@ -361,7 +371,8 @@ public class ReviewCase {
                                   BigDecimal initialWeight,
                                   BigDecimal rereviewWeight) {
         if (this.status != CaseStatus.REREVIEW_IN_PROGRESS) {
-            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+            // D-069 第 3 點：複審的狀態錯誤共用一個代碼（422）
+            throw new DomainRuleViolationException("CASE_NOT_IN_REREVIEW_STAGE",
                     "Can only complete rereview in REREVIEW_IN_PROGRESS. Current: " + this.status);
         }
         Objects.requireNonNull(rereviewScore, "rereviewScore must not be null");
@@ -381,7 +392,8 @@ public class ReviewCase {
         Objects.requireNonNull(closedAt, "closedAt must not be null");
         requireNotTerminal();
         if (this.status != CaseStatus.REREVIEW_IN_PROGRESS) {
-            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+            // D-069 第 3 點：複審的狀態錯誤共用一個代碼（422）
+            throw new DomainRuleViolationException("CASE_NOT_IN_REREVIEW_STAGE",
                     "Can only close after rereview in REREVIEW_IN_PROGRESS. Current: " + this.status);
         }
         this.closedAt = closedAt;

@@ -1,10 +1,11 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
+import java.util.List;
+import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.SaveRereviewDraftCommand;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
@@ -62,14 +63,8 @@ class SaveRereviewDraftUseCaseTest {
     @Test
     void execute_happyPath_shouldSaveDraft() {
         seedCaseAndDraft();
-        SaveRereviewDraftCommand cmd = new SaveRereviewDraftCommand();
-        cmd.setCaseId("c1");
-        cmd.setSubmissionId("sub-r1");
-        cmd.setAnswers(Collections.emptyList());
-        cmd.setTotalScore(BigDecimal.ZERO);
-        cmd.setComment("draft comment");
 
-        SaveDraftResult result = useCase.execute(rereviewerActor(), cmd);
+        SaveDraftResult result = useCase.execute(rereviewerActor(), "c1", "sub-r1", Collections.emptyList(), "draft comment");
 
         assertNotNull(result.getSubmissionId());
         assertEquals("DRAFT", result.getStatus());
@@ -83,41 +78,29 @@ class SaveRereviewDraftUseCaseTest {
     @Test
     void execute_wrongActor_shouldThrow() {
         seedCaseAndDraft();
-        SaveRereviewDraftCommand cmd = new SaveRereviewDraftCommand();
-        cmd.setCaseId("c1");
-        cmd.setSubmissionId("sub-r1");
-        cmd.setAnswers(Collections.emptyList());
 
         ActorContext wrongActor = new ActorContext("someone-else", "Other",
                 EnumSet.of(DomainRole.REREVIEWER), Optional.of("H001"));
         // D-068 第 2 點
-        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, cmd));
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, "c1", "sub-r1", Collections.emptyList(), null));
         assertEquals("NOT_ASSIGNED_REREVIEWER", ex.getErrorCode());
     }
 
     @Test
     void execute_nonRereviewer_shouldThrow() {
         seedCaseAndDraft();
-        SaveRereviewDraftCommand cmd = new SaveRereviewDraftCommand();
-        cmd.setCaseId("c1");
-        cmd.setSubmissionId("sub-r1");
-        cmd.setAnswers(Collections.emptyList());
 
         ActorContext reviewer = new ActorContext("rereviewer-1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, "c1", "sub-r1", Collections.emptyList(), null));
     }
 
     @Test
     void execute_wrongHospital_shouldThrowAccessDenied() {
         seedCaseAndDraft();
-        SaveRereviewDraftCommand cmd = new SaveRereviewDraftCommand();
-        cmd.setCaseId("c1");
-        cmd.setSubmissionId("sub-r1");
-        cmd.setAnswers(Collections.emptyList());
 
         ActorContext wrongHospital = new ActorContext("rereviewer-1", "ReReviewer",
                 EnumSet.of(DomainRole.REREVIEWER), Optional.of("OTHER_HOSPITAL"));
-        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, "c1", "sub-r1", Collections.emptyList(), null));
     }
 }

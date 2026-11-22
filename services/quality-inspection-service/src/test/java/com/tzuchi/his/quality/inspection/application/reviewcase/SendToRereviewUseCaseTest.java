@@ -4,7 +4,6 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.SendToRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
@@ -55,10 +54,8 @@ class SendToRereviewUseCaseTest {
     @Test
     void execute_happyPath_shouldEscalate() {
         seedCompletedCase();
-        SendToRereviewCommand cmd = new SendToRereviewCommand();
-        cmd.setCaseId("c1");
 
-        useCase.execute(managerActor(), cmd);
+        useCase.execute(managerActor(), "c1");
 
         ReviewCase saved = caseRepository.findById("c1").orElseThrow();
         assertEquals(CaseStatus.PENDING_REREVIEW, saved.getStatus());
@@ -68,22 +65,18 @@ class SendToRereviewUseCaseTest {
     @Test
     void execute_wrongRole_shouldThrow() {
         seedCompletedCase();
-        SendToRereviewCommand cmd = new SendToRereviewCommand();
-        cmd.setCaseId("c1");
 
         ActorContext wrongActor = new ActorContext("reviewer-1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(wrongActor, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(wrongActor, "c1"));
     }
 
     @Test
     void execute_wrongHospital_shouldThrowAccessDenied() {
         seedCompletedCase();
-        SendToRereviewCommand cmd = new SendToRereviewCommand();
-        cmd.setCaseId("c1");
 
         ActorContext wrongHospital = new ActorContext("mgr-1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
-        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, "c1"));
     }
 }

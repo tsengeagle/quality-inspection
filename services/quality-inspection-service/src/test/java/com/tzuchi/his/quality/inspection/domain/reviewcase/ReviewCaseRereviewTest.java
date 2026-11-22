@@ -182,8 +182,10 @@ class ReviewCaseRereviewTest {
     @Test
     void assignRereviewer_wrongState_shouldThrow() {
         ReviewCase rc = caseInProgress(); // INITIAL_REVIEW_IN_PROGRESS
-        assertThrows(DomainStateConflictException.class,
+        // D-069 第 2 點：與指派初審醫師相同
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> rc.assignRereviewer("rereviewer-1", LocalDateTime.now(), LocalDateTime.now()));
+        assertEquals("CASE_NOT_ASSIGNABLE", e.getErrorCode());
     }
 
     // --- reassignRereviewer tests ---
@@ -227,8 +229,10 @@ class ReviewCaseRereviewTest {
     @Test
     void startRereview_wrongState_shouldThrow() {
         ReviewCase rc = caseInProgress();
-        assertThrows(DomainStateConflictException.class,
+        // D-069 第 3 點：複審的狀態錯誤共用一個代碼
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> rc.startRereview("rereviewer-1"));
+        assertEquals("CASE_NOT_IN_REREVIEW_STAGE", e.getErrorCode());
     }
 
     @Test
@@ -278,8 +282,9 @@ class ReviewCaseRereviewTest {
     @Test
     void completeRereview_wrongState_shouldThrow() {
         ReviewCase rc = caseAtPendingRereview(); // not REREVIEW_IN_PROGRESS
-        assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5")));
+        assertEquals("CASE_NOT_IN_REREVIEW_STAGE", e.getErrorCode());
     }
 
     // --- closeAfterRereview tests (D-034／D-053) ---
@@ -310,8 +315,8 @@ class ReviewCaseRereviewTest {
     @Test
     void closeAfterRereview_notInRereview_shouldReject() {
         ReviewCase rc = caseAtPendingRereview();
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class, () -> rc.closeAfterRereview(CLOSED_AT.plusMinutes(5)));
-        assertEquals("CASE_NOT_REREVIEW_IN_PROGRESS", e.getErrorCode());
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> rc.closeAfterRereview(CLOSED_AT.plusMinutes(5)));
+        assertEquals("CASE_NOT_IN_REREVIEW_STAGE", e.getErrorCode());
         assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
         assertNull(rc.getClosedAt());
     }
