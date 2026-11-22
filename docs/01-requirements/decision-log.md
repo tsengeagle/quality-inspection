@@ -2828,3 +2828,42 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `specs/review-case/`（`RC-ARR-S2`、`RC-STR-S3`、`RC-SRR-S3`、`RC-CLR-S2` 改為 `decided`；fixture `weighted_rereview_answered`；`OPEN-QUESTIONS.md` 刪除 Q-08）
 - `services/quality-inspection-service/known-test-failures.txt`
 - 後續：建構 PR
+
+---
+
+## D-071 — 稽核的 `detail` 依 D-055 第 6 點遮罩
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/21-audit-detail-initial-reader-draft.md` 的 A-1～A-3 全部照建議裁決）
+
+### Decision
+
+1. **帶分數的 action**：`ReviewCase` 的稽核紀錄中，下列 action 的 `detail` 帶有初審分數或可反推的值：`INITIAL_REVIEW_COMPLETED`（`totalScore`、`qualityThreshold`）、`CASE_ESCALATED_TO_REREVIEW`（修正初審路徑的 `score`、`threshold`）、`REREVIEW_SUBMITTED`、`REREVIEW_REVISED`（`rereviewScore`、`finalScore`）、`CASE_CLOSED_WITHOUT_REREVIEW`（`finalScore`）。之後新增會帶分數的 action 必須加進這份清單，並以測試檢查。
+2. **遮罩（A-1 選 B）**：`GET /review-cases/{caseId}/lifecycle` 與 `GET /audit-trails` 是 D-055 第 6 點所說的出口，套用遮罩，不記錄讀取者。只要符合下列任一條件，帶分數的那一列 `detail` 輸出 `null`：
+   - 案件**目前**的狀態不是 `REREVIEW_IN_PROGRESS`、`CLOSED`、`CANCELLED`。判斷看的是讀取當下，不是事件發生時。
+   - 讀者是該案目前的複審醫師，或出現在該案的複審指派歷史中。這條看使用者，不看當下持有的角色。
+   - 該案的複審指派歷史不完整。
+
+   三個條件都不成立時照常輸出。其他 action 的 `detail` 不受影響。讀取不寫入初審讀取者紀錄，也不遞增案件版本。在指派之前要看分數，從案件詳情讀（會留下紀錄）。
+3. **粒度（A-2 選 A）**：遮罩時整個 `detail` 輸出 `null`，不只拿掉分數鍵，也不加 `maskedFields`。
+4. **沿用的規則**：持有 `REREVIEWER` 的人（不論同時持有哪些角色），在兩個出口都拿不到任何 `detail`（D-033）。
+5. **`SYSTEM_ADMIN`（A-3）**：在 `/audit-trails` 也拿不到任何 `detail`，與生命週期查詢一致，依 D-033 與 api-spec 15.2 的「只看 metadata」。
+6. **規格的輸入與輸出**：`ListAuditTrails` 的輸入改成平的參數（`aggregateType`、`aggregateId`、`hospitalId`、`eventName`、`from`、`to`、`page`、`size`），照 D-069 的作法。`GetCaseLifecycle` 的輸出以 `entries` 包住清單，因為範例的路徑不能選取最外層的清單。HTTP 回應的格式不變，由 controller 展開。
+7. **一開始是紅的範例**：照 D-066 第 5 點列進 `known-test-failures.txt`，由建構 PR 移除。
+8. **順序**：本裁決、api-spec、規格、`law/coverage.txt`（`application/audit/` 改成 `legislated`）、`known-test-failures.txt` 在同一個修法 PR，之後才是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-070 草稿第七節。`GetCaseLifecycleUseCase` 與 `ListAuditTrailsUseCase` 會把帶分數的 `detail` 交給 `HOSPITAL_MANAGER`、`AUDITOR`、`REVIEWER`，卻不留下讀取者紀錄。讀者若之後才取得 `REREVIEWER` 角色並受派，就繞過了 D-055 第 5 點。
+- **草案與查證**：`docs/harness/21-audit-detail-initial-reader-draft.md`（main = `956bfe3`）。
+- 補足 D-055 第 6 點最後一項（「之後新增任何會輸出逐案初審分數或可反推值的出口，必須擇一套用」）。這兩個出口在 D-055 之前就已存在，當時沒有列入。
+- **不在本裁決**：D-069 留下的兩件（複審不發 `ReviewDraftSaved`、`ReviewSubmissionSubmitted`；提交複審沒有必答題檢查）；生命週期查詢找不到案件時的行為（現在回空清單）。
+
+### Mapping
+
+- `docs/03-contracts/api-spec.md` §14.1、§14.2
+- `specs/review-case/`（`GetCaseLifecycle`：`RC-LCY-01`～`RC-LCY-04`；`ListAuditTrails`：`RC-AUD-01`～`RC-AUD-03`；output type `AuditEntry`；actor `rr1_as_auditor_h1`）
+- `law/coverage.txt`：`application/audit/` → `legislated specs/review-case/`
+- `services/quality-inspection-service/known-test-failures.txt`
+- 後續：建構 PR

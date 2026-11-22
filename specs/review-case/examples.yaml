@@ -17,6 +17,8 @@ actors:
   auditor_h1:    { user: u-au1, roles: [AUDITOR],              hospital: H-01 }
   admin:         { user: u-a1,  roles: [SYSTEM_ADMIN],         hospital: H-09 }
   dual_role_h1:  { user: u-d1,  roles: [REVIEWER, REREVIEWER], hospital: H-01 }
+  # D-071：同一個使用者 u-rr1 以 AUDITOR 角色登入（當時沒有 REREVIEWER 角色）。
+  rr1_as_auditor_h1: { user: u-rr1, roles: [AUDITOR],         hospital: H-01 }
 
 fixtures:
   # 矩陣的 state 欄用 case_in_<狀態> 找到準備步驟。
@@ -873,6 +875,112 @@ examples:
     given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
     when: { run: GetRevisionHistory, as: manager_h2, input: { caseId: "${c}" } }
     then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  # ---------- 稽核：生命週期與稽核軌跡（D-071） ----------
+
+  - name: lifecycle_masks_scored_detail_before_rereview
+    basis: [RC-LCY-02]
+    given: [{ use: low_score_completed_case }]
+    when: { run: GetCaseLifecycle, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "entries[action=ASSIGNED]": { detail: '{"reviewerId":"u-r1","dueAt":"2026-11-26T23:59:59Z"}' }
+      absent: ["entries[action=INITIAL_REVIEW_COMPLETED].detail"]
+
+  - name: lifecycle_masks_scored_detail_for_the_initial_reviewer
+    basis: [RC-LCY-02]
+    given: [{ use: low_score_completed_case }]
+    when: { run: GetCaseLifecycle, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      absent: ["entries[action=INITIAL_REVIEW_COMPLETED].detail"]
+
+  - name: lifecycle_masks_the_escalation_score_while_pending_rereview
+    basis: [RC-LCY-02]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetCaseLifecycle, as: auditor_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      absent: ["entries[action=INITIAL_REVIEW_COMPLETED].detail", "entries[action=CASE_ESCALATED_TO_REREVIEW].detail"]
+
+  # 用 RANGE 題目的專案（D-070 E-3-2），detail 的數字格式與 RereviewSliceEventPropertiesTest 相同。
+  - name: lifecycle_shows_scored_detail_after_close
+    basis: [RC-LCY-03]
+    given:
+      - use: weighted_rereview_answered
+      - run: SubmitRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" }
+      - run: CloseRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}" }
+    when: { run: GetCaseLifecycle, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "entries[action=REREVIEW_SUBMITTED]": { detail: '{"rereviewScore":15,"finalScore":10.00}' }
+
+  - name: lifecycle_masks_scored_detail_for_a_historical_rereviewer
+    basis: [RC-LCY-02]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: GetCaseLifecycle, as: rr1_as_auditor_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      absent: ["entries[action=INITIAL_REVIEW_COMPLETED].detail", "entries[action=REREVIEW_SUBMITTED].detail"]
+
+  - name: lifecycle_gives_system_admin_no_detail
+    basis: [RC-LCY-01]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: GetCaseLifecycle, as: admin, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      absent: ["entries[*].detail"]
+
+  - name: reading_the_lifecycle_does_not_block_a_later_rereviewer_assignment
+    basis: [RC-LCY-02, RC-LCY-04]
+    given:
+      - use: case_in_PENDING_REREVIEW
+      - run: GetCaseLifecycle
+        as: rr1_as_auditor_h1
+        input: { caseId: "${c}" }
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" } }
+    then: { result: SUCCESS }
+
+  - name: audit_trails_mask_scored_rows_before_rereview
+    basis: [RC-AUD-02]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewCase, aggregateId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[action=ASSIGNED]": { detail: '{"reviewerId":"u-r1","dueAt":"2026-11-26T23:59:59Z"}' }
+      absent: ["content[action=INITIAL_REVIEW_COMPLETED].detail"]
+
+  - name: audit_trails_show_scored_rows_after_close
+    basis: [RC-AUD-02]
+    given:
+      - use: weighted_rereview_answered
+      - run: SubmitRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" }
+      - run: CloseRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}" }
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewCase, aggregateId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[action=REREVIEW_SUBMITTED]": { detail: '{"rereviewScore":15,"finalScore":10.00}' }
+
+  - name: audit_trails_give_system_admin_no_detail
+    basis: [RC-AUD-01]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ListAuditTrails, as: admin, input: { aggregateType: ReviewCase, aggregateId: "${c}" } }
+    then:
+      result: SUCCESS
+      absent: ["content[*].detail"]
+
 
 not_covered:
   - item: 逾期
