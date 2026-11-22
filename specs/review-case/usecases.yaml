@@ -16,6 +16,7 @@ sources:
   - { decision: D-055 }
   - { decision: D-066 }
   - { decision: D-067 }
+  - { decision: D-068 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2、§6.3、§6.4、§7.1、§7.2" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§11.1–§11.3、§13.2" }
 
@@ -183,6 +184,11 @@ usecases:
         outcome: { result: REJECTED, code: NO_CHANGES, no_change: true }
         status: decided
         source: [{ decision: D-038 }]
+      - id: RC-DRF-03
+        when: 案件的 status 不是 INITIAL_REVIEW_IN_PROGRESS
+        outcome: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+        status: decided
+        source: [{ decision: D-068 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }]
     success:
       state:
         - { id: RC-DRF-S1, text: 草稿的答案與評語等於輸入, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }

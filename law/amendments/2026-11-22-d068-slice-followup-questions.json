@@ -1,0 +1,14 @@
+{
+  "id": "2026-11-22-d068-slice-followup-questions",
+  "decision": "D-068",
+  "reason": "D-068：直向切片的後續四題，負責人對 docs/harness/18-slice-followup-questions-draft.md 四題全部照建議裁決。specs/review-case/：新增 RC-DRF-03（保存初審草稿時案件不是初審中 → CASE_NOT_IN_INITIAL_REVIEW_STAGE，與開始、提交初審共用）與範例 rejects_draft_before_review_started，sources 加 D-068。specs/sampling-batch/：新增 SB-EXE-S5（SamplingBatchCompleted 帶四個計數，照 domain-events.md §5.4）與範例 completed_event_carries_the_counts。docs/03-contracts/api-spec.md §4.2：CASE_NOT_IN_INITIAL_REVIEW_STAGE 的說明加上保存初審草稿；新增 NOT_ASSIGNED_REREVIEWER（403，第 2 點，程式在暫准範圍由建構 PR 修改）。第 4 點（未發布版本的抽選）不立規則。known-test-failures.txt：新增上述兩個範例（程式還沒配合），註明 D-068 對應的點與實際的失敗原因，由建構 PR 移除。specs/README.md 第一節更新規則與範例數；docs/harness/18 標為已裁決。本機確認（JDK 17）：spec_lint（CI 參數）零問題；後端完整測試 1111 個方法、失敗 2 個，與已知失敗清單完全相同，建置通過；兩個範例的失敗原因分別是程式回 CASE_NOT_IN_PROGRESS、SamplingBatchCompleted 沒有計數的屬性。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/",
+    "specs/sampling-batch/",
+    "specs/README.md",
+    "law/amendments/",
+    "services/quality-inspection-service/known-test-failures.txt"
+  ]
+}

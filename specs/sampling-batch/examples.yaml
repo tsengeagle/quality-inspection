@@ -66,6 +66,22 @@ examples:
         - { event: SamplingCandidatesPrepared, with: { batchId: "${b}", populationCount: 2, eligibleCount: 2, excludedCount: 0 } }
         - { event: ReviewCasesSelected,        with: { batchId: "${b}", selectedCount: 2 } }
 
+  # 欄位依 D-068 第 3 點（domain-events.md §5.4）。資料同上一個範例。
+  - name: completed_event_carries_the_counts
+    basis: [SB-EXE-S5]
+    given:
+      - use: review-project.active_project
+      - use: two_candidates
+    when:
+      run: ExecuteSampling
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { b: batchId }
+    then:
+      result: SUCCESS
+      emits_include:
+        - { event: SamplingBatchCompleted, with: { batchId: "${b}", populationCount: 2, eligibleCount: 2, excludedCount: 0, selectedCount: 2 } }
+
   - name: rejects_sampling_by_a_non_manager
     basis: [SB-G-01]
     given: [{ use: review-project.active_project }]
