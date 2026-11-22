@@ -1582,6 +1582,12 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * `REVIEWER` / `REREVIEWER`：合法範圍內
 * `SYSTEM_ADMIN`：metadata only
 
+#### `detail` 遮罩（D-071）
+
+* 持有 `REREVIEWER` 或 `SYSTEM_ADMIN`：所有紀錄都不含 `detail`。
+* 帶分數的 action（`INITIAL_REVIEW_COMPLETED`、`CASE_ESCALATED_TO_REREVIEW`、`REREVIEW_SUBMITTED`、`REREVIEW_REVISED`、`CASE_CLOSED_WITHOUT_REREVIEW`）：案件目前的狀態不是 `REREVIEW_IN_PROGRESS`／`CLOSED`／`CANCELLED`、讀者是現任或歷史複審醫師，或複審指派歷史不完整時，該筆 `detail` 為 `null`。
+* 讀取不寫入初審讀取者紀錄。
+
 ---
 
 ## 14.2 查詢稽核軌跡
@@ -1604,6 +1610,11 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * `to`
 * `page`
 * `size`
+
+#### `detail` 遮罩（D-071）
+
+* `SYSTEM_ADMIN` 或持有 `REREVIEWER`：所有紀錄都不含 `detail`。
+* `ReviewCase` 帶分數的 action：逐列套用 14.1 的條件，符合時該筆 `detail` 為 `null`。
 
 ---
 

@@ -45,6 +45,7 @@
 | `18-slice-followup-questions-draft.md` | 直向切片的後續四題（F-1～F-4，已由 D-068 裁決）：草稿的狀態錯誤、複審的指派錯誤、批次完成事件的計數、未發布版本的抽選；程式現況、權威文件、選項、建議與裁決後的順序 |
 | `19-rereview-slice-draft.md` | 複審切片（S-1～S-6，已由 D-069 裁決）：初審固定到複審結案的範圍、狀態錯誤代碼、事件名稱、盲審、版本；程式現況、權威文件、選項與建議 |
 | `20-q08-rereview-event-fields-draft.md` | Q-08 四個複審事件的最低必要欄位（E-1～E-4，已由 D-070 裁決）：`RereviewerAssigned`、`RereviewStarted`、`RereviewCompleted`、`ReviewCaseClosed`；程式現況、稽核遮罩的查證、選項與建議 |
+| `21-audit-detail-initial-reader-draft.md` | 稽核的 `detail` 繞過 D-055 第 5 點的讀取者紀錄（A-1～A-3，已由 D-071 裁決）：生命週期與稽核軌跡兩個出口的遮罩條件、粒度、`SYSTEM_ADMIN` |
 | `samples/card-v2-trial/` | 格式樣本（不是律法）：白板 V10 照格式 v2 草案的試寫、暫時的檢查 `v2check.py`；v2.1 的回歸樣本 |
 | `samples/reviewcase-v2-trial/` | 格式樣本（不是律法）：ReviewCase 照格式 v2 草案 B 組的試寫。`round-1/` 是薄切片與 12 個缺口；`round-2/` 是直向切片，用草案第十三節 Q-10～Q-20 建議的寫法重寫 |
 | `references/` | 原文的本機副本。**受著作權保護，已列入 `.gitignore`，不進 repo** |

@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-22-d071-audit-detail-mask",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:35a2a50489e07628b49c1d170f3d2bcc1d33337da36eb88d19036f463747c777",
+  "reviewed_commit": "bd42fa3bc2f699b3a324f2f1ede319f49161aa02",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEATAeVxeM1+tD4psQLQujJNC3vdoc7Brc21NIhTEKJ3JOVcpQHPyhnS\nr1yl/aCLBq/smgcaCayQKEAlEIbgrHMPAQAAADs=\n-----END SSH SIGNATURE-----\n"
+}

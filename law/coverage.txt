@@ -28,7 +28,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/          grandfathered  ReviewCase（未立法）
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/                 grandfathered  SamplingBatch（未立法）
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/            grandfathered  SamplingBatch（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/audit/               grandfathered  稽核查詢（未立法）
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/audit/               legislated     specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/                       grandfathered  報表與儀表板（未立法）
 
 # ---- 暫准：跨 aggregate 的共用部分 ----

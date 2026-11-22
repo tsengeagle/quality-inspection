@@ -24,8 +24,9 @@ sources:
   - { decision: D-068 }
   - { decision: D-069 }
   - { decision: D-070 }
+  - { decision: D-071 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.9、§6.12、§7.1、§7.2" }
-  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.10、§11.1–§11.3、§12.1–§12.3、§13.2、D-034 複審獨立 Close Command 對齊" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.10、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
 
 error_codes:
   - { code: ROLE_DENIED,                      category: denied,         status: decided,  source: [{ decision: D-023 }] }
@@ -102,6 +103,16 @@ output_types:
     - { name: totalScore,   type: decimal(2) }
     - { name: comment,      type: text }
     - { name: supersededBySubmissionId, type: id }
+
+  AuditEntry:
+    - { name: id,            type: id }
+    - { name: entityType,    type: text }
+    - { name: entityId,      type: id }
+    - { name: action,        type: text }
+    - { name: actorUserId,   type: id }
+    - { name: hospitalId,    type: id }
+    - { name: occurredAt,    type: datetime }
+    - { name: detail,        type: text }
 
 usecases:
 
@@ -643,3 +654,85 @@ usecases:
       fields:
         - { name: caseId,  type: id }
         - { name: entries, type: "list<RevisionEntry>" }
+
+  # ---------- 稽核：生命週期與稽核軌跡（D-071） ----------
+  # 帶分數的 action（D-071 第 1 點）：INITIAL_REVIEW_COMPLETED、CASE_ESCALATED_TO_REREVIEW（帶 score 時）、
+  # REREVIEW_SUBMITTED、REREVIEW_REVISED、CASE_CLOSED_WITHOUT_REREVIEW。
+  # 遮罩條件依案件「目前」的狀態與複審指派歷史判斷，不依事件發生時（D-071 第 2 點）。
+
+  - name: GetCaseLifecycle
+    kind: query
+    summary: 查詢一個案件的稽核紀錄；帶分數的 detail 依 D-071 遮罩
+    actor: { roles: [HOSPITAL_MANAGER, REVIEWER, REREVIEWER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01]
+    rules:
+      - id: RC-LCY-01
+        when: 操作者持有 REREVIEWER 或 SYSTEM_ADMIN（不論同時持有哪些角色）
+        text: 每一筆紀錄都沒有 detail
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-033 }, { decision: D-071 }]
+      - id: RC-LCY-02
+        when: 案件目前的狀態不是 REREVIEW_IN_PROGRESS、CLOSED、CANCELLED，或操作者是本案現任或曾經的複審醫師，或本案的複審指派歷史不完整
+        text: 帶分數的 action 那幾筆沒有 detail；其他 action 的 detail 照常
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-071 }]
+      - id: RC-LCY-03
+        when: RC-LCY-01、RC-LCY-02 都不成立
+        text: 每一筆紀錄的 detail 照常，包含帶分數的 action
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-071 }]
+      - id: RC-LCY-04
+        when: 讀取成功
+        text: 讀取不寫入初審讀取者紀錄，也不遞增案件版本
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-071 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§14.1" }, { decision: D-071 }]
+      fields:
+        - { name: entries, type: "list<AuditEntry>" }
+
+  - name: ListAuditTrails
+    kind: query
+    summary: 查詢稽核軌跡（分頁）；帶分數的 detail 依 D-071 逐列遮罩
+    actor: { roles: [SYSTEM_ADMIN, HOSPITAL_MANAGER, AUDITOR] }
+    input:
+      - { name: aggregateType, type: text,     required: false }
+      - { name: aggregateId,   type: id,       required: false }
+      - { name: hospitalId,    type: id,       required: false }
+      - { name: eventName,     type: text,     required: false }
+      - { name: from,          type: datetime, required: false }
+      - { name: to,            type: datetime, required: false }
+      - { name: page,          type: int,      required: false }
+      - { name: size,          type: int,      required: false }
+    guards: [RC-G-01]
+    rules:
+      - id: RC-AUD-01
+        when: 操作者持有 REREVIEWER 或 SYSTEM_ADMIN（不論同時持有哪些角色）
+        text: 每一筆紀錄都沒有 detail
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-033 }, { decision: D-071 }]
+      - id: RC-AUD-02
+        when: 某一筆是 ReviewCase 帶分數的 action，且該案符合 RC-LCY-02 的條件
+        text: 這一筆沒有 detail；其他筆不受影響
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-071 }, { rule: RC-LCY-02 }]
+      - id: RC-AUD-03
+        when: 讀取成功
+        text: 讀取不寫入初審讀取者紀錄，也不遞增案件版本
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-071 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§14.2" }, { decision: D-071 }]
+      fields:
+        - { name: content, type: "list<AuditEntry>" }
