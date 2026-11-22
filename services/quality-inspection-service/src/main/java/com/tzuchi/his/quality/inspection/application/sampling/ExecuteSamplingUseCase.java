@@ -116,7 +116,7 @@ public class ExecuteSamplingUseCase {
                 batch.getSelectedCount()));
         eventPublisher.publish(new SamplingBatchCompletedEvent(this,
                 actor.getUserId(), actor.getUserName(), hospitalId, batchId, projectId,
-                batch.getSelectedCount(), populationCount));
+                batch.getSelectedCount(), populationCount, eligibleCount, excludedCount));
 
         return batchId;
     }

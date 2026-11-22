@@ -5,7 +5,6 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand;
-import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
@@ -78,7 +77,7 @@ public class ReviseRereviewUseCase {
 
         if (reviewCase.getRereviewerAssignment() == null
                 || !actor.getUserId().equals(reviewCase.getRereviewerAssignment().getReviewerId())) {
-            throw new DomainRuleViolationException("NOT_ASSIGNED_REREVIEWER",
+            throw new AccessDeniedException("NOT_ASSIGNED_REREVIEWER",
                     "Only the assigned rereviewer can revise this rereview");
         }
 

@@ -5,6 +5,7 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
@@ -68,7 +69,8 @@ public class SaveInitialReviewDraftUseCase {
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
         if (reviewCase.getStatus() != CaseStatus.INITIAL_REVIEW_IN_PROGRESS) {
-            throw new DomainStateConflictException("CASE_NOT_IN_PROGRESS",
+            // D-068 第 1 點：與開始、提交初審共用代碼（422）
+            throw new DomainRuleViolationException("CASE_NOT_IN_INITIAL_REVIEW_STAGE",
                     "Case must be in INITIAL_REVIEW_IN_PROGRESS to save a draft");
         }
 
