@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-22-d067-slice-open-questions",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:5aa62bc78f45295a7ba1c0dc3871a24e8a5a36c691ac98411de21827879cb5f1",
+  "reviewed_commit": "be6760a01727daa213350daf533429c1c4c48dfd",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEDkpDwcET/IrPHi7t3avNOvE4WI6BhwA25nhmkp3uCoXflzsqZksLHh\nH5ezJEUPYjmMHvOx+Pfs2j32YJ5bXYkDAQAAACk=\n-----END SSH SIGNATURE-----\n"
+}

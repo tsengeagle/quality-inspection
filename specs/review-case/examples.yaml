@@ -162,6 +162,12 @@ examples:
     when: { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", dueAt: "2026-11-26T23:59:59Z" } }
     then: { result: REJECTED, code: VALIDATION_ERROR }
 
+  - name: rejects_assign_without_a_due_date
+    basis: [RC-ASG-02]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r1 } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
   # ---------- StartInitialReview ----------
 
   - name: starts_the_initial_review
@@ -190,15 +196,19 @@ examples:
             entries:
               - { submissionId: "${s1}", stage: INITIAL, status: DRAFT, revisionNo: 1, reviewerId: u-r1 }
 
-  # 這個事件在 domain-events.md 沒有「最低必要欄位」，只斷言發出者的 identity（D-066 第 2 點）。
+  # 欄位依 D-067（Q-07）。
   - name: initial_review_started_carries_the_case
     basis: [RC-STI-S3]
     given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
-    when: { run: StartInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    when:
+      run: StartInitialReview
+      as: reviewer_h1
+      input: { caseId: "${c}" }
+      save: { s1: submissionId }
     then:
       result: SUCCESS
       emits:
-        - { event: InitialReviewStarted, with: { caseId: "${c}" } }
+        - { event: InitialReviewStarted, with: { caseId: "${c}", submissionId: "${s1}", reviewerId: u-r1 } }
 
   - name: rejects_start_by_a_reviewer_who_is_not_assigned
     basis: [RC-STI-01]
@@ -233,7 +243,7 @@ examples:
           result: SUCCESS
           output: { "entries[stage=INITIAL]": { status: DRAFT, comment: "初審評語" } }
 
-  # ReviewDraftSaved 的發出者是 ReviewSubmission（domain-events.md §7.1），沒有「最低必要欄位」（D-066 第 2 點）。
+  # 欄位依 D-067（Q-07）。草稿分數不列為必要欄位。
   - name: draft_saved_carries_the_submission
     basis: [RC-DRF-S2]
     given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
@@ -244,7 +254,7 @@ examples:
     then:
       result: SUCCESS
       emits:
-        - { event: ReviewDraftSaved, with: { submissionId: "${s1}" } }
+        - { event: ReviewDraftSaved, with: { submissionId: "${s1}", caseId: "${c}" } }
 
   - name: rejects_save_by_another_reviewer
     basis: [RC-DRF-01]
@@ -284,17 +294,16 @@ examples:
             entries:
               - { submissionId: "${s1}", stage: INITIAL, status: SUBMITTED, submittedAt: "2026-11-19T11:00:00Z" }
 
-  # 權威文件說還要發出 InitialReviewCompleted（Q-03）。這個事件是 proposed，所以另外寫一個範例，
-  # 不讓上面那個已裁決的範例也變成不能當驗收依據。
+  # 提交初審發出兩個事件（D-067，Q-03）：提交的事實與初審完成的事實。
   - name: submitting_emits_exactly_two_events
-    basis: [RC-SUB-S1]
+    basis: [RC-SUB-S1, RC-SUB-S4]
     given: [{ use: answered_case }]
     when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
     then:
       result: SUCCESS
       emits:
         - { event: ReviewSubmissionSubmitted, with: { caseId: "${c}" } }
-        - { event: InitialReviewCompleted,    with: { caseId: "${c}" } }
+        - { event: InitialReviewCompleted,    with: { caseId: "${c}", submissionId: "${s1}" } }
 
   - name: rejects_submit_by_another_reviewer
     basis: [RC-SUB-01]
@@ -345,7 +354,7 @@ examples:
       result: SUCCESS
       only:
         ".": [caseId, entries]
-        "entries[*]": [submissionId, stage, revisionNo, status, submittedAt]
+        "entries[*]": [submissionId, stage, revisionNo, status, submittedAt, reviewerId, supersededBySubmissionId]
 
   - name: rejects_history_across_hospitals
     basis: [RC-G-03]

@@ -7,6 +7,7 @@ sources:
   - { decision: D-023 }
   - { decision: D-024 }
   - { decision: D-066 }
+  - { decision: D-067 }
   - { doc: docs/02-ddd/domain-events.md, section: "§5.1–§5.4" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§9.3" }
 
@@ -58,7 +59,7 @@ usecases:
         - { id: SB-EXE-S1, text: 批次的 status = COMPLETED, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§5.2" }] }
         - { id: SB-EXE-S2, text: 抽選母體回傳的每一筆各建立一個審查案件，status = SELECTED_PENDING_ASSIGNMENT，院區與病歷類型取自那一筆, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.5" }, { doc: docs/02-ddd/domain-events.md, section: "§5.3、§6.1" }] }
         - { id: SB-EXE-S3, text: SamplingBatchStarted、SamplingBatchCompleted 帶有 batchId 與 projectId, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.1、§5.4" }, { decision: D-066 }] }
-        - { id: SB-EXE-S4, text: SamplingCandidatesPrepared、ReviewCasesSelected 帶有 batchId, status: proposed, question: Q-06 }
+        - { id: SB-EXE-S4, text: SamplingCandidatesPrepared 帶有 batchId、populationCount、eligibleCount、excludedCount；ReviewCasesSelected 帶有 batchId、selectedCount, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.2、§5.3" }, { decision: D-067 }] }
       emits:
         - { event: SamplingBatchStarted,       status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.1" }] }
         - { event: SamplingCandidatesPrepared, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.2" }] }
