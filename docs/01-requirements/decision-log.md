@@ -2925,3 +2925,36 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/03-contracts/api-spec.md` §3.3（改成引用第一條）、14.1（新舊格式並存）
 - 後續：D-071 建構 PR（違憲清單第 1 項的 `ASSIGNED`）；違憲清單其餘各項
 
+---
+
+## D-073 — 違憲清單第 2 項：HTTP 收進來的 `dueAt` 必須帶時區
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/23-dueat-input-timezone-draft.md` 的 I-1～I-5 全部照建議裁決）
+
+### Decision
+
+1. **範圍**：指派與改派初審醫師、複審醫師的四個端點（`assign-reviewer`、`reassign-reviewer`、`assign-rereviewer`、`reassign-rereviewer`），請求本文中的 `dueAt`。
+2. **後端（I-2 選 A）**：四個 request DTO 的 `dueAt` 改成帶時區的型別（`OffsetDateTime`）。controller 以 `Asia/Taipei` 換成牆上時刻（`LocalDateTime`）再交給 use case，use case 的簽名不變，因此 `specs/review-case/` 不用改。這個換算的位置依憲法第一條第 3 點寫明於此；等違憲清單第 4 項把 domain 改成 `Instant` 時，再一起移除。
+3. **拒絕（I-3）**：請求本文中的時間不帶時區、無法讀成時間點時，回 400 `VALIDATION_ERROR`，外殼依 `specs/http-common.yaml`。其他無法讀取的請求本文怎麼處理，本裁決不決定，維持現狀。`VALIDATION_ERROR` 加進 `http-common.yaml` 的 `transport_codes`，因為這個拒絕發生在進入 use case 之前。
+4. **前端（I-1 選 A）**：指派頁面把 `datetime-local` 的牆上時刻當成台北時間，送出時加上 `+08:00`，例如 `"2026-11-26T23:59:00+08:00"`；不依賴瀏覽器的時區。前端必須與後端在同一個建構 PR 修改，否則指派會失敗。
+5. **未立法的範圍（I-4）**：`ReviewCaseController`、四個 DTO，以及改派的兩個 use case 都是 `grandfathered`（D-060）。依負責人裁決，本項在暫准範圍內照憲法第一條實作。本項只改輸入格式，不改業務規則；改派的業務規則等改派立法時處理。
+6. **前端顯示（I-5）**：不在本裁決，屬於違憲清單第 3 項。
+7. **可執行性**：HTTP 契約只比對回應形狀，不涵蓋請求端（`specs/README.md` 第七節第 8 點）；use case 範例也看不到 JSON 的讀取。因此第 3 點目前沒有規格範例，由建構 PR 的 API 測試保證（含「不帶時區的值回 400 `VALIDATION_ERROR`」）。要讓規格能表達請求端，屬於另一個題目。
+8. **違憲清單的註記**：D-072 第 4 點第 1 項的 `ASSIGNED` 已由 PR #134 修正（`REASSIGNED` 仍在清單上）；第 2 項由本裁決的建構 PR 修正。D-072 的條文不改，以本點為註記。
+9. **順序**：本裁決、`http-common.yaml`、`api-spec.md`、草稿在同一個修法 PR；之後是前後端一起改的建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **依據**：憲法草案第一條第 2、3 點；D-072 第 3 點（`dueAt` 是確切的時刻）、第 4 點第 2 項。
+- **草案與查證**：`docs/harness/23-dueat-input-timezone-draft.md`（main = `f94254a`）。前端的 `normalizeDueAtInput` 只補秒數，送出不帶時區的值；`GlobalExceptionHandler` 沒有處理 `HttpMessageNotReadableException`。
+- **與草案不同**：草案 I-3 寫「在 `http-common.yaml` 補規則與範例」。查證後發現 HTTP 契約不涵蓋請求端，只能補 `transport_codes`，所以改由第 7 點處理。
+- **還沒有查證的**：Jackson 遇到不帶時區的字串時丟出的確切例外；前端測試與 demo 資料是否依賴不帶時區的格式。
+
+### Mapping
+
+- `specs/http-common.yaml`（`transport_codes` 加 `VALIDATION_ERROR`）
+- `docs/03-contracts/api-spec.md` §10.3、§10.5（`dueAt` 必須帶時區）
+- 後續：建構 PR（四個 DTO、`ReviewCaseController`、`GlobalExceptionHandler`、前端指派頁面、API 測試）
+

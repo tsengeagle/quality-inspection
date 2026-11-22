@@ -47,6 +47,7 @@
 | `20-q08-rereview-event-fields-draft.md` | Q-08 四個複審事件的最低必要欄位（E-1～E-4，已由 D-070 裁決）：`RereviewerAssigned`、`RereviewStarted`、`RereviewCompleted`、`ReviewCaseClosed`；程式現況、稽核遮罩的查證、選項與建議 |
 | `21-audit-detail-initial-reader-draft.md` | 稽核的 `detail` 繞過 D-055 第 5 點的讀取者紀錄（A-1～A-3，已由 D-071 裁決）：生命週期與稽核軌跡兩個出口的遮罩條件、粒度、`SYSTEM_ADMIN` |
 | `22-constitution-datetime-draft.md` | 憲法草案第一條：日期時間的表示（T-1～T-5，已由 D-072 裁決）：條文、憲法節的結構與位階、違憲清單、稽核 `detail` 的例外、D-071 範例 |
+| `23-dueat-input-timezone-draft.md` | 違憲清單第 2 項：HTTP 收進來的 `dueAt` 必須帶時區（I-1～I-5，已由 D-073 裁決）：前端送出的時區、換算的位置、錯誤回應、未立法範圍 |
 | `samples/card-v2-trial/` | 格式樣本（不是律法）：白板 V10 照格式 v2 草案的試寫、暫時的檢查 `v2check.py`；v2.1 的回歸樣本 |
 | `samples/reviewcase-v2-trial/` | 格式樣本（不是律法）：ReviewCase 照格式 v2 草案 B 組的試寫。`round-1/` 是薄切片與 12 個缺口；`round-2/` 是直向切片，用草案第十三節 Q-10～Q-20 建議的寫法重寫 |
 | `references/` | 原文的本機副本。**受著作權保護，已列入 `.gitignore`，不進 repo** |

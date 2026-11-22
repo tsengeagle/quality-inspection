@@ -40,3 +40,5 @@ transport_codes:
   - { code: BAD_REQUEST,  status: 400 }
   - { code: UNAUTHORIZED, status: 401 }
   - { code: CONFLICT,     status: 409 }
+# D-073 第 3 點：請求本文的時間不帶時區、無法讀成時間點（憲法草案第一條第 2 點）。在進入 use case 之前就拒絕，不屬於任何 use case。
+  - { code: VALIDATION_ERROR, status: 400 }

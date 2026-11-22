@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-22-d073-dueat-input-timezone",
+  "decision": "D-073",
+  "reason": "D-073：違憲清單第 2 項，HTTP 收進來的 dueAt 必須帶時區。負責人對 docs/harness/23-dueat-input-timezone-draft.md 的 I-1～I-5 全部照建議裁決。decision-log：新增 D-073，內容包括：四個指派／改派端點的 DTO 改成 OffsetDateTime，controller 以 Asia/Taipei 換算後交給 use case（use case 簽名與規格不變）；不帶時區的時間回 400 VALIDATION_ERROR；前端固定送 +08:00；未立法範圍在暫准內實作；註記 D-072 違憲清單第 1 項的 ASSIGNED 由 #134 修正。specs/http-common.yaml 的 transport_codes 加 VALIDATION_ERROR（400）。HTTP 契約不涵蓋請求端，所以沒有新增範例，也沒有新增已知失敗。api-spec §10.3、§10.5 註明 dueAt 必須帶時區。docs/harness/23 標為已裁決，README 加索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/http-common.yaml",
+    "law/amendments/"
+  ]
+}
