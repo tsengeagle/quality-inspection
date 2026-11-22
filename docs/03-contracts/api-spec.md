@@ -135,10 +135,11 @@ Accept: application/json
 | `DUPLICATE_SELECTED_CASE_IN_BATCH` |         409 | 同批次重複抽中同一案件               |
 | `CASE_NOT_ASSIGNABLE`              |         422 | 案件目前不可指派                  |
 | `REREVIEWER_HAS_READ_INITIAL`      |         422 | 指派或改派的複審醫師曾讀過本案完整初審（D-055） |
-| `CASE_NOT_IN_INITIAL_REVIEW_STAGE` |         422 | 案件不在該初審操作要求的狀態（開始初審、提交初審；D-067） |
+| `CASE_NOT_IN_INITIAL_REVIEW_STAGE` |         422 | 案件不在該初審操作要求的狀態（開始初審、保存初審草稿、提交初審；D-067、D-068） |
 | `NOT_ASSIGNED_REVIEWER`            |         403 | 開始初審的人不是受指派的初審醫師（D-067） |
 | `REQUIRED_ITEMS_NOT_ANSWERED`      |         422 | 提交初審時有必答題沒有作答（D-067）   |
 | `CASE_NOT_IN_REREVIEW_STAGE`       |         422 | 案件不在可開始複審狀態               |
+| `NOT_ASSIGNED_REREVIEWER`          |         403 | 操作者不是受指派的複審醫師（開始、保存草稿、提交、修正複審；D-068） |
 | `CASE_ALREADY_CLOSED`              |         409 | 案件已結案                     |
 | `CASE_ALREADY_CANCELLED`           |         409 | 案件已取消                     |
 | `REVISION_NOT_ALLOWED`             |         422 | 目前狀態不允許 revision          |

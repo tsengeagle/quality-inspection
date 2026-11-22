@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-22-d068-slice-followup-questions",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:18d1fc37b53a824318fb81a5d42f6eaadff3568ce5975436de6f72870ba51813",
+  "reviewed_commit": "c33d60f9d2ef85b4797805e5928924932752b498",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAECCuhl6e0NC7wauYiDj5PctAx9GR+vanTB/a0nHAReQx9GXQ2U1kgwd\nypm6OF/Po8oYfpRQHfLhLnI2WPfJl+kEAQAAADM=\n-----END SSH SIGNATURE-----\n"
+}

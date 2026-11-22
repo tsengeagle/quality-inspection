@@ -271,6 +271,13 @@ examples:
       input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "20" }], comment: "初審評語" }
     then: { result: REJECTED, code: NO_CHANGES }
 
+  # 已指派、還沒開始初審（D-068 第 1 點）。
+  - name: rejects_draft_before_review_started
+    basis: [RC-DRF-03]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: SaveInitialReviewDraft, as: reviewer_h1, input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "20" }] } }
+    then: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+
   # ---------- SubmitInitialReview ----------
 
   - name: submits_the_initial_review

@@ -2696,3 +2696,46 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/03-contracts/api-spec.md` §4.2、§13.2
 - `law/coverage.txt`、`services/quality-inspection-service/known-test-failures.txt`
 - 後續：建構 PR（第 1～3、5、6 點）
+
+---
+
+## D-068 — 直向切片的後續四題：草稿的狀態錯誤、複審的指派錯誤、批次完成事件的計數、未發布版本的抽選
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/18-slice-followup-questions-draft.md` 四題全部照建議裁決）
+
+### Decision
+
+1. **保存初審草稿時案件不是初審中（F-1）。**
+   - 回 `CASE_NOT_IN_INITIAL_REVIEW_STAGE`，分類 `rule_violation`（422），與開始初審、提交初審共用（理由同 D-067 第 1 點）。`api-spec.md` §4.2 的說明加上「保存初審草稿」。
+   - 規格：新增 `RC-DRF-03` 與範例 `rejects_draft_before_review_started`（已指派、還沒開始初審）。
+   - 建構 PR：`SaveInitialReviewDraftUseCase` 的 `CASE_NOT_IN_PROGRESS`（409）改成這個代碼與 `DomainRuleViolationException`。退回（`ReviewCase.returnToInitialReview`）的 `CASE_NOT_IN_PROGRESS` 不在本裁決，等退回立法。
+2. **複審的 `NOT_ASSIGNED_REREVIEWER`（F-2）。**
+   - 改成分類 `denied`（403），與 D-067 第 1 點的 `NOT_ASSIGNED_REVIEWER` 一致。依據 `permission-matrix.md` §6、§10（actor = assigned rereviewer 是權限條件）與 `test-scenarios.md` TS-RR-004（期望 403）。補進 `api-spec.md` §4.2。
+   - 範圍是暫准（`application/reviewcase/`、`domain/reviewcase/` 的複審部分），沒有規格。負責人裁決在暫准範圍內照上述權威文件修改，由單元測試確認。
+   - 建構 PR：`SaveRereviewDraftUseCase`、`SubmitRereviewUseCase`、`ReviseRereviewUseCase` 改丟 `AccessDeniedException("NOT_ASSIGNED_REREVIEWER")`；`StartRereviewUseCase` 在呼叫 `ReviewCase.startRereview` 之前做同樣的檢查（照 `StartInitialReviewUseCase` 的做法），domain 的檢查保留為防線。
+   - 不在本裁決：修正已提交的複審要不要改用 `REVISION_ACTOR_MISMATCH`（`test-scenarios.md` TS-RV-004），等複審立法。
+3. **`SamplingBatchCompleted` 的計數（F-3）。**
+   - 照 `domain-events.md` §5.4：事件帶 `populationCount`、`eligibleCount`、`excludedCount`、`selectedCount`。
+   - 規格：新增 `SB-EXE-S5` 與範例 `completed_event_carries_the_counts`。
+   - 建構 PR：`SamplingBatchCompletedEvent` 加 `eligibleCount`、`excludedCount` 參數與四個計數的取得方法，兩個發出者（`ExecuteSamplingUseCase`、`RetrySamplingBatchUseCase`）傳入。`detail` 仍由欄位產生，改成五個鍵：原有的 `projectId`、`selectedCount`、`populationCount` 順序不變，`eligibleCount`、`excludedCount` 接在後面。這是 D-066 第 2 點「`detail` 逐字不變」對這個事件的例外；舊的稽核紀錄不動，`detail` 沒有程式解析。
+4. **專案沒有已發布的版本時執行抽選（F-4）。**
+   - 不立規則。`ReviewProject.activate` 要求已發布的版本，唯一能讓啟用中的專案出現未發布版本的 `prepareDraftVersion` 沒有呼叫者，這個情況現在走不到，範例也做不出來。
+   - `ExecuteSamplingUseCase` 的 `INVALID_STATE_TRANSITION` 檢查保留為防線。啟用中的專案準備新版本之後，抽選要拒絕還是用最後一個已發布的版本（`api-spec.md` §9.3「採用 published version」），等 `prepareDraftVersion` 立法時一起決定。
+5. **一開始是紅的範例。** 照 D-066 第 5 點：第 1、3 點的範例在本裁決的修法 PR 加進 `known-test-failures.txt`，由建構 PR 移除。
+6. **順序。** 本裁決、規格、`api-spec.md`、`known-test-failures.txt` 在同一個修法 PR；之後是建構 PR（第 1～3 點）。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-067 第 1 點明列不在該裁決的兩件事（第 1、2 點），以及 D-067 建構 PR 時查到的兩件事（第 3、4 點）。
+- **草案與查證**：`docs/harness/18-slice-followup-questions-draft.md`（main = `e14d6aa` 的程式現況、權威文件、選項與理由）。
+- **D-066**：第 3 點是其第 2 點「`detail` 逐字不變」對 `SamplingBatchCompleted` 的例外。
+- **D-060**：第 2 點在暫准範圍內照權威文件修改，由負責人裁決。
+
+### Mapping
+
+- `specs/review-case/`（`RC-DRF-03`）、`specs/sampling-batch/`（`SB-EXE-S5`）
+- `docs/03-contracts/api-spec.md` §4.2
+- `services/quality-inspection-service/known-test-failures.txt`
+- 後續：建構 PR（第 1～3 點）
