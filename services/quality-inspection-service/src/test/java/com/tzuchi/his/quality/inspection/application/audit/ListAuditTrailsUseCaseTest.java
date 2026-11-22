@@ -20,24 +20,22 @@ class ListAuditTrailsUseCaseTest {
     @BeforeEach
     void setUp() {
         queryPort = new InMemoryAuditTrailQueryPort();
-        useCase = new ListAuditTrailsUseCase(queryPort);
+        useCase = new ListAuditTrailsUseCase(queryPort, ScoredDetailMaskTest.maskWith(Map.of()));
     }
 
     @Test
     void hospitalManager_canQuery() {
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        AuditTrailQueryCriteria criteria = new AuditTrailQueryCriteria(null, null, null, null, null, null, 0, 20);
 
-        Page<AuditTrailEntry> result = useCase.execute(actor, criteria);
+        Page<AuditTrailEntry> result = useCase.execute(actor, null, null, null, null, null, null, 0, 20);
         assertNotNull(result);
     }
 
     @Test
     void reviewer_shouldThrowUnauthorized() {
         ActorContext actor = new ActorContext("r1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        AuditTrailQueryCriteria criteria = new AuditTrailQueryCriteria(null, null, null, null, null, null, 0, 20);
 
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, criteria));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(actor, null, null, null, null, null, null, 0, 20));
     }
 
     @Test
@@ -45,17 +43,27 @@ class ListAuditTrailsUseCaseTest {
         AuditTrailEntry entry = new AuditTrailEntry("e1", "ReviewCase", "c1", "ASSIGN_REVIEWER", "u1", "Mgr", "H001", Instant.now(), "{}");
         queryPort.setPage(new Page<>(Collections.singletonList(entry), 0, 20, 1));
         ActorContext actor = new ActorContext("u1", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H001"));
-        AuditTrailQueryCriteria criteria = new AuditTrailQueryCriteria(null, null, null, null, null, null, 0, 20);
 
-        Page<AuditTrailEntry> result = useCase.execute(actor, criteria);
+        Page<AuditTrailEntry> result = useCase.execute(actor, null, null, null, null, null, null, 0, 20);
         assertEquals(1, result.getContent().size());
+        assertNull(result.getContent().get(0).getDetail(), "D-071 第 5 點：SYSTEM_ADMIN 只看 metadata");
+    }
+
+    @Test
+    void pageAndSizeDefaultWhenOmitted() {
+        ActorContext actor = new ActorContext("u1", "Auditor", EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        useCase.execute(actor, null, null, null, null, null, null, null, null);
+
+        assertEquals(0, queryPort.lastCriteria.getPage());
+        assertEquals(20, queryPort.lastCriteria.getSize());
     }
 
     @Test
     void nonAdmin_queriesOwnHospital_ignoringRequestedHospital() {
         ActorContext actor = new ActorContext("u1", "Auditor", EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
 
-        useCase.execute(actor, new AuditTrailQueryCriteria(null, null, "H002", null, null, null, 0, 20));
+        useCase.execute(actor, null, null, "H002", null, null, null, 0, 20);
 
         assertEquals("H001", queryPort.lastCriteria.getHospitalId());
     }
@@ -64,7 +72,7 @@ class ListAuditTrailsUseCaseTest {
     void systemAdmin_mayQueryAnyHospital() {
         ActorContext actor = new ActorContext("u1", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        useCase.execute(actor, new AuditTrailQueryCriteria(null, null, "H002", null, null, null, 0, 20));
+        useCase.execute(actor, null, null, "H002", null, null, null, 0, 20);
 
         assertEquals("H002", queryPort.lastCriteria.getHospitalId());
     }

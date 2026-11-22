@@ -15,13 +15,16 @@ public class GetCaseLifecycleUseCase {
 
     private final AuditTrailQueryPort queryPort;
     private final ReviewCaseRepository caseRepository;
+    private final ScoredDetailMask scoredDetailMask;
 
-    public GetCaseLifecycleUseCase(AuditTrailQueryPort queryPort, ReviewCaseRepository caseRepository) {
+    public GetCaseLifecycleUseCase(AuditTrailQueryPort queryPort, ReviewCaseRepository caseRepository,
+                                   ScoredDetailMask scoredDetailMask) {
         this.queryPort = queryPort;
         this.caseRepository = caseRepository;
+        this.scoredDetailMask = scoredDetailMask;
     }
 
-    public List<AuditTrailEntry> execute(ActorContext actor, String caseId) {
+    public CaseLifecycle execute(ActorContext actor, String caseId) {
         actor.requireAnyRole(
                 DomainRole.HOSPITAL_MANAGER, DomainRole.REVIEWER,
                 DomainRole.REREVIEWER, DomainRole.AUDITOR, DomainRole.SYSTEM_ADMIN);
@@ -31,8 +34,9 @@ public class GetCaseLifecycleUseCase {
         // D-033：detail 會帶初審分數與 finalScore；只要持有複審醫師角色就不給，不論同時持有哪些角色。
         // api-spec：SYSTEM_ADMIN 在生命週期只取得 metadata。
         if (actor.hasRole(DomainRole.REREVIEWER) || actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
-            return entries.stream().map(AuditTrailEntry::withoutDetail).collect(Collectors.toList());
+            return new CaseLifecycle(entries.stream().map(AuditTrailEntry::withoutDetail).collect(Collectors.toList()));
         }
-        return entries;
+        // D-071：帶分數的那幾筆依 D-055 第 6 點遮罩。
+        return new CaseLifecycle(scoredDetailMask.apply(actor, entries));
     }
 }

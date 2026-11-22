@@ -24,7 +24,7 @@ class GetCaseLifecycleUseCaseTest {
         caseRepository = new com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository();
         caseRepository.save(com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase.createFromSampling(
                 "c1", "b1", "p1", "H001", "SK-001", com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.OUTPATIENT));
-        useCase = new GetCaseLifecycleUseCase(queryPort, caseRepository);
+        useCase = new GetCaseLifecycleUseCase(queryPort, caseRepository, ScoredDetailMaskTest.maskWith(Map.of()));
     }
 
     @Test
@@ -33,7 +33,7 @@ class GetCaseLifecycleUseCaseTest {
         queryPort.setLifecycle("ReviewCase", "c1", Collections.singletonList(e1));
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        List<AuditTrailEntry> result = useCase.execute(actor, "c1");
+        List<AuditTrailEntry> result = useCase.execute(actor, "c1").getEntries();
         assertEquals(1, result.size());
         assertEquals("CREATED", result.get(0).getAction());
     }
@@ -72,6 +72,6 @@ class GetCaseLifecycleUseCaseTest {
         AuditTrailEntry e1 = new AuditTrailEntry("e1", "ReviewCase", "c1", "CREATED", "u1", "Mgr", "H001", Instant.now(), "{}");
         queryPort.setLifecycle("ReviewCase", "c1", Collections.singletonList(e1));
         ActorContext actor = new ActorContext("u3", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H002"));
-        assertEquals(1, useCase.execute(actor, "c1").size());
+        assertEquals(1, useCase.execute(actor, "c1").getEntries().size());
     }
 }
