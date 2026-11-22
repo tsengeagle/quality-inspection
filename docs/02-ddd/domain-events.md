@@ -499,6 +499,18 @@
 
 * `assignRereviewer(...)` 成功
 
+### 最低必要欄位（D-070）
+
+```json
+{
+  "eventName": "RereviewerAssigned",
+  "caseId": "RC-001",
+  "rereviewerId": "DOC-2001",
+  "dueAt": "2026-04-20T23:59:59+08:00",
+  "occurredAt": "2026-04-12T10:30:00+08:00"
+}
+```
+
 ---
 
 ## 6.7 `RereviewStarted`
@@ -516,6 +528,18 @@
 * `startRereview()` 成功
 * 狀態轉為 `REREVIEW_IN_PROGRESS`
 
+### 最低必要欄位（D-070）
+
+```json
+{
+  "eventName": "RereviewStarted",
+  "caseId": "RC-001",
+  "submissionId": "SUB-RR-001",
+  "rereviewerId": "DOC-2001",
+  "occurredAt": "2026-04-13T09:00:00+08:00"
+}
+```
+
 ---
 
 ## 6.8 `RereviewCompleted`
@@ -532,6 +556,24 @@
 
 * `completeRereview(...)` 成功
 * 複審 submission 為 `SUBMITTED`
+
+### 最低必要欄位（D-070）
+
+```json
+{
+  "eventName": "RereviewCompleted",
+  "caseId": "RC-001",
+  "submissionId": "SUB-RR-001",
+  "rereviewerId": "DOC-2001",
+  "rereviewScore": 84,
+  "finalScore": 86.25,
+  "occurredAt": "2026-04-13T15:00:00+08:00"
+}
+```
+
+### 補充
+
+* `finalScore` 依 D-012／D-020 加權，與 `rereviewScore`、權重一起就能算出初審分數。事件不回給複審醫師；稽核紀錄的 `detail` 對持有 `REREVIEWER` 角色的人遮罩（§14，D-033）
 
 ---
 
@@ -551,6 +593,20 @@
 * 複審合法提交且無既有阻擋條件，由目前有效合法複審結果的提交醫師另行執行 Close Command，同時固定尚未固定的複審結果（D-032／034）
 * `completeRereview(...)` 本身不再觸發結案事件
 * 狀態轉為 `CLOSED`
+
+### 最低必要欄位（複審路徑，D-070）
+
+```json
+{
+  "eventName": "ReviewCaseClosed",
+  "caseId": "RC-001",
+  "submissionId": "SUB-RR-001",
+  "occurredAt": "2026-04-14T10:00:00+08:00"
+}
+```
+
+* `submissionId` 是結案時固定的那份複審提交（D-053 第 3 點）
+* 不經複審結案的欄位、要不要帶結案路徑，等不經複審結案立法時決定
 
 ### 補充
 

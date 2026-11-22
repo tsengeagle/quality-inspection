@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-22-d070-rereview-event-fields",
+  "decision": "D-070",
+  "reason": "D-070：四個複審事件的最低必要欄位（Q-08），負責人對 docs/harness/20-q08-rereview-event-fields-draft.md 的 E-1～E-4（含 E-3-2）全部照建議裁決。decision-log：新增 D-070。docs/02-ddd/domain-events.md §6.6～§6.9 補最低必要欄位：RereviewerAssigned（caseId、rereviewerId、dueAt）、RereviewStarted（caseId、submissionId、rereviewerId）、RereviewCompleted（caseId、submissionId、rereviewerId、rereviewScore、finalScore）、ReviewCaseClosed 複審路徑（caseId、submissionId）。specs/review-case/：RC-ARR-S2、RC-STR-S3、RC-SRR-S3、RC-CLR-S2 由 proposed 改為 decided，範例的 with 補欄位；新增 fixture weighted_rereview_answered（RANGE 題目的專案，初審 5、手工送複審、複審 15，finalScore 10.00），範例改名為 rereview_completed_carries_the_weighted_final_score；deferred_behaviors 與 not_covered 刪除「finalScore 加權沒有範例」；OPEN-QUESTIONS.md 刪除 Q-08。known-test-failures.txt：新增 4 個紅的範例（事件類別只有 getCaseId），由建構 PR 移除。specs/README.md 第一節更新；docs/harness/20 標為已裁決。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/",
+    "specs/README.md",
+    "law/amendments/",
+    "services/quality-inspection-service/known-test-failures.txt"
+  ]
+}

@@ -2796,3 +2796,35 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/02-ddd/domain-events.md` §6.5、§6.12
 - `law/coverage.txt`、`services/quality-inspection-service/known-test-failures.txt`
 - 後續：建構 PR
+
+---
+
+## D-070 — 四個複審事件的最低必要欄位（Q-08）
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/20-q08-rereview-event-fields-draft.md` 的 E-1～E-4（含 E-3-2）全部照建議裁決）
+
+### Decision
+
+1. **`RereviewerAssigned`（E-1）**：`caseId`、`rereviewerId`、`dueAt`。名稱用 `rereviewerId`，與指派的輸入、`CaseSummary` 一致。改派也發這個事件、傳入同樣的三個欄位；改派要不要另帶 `reassignment`，等改派立法。
+2. **`RereviewStarted`（E-2）**：`caseId`、`submissionId`、`rereviewerId`，照 `InitialReviewStarted`（D-067）。
+3. **`RereviewCompleted`（E-3）**：`caseId`、`submissionId`、`rereviewerId`、`rereviewScore`、`finalScore`。`finalScore` 依 D-012／D-020 加權；它與 `rereviewScore`、權重可以反推初審分數，靠既有的稽核遮罩保護（持有 `REREVIEWER` 的人拿不到 `detail`），與 `domain-events.md` §14 一致。複審醫師的命令輸出仍不得有 `finalScore`（D-033、`RC-SRR-S4`）。
+   - 規格以範例斷言加權（E-3-2）：RANGE 題目的專案，初審 5 分、手工送複審、複審 15 分，權重預設 0.50／0.50，`finalScore` = 10.00。`deferred_behaviors` 與 `not_covered` 的「`finalScore` 加權沒有範例」刪除。
+4. **`ReviewCaseClosed`（E-4，複審路徑）**：`caseId`、`submissionId`（結案時固定的複審提交，D-053 第 3 點）。不加結案路徑欄位；兩條結案路徑要不要合成一個類別，等不經複審結案立法。
+5. **作法**：照 D-066 第 2 點與 D-069 第 4 點，事件類別以取得方法提供欄位，`action` 與 `detail` 逐字不變，稽核紀錄不變。
+6. **一開始是紅的範例**：照 D-066 第 5 點列進 `known-test-failures.txt`，由建構 PR 移除。
+7. **順序**：本裁決、`domain-events.md`、規格、`known-test-failures.txt` 在同一個修法 PR；之後是建構 PR（四個事件類別加欄位，發出者與改派傳入）。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-069 第 4 點把四個事件的欄位列為 `proposed`（`specs/review-case/OPEN-QUESTIONS.md` Q-08）。
+- **草案與查證**：`docs/harness/20-q08-rereview-event-fields-draft.md`（main = `9766a59`；含稽核讀取遮罩的查證：`GetCaseLifecycleUseCase`、`ListAuditTrailsUseCase`）。
+- **不在本裁決**：稽核的 `detail` 帶初審分數，卻不算 D-055 第 5 點的「讀過完整初審」，不留下讀取者紀錄（草案第七節）；另案處理。D-069 留下的兩件（複審不發 `ReviewDraftSaved`、`ReviewSubmissionSubmitted`；提交複審沒有必答題檢查）也不在本裁決。
+
+### Mapping
+
+- `docs/02-ddd/domain-events.md` §6.6～§6.9
+- `specs/review-case/`（`RC-ARR-S2`、`RC-STR-S3`、`RC-SRR-S3`、`RC-CLR-S2` 改為 `decided`；fixture `weighted_rereview_answered`；`OPEN-QUESTIONS.md` 刪除 Q-08）
+- `services/quality-inspection-service/known-test-failures.txt`
+- 後續：建構 PR
