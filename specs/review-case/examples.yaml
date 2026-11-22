@@ -1,0 +1,360 @@
+# 格式說明見 ../README.md（規格格式 v2.0，第十節）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
+#
+# 每個範例的 basis 指向 usecases.yaml、model.yaml 或其他目錄的規則 id。
+# basis 裡只要有一條規則是 proposed，這個範例就還不能當驗收依據。
+# 沒有寫 clock 的範例從 spec-profile.yaml 的 clock_start（2026-11-19T17:00:00+08:00）開始。
+spec_version: 2
+kind: examples
+aggregate: ReviewCase
+
+actors:
+  manager_h1:    { user: u-m1,  roles: [HOSPITAL_MANAGER],     hospital: H-01 }
+  manager_h2:    { user: u-m2,  roles: [HOSPITAL_MANAGER],     hospital: H-02 }
+  reviewer_h1:   { user: u-r1,  roles: [REVIEWER],             hospital: H-01 }
+  reviewer2_h1:  { user: u-r2,  roles: [REVIEWER],             hospital: H-01 }
+  rereviewer_h1: { user: u-rr1, roles: [REREVIEWER],           hospital: H-01 }
+  auditor_h1:    { user: u-au1, roles: [AUDITOR],              hospital: H-01 }
+  admin:         { user: u-a1,  roles: [SYSTEM_ADMIN],         hospital: H-09 }
+  dual_role_h1:  { user: u-d1,  roles: [REVIEWER, REREVIEWER], hospital: H-01 }
+
+fixtures:
+  # 矩陣的 state 欄用 case_in_<狀態> 找到準備步驟。
+  case_in_SELECTED_PENDING_ASSIGNMENT:
+    steps:
+      - use: review-project.active_project
+      - port: sampling-batch.CandidateSource.queryCandidates
+        returns:
+          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+      - run: sampling-batch.ExecuteSampling
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { b: batchId }
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        save: { c: "content[0].caseId" }
+
+  case_in_PENDING_INITIAL_REVIEW:
+    steps:
+      - use: case_in_SELECTED_PENDING_ASSIGNMENT
+      - run: AssignReviewCase
+        as: manager_h1
+        input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" }
+
+  case_in_INITIAL_REVIEW_IN_PROGRESS:
+    steps:
+      - use: case_in_PENDING_INITIAL_REVIEW
+      - run: StartInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        save: { s1: submissionId }
+
+  answered_case:
+    steps:
+      - use: case_in_INITIAL_REVIEW_IN_PROGRESS
+      - run: SaveInitialReviewDraft
+        as: reviewer_h1
+        input:
+          caseId: "${c}"
+          answers: [{ itemId: I1, answerValue: "20" }]
+          comment: "初審評語"
+
+  case_in_INITIAL_REVIEW_COMPLETED:
+    steps:
+      - use: answered_case
+      - run: SubmitInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+
+# 具名斷言可以包含 result 與 code，所以矩陣的一列可以是「被拒絕」。
+expectations:
+  full_content:
+    result: SUCCESS
+    output:
+      "entries[stage=INITIAL]": { status: SUBMITTED, totalScore: "20", comment: "初審評語" }
+  own_draft:
+    result: SUCCESS
+    output:
+      "entries[stage=INITIAL]": { status: DRAFT, revisionNo: 1, reviewerId: u-r1 }
+  metadata_only:
+    result: SUCCESS
+    absent: ["entries[*].totalScore", "entries[*].comment"]
+  denied:
+    result: REJECTED
+    code: ACCESS_DENIED
+
+examples:
+
+  # ---------- ListReviewCases ----------
+
+  - name: lists_only_cases_of_the_actors_hospital
+    basis: [RC-LST-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: manager_h2, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output: { content: [] }
+
+  # ---------- AssignReviewCase ----------
+
+  - name: assigns_a_reviewer
+    basis: [RC-T-01, RC-ASG-S1, RC-ASG-S2, RC-ASG-S3]
+    given:
+      - use: case_in_SELECTED_PENDING_ASSIGNMENT
+      - advance: PT1H
+    when:
+      run: AssignReviewCase
+      as: manager_h1
+      input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-27T07:59:59+08:00" }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseAssigned, with: { caseId: "${c}", assignedReviewerId: u-r1 } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output:
+            "content[caseId=${c}]":
+              status: PENDING_INITIAL_REVIEW
+              reviewerId: u-r1
+              dueAt: "2026-11-26T23:59:59Z"
+              assignedAt: "2026-11-19T10:00:00Z"
+
+  - name: rejects_assign_by_a_non_manager
+    basis: [RC-G-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: AssignReviewCase, as: reviewer_h1, input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_assign_of_an_unknown_case
+    basis: [RC-G-02]
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: no-such-case, reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: CASE_NOT_FOUND }
+
+  - name: rejects_assign_across_hospitals
+    basis: [RC-G-03]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: AssignReviewCase, as: manager_h2, input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_assign_of_an_already_assigned_case
+    basis: [RC-ASG-01]
+    given:
+      - use: case_in_PENDING_INITIAL_REVIEW
+      - advance: PT1H
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r2, dueAt: "2026-11-27T23:59:59Z" } }
+    then: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output:
+            "content[caseId=${c}]": { reviewerId: u-r1, assignedAt: "2026-11-19T09:00:00Z" }
+
+  - name: rejects_assign_without_a_reviewer
+    basis: [RC-ASG-02]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", dueAt: "2026-11-26T23:59:59Z" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  # ---------- StartInitialReview ----------
+
+  - name: starts_the_initial_review
+    basis: [RC-T-02, RC-STI-S1, RC-STI-S2]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when:
+      run: StartInitialReview
+      as: reviewer_h1
+      input: { caseId: "${c}" }
+      save: { s1: submissionId }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: InitialReviewStarted }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: INITIAL_REVIEW_IN_PROGRESS } } }
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            entries:
+              - { submissionId: "${s1}", stage: INITIAL, status: DRAFT, revisionNo: 1, reviewerId: u-r1 }
+
+  # 這個事件在 domain-events.md 沒有「最低必要欄位」，只斷言發出者的 identity（D-066 第 2 點）。
+  - name: initial_review_started_carries_the_case
+    basis: [RC-STI-S3]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: StartInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: InitialReviewStarted, with: { caseId: "${c}" } }
+
+  - name: rejects_start_by_a_reviewer_who_is_not_assigned
+    basis: [RC-STI-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: StartInitialReview, as: reviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: NOT_ASSIGNED_REVIEWER }
+
+  - name: rejects_start_of_a_review_already_started
+    basis: [RC-STI-02]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: StartInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+
+  # ---------- SaveInitialReviewDraft ----------
+
+  - name: saves_the_draft
+    basis: [RC-DRF-S1, RS-T-01]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when:
+      run: SaveInitialReviewDraft
+      as: reviewer_h1
+      input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "20" }], comment: "初審評語" }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewDraftSaved }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output: { "entries[stage=INITIAL]": { status: DRAFT, comment: "初審評語" } }
+
+  # ReviewDraftSaved 的發出者是 ReviewSubmission（domain-events.md §7.1），沒有「最低必要欄位」（D-066 第 2 點）。
+  - name: draft_saved_carries_the_submission
+    basis: [RC-DRF-S2]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when:
+      run: SaveInitialReviewDraft
+      as: reviewer_h1
+      input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "20" }], comment: "初審評語" }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewDraftSaved, with: { submissionId: "${s1}" } }
+
+  - name: rejects_save_by_another_reviewer
+    basis: [RC-DRF-01]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: SaveInitialReviewDraft, as: reviewer2_h1, input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "20" }] } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_OWNED_BY_ACTOR }
+
+  - name: rejects_save_without_any_change
+    basis: [RC-DRF-02]
+    given: [{ use: answered_case }]
+    when:
+      run: SaveInitialReviewDraft
+      as: reviewer_h1
+      input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "20" }], comment: "初審評語" }
+    then: { result: REJECTED, code: NO_CHANGES }
+
+  # ---------- SubmitInitialReview ----------
+
+  - name: submits_the_initial_review
+    basis: [RC-T-03, RS-T-02, RC-SUB-S1, RC-SUB-S2, RC-SUB-S3]
+    given:
+      - use: answered_case
+      - advance: PT2H
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { submissionId: "${s1}", caseStatus: INITIAL_REVIEW_COMPLETED, totalScore: "20" }
+      emits_include:
+        - { event: ReviewSubmissionSubmitted, with: { caseId: "${c}", submissionId: "${s1}" } }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            entries:
+              - { submissionId: "${s1}", stage: INITIAL, status: SUBMITTED, submittedAt: "2026-11-19T11:00:00Z" }
+
+  # 權威文件說還要發出 InitialReviewCompleted（Q-03）。這個事件是 proposed，所以另外寫一個範例，
+  # 不讓上面那個已裁決的範例也變成不能當驗收依據。
+  - name: submitting_emits_exactly_two_events
+    basis: [RC-SUB-S1]
+    given: [{ use: answered_case }]
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewSubmissionSubmitted, with: { caseId: "${c}" } }
+        - { event: InitialReviewCompleted,    with: { caseId: "${c}" } }
+
+  - name: rejects_submit_by_another_reviewer
+    basis: [RC-SUB-01]
+    given: [{ use: answered_case }]
+    when: { run: SubmitInitialReview, as: reviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_OWNED_BY_ACTOR }
+
+  - name: rejects_submit_of_a_review_already_submitted
+    basis: [RC-SUB-02]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
+
+  - name: rejects_submit_with_a_required_item_unanswered
+    basis: [RC-SUB-03]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+
+  # ---------- GetRevisionHistory：角色 × 狀態 ----------
+
+  - name: revision_history_visibility
+    basis: [RC-VIS-01, RC-VIS-03, RC-RVH-01, RC-RVH-02, RC-INV-02]
+    matrix:
+      columns: [actor, state, expect]
+      key: [actor, state]
+      rows:
+        - [reviewer_h1,   INITIAL_REVIEW_IN_PROGRESS, own_draft]
+        - [admin,         INITIAL_REVIEW_IN_PROGRESS, metadata_only]
+        - [reviewer2_h1,  INITIAL_REVIEW_IN_PROGRESS, denied]
+        - [manager_h1,    INITIAL_REVIEW_COMPLETED,   full_content]
+        - [auditor_h1,    INITIAL_REVIEW_COMPLETED,   full_content]
+        - [reviewer_h1,   INITIAL_REVIEW_COMPLETED,   full_content]
+        - [admin,         INITIAL_REVIEW_COMPLETED,   metadata_only]
+        - [reviewer2_h1,  INITIAL_REVIEW_COMPLETED,   denied]
+        - [rereviewer_h1, INITIAL_REVIEW_COMPLETED,   denied]
+        - [dual_role_h1,  INITIAL_REVIEW_COMPLETED,   denied]
+    given:
+      - use: "case_in_${state}"
+    when: { run: GetRevisionHistory, as: "${actor}", input: { caseId: "${c}" } }
+    then: { use_expect: "${expect}" }
+
+  - name: admin_history_is_a_whitelist
+    basis: [RC-VIS-05]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: GetRevisionHistory, as: admin, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      only:
+        ".": [caseId, entries]
+        "entries[*]": [submissionId, stage, revisionNo, status, submittedAt]
+
+  - name: rejects_history_across_hospitals
+    basis: [RC-G-03]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: GetRevisionHistory, as: manager_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+not_covered:
+  - item: 逾期
+    reason: 權威文件沒有已裁決的逾期規則（api-spec §10.3：期限的檢核尚未定稿），也沒有輸出欄位表示逾期
+  - item: 準備步驟的操作者讀過完整初審
+    reason: 矩陣裡 manager_h1、auditor_h1、reviewer_h1 的讀取會留下讀取者紀錄（D-055 第 5 點）。本次範圍沒有指派複審醫師，所以不影響結果；複審立法時要留意

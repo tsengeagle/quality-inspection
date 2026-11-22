@@ -812,6 +812,19 @@ Accept: application/json
 * 採用 published version
 * 同批次內不得重複抽中同一 `sourceCaseKey`
 
+#### 檢查（D-066 第 3 點）
+
+依序：角色 → 載入 → 院區範圍 → 領域規則（D-024）。
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `ROLE_DENIED` | 403 | 操作者不是 `HOSPITAL_MANAGER` |
+| `PROJECT_NOT_FOUND` | 404 | projectId 不存在 |
+| `HOSPITAL_SCOPE_MISMATCH` | 403 | 操作者的院區與專案的院區不同 |
+| `PROJECT_NOT_ACTIVE` | 422 | 專案未啟用 |
+
+規格：`specs/sampling-batch/`。
+
 ---
 
 ## 9.4 重跑失敗批次

@@ -62,3 +62,21 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ScoreSheetItemResponse.java       legislated  specs/score-sheet/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReviewProjectResponse.java        legislated  specs/review-project/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReviewProjectListResponse.java    legislated  specs/review-project/
+
+# ---- 已立法：抽選到初審提交的直向切片（D-066 第 1 點）。寫在目錄那幾列之後，以最後一行為準 ----
+# 只列範例直接執行的 use case 與事件類別；aggregate 本身與其他 use case 仍是暫准（其他轉移還沒有立法）。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/ExecuteSamplingUseCase.java                        legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ListReviewCasesUseCase.java                      legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/AssignReviewCaseUseCase.java                     legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/StartInitialReviewUseCase.java                   legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SaveInitialReviewDraftUseCase.java               legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SubmitInitialReviewUseCase.java                  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/GetRevisionHistoryUseCase.java                   legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/event/SamplingBatchStartedEvent.java                    legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/event/SamplingCandidatesPreparedEvent.java              legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/event/ReviewCasesSelectedEvent.java                     legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/event/SamplingBatchCompletedEvent.java                  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseAssignedEvent.java                    legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/InitialReviewStartedEvent.java       legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/ReviewDraftSavedEvent.java           legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/ReviewSubmissionSubmittedEvent.java  legislated  specs/review-case/

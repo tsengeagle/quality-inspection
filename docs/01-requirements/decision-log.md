@@ -2590,3 +2590,60 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `harness-core/spec_lint.py`、`harness-core/tests/test_spec_lint.py`、`harness-core/tests/fixtures/spec-format-v2-trial/`、`harness-core/README.md`、`harness-core/VERSION`
 - 執行器：`services/quality-inspection-service/src/test/java/.../acceptance/`（`ExampleRunner`、`TreePath`、`ExampleWorld`、`SpringExampleWorld`、`AcceptanceClock`、`AcceptancePorts`、`AcceptanceWorldConfiguration`、`SpecFiles`）
 - 後續：直向切片的規格；格式 v2.1（C 組）
+
+## D-066 — 直向切片（抽選到初審提交）立法；程式與規格對不上的三處依規格修正
+
+### Status
+
+`accepted`（2026-11-21，依負責人對 `docs/harness/16-vertical-slice-draft.md` M-0～M-3 的裁決：全部照草案的建議；以及對規格修法 PR 兩點的裁決：試寫 Q-01 的前三列照 `api-spec.md`，涵蓋清單逐檔列出）
+
+### Decision
+
+1. **立法的範圍。** 從抽選到初審提交的直向切片，以格式 v2.0（D-065）寫成三個目錄：
+   - `specs/sampling-batch/`：`ExecuteSampling`。
+   - `specs/review-case/`：`ListReviewCases`、`AssignReviewCase`、`StartInitialReview`、`SaveInitialReviewDraft`、`SubmitInitialReview`、`GetRevisionHistory`。
+   - `specs/review-submission/`：提交的狀態機，改變它的 use case 定義在 `review-case/`。
+   - 內容來自格式 v2 草案第二輪試寫（`docs/harness/samples/reviewcase-v2-trial/round-2/`），依第 2～4、6 點修改。試寫列出的內容問題（Q-01 的後三列、Q-02、Q-03、Q-05）不在本裁決，對應的規則仍是 `proposed`，題目留在各目錄的 `OPEN-QUESTIONS.md`。
+   - `law/coverage.txt`：只把範例直接執行的程式列為 `legislated`，用逐檔的列寫在目錄那一列之後：上面七支 use case 的類別，以及第 2 點的八個事件類別。aggregate 本身（`domain/sampling/`、`domain/reviewcase/`）與其他 use case 仍是 `grandfathered`：它們的其他轉移還沒有立法。
+2. **事件的欄位（M-2）。**
+   - 規格的 `with` 只用該事件在 `docs/02-ddd/domain-events.md` 寫到的欄位名稱。
+   - `domain-events.md` 有「最低必要欄位」的事件，斷言列為 `decided`：`SamplingBatchStarted`、`SamplingBatchCompleted`（`batchId`、`projectId`）、`ReviewCaseAssigned`（`caseId`、`assignedReviewerId`）、`ReviewSubmissionSubmitted`（`caseId`、`submissionId`）。
+   - 沒有「最低必要欄位」的事件，只斷言發出者的 identity，標 `proposed`：`SamplingCandidatesPrepared`、`ReviewCasesSelected`（`batchId`，Q-06）、`InitialReviewStarted`（`caseId`，Q-07）、`ReviewDraftSaved`（`submissionId`，Q-07）。不必等 `domain-events.md` 補齊。
+   - 建構 PR：切片的八個事件類別加上規格用到的欄位與取得方法；`detail` 改由這些欄位產生，只有一個來源。稽核紀錄的內容必須逐字不變，由測試確認。`DomainEvent` 的建構式與其他 22 個事件類別不動。
+3. **抽選時專案不存在（M-3）。**
+   - 錯誤代碼是 `PROJECT_NOT_FOUND`，`decided`。代碼、意義與分類和 `specs/review-project/` 的 `RP-G-02` 相同。
+   - `docs/03-contracts/api-spec.md` §9.3 補上檢查的錯誤表（`ROLE_DENIED`、`PROJECT_NOT_FOUND`、`HOSPITAL_SCOPE_MISMATCH`、`PROJECT_NOT_ACTIVE`）。
+   - 建構 PR：`ExecuteSamplingUseCase` 找不到專案時丟出帶 `PROJECT_NOT_FOUND` 的 `ResourceNotFoundException`。現在丟的 `IllegalArgumentException` 被共用的例外處理當成程式錯誤，回 500。
+4. **use case 的輸入（M-1）。**
+   - 規格的輸入名稱照 `api-spec.md`，攤平成個別的參數。`ListReviewCases` 只列切片需要的 `batchId`、`status`。這是既有規則「程式要使用規格的名稱」（`specs/README.md` 第四節）的結果，格式與執行器不改。
+   - 建構 PR：切片裡收物件的 `execute` 依規格的輸入名稱攤平，controller 跟著改。`ListReviewCases` 規格沒列的參數照樣保留，沒給時是 null；`page`、`size` 沒給時用現在的預設值（第 0 頁、每頁 20、上限 100）。
+   - 切片以外仍收物件的 `execute`（複審、結案、修正等）這次不動，等各自立法時再攤平。
+5. **一開始是紅的範例（M-0）。**
+   - 本裁決與規格一起生效時，程式還沒照第 2～4 點修改，對應的範例是紅的。這些範例在同一個修法 PR 加進 `known-test-failures.txt`，對應的決策是本裁決。
+   - 建構 PR 每修好一處，就把變綠的範例從清單刪除（只刪行免修法）。
+   - 不採「先改程式、讓規格一進來就是綠的」：那是在 `grandfathered` 範圍、沒有律法的情況下先改程式，與「先立法」相反。
+6. **錯誤代碼照 `api-spec.md`（試寫 Q-01 的前三列）。** 指派時案件不是待指派是 `CASE_NOT_ASSIGNABLE`；開始初審時案件不是待初審是 `CASE_NOT_IN_INITIAL_REVIEW_STAGE`；保存草稿或提交初審的人不是草稿的醫師是 `SUBMISSION_NOT_OWNED_BY_ACTOR`。建構 PR 把程式的 `CASE_NOT_PENDING_ASSIGNMENT`、`CASE_NOT_PENDING_INITIAL_REVIEW`、`NOT_SUBMISSION_OWNER` 改成這三個。`NOT_SUBMISSION_OWNER` 在 D-054 第 6 點（固定初審）的用法不變。`api-spec.md` 沒有代碼的另外三種情況仍是 Q-01，`proposed`。
+7. **涵蓋清單的粒度。** 照第 1 點：逐檔列出範例直接執行的程式，aggregate 目錄仍是 `grandfathered`。不把整個目錄列為 `legislated`，那會誇大涵蓋的範圍。
+8. **順序。** 本裁決、三個規格目錄、`law/coverage.txt`、`known-test-failures.txt`、`api-spec.md` §9.3、`specs/README.md` 在同一個修法 PR。之後才是建構 PR（第 2～4、6 點）。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-065 的執行器修法 PR（#118）把第二輪試寫對應用程式執行，35 個版本 2 的範例通過 4 個；三個原因（M-1～M-3）見 D-065 的 Evidence。
+- **草案與查證**：`docs/harness/16-vertical-slice-draft.md`。三處的程式現況、權威文件、選項與理由都在那裡。
+- **與試寫的差別**：試寫的 Q-04 由第 3 點裁決；`InitialReviewStarted` 試寫斷言 `caseId` 與 `submissionId`、`ReviewDraftSaved` 試寫斷言 `caseId`，依第 2 點改成只有發出者的 identity；新增 `SB-EXE-S3`、`SB-EXE-S4`、`RC-ASG-S3`、`RC-STI-S3`、`RC-DRF-S2`、`RC-SUB-S3` 六條規則承接事件的斷言；跨目錄的 fixture 改用真的 `specs/review-project/`（試寫用的是簡化版）。
+- **D-060**：本裁決把切片列為已立法。沒列進來的範圍照舊是暫准。
+- **D-065**：不必修。第 2～4 點都在現有格式與執行器能表達的範圍內。
+- **立法時的驗證**（2026-11-21，本機，JDK 17）：
+  - `spec_lint`（與 CI 相同的參數）：五個目錄零問題。
+  - 後端完整測試：1095 個測試方法，失敗 34 個，與已知失敗清單完全相同，建置通過。修改前是 1057 個、失敗 0；新增的 38 個都是驗收範例（抽選 6 個、審查案件 32 個）。
+  - 34 個紅的範例：M-1 有 31 個（全部停在準備步驟的 `ListReviewCases`）、M-2 有 2 個、M-3 有 1 個。
+  - 為了知道 M-1 後面還有什麼，在本機暫時把 `ListReviewCases` 攤平再執行一次（實驗，未提交，已還原）：34 個裡剩 15 個紅。原因：M-2 有 6 個、M-2 加 Q-03 有 1 個、D-066 第 6 點有 4 個、Q-01 有 1 個、Q-02 有 1 個、Q-05 有 1 個、M-3 有 1 個；每一個的原因寫在 `known-test-failures.txt`。矩陣的 10 列全部通過，所以矩陣已經對應用程式驗過。
+  - 還沒有對應用程式驗過的：時鐘。斷言 `assignedAt`、`submittedAt` 的兩個範例在 `then` 的事件就停了，沒有走到 `observe`。
+- **第 6 點的影響**：已知失敗清單裡「M-1 之後還有 Q-01」的 5 個範例，有 4 個由第 6 點的建構 PR 修好；`rejects_submit_of_a_review_already_submitted` 要等 Q-01 第二列裁決。
+
+### Mapping
+
+- `specs/sampling-batch/`、`specs/review-case/`、`specs/review-submission/`、`specs/README.md` 第一節
+- `law/coverage.txt`、`services/quality-inspection-service/known-test-failures.txt`
+- `docs/03-contracts/api-spec.md` §9.3
+- 後續：建構 PR（第 2～4、6 點）；Q-01（後三列）、Q-02、Q-03、Q-05～Q-07 的裁決

@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-21-d066-vertical-slice",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:e503f994ecb3f48a69a024261987db045de8089ad4013b85f24cae9b54859996",
+  "reviewed_commit": "34a497a5847e93455bc6ccf6085fa1b92f2cb269",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBQsW4HLGfmEe/T3qk1XPr2GS1U3+tclOOQpTR0NvPls8md977bARPF\nbNcOUkqFq7XP6eY7fVpRwJ41ojNe4cQCAQAAACY=\n-----END SSH SIGNATURE-----\n"
+}
