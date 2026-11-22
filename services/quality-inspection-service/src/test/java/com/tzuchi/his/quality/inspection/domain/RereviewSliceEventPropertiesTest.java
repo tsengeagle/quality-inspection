@@ -9,18 +9,20 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseEscal
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * D-069 第 4 點：複審切片的事件類別有規格用到的屬性；改名與加屬性之後，稽核紀錄的 action 與 detail 逐字不變。
+ * D-069 第 4 點、D-070：複審切片的事件類別有規格用到的屬性；改名與加屬性之後，稽核紀錄的 action 與 detail 逐字不變。
  * 期望的 action 與 detail 是改名之前的輸出。
  */
 class RereviewSliceEventPropertiesTest {
 
     private static final Object SOURCE = new Object();
+    private static final LocalDateTime DUE_AT = LocalDateTime.of(2026, 12, 3, 23, 59, 59);
 
     @Test
     void initialReviewFixed() {
@@ -61,33 +63,56 @@ class RereviewSliceEventPropertiesTest {
 
     @Test
     void rereviewerAssigned() {
-        RereviewerAssignedEvent e = new RereviewerAssignedEvent(SOURCE, "u1", "U1", "H001", "c1", "{\"rereviewerId\":\"rr1\"}");
+        RereviewerAssignedEvent e = new RereviewerAssignedEvent(SOURCE, "u1", "U1", "H001", "c1", "rr1", DUE_AT, false);
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
-                () -> assertEquals("REREVIEWER_ASSIGNED", e.getAction()));
+                () -> assertEquals("rr1", e.getRereviewerId()),
+                () -> assertEquals(DUE_AT, e.getDueAt()),
+                () -> assertEquals("REREVIEWER_ASSIGNED", e.getAction()),
+                () -> assertEquals("{\"rereviewerId\":\"rr1\"}", e.getDetail()));
+    }
+
+    @Test
+    void rereviewerReassigned() {
+        RereviewerAssignedEvent e = new RereviewerAssignedEvent(SOURCE, "u1", "U1", "H001", "c1", "rr2", DUE_AT, true);
+        assertAll(
+                () -> assertEquals("rr2", e.getRereviewerId()),
+                () -> assertEquals("REREVIEWER_ASSIGNED", e.getAction()),
+                () -> assertEquals("{\"rereviewerId\":\"rr2\",\"reassignment\":true}", e.getDetail()));
     }
 
     @Test
     void rereviewStarted() {
-        RereviewStartedEvent e = new RereviewStartedEvent(SOURCE, "u1", "U1", "H001", "c1", "{\"submissionId\":\"s2\"}");
+        RereviewStartedEvent e = new RereviewStartedEvent(SOURCE, "u1", "U1", "H001", "c1", "s2", "rr1");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
-                () -> assertEquals("REREVIEW_STARTED", e.getAction()));
+                () -> assertEquals("s2", e.getSubmissionId()),
+                () -> assertEquals("rr1", e.getRereviewerId()),
+                () -> assertEquals("REREVIEW_STARTED", e.getAction()),
+                () -> assertEquals("{\"submissionId\":\"s2\"}", e.getDetail()));
     }
 
     @Test
     void rereviewCompleted() {
-        RereviewCompletedEvent e = new RereviewCompletedEvent(SOURCE, "u1", "U1", "H001", "c1", "{\"rereviewScore\":20,\"finalScore\":20.00}");
+        RereviewCompletedEvent e = new RereviewCompletedEvent(SOURCE, "u1", "U1", "H001", "c1", "s2", "rr1",
+                new BigDecimal("15"), new BigDecimal("10.00"));
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
-                () -> assertEquals("REREVIEW_SUBMITTED", e.getAction()));
+                () -> assertEquals("s2", e.getSubmissionId()),
+                () -> assertEquals("rr1", e.getRereviewerId()),
+                () -> assertEquals(new BigDecimal("15"), e.getRereviewScore()),
+                () -> assertEquals(new BigDecimal("10.00"), e.getFinalScore()),
+                () -> assertEquals("REREVIEW_SUBMITTED", e.getAction()),
+                () -> assertEquals("{\"rereviewScore\":15,\"finalScore\":10.00}", e.getDetail()));
     }
 
     @Test
     void reviewCaseClosed() {
-        ReviewCaseClosedEvent e = new ReviewCaseClosedEvent(SOURCE, "u1", "U1", "H001", "c1", "{\"submissionId\":\"s2\"}");
+        ReviewCaseClosedEvent e = new ReviewCaseClosedEvent(SOURCE, "u1", "U1", "H001", "c1", "s2");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
-                () -> assertEquals("CASE_CLOSED_AFTER_REREVIEW", e.getAction()));
+                () -> assertEquals("s2", e.getSubmissionId()),
+                () -> assertEquals("CASE_CLOSED_AFTER_REREVIEW", e.getAction()),
+                () -> assertEquals("{\"submissionId\":\"s2\"}", e.getDetail()));
     }
 }

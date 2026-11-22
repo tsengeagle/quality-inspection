@@ -88,8 +88,7 @@ public class CloseRereviewUseCase {
 
         eventPublisher.publish(new ReviewCaseClosedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
-                reviewCase.getCaseId(),
-                String.format("{\"submissionId\":\"%s\"}", submission.getSubmissionId())));
+                reviewCase.getCaseId(), submission.getSubmissionId()));
 
         return new CloseRereviewResult(
                 reviewCase.getCaseId(),

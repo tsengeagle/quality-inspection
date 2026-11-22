@@ -55,7 +55,6 @@ public class ReassignRereviewerUseCase {
                 Instant.now(clock), actor.getUserId(), RereviewerAssignmentRecord.Kind.REASSIGN));
         eventPublisher.publish(new RereviewerAssignedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
-                reviewCase.getCaseId(),
-                String.format("{\"rereviewerId\":\"%s\",\"reassignment\":true}", cmd.getRereviewerId())));
+                reviewCase.getCaseId(), cmd.getRereviewerId(), cmd.getDueAt(), true));
     }
 }
