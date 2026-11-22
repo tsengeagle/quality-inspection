@@ -3,7 +3,6 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.AssignRereviewerCommand;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
@@ -38,24 +37,24 @@ public class AssignRereviewerUseCase {
     }
 
     @Transactional
-    public void execute(ActorContext actor, AssignRereviewerCommand cmd) {
+    public void execute(ActorContext actor, String caseId, String rereviewerId, LocalDateTime dueAt) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
-        ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
         actor.requireHospitalScope(reviewCase.getHospitalId());
         // D-055 第 5 點：讀過本案完整初審的人不得受派（在變更案件之前檢查，拒絕時案件不變）。
-        if (readerPort.hasRead(reviewCase.getCaseId(), cmd.getRereviewerId())) {
+        if (readerPort.hasRead(reviewCase.getCaseId(), rereviewerId)) {
             throw new DomainRuleViolationException("REREVIEWER_HAS_READ_INITIAL",
                     "The rereviewer has already read this case's full initial review (D-055)");
         }
-        reviewCase.assignRereviewer(cmd.getRereviewerId(), cmd.getDueAt(), LocalDateTime.now(clock));
+        reviewCase.assignRereviewer(rereviewerId, dueAt, LocalDateTime.now(clock));
         caseRepository.save(reviewCase);
         // D-055 第 1、4 點：與指派變更同一個交易寫入歷史；任何一方失敗整筆回滾。
-        historyPort.append(new RereviewerAssignmentRecord(reviewCase.getCaseId(), cmd.getRereviewerId(),
+        historyPort.append(new RereviewerAssignmentRecord(reviewCase.getCaseId(), rereviewerId,
                 Instant.now(clock), actor.getUserId(), RereviewerAssignmentRecord.Kind.ASSIGN));
         eventPublisher.publish(new RereviewerAssignedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
                 reviewCase.getCaseId(),
-                String.format("{\"rereviewerId\":\"%s\"}", cmd.getRereviewerId())));
+                String.format("{\"rereviewerId\":\"%s\"}", rereviewerId)));
     }
 }

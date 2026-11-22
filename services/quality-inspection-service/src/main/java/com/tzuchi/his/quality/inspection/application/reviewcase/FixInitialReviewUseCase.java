@@ -11,7 +11,7 @@ import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseEscalatedToRereviewEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseEscalatedToRereviewEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.event.InitialReviewFixedEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
@@ -88,13 +88,12 @@ public class FixInitialReviewUseCase {
         caseRepository.save(reviewCase);
 
         eventPublisher.publish(new InitialReviewFixedEvent(this, actor.getUserId(), actor.getUserName(),
-                reviewCase.getHospitalId(), reviewCase.getCaseId(),
-                String.format("{\"submissionId\":\"%s\"}", submission.getSubmissionId())));
+                reviewCase.getHospitalId(), reviewCase.getCaseId(), submission.getSubmissionId()));
         if (reviewCase.getStatus() == CaseStatus.PENDING_REREVIEW) {
-            eventPublisher.publish(new CaseEscalatedToRereviewEvent(this, actor.getUserId(), actor.getUserName(),
-                    reviewCase.getHospitalId(), reviewCase.getCaseId(),
-                    String.format("{\"score\":%s,\"threshold\":%s}", submission.getTotalScore(),
-                            project.getCurrentVersion().getQualityThreshold())));
+            eventPublisher.publish(ReviewCaseEscalatedToRereviewEvent.onFix(this, actor.getUserId(), actor.getUserName(),
+                    reviewCase.getHospitalId(), reviewCase.getCaseId(), reviewCase.getProjectId(),
+                    submission.getSubmissionId(), submission.getTotalScore(),
+                    project.getCurrentVersion().getQualityThreshold()));
         }
 
         return new FixInitialReviewResult(reviewCase.getCaseId(), reviewCase.getStatus().name(),

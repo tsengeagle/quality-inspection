@@ -4,8 +4,8 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.CloseRereviewCommand;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
@@ -80,13 +80,6 @@ class CloseRereviewUseCaseTest {
         return rereviewer(REREVIEWER_ID, HOSPITAL_ID);
     }
 
-    private static CloseRereviewCommand command(String caseId, String submissionId) {
-        CloseRereviewCommand cmd = new CloseRereviewCommand();
-        cmd.setCaseId(caseId);
-        cmd.setSubmissionId(submissionId);
-        return cmd;
-    }
-
     /** 複審已提交、尚未結案：案件 REREVIEW_IN_PROGRESS，最新複審提交為 SUBMITTED（D-053 第 4 點）。 */
     private ReviewCase seedSubmittedRereview() {
         ReviewCase rc = ReviewCase.createFromSampling(CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
@@ -126,7 +119,7 @@ class CloseRereviewUseCaseTest {
     void execute_validSubmitter_shouldCloseCaseAndKeepFinalScore() {
         seedSubmittedRereview();
 
-        CloseRereviewResult result = useCase.execute(rereviewer(), command(CASE_ID, SUBMISSION_ID));
+        CloseRereviewResult result = useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID);
 
         assertEquals(CASE_ID, result.getCaseId());
         assertEquals("CLOSED", result.getCaseStatus());
@@ -157,7 +150,7 @@ class CloseRereviewUseCaseTest {
         ActorContext manager = new ActorContext("hm-1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of(HOSPITAL_ID));
         RoleDeniedException e = assertThrows(RoleDeniedException.class,
-                () -> useCase.execute(manager, command("missing-case", SUBMISSION_ID)));
+                () -> useCase.execute(manager, "missing-case", SUBMISSION_ID));
         assertEquals("ROLE_DENIED", e.getErrorCode());
     }
 
@@ -165,14 +158,14 @@ class CloseRereviewUseCaseTest {
     void execute_missingCase_shouldReturnNotFound() {
         // D-053 第 5 點：沿用既有的資源不存在代碼（ResourceNotFoundException → 404）
         assertThrows(ResourceNotFoundException.class,
-                () -> useCase.execute(rereviewer(), command("missing-case", SUBMISSION_ID)));
+                () -> useCase.execute(rereviewer(), "missing-case", SUBMISSION_ID));
     }
 
     @Test
     void execute_otherHospital_shouldRejectWithScopeMismatch() {
         seedSubmittedRereview();
         AccessDeniedException e = assertThrows(AccessDeniedException.class,
-                () -> useCase.execute(rereviewer(REREVIEWER_ID, "H999"), command(CASE_ID, SUBMISSION_ID)));
+                () -> useCase.execute(rereviewer(REREVIEWER_ID, "H999"), CASE_ID, SUBMISSION_ID));
         assertEquals("HOSPITAL_SCOPE_MISMATCH", e.getErrorCode());
         assertUnchanged(CaseStatus.REREVIEW_IN_PROGRESS);
     }
@@ -183,7 +176,7 @@ class CloseRereviewUseCaseTest {
         rc.cancel("cancelled", LocalDateTime.now());
         caseRepo.save(rc);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, SUBMISSION_ID)));
+                () -> useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID));
         assertEquals("CASE_TERMINAL", e.getErrorCode());
         assertUnchanged(CaseStatus.CANCELLED);
     }
@@ -191,19 +184,19 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_secondClose_shouldRejectWithCaseTerminal_D053Point6() {
         seedSubmittedRereview();
-        useCase.execute(rereviewer(), command(CASE_ID, SUBMISSION_ID));
+        useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID);
         LocalDateTime firstClosedAt = caseRepo.findById(CASE_ID).orElseThrow().getClosedAt();
         eventPublisher.events.clear();
 
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, SUBMISSION_ID)));
+                () -> useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID));
         assertEquals("CASE_TERMINAL", e.getErrorCode());
         assertEquals(firstClosedAt, caseRepo.findById(CASE_ID).orElseThrow().getClosedAt());
         assertUnchanged(CaseStatus.CLOSED);
     }
 
     @Test
-    void execute_caseNotInRereview_shouldRejectWithCaseNotRereviewInProgress() {
+    void execute_caseNotInRereview_shouldRejectWithCaseNotInRereviewStage() {
         ReviewCase rc = ReviewCase.createFromSampling(CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
         rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
         rc.startInitialReview("sub-init", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
@@ -212,9 +205,10 @@ class CloseRereviewUseCaseTest {
         rc.fixInitialReview(rc.getLatestInitialSubmissionId(), "reviewer-1",
                 java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("90"), new BigDecimal("80"));
         caseRepo.save(rc);
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, SUBMISSION_ID)));
-        assertEquals("CASE_NOT_REREVIEW_IN_PROGRESS", e.getErrorCode());
+        // D-069 第 3 點：複審的狀態錯誤共用一個代碼（422）
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
+                () -> useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID));
+        assertEquals("CASE_NOT_IN_REREVIEW_STAGE", e.getErrorCode());
         assertUnchanged(CaseStatus.PENDING_REREVIEW);
     }
 
@@ -222,7 +216,7 @@ class CloseRereviewUseCaseTest {
     void execute_missingSubmission_shouldReturnNotFound() {
         seedSubmittedRereview();
         assertThrows(ResourceNotFoundException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, "missing-sub")));
+                () -> useCase.execute(rereviewer(), CASE_ID, "missing-sub"));
         assertUnchanged(CaseStatus.REREVIEW_IN_PROGRESS);
     }
 
@@ -233,7 +227,7 @@ class CloseRereviewUseCaseTest {
         other.submit(LocalDateTime.now());
         submissionRepo.save(other);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, "sub-other")));
+                () -> useCase.execute(rereviewer(), CASE_ID, "sub-other"));
         assertEquals("CONFLICT", e.getErrorCode());
         assertUnchanged(CaseStatus.REREVIEW_IN_PROGRESS);
     }
@@ -245,7 +239,7 @@ class CloseRereviewUseCaseTest {
         initial.submit(LocalDateTime.now());
         submissionRepo.save(initial);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, "sub-init")));
+                () -> useCase.execute(rereviewer(), CASE_ID, "sub-init"));
         assertEquals("CONFLICT", e.getErrorCode());
         assertUnchanged(CaseStatus.REREVIEW_IN_PROGRESS);
     }
@@ -266,7 +260,7 @@ class CloseRereviewUseCaseTest {
 
         // revision 已先完成：指向舊版的結案回 CONFLICT
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, SUBMISSION_ID)));
+                () -> useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID));
         assertEquals("CONFLICT", e.getErrorCode());
         assertUnchanged(CaseStatus.REREVIEW_IN_PROGRESS);
     }
@@ -279,7 +273,7 @@ class CloseRereviewUseCaseTest {
         rc.setLatestRereviewSubmissionId("sub-draft");
         caseRepo.save(rc);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> useCase.execute(rereviewer(), command(CASE_ID, "sub-draft")));
+                () -> useCase.execute(rereviewer(), CASE_ID, "sub-draft"));
         assertEquals("SUBMISSION_NOT_SUBMITTED", e.getErrorCode());
         assertUnchanged(CaseStatus.REREVIEW_IN_PROGRESS);
     }
@@ -288,7 +282,7 @@ class CloseRereviewUseCaseTest {
     void execute_notSubmissionOwner_shouldRejectWithNotSubmissionOwner() {
         seedSubmittedRereview();
         AccessDeniedException e = assertThrows(AccessDeniedException.class,
-                () -> useCase.execute(rereviewer("rereviewer-2", HOSPITAL_ID), command(CASE_ID, SUBMISSION_ID)));
+                () -> useCase.execute(rereviewer("rereviewer-2", HOSPITAL_ID), CASE_ID, SUBMISSION_ID));
         assertEquals("NOT_SUBMISSION_OWNER", e.getErrorCode());
         assertUnchanged(CaseStatus.REREVIEW_IN_PROGRESS);
     }
@@ -300,7 +294,7 @@ class CloseRereviewUseCaseTest {
         seedSubmittedRereview();
         seedProject();
         seedScoreSheet();
-        useCase.execute(rereviewer(), command(CASE_ID, SUBMISSION_ID));
+        useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID);
         BigDecimal closedScore = caseRepo.findById(CASE_ID).orElseThrow().getFinalScore();
 
         ReviseRereviewUseCase revise = new ReviseRereviewUseCase(caseRepo, submissionRepo, projectRepo,

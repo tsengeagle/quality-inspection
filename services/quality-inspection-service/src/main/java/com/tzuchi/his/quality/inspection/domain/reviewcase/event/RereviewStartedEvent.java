@@ -12,4 +12,6 @@ public class RereviewStartedEvent extends DomainEvent {
                                  String detail) {
         super(source, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEW_STARTED", detail);
     }
+
+    public String getCaseId() { return getEntityId(); }
 }

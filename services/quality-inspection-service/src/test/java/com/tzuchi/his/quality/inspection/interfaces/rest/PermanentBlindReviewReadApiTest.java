@@ -279,9 +279,7 @@ class PermanentBlindReviewReadApiTest {
         ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         ReviewCaseEntity unassigned = cases.findById("c1").orElseThrow();
         unassigned.setRereviewerId(null); unassigned.setRereviewerAssignedAt(null); cases.save(unassigned);
-        AssignRereviewerCommand first = new AssignRereviewerCommand();
-        first.setCaseId("c1"); first.setRereviewerId("A");
-        assign.execute(manager, first);
+        assign.execute(manager, "c1", "A", LocalDateTime.of(2026, 12, 31, 23, 59));
         ReassignRereviewerCommand next = new ReassignRereviewerCommand();
         next.setCaseId("c1"); next.setRereviewerId("B");
         reassign.execute(manager, next);
@@ -439,8 +437,7 @@ class PermanentBlindReviewReadApiTest {
         ReviewCaseEntity unassigned = cases.findById("c1").orElseThrow();
         unassigned.setRereviewerId(null); unassigned.setRereviewerAssignedAt(null); cases.save(unassigned);
         ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        AssignRereviewerCommand first = new AssignRereviewerCommand(); first.setCaseId("c1"); first.setRereviewerId("A");
-        assign.execute(manager, first);
+        assign.execute(manager, "c1", "A", LocalDateTime.of(2026, 12, 31, 23, 59));
         ReassignRereviewerCommand next = new ReassignRereviewerCommand(); next.setCaseId("c1"); next.setRereviewerId("B");
         reassign.execute(manager, next);
         assertTrue(submissions.findByCaseIdAndStage("c1", ReviewStage.REREVIEW).isEmpty());

@@ -4,7 +4,6 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.AssignRereviewerCommand;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
@@ -60,12 +59,8 @@ class AssignRereviewerUseCaseTest {
     @Test
     void execute_happyPath_shouldAssignRereviewer() {
         seedPendingRereviewCase();
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("rereviewer-1");
-        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
 
-        useCase.execute(managerActor(), cmd);
+        useCase.execute(managerActor(), "c1", "rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59));
 
         ReviewCase saved = caseRepository.findById("c1").orElseThrow();
         assertNotNull(saved.getRereviewerAssignment());
@@ -76,49 +71,35 @@ class AssignRereviewerUseCaseTest {
     @Test
     void execute_sameAsInitialReviewer_shouldThrow() {
         seedPendingRereviewCase();
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("reviewer-1"); // same as initial reviewer → D-017
-        cmd.setDueAt(LocalDateTime.now());
+        // same as initial reviewer → D-017
 
-        assertThrows(Exception.class, () -> useCase.execute(managerActor(), cmd));
+        assertThrows(Exception.class, () -> useCase.execute(managerActor(), "c1", "reviewer-1", LocalDateTime.now()));
     }
 
     @Test
     void execute_nonManager_shouldThrow() {
         seedPendingRereviewCase();
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("rereviewer-1");
 
         ActorContext reviewer = new ActorContext("rev-1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, "c1", "rereviewer-1", null));
     }
 
     @Test
     void execute_wrongHospital_shouldThrowAccessDenied() {
         seedPendingRereviewCase();
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("rereviewer-1");
-        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
 
         ActorContext wrongHospital = new ActorContext("mgr-1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
-        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, "c1", "rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59)));
     }
     // ---- D-055 第 1、4 點：每次指派／改派都寫一筆歷史 ----
 
     @Test
     void execute_writesAssignmentHistory() {
         seedPendingRereviewCase();
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("rereviewer-9");
-        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
 
-        useCase.execute(managerActor(), cmd);
+        useCase.execute(managerActor(), "c1", "rereviewer-9", LocalDateTime.of(2026, 6, 30, 23, 59));
 
         assertEquals(1, records.history.size());
         RereviewerAssignmentRecord r = records.history.get(0);
@@ -132,12 +113,9 @@ class AssignRereviewerUseCaseTest {
     @Test
     void execute_rejectedAssignment_writesNoHistory() {
         seedPendingRereviewCase();
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("reviewer-1"); // D-017
-        cmd.setDueAt(LocalDateTime.now());
+        // D-017
 
-        assertThrows(DomainRuleViolationException.class, () -> useCase.execute(managerActor(), cmd));
+        assertThrows(DomainRuleViolationException.class, () -> useCase.execute(managerActor(), "c1", "reviewer-1", LocalDateTime.now()));
         assertTrue(records.history.isEmpty());
     }
 
@@ -149,13 +127,9 @@ class AssignRereviewerUseCaseTest {
         String previous = before.getRereviewerAssignment() == null ? null
                 : before.getRereviewerAssignment().getReviewerId();
         records.record("c1", "auditor-7", NOW);
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("auditor-7");
-        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
 
         DomainRuleViolationException ex = assertThrows(DomainRuleViolationException.class,
-                () -> useCase.execute(managerActor(), cmd));
+                () -> useCase.execute(managerActor(), "c1", "auditor-7", LocalDateTime.of(2026, 6, 30, 23, 59)));
 
         assertEquals("REREVIEWER_HAS_READ_INITIAL", ex.getErrorCode());
         ReviewCase saved = caseRepository.findById("c1").orElseThrow();
@@ -169,11 +143,7 @@ class AssignRereviewerUseCaseTest {
     void execute_readerOfAnotherCase_isNotBlocked() {
         seedPendingRereviewCase();
         records.record("other-case", "auditor-7", NOW);
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId("auditor-7");
-        cmd.setDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
 
-        assertDoesNotThrow(() -> useCase.execute(managerActor(), cmd));
+        assertDoesNotThrow(() -> useCase.execute(managerActor(), "c1", "auditor-7", LocalDateTime.of(2026, 6, 30, 23, 59)));
     }
 }

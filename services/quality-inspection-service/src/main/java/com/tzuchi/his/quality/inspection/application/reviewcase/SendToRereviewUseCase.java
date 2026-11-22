@@ -3,11 +3,10 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.SendToRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseEscalatedToRereviewEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseEscalatedToRereviewEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,16 +23,15 @@ public class SendToRereviewUseCase {
     }
 
     @Transactional
-    public void execute(ActorContext actor, SendToRereviewCommand cmd) {
+    public void execute(ActorContext actor, String caseId) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
-        ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.sendToRereview();
         caseRepository.save(reviewCase);
-        eventPublisher.publish(new CaseEscalatedToRereviewEvent(
+        eventPublisher.publish(ReviewCaseEscalatedToRereviewEvent.manual(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
-                reviewCase.getCaseId(),
-                "{\"trigger\":\"manual\"}"));
+                reviewCase.getCaseId(), reviewCase.getProjectId(), reviewCase.getInitialReviewScore()));
     }
 }

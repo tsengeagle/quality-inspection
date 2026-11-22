@@ -6,7 +6,6 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.AssignRereviewerUseCase;
 import com.tzuchi.his.quality.inspection.application.reviewcase.GetReviewCaseDetailUseCase;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.AssignRereviewerCommand;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
@@ -259,7 +258,7 @@ class RereviewerHistoryReadAccessApiTest {
 
         assertThatThrownBy(() -> outer.executeWithoutResult(s -> {
             cases.findById("c1").orElseThrow(); // 讀取交易先讀入案件
-            inner.executeWithoutResult(t -> assign.execute(manager("mgr"), assignCommand("rr")));
+            inner.executeWithoutResult(t -> assign.execute(manager("mgr"), "c1", "rr", DUE_AT));
             detail.execute(manager("reader"), "c1");
         })).isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
@@ -277,7 +276,7 @@ class RereviewerHistoryReadAccessApiTest {
         assertThatThrownBy(() -> outer.executeWithoutResult(s -> {
             caseRepository.findById("c1").orElseThrow(); // 指派交易先讀入案件
             inner.executeWithoutResult(t -> detail.execute(manager("reader"), "c1"));
-            assign.execute(manager("mgr"), assignCommand("rr"));
+            assign.execute(manager("mgr"), "c1", "rr", DUE_AT);
         })).isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
         assertThat(readers.findAll()).extracting(InitialReviewReaderEntity::getReaderId).containsExactly("reader");
@@ -285,11 +284,5 @@ class RereviewerHistoryReadAccessApiTest {
         assertThat(cases.findById("c1").orElseThrow().getRereviewerId()).isNull();
     }
 
-    private static AssignRereviewerCommand assignCommand(String rereviewerId) {
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId("c1");
-        cmd.setRereviewerId(rereviewerId);
-        cmd.setDueAt(LocalDateTime.of(2026, 12, 31, 23, 59));
-        return cmd;
-    }
+    private static final LocalDateTime DUE_AT = LocalDateTime.of(2026, 12, 31, 23, 59);
 }

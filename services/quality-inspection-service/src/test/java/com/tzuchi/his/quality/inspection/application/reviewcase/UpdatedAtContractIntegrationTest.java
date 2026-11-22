@@ -126,12 +126,7 @@ class UpdatedAtContractIntegrationTest {
 
     private SaveDraftResult save(boolean rereview, ActorContext actor, boolean changed) {
         if (!rereview) return saveDraft.execute(actor, "c1", answers(changed ? "false" : "true"), changed ? "changed" : "original");
-        com.tzuchi.his.quality.inspection.application.reviewcase.command.SaveRereviewDraftCommand cmd =
-                new com.tzuchi.his.quality.inspection.application.reviewcase.command.SaveRereviewDraftCommand();
-        cmd.setCaseId("c1"); cmd.setSubmissionId("s1");
-        cmd.setAnswers(List.of(AnswerItem.ofScored("Q", changed ? "false" : "true", BigDecimal.TEN)));
-        cmd.setTotalScore(BigDecimal.TEN); cmd.setComment(changed ? "changed" : "original");
-        return rereviewSave.execute(actor, cmd);
+        return rereviewSave.execute(actor, "c1", "s1", answers(changed ? "false" : "true"), changed ? "changed" : "original");
     }
 
     private com.fasterxml.jackson.databind.JsonNode metadata() throws Exception {
@@ -221,10 +216,7 @@ class UpdatedAtContractIntegrationTest {
     @Test
     void rereviewSubmitMustUpdateCaseTime_withoutRepairingD032() throws Exception {
         rereviewFixture();
-        com.tzuchi.his.quality.inspection.application.reviewcase.command.SubmitRereviewCommand cmd =
-                new com.tzuchi.his.quality.inspection.application.reviewcase.command.SubmitRereviewCommand();
-        cmd.setCaseId("c1"); cmd.setSubmissionId("s1"); cmd.setComment("submitted");
-        rereviewSubmit.execute(context(DomainRole.REREVIEWER, "H001", "doctor"), cmd);
+        rereviewSubmit.execute(context(DomainRole.REREVIEWER, "H001", "doctor"), "c1", "s1", null, "submitted");
         requireTime();
     }
 
@@ -300,7 +292,8 @@ class UpdatedAtContractIntegrationTest {
         ReviewSubmissionEntity persisted = submissions.findById("s1").orElseThrow();
         assertEquals("HTTP baseline", persisted.getComment());
         assertEquals("false", persisted.getAnswerSet().get(0).getAnswerValue());
-        if (rr) assertEquals(0, new BigDecimal("3").compareTo(persisted.getTotalScore()));
+        // D-069 第 7 點：複審草稿的分數不是輸入，請求裡的 totalScore 不使用，維持原值
+        if (rr) assertEquals(0, BigDecimal.TEN.compareTo(persisted.getTotalScore()));
     }
 
     @ParameterizedTest

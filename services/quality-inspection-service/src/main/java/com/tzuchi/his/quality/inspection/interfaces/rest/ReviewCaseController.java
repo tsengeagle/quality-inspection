@@ -311,9 +311,7 @@ public class ReviewCaseController {
     public ResponseEntity<ApiResponse<Void>> sendToRereview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
-        SendToRereviewCommand cmd = new SendToRereviewCommand();
-        cmd.setCaseId(caseId);
-        sendToRereviewUseCase.execute(actor, cmd);
+        sendToRereviewUseCase.execute(actor, caseId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -322,11 +320,7 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @RequestBody @Valid AssignRereviewerRequest request) {
-        AssignRereviewerCommand cmd = new AssignRereviewerCommand();
-        cmd.setCaseId(caseId);
-        cmd.setRereviewerId(request.getRereviewerId());
-        cmd.setDueAt(request.getDueAt());
-        assignRereviewerUseCase.execute(actor, cmd);
+        assignRereviewerUseCase.execute(actor, caseId, request.getRereviewerId(), request.getDueAt());
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -347,9 +341,7 @@ public class ReviewCaseController {
     public ResponseEntity<ApiResponse<Void>> startRereview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
-        StartRereviewCommand cmd = new StartRereviewCommand();
-        cmd.setCaseId(caseId);
-        startRereviewUseCase.execute(actor, cmd);
+        startRereviewUseCase.execute(actor, caseId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -358,18 +350,9 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @RequestBody @Valid SaveRereviewDraftRequest request) {
-        SaveRereviewDraftCommand cmd = new SaveRereviewDraftCommand();
-        cmd.setCaseId(caseId);
-        cmd.setSubmissionId(request.getSubmissionId());
-        if (request.getAnswers() != null) {
-            cmd.setAnswers(request.getAnswers().stream()
-                    .filter(Objects::nonNull)
-                    .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                    .collect(Collectors.toList()));
-        }
-        cmd.setTotalScore(request.getTotalScore());
-        cmd.setComment(request.getComment());
-        SaveDraftResult result = saveRereviewDraftUseCase.execute(actor, cmd);
+        // D-069 第 7 點：複審草稿的分數不是輸入；請求裡的 totalScore 不再使用
+        SaveDraftResult result = saveRereviewDraftUseCase.execute(actor, caseId, request.getSubmissionId(),
+                toAnswerInputs(request.getAnswers()), request.getComment());
         return ResponseEntity.ok(ApiResponse.ok(new SaveDraftResponse(
                 result.getSubmissionId(), result.getStatus(),
                 result.getStage(), result.getTotalScore())));
@@ -380,17 +363,8 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @RequestBody @Valid SubmitRereviewRequest request) {
-        SubmitRereviewCommand cmd = new SubmitRereviewCommand();
-        cmd.setCaseId(caseId);
-        cmd.setSubmissionId(request.getSubmissionId());
-        if (request.getAnswers() != null) {
-            cmd.setAnswers(request.getAnswers().stream()
-                    .filter(Objects::nonNull)
-                    .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                    .collect(Collectors.toList()));
-        }
-        cmd.setComment(request.getComment());
-        SubmitRereviewResult result = submitRereviewUseCase.execute(actor, cmd);
+        SubmitRereviewResult result = submitRereviewUseCase.execute(actor, caseId, request.getSubmissionId(),
+                toAnswerInputs(request.getAnswers()), request.getComment());
         return ResponseEntity.ok(ApiResponse.ok(new SubmitRereviewResponse(
                 result.getSubmissionId(), result.getStatus(),
                 result.getCaseId(), result.getCaseStatus())));
@@ -416,10 +390,7 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @PathVariable String submissionId) {
-        CloseRereviewCommand cmd = new CloseRereviewCommand();
-        cmd.setCaseId(caseId);
-        cmd.setSubmissionId(submissionId);
-        CloseRereviewResult result = closeRereviewUseCase.execute(actor, cmd);
+        CloseRereviewResult result = closeRereviewUseCase.execute(actor, caseId, submissionId);
         return ResponseEntity.ok(ApiResponse.ok(new CloseRereviewResponse(
                 result.getCaseId(), result.getCaseStatus(), result.getSubmissionId())));
     }
@@ -445,5 +416,15 @@ public class ReviewCaseController {
                 result.getNewSubmissionId(), result.getOldSubmissionId(),
                 result.getRevisionNo(), result.getTotalScore(),
                 result.getStatus(), result.getStage(), result.getCaseId())));
+    }
+
+    private static List<AnswerInput> toAnswerInputs(List<SaveInitialReviewDraftRequest.AnswerInputDto> answers) {
+        if (answers == null) {
+            return null;
+        }
+        return answers.stream()
+                .filter(Objects::nonNull)
+                .map(a -> new AnswerInput(a.getItemId(), a.getAnswerValue()))
+                .collect(Collectors.toList());
     }
 }

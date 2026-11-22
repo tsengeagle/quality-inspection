@@ -12,7 +12,7 @@ import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewerAssignment;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseEscalatedToRereviewEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseEscalatedToRereviewEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.event.InitialReviewFixedEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
@@ -132,7 +132,7 @@ class FixInitialReviewUseCaseTest {
         assertTrue(stored().isRereviewRequired());
         assertEquals(2, events.events.size());
         assertInstanceOf(InitialReviewFixedEvent.class, events.events.get(0));
-        assertInstanceOf(CaseEscalatedToRereviewEvent.class, events.events.get(1));
+        assertInstanceOf(ReviewCaseEscalatedToRereviewEvent.class, events.events.get(1));
     }
 
     @Test

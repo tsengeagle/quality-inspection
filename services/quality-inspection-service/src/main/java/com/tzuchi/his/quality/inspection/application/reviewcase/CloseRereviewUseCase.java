@@ -4,13 +4,13 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.CloseRereviewCommand;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.event.RereviewCaseClosedEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseClosedEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 /**
  * 複審的獨立結案（D-034、D-053）。
  *
- * <p>檢查順序依 D-024：角色 → 載入 → 院區 → 領域規則；錯誤代碼全部沿用既有代碼（D-053 第 5 點），
+ * <p>檢查順序依 D-024：角色 → 載入 → 院區 → 領域規則；錯誤代碼依 D-053 第 5 點（狀態錯誤依 D-069 第 3 點改成 CASE_NOT_IN_REREVIEW_STAGE），
  * 領域規則的順序與複審 revision 相同，只有一處不同：已被取代的版本依 D-053 回 CONFLICT（revision 回 SUBMISSION_NOT_SUBMITTED）。結案與 revision 同時發生的競爭，要等 D-045 的樂觀鎖才能完全擋住（D-053 第 7 點）。
  */
 @Service
@@ -46,21 +46,22 @@ public class CloseRereviewUseCase {
     }
 
     @Transactional
-    public CloseRereviewResult execute(ActorContext actor, CloseRereviewCommand cmd) {
+    public CloseRereviewResult execute(ActorContext actor, String caseId, String submissionId) {
         actor.requireRole(DomainRole.REREVIEWER);
 
-        ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
         if (reviewCase.getStatus() != CaseStatus.REREVIEW_IN_PROGRESS) {
-            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+            // D-069 第 3 點：複審的狀態錯誤共用一個代碼（422）
+            throw new DomainRuleViolationException("CASE_NOT_IN_REREVIEW_STAGE",
                     "Case must be in REREVIEW_IN_PROGRESS to close after rereview");
         }
 
-        ReviewSubmission submission = submissionRepository.findById(cmd.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + cmd.getSubmissionId()));
+        ReviewSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + submissionId));
 
         if (!reviewCase.getCaseId().equals(submission.getCaseId())
                 || submission.getStage() != ReviewStage.REREVIEW) {
@@ -85,7 +86,7 @@ public class CloseRereviewUseCase {
         reviewCase.closeAfterRereview(LocalDateTime.now(clock));
         caseRepository.save(reviewCase);
 
-        eventPublisher.publish(new RereviewCaseClosedEvent(
+        eventPublisher.publish(new ReviewCaseClosedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
                 reviewCase.getCaseId(),
                 String.format("{\"submissionId\":\"%s\"}", submission.getSubmissionId())));

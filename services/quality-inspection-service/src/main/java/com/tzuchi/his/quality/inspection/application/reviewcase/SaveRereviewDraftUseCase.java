@@ -3,7 +3,8 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.SaveRereviewDraftCommand;
+import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.LocalDateTime;
 
@@ -40,14 +42,16 @@ public class SaveRereviewDraftUseCase {
     }
 
     @Transactional
-    public SaveDraftResult execute(ActorContext actor, SaveRereviewDraftCommand cmd) {
+    public SaveDraftResult execute(ActorContext actor, String caseId, String submissionId,
+                                   List<AnswerInput> answers, String comment) {
         actor.requireRole(DomainRole.REREVIEWER);
-        ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
         if (reviewCase.getStatus() != CaseStatus.REREVIEW_IN_PROGRESS) {
-            throw new DomainStateConflictException("CASE_NOT_REREVIEW_IN_PROGRESS",
+            // D-069 第 3 點：複審的狀態錯誤共用一個代碼（422）
+            throw new DomainRuleViolationException("CASE_NOT_IN_REREVIEW_STAGE",
                     "Case must be in REREVIEW_IN_PROGRESS to save a rereview draft");
         }
         if (reviewCase.getRereviewerAssignment() == null
@@ -55,8 +59,8 @@ public class SaveRereviewDraftUseCase {
             throw new AccessDeniedException("NOT_ASSIGNED_REREVIEWER",
                     "Only the assigned rereviewer can save this draft");
         }
-        ReviewSubmission submission = submissionRepository.findById(cmd.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + cmd.getSubmissionId()));
+        ReviewSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + submissionId));
         if (!reviewCase.getCaseId().equals(submission.getCaseId())
                 || submission.getStage() != ReviewStage.REREVIEW) {
             throw new DomainStateConflictException("CONFLICT",
@@ -76,21 +80,28 @@ public class SaveRereviewDraftUseCase {
                     "Submission is not the current rereview result");
         }
 
-        List<AnswerItem> answers = cmd.getAnswers() != null ? cmd.getAnswers() : Collections.emptyList();
-        BigDecimal totalScore = cmd.getTotalScore() != null ? cmd.getTotalScore() : BigDecimal.ZERO;
+        List<AnswerItem> rawAnswers = answers == null ? Collections.emptyList()
+                : answers.stream().map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue())).collect(Collectors.toList());
         // D-038、D-044：原有檢查都通過之後，業務內容沒有變更就拒絕，不寫入
-        // 複審草稿的分數由請求帶入，屬於業務內容，一併比較
-        if (new DraftContent(answers, totalScore, cmd.getComment())
-                .sameAs(new DraftContent(submission.getAnswerSet(), submission.getTotalScore(), submission.getComment()))) {
+        // D-069 第 7 點：複審草稿的分數不是輸入，提交時才由系統計分；只比答案與評語，分數維持原值
+        if (new DraftContent(rawAnswers, null, comment)
+                .sameAs(new DraftContent(raw(submission.getAnswerSet()), null, submission.getComment()))) {
             throw new DomainStateConflictException("NO_CHANGES", "Draft content is unchanged");
         }
 
-        submission.updateDraft(answers, totalScore, cmd.getComment(), LocalDateTime.now(clock));
+        BigDecimal keptScore = submission.getTotalScore() != null ? submission.getTotalScore() : BigDecimal.ZERO;
+        submission.updateDraft(rawAnswers, keptScore, comment, LocalDateTime.now(clock));
         submissionRepository.save(submission);
         return new SaveDraftResult(
                 submission.getSubmissionId(),
                 submission.getStatus().name(),
                 submission.getStage().name(),
                 submission.getTotalScore());
+    }
+
+    private static List<AnswerItem> raw(List<AnswerItem> answers) {
+        return answers.stream()
+                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                .collect(Collectors.toList());
     }
 }
