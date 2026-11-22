@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.domain.reviewcase;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
 
@@ -76,8 +77,19 @@ class ReviewCaseTest {
     void assignReviewer_nullReviewerId_shouldThrow() {
         ReviewCase rc = createPendingAssignment();
 
-        assertThrows(NullPointerException.class,
+        DomainValidationException e = assertThrows(DomainValidationException.class,
                 () -> rc.assignReviewer(null, DUE, LocalDateTime.now()));
+        assertEquals("VALIDATION_ERROR", e.getErrorCode());
+    }
+
+    @Test
+    void assignReviewer_nullDueAt_shouldThrow() {
+        ReviewCase rc = createPendingAssignment();
+
+        DomainValidationException e = assertThrows(DomainValidationException.class,
+                () -> rc.assignReviewer("reviewer-1", null, LocalDateTime.now()));
+        assertEquals("VALIDATION_ERROR", e.getErrorCode());
+        assertEquals(CaseStatus.SELECTED_PENDING_ASSIGNMENT, rc.getStatus());
     }
 
     // --- reassignReviewer ---

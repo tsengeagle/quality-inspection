@@ -9,13 +9,17 @@ import java.math.BigDecimal;
  */
 public class ReviewDraftSavedEvent extends DomainEvent {
 
+    private final String caseId;
+
     public ReviewDraftSavedEvent(Object source, String actorUserId, String actorUserName,
                                   String hospitalId, String caseId,
                                   String submissionId, BigDecimal totalScore) {
         super(source, actorUserId, actorUserName,
               hospitalId, "ReviewSubmission", submissionId, "DRAFT_SAVED",
               String.format("{\"caseId\":\"%s\",\"totalScore\":%s}", caseId, totalScore));
+        this.caseId = caseId;
     }
 
     public String getSubmissionId() { return getEntityId(); }
+    public String getCaseId() { return caseId; }
 }

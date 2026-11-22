@@ -13,6 +13,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.InitialReviewCompletedEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionSubmittedEvent;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.RequiredRule;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
@@ -59,7 +60,7 @@ class SubmitInitialReviewUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new SubmitInitialReviewUseCase(
-                caseRepo, submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone());
+                caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone());
         
         // Seed project with threshold 80 (score 17.5 won't escalate)
         seedProject(new BigDecimal("80"));
@@ -143,8 +144,15 @@ class SubmitInitialReviewUseCaseTest {
 
         useCase.execute(reviewer(), CASE_ID);
 
-        assertEquals(1, eventPublisher.events.size());
+        assertEquals(2, eventPublisher.events.size());
         assertInstanceOf(ReviewSubmissionSubmittedEvent.class, eventPublisher.events.get(0));
+        // D-067 第 3 點：初審完成，帶專案目前版本的品質線
+        InitialReviewCompletedEvent completed = assertInstanceOf(InitialReviewCompletedEvent.class, eventPublisher.events.get(1));
+        assertEquals(CASE_ID, completed.getCaseId());
+        assertEquals(PROJECT_ID, completed.getProjectId());
+        assertEquals(SUBMISSION_ID, completed.getSubmissionId());
+        assertEquals(REVIEWER_ID, completed.getReviewerId());
+        assertEquals(0, new BigDecimal("80").compareTo(completed.getQualityThreshold()));
     }
 
     @Test
@@ -284,7 +292,7 @@ class SubmitInitialReviewUseCaseTest {
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
         SubmitInitialReviewUseCase submitting = new SubmitInitialReviewUseCase(
-                caseRepo, selected, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), Clock.systemDefaultZone());
+                caseRepo, selected, projectRepo, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), Clock.systemDefaultZone());
         assertEquals(1, old.getRevisionNo());
         assertEquals(1, current.getRevisionNo());
         SubmitInitialReviewResult result = submitting.execute(reviewer(), CASE_ID);

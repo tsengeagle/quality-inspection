@@ -7,13 +7,20 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
  */
 public class InitialReviewStartedEvent extends DomainEvent {
 
+    private final String reviewerId;
+    private final String submissionId;
+
     public InitialReviewStartedEvent(Object source, String actorUserId, String actorUserName,
                                       String hospitalId, String caseId,
                                       String reviewerId, String submissionId) {
         super(source, actorUserId, actorUserName,
               hospitalId, "ReviewCase", caseId, "INITIAL_REVIEW_STARTED",
               String.format("{\"reviewerId\":\"%s\",\"submissionId\":\"%s\"}", reviewerId, submissionId));
+        this.reviewerId = reviewerId;
+        this.submissionId = submissionId;
     }
 
     public String getCaseId() { return getEntityId(); }
+    public String getSubmissionId() { return submissionId; }
+    public String getReviewerId() { return reviewerId; }
 }
