@@ -54,7 +54,6 @@ public class AssignRereviewerUseCase {
                 Instant.now(clock), actor.getUserId(), RereviewerAssignmentRecord.Kind.ASSIGN));
         eventPublisher.publish(new RereviewerAssignedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
-                reviewCase.getCaseId(),
-                String.format("{\"rereviewerId\":\"%s\"}", rereviewerId)));
+                reviewCase.getCaseId(), rereviewerId, dueAt, false));
     }
 }

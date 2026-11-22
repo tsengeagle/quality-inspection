@@ -58,8 +58,7 @@ public class StartRereviewUseCase {
         caseRepository.save(reviewCase);
         eventPublisher.publish(new RereviewStartedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
-                reviewCase.getCaseId(),
-                String.format("{\"submissionId\":\"%s\"}", rereviewDraft.getSubmissionId())));
+                reviewCase.getCaseId(), rereviewDraft.getSubmissionId(), actor.getUserId()));
         return rereviewDraft.getSubmissionId();
     }
 }

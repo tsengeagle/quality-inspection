@@ -139,9 +139,8 @@ public class SubmitRereviewUseCase {
 
         eventPublisher.publish(new RereviewCompletedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
-                reviewCase.getCaseId(),
-                String.format("{\"rereviewScore\":%s,\"finalScore\":%s}",
-                        result.getTotalScore(), reviewCase.getFinalScore())));
+                reviewCase.getCaseId(), submission.getSubmissionId(), actor.getUserId(),
+                result.getTotalScore(), reviewCase.getFinalScore()));
 
         return new SubmitRereviewResult(
                 submission.getSubmissionId(),
