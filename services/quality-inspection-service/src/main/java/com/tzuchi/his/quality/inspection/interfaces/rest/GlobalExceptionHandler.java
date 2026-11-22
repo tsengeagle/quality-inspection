@@ -6,16 +6,19 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationExcept
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.temporal.Temporal;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -79,6 +82,24 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("VALIDATION_ERROR", message));
+    }
+
+    /**
+     * D-073 第 3 點：請求本文的時間不帶時區、讀不成時間點時回 400 VALIDATION_ERROR（憲法草案第一條第 2 點）。
+     * 其他讀不進來的本文維持現狀：原樣丟回，由 Spring 的 DefaultHandlerExceptionResolver 處理。
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadable(HttpMessageNotReadableException ex) {
+        if (ex.getCause() instanceof InvalidFormatException) {
+            InvalidFormatException cause = (InvalidFormatException) ex.getCause();
+            if (cause.getTargetType() != null && Temporal.class.isAssignableFrom(cause.getTargetType())) {
+                String field = cause.getPath().isEmpty() ? "value"
+                        : cause.getPath().get(cause.getPath().size() - 1).getFieldName();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("VALIDATION_ERROR",
+                        field + " must be an ISO-8601 date-time with a time zone offset"));
+            }
+        }
+        throw ex;
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

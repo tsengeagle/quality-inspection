@@ -224,7 +224,7 @@ describe('CaseAssignmentPageComponent', () => {
 
     expect(casesService.assignReviewer).toHaveBeenCalledWith('CASE-011', {
       reviewerId: 'reviewer-1',
-      dueAt: '2026-04-20T12:00:00'
+      dueAt: '2026-04-20T12:00:00+08:00'
     });
     expect(casesService.getAssignmentContext).toHaveBeenCalledTimes(2);
     expect(component.commandFeedbackMessage).toBe('初審指派已送出。');

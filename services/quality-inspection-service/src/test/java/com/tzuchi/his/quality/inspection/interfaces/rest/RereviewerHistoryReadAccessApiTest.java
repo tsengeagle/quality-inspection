@@ -127,7 +127,7 @@ class RereviewerHistoryReadAccessApiTest {
     private org.springframework.test.web.servlet.ResultActions assignViaApi(String kind, String rereviewerId) throws Exception {
         return mvc.perform(post("/review-cases/c1/" + kind).header("api-key", token("mgr", "hospital_manager"))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"rereviewerId\":\"" + rereviewerId + "\",\"dueAt\":\"2026-12-31T23:59:00\"}"));
+                .content("{\"rereviewerId\":\"" + rereviewerId + "\",\"dueAt\":\"2026-12-31T23:59:00+08:00\"}"));
     }
 
     private static ActorContext manager(String id) {
