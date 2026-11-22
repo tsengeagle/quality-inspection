@@ -134,6 +134,25 @@ fixtures:
         as: reviewer_h1
         input: { caseId: "${c}", submissionId: "${s1}" }
 
+  # D-070（E-3-2）：加權看得出來的複審。RANGE 題目的專案，初審 5 分（不進複審），手工送複審，複審作答 15 分。
+  # 專案沒有輸入權重，用預設的 0.50／0.50：finalScore = 5 × 0.50 + 15 × 0.50 = 10.00。
+  weighted_rereview_answered:
+    steps:
+      - use: low_score_fixed_case
+      - run: SendToRereview
+        as: manager_h1
+        input: { caseId: "${c}" }
+      - run: AssignRereviewer
+        as: manager_h1
+        input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" }
+      - run: StartRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}" }
+        save: { s2: submissionId }
+      - run: SaveRereviewDraft
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "15" }], comment: "複審評語" }
+
   case_in_PENDING_REREVIEW:
     steps:
       - use: case_in_INITIAL_REVIEW_COMPLETED
@@ -552,7 +571,7 @@ examples:
     then:
       result: SUCCESS
       emits:
-        - { event: RereviewerAssigned, with: { caseId: "${c}" } }
+        - { event: RereviewerAssigned, with: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" } }
 
   - name: rejects_the_initial_reviewer_as_rereviewer
     basis: [RC-ARR-03]
@@ -603,11 +622,15 @@ examples:
   - name: rereview_started_carries_the_case
     basis: [RC-STR-S3]
     given: [{ use: rereviewer_assigned }]
-    when: { run: StartRereview, as: rereviewer_h1, input: { caseId: "${c}" } }
+    when:
+      run: StartRereview
+      as: rereviewer_h1
+      input: { caseId: "${c}" }
+      save: { s2: submissionId }
     then:
       result: SUCCESS
       emits:
-        - { event: RereviewStarted, with: { caseId: "${c}" } }
+        - { event: RereviewStarted, with: { caseId: "${c}", submissionId: "${s2}", rereviewerId: u-rr1 } }
 
   - name: rejects_start_by_another_rereviewer
     basis: [RC-STR-01]
@@ -712,14 +735,17 @@ examples:
           output:
             "entries[stage=REREVIEW]": { submissionId: "${s2}", status: SUBMITTED, totalScore: "20", submittedAt: "2026-11-19T11:00:00Z" }
 
-  - name: rereview_completed_carries_the_case
-    basis: [RC-SRR-S3]
-    given: [{ use: rereview_answered }]
+  # D-070（E-3）：事件帶加權後的 finalScore（D-012、D-020）。複審醫師的輸出仍然沒有它（RC-SRR-S4）。
+  - name: rereview_completed_carries_the_weighted_final_score
+    basis: [RC-SRR-S3, RC-SRR-S4]
+    given: [{ use: weighted_rereview_answered }]
     when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" } }
     then:
       result: SUCCESS
+      absent: [finalScore, initialReviewScore, initialScore]
       emits_include:
-        - { event: RereviewCompleted, with: { caseId: "${c}" } }
+        - event: RereviewCompleted
+          with: { caseId: "${c}", submissionId: "${s2}", rereviewerId: u-rr1, rereviewScore: "15", finalScore: "10.00" }
 
   - name: rejects_rereview_submit_by_another_rereviewer
     basis: [RC-SRR-03]
@@ -777,7 +803,7 @@ examples:
     then:
       result: SUCCESS
       emits:
-        - { event: ReviewCaseClosed, with: { caseId: "${c}" } }
+        - { event: ReviewCaseClosed, with: { caseId: "${c}", submissionId: "${s2}" } }
 
   - name: rejects_closing_a_draft
     basis: [RC-CLR-06]
@@ -861,5 +887,3 @@ not_covered:
     reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。不是目前有效的複審結果需要修正已提交的複審，不在本次範圍
   - item: 保存複審草稿、提交複審是否發出 ReviewDraftSaved、ReviewSubmissionSubmitted（domain-events.md §7.1、§7.2）
     reason: 兩節寫的是提交（不分階段）的事件；程式在複審沒有發出。D-069 沒有裁決，提交複審的範例用 emits_include，不斷言完整的事件清單
-  - item: 複審提交的 finalScore 加權（D-012、D-020）
-    reason: 本次範圍內沒有輸出 finalScore 的查詢；複審醫師的輸出依 D-033 不得有它

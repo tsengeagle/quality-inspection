@@ -23,6 +23,7 @@ sources:
   - { decision: D-067 }
   - { decision: D-068 }
   - { decision: D-069 }
+  - { decision: D-070 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.9、§6.12、§7.1、§7.2" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.10、§11.1–§11.3、§12.1–§12.3、§13.2、D-034 複審獨立 Close Command 對齊" }
 
@@ -373,7 +374,7 @@ usecases:
     success:
       state:
         - { id: RC-ARR-S1, text: rereviewerId 等於輸入，status 維持 PENDING_REREVIEW, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.5" }, { scenario: TS-RR-001 }] }
-        - { id: RC-ARR-S2, text: RereviewerAssigned 帶有 caseId, status: proposed, question: Q-08 }
+        - { id: RC-ARR-S2, text: RereviewerAssigned 帶有 caseId、rereviewerId、dueAt, status: decided, source: [{ decision: D-070 }, { doc: docs/02-ddd/domain-events.md, section: "§6.6" }] }
       emits:
         - { event: RereviewerAssigned, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.6" }] }
 
@@ -404,7 +405,7 @@ usecases:
       state:
         - { id: RC-STR-S1, text: status = REREVIEW_IN_PROGRESS, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { scenario: TS-RR-002 }] }
         - { id: RC-STR-S2, text: 建立一份複審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-069 }] }
-        - { id: RC-STR-S3, text: RereviewStarted 帶有 caseId, status: proposed, question: Q-08 }
+        - { id: RC-STR-S3, text: RereviewStarted 帶有 caseId、submissionId、rereviewerId, status: decided, source: [{ decision: D-070 }, { doc: docs/02-ddd/domain-events.md, section: "§6.7" }] }
       emits:
         - { event: RereviewStarted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.7" }] }
     output:
@@ -526,7 +527,7 @@ usecases:
       state:
         - { id: RC-SRR-S1, text: status 維持 REREVIEW_IN_PROGRESS，不結案、不固定, status: decided, source: [{ decision: D-032 }, { decision: D-053 }, { scenario: TS-RR-003 }] }
         - { id: RC-SRR-S2, text: 複審提交的狀態是 SUBMITTED，submittedAt 是提交當時的時間；totalScore 由系統依評分表計算, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-032 }] }
-        - { id: RC-SRR-S3, text: RereviewCompleted 帶有 caseId, status: proposed, question: Q-08 }
+        - { id: RC-SRR-S3, text: RereviewCompleted 帶有 caseId、submissionId、rereviewerId、rereviewScore、finalScore；finalScore 依 D-012、D-020 由初審與複審分數加權, status: decided, source: [{ decision: D-070 }, { doc: docs/02-ddd/domain-events.md, section: "§6.8、§14" }] }
         - { id: RC-SRR-S4, text: 輸出沒有 finalScore，也沒有初審的分數, status: decided, source: [{ decision: D-033 }, { decision: D-053 }] }
       emits:
         - { event: RereviewCompleted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.8" }] }
@@ -584,7 +585,7 @@ usecases:
     success:
       state:
         - { id: RC-CLR-S1, text: status = CLOSED, status: decided, source: [{ decision: D-034 }, { decision: D-053 }] }
-        - { id: RC-CLR-S2, text: ReviewCaseClosed 帶有 caseId, status: proposed, question: Q-08 }
+        - { id: RC-CLR-S2, text: ReviewCaseClosed 帶有 caseId 與 submissionId（結案時固定的那份複審提交）, status: decided, source: [{ decision: D-070 }, { decision: D-053 }, { doc: docs/02-ddd/domain-events.md, section: "§6.9" }] }
         - { id: RC-CLR-S3, text: 輸出沒有 finalScore, status: decided, source: [{ decision: D-033 }, { decision: D-053 }] }
       emits:
         - { event: ReviewCaseClosed, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.9" }, { decision: D-053 }] }
