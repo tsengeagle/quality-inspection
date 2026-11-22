@@ -12,46 +12,14 @@
 # 以下 34 個範例在規格合併時是紅的。M-1～M-3 見 D-066 第 2～4 點；Q-xx 見 specs/<目錄>/OPEN-QUESTIONS.md。
 # 每一行的原因是「M-1 修好之後」的原因（2026-11-21 以暫時攤平 ListReviewCases 的本機實驗確認，未提交）。
 #
-# 只有 M-1：ListReviewCases 收 criteria（19 個）
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lists_only_cases_of_the_actors_hospital
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_assign_by_a_non_manager
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_assign_across_hospitals
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/starts_the_initial_review
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_start_by_a_reviewer_who_is_not_assigned
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/saves_the_draft
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_save_without_any_change
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_submit_with_a_required_item_unanswered
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_history_across_hospitals
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.reviewer_h1.INITIAL_REVIEW_IN_PROGRESS
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.admin.INITIAL_REVIEW_IN_PROGRESS
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.reviewer2_h1.INITIAL_REVIEW_IN_PROGRESS
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.manager_h1.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.auditor_h1.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.reviewer_h1.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.admin.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.reviewer2_h1.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.rereviewer_h1.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revision_history_visibility.dual_role_h1.INITIAL_REVIEW_COMPLETED
-# M-1 之後還有 M-2：事件類別沒有規格用到的屬性
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/assigns_a_reviewer
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/initial_review_started_carries_the_case
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/draft_saved_carries_the_submission
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/submits_the_initial_review
 # M-1 之後還有 M-2 與 Q-03：程式沒有 InitialReviewCompleted
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/submitting_emits_exactly_two_events
 # M-1 之後還有 D-066 第 6 點：程式的錯誤代碼要改成 api-spec.md §4.2 的代碼
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_assign_of_an_already_assigned_case
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_start_of_a_review_already_started
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_save_by_another_reviewer
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_submit_by_another_reviewer
 # M-1 之後還有 Q-01（第二列，proposed）：提交時案件不是初審中的代碼
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_submit_of_a_review_already_submitted
 # M-1 之後還有 Q-02：沒有給 reviewerId 時沒有錯誤代碼
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_assign_without_a_reviewer
 # M-1 之後還有 Q-05：SYSTEM_ADMIN 的歷程多了 reviewerId
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/admin_history_is_a_whitelist
-# M-2：事件類別沒有 batchId、projectId
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/creates_one_case_per_candidate
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/intermediate_events_carry_the_batch
-# M-3：找不到專案時沒有錯誤代碼
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/rejects_sampling_of_an_unknown_project

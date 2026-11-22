@@ -165,6 +165,14 @@ class SamplingUseCaseTest {
     }
 
     @Test
+    void execute_unknownProject_shouldThrow404() {
+        com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException.class,
+                () -> executeUseCase.execute(hospitalManagerActor, "missing"));
+        assertEquals("PROJECT_NOT_FOUND", e.getErrorCode());
+    }
+
+    @Test
     void retry_shouldUseSnapshotFromPreviousBatch() {
         ReviewProject project = createActiveProject("p1");
         projectRepo.save(project);

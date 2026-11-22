@@ -82,7 +82,7 @@ public class SaveInitialReviewDraftUseCase {
 
         // Identity guard: only the submission owner
         if (!actor.getUserId().equals(submission.getReviewerId())) {
-            throw new AccessDeniedException("NOT_SUBMISSION_OWNER",
+            throw new AccessDeniedException("SUBMISSION_NOT_OWNED_BY_ACTOR",
                     "Only the reviewer who owns this submission can save a draft");
         }
 

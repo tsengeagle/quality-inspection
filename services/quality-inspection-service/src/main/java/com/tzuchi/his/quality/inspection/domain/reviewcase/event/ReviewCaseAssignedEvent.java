@@ -9,11 +9,17 @@ import java.time.LocalDateTime;
  */
 public class ReviewCaseAssignedEvent extends DomainEvent {
 
+    private final String assignedReviewerId;
+
     public ReviewCaseAssignedEvent(Object source, String actorUserId, String actorUserName,
                                     String hospitalId, String caseId,
                                     String reviewerId, LocalDateTime dueAt) {
         super(source, actorUserId, actorUserName,
               hospitalId, "ReviewCase", caseId, "ASSIGNED",
               String.format("{\"reviewerId\":\"%s\",\"dueAt\":\"%s\"}", reviewerId, dueAt));
+        this.assignedReviewerId = reviewerId;
     }
+
+    public String getCaseId() { return getEntityId(); }
+    public String getAssignedReviewerId() { return assignedReviewerId; }
 }

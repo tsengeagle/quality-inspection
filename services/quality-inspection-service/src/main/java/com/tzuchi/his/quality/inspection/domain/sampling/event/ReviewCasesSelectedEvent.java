@@ -9,4 +9,6 @@ public class ReviewCasesSelectedEvent extends DomainEvent {
               hospitalId, "SamplingBatch", batchId, "CASES_SELECTED",
               String.format("{\"selectedCount\":%d}", selectedCount));
     }
+
+    public String getBatchId() { return getEntityId(); }
 }
