@@ -117,7 +117,7 @@ public class RetrySamplingBatchUseCase {
                 newBatch.getSelectedCount()));
         eventPublisher.publish(new SamplingBatchCompletedEvent(this,
                 actor.getUserId(), actor.getUserName(), hospitalId, newBatchId, projectId,
-                newBatch.getSelectedCount(), populationCount));
+                newBatch.getSelectedCount(), populationCount, eligibleCount, excludedCount));
 
         return newBatchId;
     }

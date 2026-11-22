@@ -4,7 +4,7 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand;
-import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
+import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
@@ -185,7 +185,9 @@ class ReviseRereviewUseCaseTest {
 
         ActorContext wrongActor = new ActorContext("someone-else", "Other", EnumSet.of(DomainRole.REREVIEWER), Optional.of(HOSPITAL_ID));
 
-        assertThrows(DomainRuleViolationException.class, () -> useCase.execute(wrongActor, cmd));
+        // D-068 第 2 點
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, cmd));
+        assertEquals("NOT_ASSIGNED_REREVIEWER", ex.getErrorCode());
     }
 
     @Test

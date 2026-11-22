@@ -182,7 +182,9 @@ class SubmitRereviewUseCaseTest {
 
         ActorContext wrongActor = new ActorContext("someone-else", "Other",
                 EnumSet.of(DomainRole.REREVIEWER), Optional.of(HOSPITAL_ID));
-        assertThrows(Exception.class, () -> useCase.execute(wrongActor, cmd));
+        // D-068 第 2 點
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, cmd));
+        assertEquals("NOT_ASSIGNED_REREVIEWER", ex.getErrorCode());
     }
 
     @Test

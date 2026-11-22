@@ -6,10 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-
-
-# ---- D-068：直向切片的後續四題。規格先立法，程式由建構 PR 配合（D-068 第 5 點）----
-# D-068 第 1 點：保存草稿時案件不是初審中，程式回 CASE_NOT_IN_PROGRESS
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_draft_before_review_started
-# D-068 第 3 點：SamplingBatchCompleted 沒有計數的屬性
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/completed_event_carries_the_counts

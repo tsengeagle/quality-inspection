@@ -486,12 +486,13 @@ class RereviewApiTest {
     // --- TEST 5: START REREVIEW WRONG ACTOR → 422 ---
 
     @Test
-    void startRereview_wrongActor_shouldReturn422() throws Exception {
+    void startRereview_wrongActor_shouldReturn403() throws Exception {
         seedCaseInPendingRereviewWithAssignment();
 
         String wrongToken = TestTokenFactory.rereviewerToken("wrong-user", HOSPITAL_ID);
         mockMvc.perform(post(BASE + "/" + CASE_ID + "/start-rereview")
                         .header("api-key", wrongToken))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("NOT_ASSIGNED_REREVIEWER"));
     }
 }

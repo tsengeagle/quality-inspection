@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
+import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
@@ -41,7 +42,12 @@ public class StartRereviewUseCase {
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
         actor.requireHospitalScope(reviewCase.getHospitalId());
-        // Domain method validates actor is the assigned rereviewer
+        // D-068 第 2 點：不是受指派的複審醫師回 403，與開始初審相同；沒有指派時交給 domain 的狀態檢查
+        if (reviewCase.getRereviewerAssignment() != null &&
+                !actor.getUserId().equals(reviewCase.getRereviewerAssignment().getReviewerId())) {
+            throw new AccessDeniedException("NOT_ASSIGNED_REREVIEWER",
+                    "Only the assigned rereviewer can start the rereview");
+        }
         reviewCase.startRereview(actor.getUserId());
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(
                 UUID.randomUUID().toString(), cmd.getCaseId(), actor.getUserId(), LocalDateTime.now(clock));

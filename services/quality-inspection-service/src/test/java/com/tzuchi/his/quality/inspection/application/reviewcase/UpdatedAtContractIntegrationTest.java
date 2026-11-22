@@ -343,7 +343,7 @@ class UpdatedAtContractIntegrationTest {
         String expected = scenario.endsWith("Role") ? "ROLE_DENIED" : scenario.endsWith("Scope") ? "HOSPITAL_SCOPE_MISMATCH"
                 : scenario.endsWith("Owner") ? rr ? "NOT_ASSIGNED_REREVIEWER" : "SUBMISSION_NOT_OWNED_BY_ACTOR"
                 : scenario.endsWith("Terminal") ? "CASE_TERMINAL" : "CONFLICT";
-        int expectedStatus = scenario.endsWith("Owner") && rr ? 422 : scenario.endsWith("Terminal") || scenario.endsWith("Pointer") ? 409 : 403;
+        int expectedStatus = scenario.endsWith("Terminal") || scenario.endsWith("Pointer") ? 409 : 403;
         assertAll(() -> assertEquals(expectedStatus, response.getResponse().getStatus()),
                 () -> assertEquals(expected, json.path("error").path("code").asText()),
                 () -> assertFalse(json.path("success").asBoolean(true)),

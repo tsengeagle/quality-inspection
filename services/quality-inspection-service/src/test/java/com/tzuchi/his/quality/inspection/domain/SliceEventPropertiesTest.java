@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * D-066 第 2 點、D-067 第 5、6 點：直向切片的事件類別有規格用到的屬性，稽核紀錄的 detail 逐字不變。
  * 期望的 detail 是加屬性之前的輸出；InitialReviewCompleted 是 D-067 第 3 點新增的事件，期望值是它的格式。
+ * SamplingBatchCompleted 依 D-068 第 3 點多了兩個計數，是逐字不變的例外。
  */
 class SliceEventPropertiesTest {
 
@@ -56,11 +57,16 @@ class SliceEventPropertiesTest {
 
     @Test
     void samplingBatchCompleted() {
-        SamplingBatchCompletedEvent e = new SamplingBatchCompletedEvent(SOURCE, "u1", "U1", "H001", "b1", "p1", 2, 3);
+        SamplingBatchCompletedEvent e = new SamplingBatchCompletedEvent(SOURCE, "u1", "U1", "H001", "b1", "p1", 2, 3, 2, 1);
         assertAll(
                 () -> assertEquals("b1", e.getBatchId()),
                 () -> assertEquals("p1", e.getProjectId()),
-                () -> assertEquals("{\"projectId\":\"p1\",\"selectedCount\":2,\"populationCount\":3}", e.getDetail()));
+                () -> assertEquals(2, e.getSelectedCount()),
+                () -> assertEquals(3, e.getPopulationCount()),
+                () -> assertEquals(2, e.getEligibleCount()),
+                () -> assertEquals(1, e.getExcludedCount()),
+                () -> assertEquals("{\"projectId\":\"p1\",\"selectedCount\":2,\"populationCount\":3,"
+                        + "\"eligibleCount\":2,\"excludedCount\":1}", e.getDetail()));
     }
 
     @Test
