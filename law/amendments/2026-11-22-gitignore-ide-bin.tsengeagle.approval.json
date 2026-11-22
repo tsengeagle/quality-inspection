@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-22-gitignore-ide-bin",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:52cd3d1d74c1d227edc134ae2f09cbe042026a662d1685e4d0059d678ea3d007",
+  "reviewed_commit": "1c43bae8ede8b94e99e7eb07b8b28b68caae7990",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEDgKW6mYvOwvPARU/rR2x8ipU4IuLo7LbN2KW5A9lGLwYT/TBwwBOeh\na272Zbvb5/OwCMkxMXQZIqmqIeraG1QPAQAAAC8=\n-----END SSH SIGNATURE-----\n"
+}
