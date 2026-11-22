@@ -13,6 +13,8 @@ Desktop.ini
 *.swp
 *.swo
 *~
+# VS Code Java／Eclipse 的編譯輸出（Gradle 的輸出在 build/）
+services/quality-inspection-service/bin/
 
 # === Java / Spring Boot ===
 *.class

@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-22-gitignore-ide-bin",
+  "decision": "none",
+  "reason": "不涉及業務規則的閘門整理：.gitignore 加上 services/quality-inspection-service/bin/（VS Code Java／Eclipse 的編譯輸出；Gradle 的輸出在 build/，已忽略）。bin/main/application.yml 在 2cb709b 被誤加入版本控制（之前 a196356 已刪過一次），內容只是 src/main/resources/application.yml 的複本；它不是律法也不是文件，依 P4 由之後的建構 PR 從版本控制移除。另刪除 repo 根目錄的 copilot-session-6ee9abdc-1423-4d7d-bac3-48577c69d1ba.md：2026-04-11 隨 09a7613 誤提交的 Copilot CLI 對話紀錄，沒有任何文件引用，負責人已刪除。",
+  "drafted_by": "claude-code",
+  "paths": [
+    ".gitignore",
+    "law/amendments/"
+  ]
+}
