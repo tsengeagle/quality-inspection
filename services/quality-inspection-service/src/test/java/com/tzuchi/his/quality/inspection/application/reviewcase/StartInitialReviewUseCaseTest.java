@@ -160,8 +160,9 @@ class StartInitialReviewUseCaseTest {
         caseRepo.save(rc);
         seedProjectWithScoreSheet();
 
-        assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> useCase.execute(reviewer(), CASE_ID));
+        assertEquals("CASE_NOT_IN_INITIAL_REVIEW_STAGE", e.getErrorCode());
     }
 
     @Test

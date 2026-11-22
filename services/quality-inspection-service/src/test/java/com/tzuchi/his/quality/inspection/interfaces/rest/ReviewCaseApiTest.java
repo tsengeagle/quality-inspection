@@ -121,7 +121,7 @@ class ReviewCaseApiTest {
     }
 
     @Test
-    void assignReviewer_alreadyAssigned_shouldReturn409() throws Exception {
+    void assignReviewer_alreadyAssigned_shouldReturn422() throws Exception {
         seedAssignedCase("c1");
 
         AssignReviewerRequest req = new AssignReviewerRequest();
@@ -132,7 +132,8 @@ class ReviewCaseApiTest {
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isConflict());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("CASE_NOT_ASSIGNABLE"));
     }
 
     // --- REASSIGN ---

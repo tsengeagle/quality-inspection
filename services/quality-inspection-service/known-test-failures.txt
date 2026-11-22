@@ -14,9 +14,6 @@
 #
 # M-1 之後還有 M-2 與 Q-03：程式沒有 InitialReviewCompleted
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/submitting_emits_exactly_two_events
-# M-1 之後還有 D-066 第 6 點：程式的錯誤代碼要改成 api-spec.md §4.2 的代碼
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_assign_of_an_already_assigned_case
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_start_of_a_review_already_started
 # M-1 之後還有 Q-01（第二列，proposed）：提交時案件不是初審中的代碼
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_submit_of_a_review_already_submitted
 # M-1 之後還有 Q-02：沒有給 reviewerId 時沒有錯誤代碼

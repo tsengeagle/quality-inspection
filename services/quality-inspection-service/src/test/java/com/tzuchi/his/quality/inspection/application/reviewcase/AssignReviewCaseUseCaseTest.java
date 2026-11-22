@@ -4,7 +4,7 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
@@ -94,7 +94,8 @@ class AssignReviewCaseUseCaseTest {
         createCase();
         useCase.execute(hospitalManager(), "c1", "reviewer-1", DUE);
 
-        assertThrows(DomainStateConflictException.class,
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> useCase.execute(hospitalManager(), "c1", "reviewer-2", DUE));
+        assertEquals("CASE_NOT_ASSIGNABLE", e.getErrorCode());
     }
 }
