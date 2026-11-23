@@ -3,9 +3,11 @@ package com.tzuchi.his.quality.inspection.acceptance;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -25,8 +27,12 @@ import java.util.stream.Stream;
  * 找不到任何範例時測試失敗：沒有評估不能算通過。</p>
  *
  * <p>spec_version 2 的範例（D-065）另外需要時鐘、事件與埠，由 {@link AcceptanceWorldConfiguration} 提供。</p>
+ *
+ * <p>when 是 http 步驟的範例（D-074，格式 v2.1）以 MockMvc 送出請求：請求在同一個執行緒處理，
+ * 所以與範例在同一個交易裡，結束後一樣還原。</p>
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 @Import(AcceptanceWorldConfiguration.class)
 class AcceptanceExamplesTest {
 
@@ -39,6 +45,9 @@ class AcceptanceExamplesTest {
     @Autowired
     private SpringExampleWorld world;
 
+    @Autowired
+    private MockMvc mockMvc;
+
     @TestFactory
     Stream<DynamicTest> examples() {
         SpecFiles specs = SpecFiles.fromSystemProperty();
@@ -50,10 +59,13 @@ class AcceptanceExamplesTest {
         Set<String> specified = specs.useCaseNames();
         Map<String, Object> profile = specs.profile();
         UseCaseInvoker invoker = new SpringUseCaseInvoker(context, world);
+        HttpInvoker http = new SpringHttpInvoker(mockMvc, context.getEnvironment());
+        Map<String, Object> httpCommon = specs.httpCommon();
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
         List<DynamicTest> tests = new ArrayList<>();
         for (String directory : documents.keySet()) {
-            ExampleRunner runner = new ExampleRunner(directory, documents, profile, specified, invoker, world);
+            ExampleRunner runner = new ExampleRunner(directory, documents, profile, specified, invoker, world,
+                    http, httpCommon, specs.errorCategories(directory));
             for (String name : runner.exampleNames()) {
                 tests.add(DynamicTest.dynamicTest(directory + "/" + name, () -> transaction.executeWithoutResult(status -> {
                     status.setRollbackOnly();

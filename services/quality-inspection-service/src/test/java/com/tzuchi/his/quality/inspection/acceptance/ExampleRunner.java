@@ -54,6 +54,14 @@ public final class ExampleRunner {
     private final boolean version2;
     private final Map<String, Object> expectations;
 
+    // ---- 以下只有 http 步驟使用（D-074，格式 v2.1）----
+    /** 送出請求的途徑；沒有的話 http 範例無法執行。 */
+    private final HttpInvoker http;
+    /** http-common.yaml：status_by_category 與 transport_codes，用來推得狀態碼。 */
+    private final Map<String, Object> httpCommon;
+    /** 這個規格目錄的錯誤代碼 → 分類（usecases.yaml 的 error_codes）。 */
+    private final Map<String, String> errorCategories;
+
     /**
      * 只有一份 spec_version 1 的 examples.yaml 時用。
      *
@@ -73,6 +81,22 @@ public final class ExampleRunner {
      */
     public ExampleRunner(String home, Map<String, Map<String, Object>> documents, Map<String, Object> profile,
                          Set<String> specifiedUseCases, UseCaseInvoker invoker, ExampleWorld world) {
+        this(home, documents, profile, specifiedUseCases, invoker, world, null, Collections.emptyMap(), Collections.emptyMap());
+    }
+
+    /**
+     * 規格格式 v2.1（D-074）：範例的 when 可以是 http 步驟。
+     *
+     * @param http            送出請求的途徑；null 表示這個環境不能跑 http 範例
+     * @param httpCommon      http-common.yaml
+     * @param errorCategories home 這個目錄的錯誤代碼 → 分類（usecases.yaml 的 error_codes）
+     */
+    public ExampleRunner(String home, Map<String, Map<String, Object>> documents, Map<String, Object> profile,
+                         Set<String> specifiedUseCases, UseCaseInvoker invoker, ExampleWorld world,
+                         HttpInvoker http, Map<String, Object> httpCommon, Map<String, String> errorCategories) {
+        this.http = http;
+        this.httpCommon = httpCommon;
+        this.errorCategories = errorCategories;
         Map<String, Object> examplesDoc = documents.get(home);
         if (examplesDoc == null) {
             throw new RunnerProblem("沒有規格目錄 " + home + " 的 examples.yaml");
@@ -547,12 +571,31 @@ public final class ExampleRunner {
             throw new RunnerProblem("when 必須是一個步驟");
         }
         Step when = new Step(map(example.get("when"), "when"), home);
-        if (!(when.node.get("run") instanceof String)) {
-            throw new RunnerProblem("when 必須是 run 步驟");
+        boolean isHttp = when.node.containsKey("http");
+        if (isHttp && when.node.containsKey("run")) {
+            throw new RunnerProblem("when 不能同時是 run 與 http 步驟");
+        }
+        if (!isHttp && !(when.node.get("run") instanceof String)) {
+            throw new RunnerProblem("when 必須是 run 或 http 步驟");
+        }
+        for (Step step : given) {
+            if (step.node.containsKey("http")) {
+                throw new RunnerProblem("http 步驟只能用在 when；準備狀態一律走 use case");
+            }
         }
         List<Step> observe = new ArrayList<>();
         for (Object step : list(example.get("observe"), "observe")) {
             observe.add(new Step(map(step, "observe 的步驟"), home));
+            if (observe.get(observe.size() - 1).node.containsKey("http")) {
+                throw new RunnerProblem("http 步驟只能用在 when，不能用在 observe");
+            }
+        }
+        if (isHttp) {
+            if (http == null) {
+                throw new RunnerProblem("http 步驟需要送出請求的環境（HttpInvoker）");
+            }
+            // D-074 第 7 點：環境不對就停下來，不執行任何一步
+            http.checkReady();
         }
 
         // 跳過算未通過：先檢查，不執行任何一步（與版本 1 相同）
@@ -584,36 +627,181 @@ public final class ExampleRunner {
             }
 
             world.takeEvents();
-            Outcome outcome = executeV2(when, vars);
+            HttpInvoker.Reply reply = isHttp ? sendHttp(when, vars) : null;
+            Outcome outcome = isHttp ? httpOutcome(reply) : executeV2(when, vars);
             List<ExampleWorld.EmittedEvent> events = world.takeEvents();
             failOnUnconfiguredPorts("when");
             Map<String, Object> then = assertion(example.get("then"), "then");
+            if (isHttp && (then.containsKey("status") || then.containsKey("body"))) {
+                // 沒有外殼的回應（D-074 第 4 點）：只比對狀態碼與空的本文；事件與 observe 照常
+                checkBareReply(then, reply);
+                checkEvents(then, outcome, events, vars, zone);
+                observeV2(observe, vars, zone);
+                return;
+            }
+            if (isHttp) {
+                checkHttpEnvelope(then, reply, outcome);
+            }
             checkResult("then", then, outcome);
+            if (isHttp) {
+                checkHttpStatus(then, reply);
+            }
             if (outcome.isSuccess()) {
                 // 先存變數：then 的 output 與事件可以引用 when 自己存的變數
                 saveV2(when, outcome, vars);
             }
             checkAssertion("then", then, outcome, vars, zone);
             checkEvents(then, outcome, events, vars, zone);
-
-            for (int i = 0; i < observe.size(); i++) {
-                Step step = observe.get(i);
-                if (!step.node.containsKey("run")) {
-                    prepare(step, "observe[" + i + "]", vars);
-                    continue;
-                }
-                String where = "observe[" + i + "] " + step.node.get("run");
-                Outcome observed = executeV2(step, vars);
-                failOnUnconfiguredPorts(where);
-                Map<String, Object> expect = assertion(step.node.get("expect"), where + " 的 expect");
-                if (expect.containsKey("emits") || expect.containsKey("emits_include")) {
-                    throw new RunnerProblem(where + "：emits、emits_include 只能用在 then");
-                }
-                checkResult(where, expect, observed);
-                checkAssertion(where, expect, observed, vars, zone);
-            }
+            observeV2(observe, vars, zone);
         } finally {
             world.end();
+        }
+    }
+
+    private void observeV2(List<Step> observe, Map<String, Object> vars, ZoneId zone) {
+        for (int i = 0; i < observe.size(); i++) {
+            Step step = observe.get(i);
+            if (!step.node.containsKey("run")) {
+                prepare(step, "observe[" + i + "]", vars);
+                continue;
+            }
+            String where = "observe[" + i + "] " + step.node.get("run");
+            Outcome observed = executeV2(step, vars);
+            failOnUnconfiguredPorts(where);
+            Map<String, Object> expect = assertion(step.node.get("expect"), where + " 的 expect");
+            if (expect.containsKey("emits") || expect.containsKey("emits_include")) {
+                throw new RunnerProblem(where + "：emits、emits_include 只能用在 then");
+            }
+            checkResult(where, expect, observed);
+            checkAssertion(where, expect, observed, vars, zone);
+        }
+    }
+
+    // ---------- http 步驟（D-074；specs/README.md 第十一節）----------
+
+    private static final String ANONYMOUS = "anonymous";
+
+    /** 依 http 步驟組出請求並送出。操作者的角色經 spec-profile.yaml 的 role_claims 轉成 api-key 的 role_name。 */
+    private HttpInvoker.Reply sendHttp(Step step, Map<String, Object> vars) {
+        Map<String, Object> request = map(step.node.get("http"), "http");
+        for (String key : new String[] {"input", "save", "expect"}) {
+            if (step.node.containsKey(key)) {
+                throw new RunnerProblem("http 步驟不能有 " + key);
+            }
+        }
+        Object method = request.get("method");
+        Object path = request.get("path");
+        if (!(method instanceof String) || !(path instanceof String) || !((String) path).startsWith("/")) {
+            throw new RunnerProblem("http 步驟必須有 method 與以 / 開頭的 path：" + request);
+        }
+        if (request.containsKey("body") && request.containsKey("body_raw")) {
+            throw new RunnerProblem("http.body 與 http.body_raw 只能擇一");
+        }
+        Object raw = request.get("body_raw");
+        if (request.containsKey("body_raw") && !(raw instanceof String)) {
+            throw new RunnerProblem("http.body_raw 必須是字串：" + raw);
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> query = (Map<String, Object>) substitute(map(request.get("query"), "http.query"), vars);
+        Object body = request.containsKey("body") ? substitute(map(request.get("body"), "http.body"), vars) : null;
+        String target = String.valueOf(substitute(path, vars));
+
+        Object as = step.node.get("as");
+        if (!(as instanceof String)) {
+            throw new RunnerProblem("http 步驟必須有 as（不帶 api-key 時寫 as: " + ANONYMOUS + "）");
+        }
+        if (ANONYMOUS.equals(as)) {
+            return http.send(new HttpInvoker.Request((String) method, target, query, body, (String) raw,
+                    true, null, null, null));
+        }
+        Map<String, Object> declared = map(documents.get(step.directory).get("actors"), step.directory + " 的 actors");
+        Map<String, Object> actor = map(declared.get(as), "actor " + as);
+        if (actor.isEmpty()) {
+            throw new RunnerProblem("actors 裡沒有操作者 " + as);
+        }
+        Map<String, Object> claims = map(profile.get("role_claims"), "spec-profile.yaml 的 role_claims");
+        List<String> roleClaims = new ArrayList<>();
+        for (String role : strings(actor.get("roles"), "actor " + as + " 的 roles")) {
+            if (!(claims.get(role) instanceof String)) {
+                throw new RunnerProblem("spec-profile.yaml 的 role_claims 沒有角色 " + role);
+            }
+            roleClaims.add((String) claims.get(role));
+        }
+        Object hospital = actor.get("hospital");
+        return http.send(new HttpInvoker.Request((String) method, target, query, body, (String) raw,
+                false, String.valueOf(actor.get("user")), hospital == null ? null : String.valueOf(hospital), roleClaims));
+    }
+
+    /** 回應是 2xx 就是成功，值是外殼的 data；其他一律是被拒絕，代碼取自外殼的 error.code（D-074 第 8 點）。 */
+    private static Outcome httpOutcome(HttpInvoker.Reply reply) {
+        Object json = reply.json;
+        if (reply.status >= 200 && reply.status < 300) {
+            return Outcome.success(json instanceof Map ? ((Map<?, ?>) json).get("data") : null);
+        }
+        Object error = json instanceof Map ? ((Map<?, ?>) json).get("error") : null;
+        Object code = error instanceof Map ? ((Map<?, ?>) error).get("code") : null;
+        return Outcome.rejected(code == null ? null : String.valueOf(code), "HTTP " + reply.status + " " + reply.body);
+    }
+
+    /** then: { status, body: empty }：沒有外殼的回應。 */
+    private static void checkBareReply(Map<String, Object> then, HttpInvoker.Reply reply) {
+        if (!(then.get("status") instanceof Integer) || !"empty".equals(then.get("body")) || then.size() != 2) {
+            throw new RunnerProblem("沒有回應外殼時，then 只能寫 status（整數）與 body: empty：" + then);
+        }
+        if (reply.status != (Integer) then.get("status")) {
+            throw new AssertionError("then：預期狀態碼 " + then.get("status") + "，實際 " + reply.status + "（" + reply.body + "）");
+        }
+        if (!reply.body.isEmpty()) {
+            throw new AssertionError("then：預期回應沒有本文，實際是 " + reply.body);
+        }
+    }
+
+    /** 寫 result 的範例預期回應有外殼：成功時要讀得到 data，才不會把沒有本文的 2xx 當成「data 是 null」。 */
+    private static void checkHttpEnvelope(Map<String, Object> then, HttpInvoker.Reply reply, Outcome outcome) {
+        if ("SUCCESS".equals(then.get("result")) && outcome.isSuccess() && !(reply.json instanceof Map)) {
+            throw new AssertionError("then：回應是 " + reply.status + "，但本文不是回應外殼：" + reply.body);
+        }
+    }
+
+    /**
+     * 狀態碼不寫在範例裡，依 http-common.yaml 推得（D-074 第 4 點）：transport_codes 列出的代碼用它的狀態碼，
+     * 其他依錯誤代碼的分類查 status_by_category。在 checkResult 之後呼叫，所以代碼已經相符。
+     */
+    private void checkHttpStatus(Map<String, Object> then, HttpInvoker.Reply reply) {
+        if (!"REJECTED".equals(then.get("result"))) {
+            return;
+        }
+        String code = String.valueOf(then.get("code"));
+        Integer expected = null;
+        String reason = null;
+        for (Object item : list(httpCommon.get("transport_codes"), "http-common.yaml 的 transport_codes")) {
+            Map<String, Object> entry = map(item, "transport_codes 的一項");
+            if (code.equals(entry.get("code")) && entry.get("status") instanceof Integer) {
+                expected = (Integer) entry.get("status");
+                reason = "http-common.yaml 的 transport_codes";
+            }
+        }
+        String category = errorCategories.get(code);
+        if (category != null) {
+            Object byCategory = map(httpCommon.get("status_by_category"), "http-common.yaml 的 status_by_category").get(category);
+            if (!(byCategory instanceof Integer)) {
+                throw new RunnerProblem("http-common.yaml 的 status_by_category 沒有分類 " + category + "（錯誤代碼 " + code + "）");
+            }
+            if (expected != null && !expected.equals(byCategory)) {
+                throw new RunnerProblem("錯誤代碼 " + code + " 的狀態碼有兩個說法：transport_codes 是 " + expected
+                        + "，分類 " + category + " 是 " + byCategory);
+            }
+            if (expected == null) {
+                expected = (Integer) byCategory;
+                reason = "分類 " + category;
+            }
+        }
+        if (expected == null) {
+            throw new RunnerProblem("推不出錯誤代碼 " + code + " 的狀態碼：它不在 " + home
+                    + " 的 error_codes，也不在 http-common.yaml 的 transport_codes");
+        }
+        if (reply.status != expected) {
+            throw new AssertionError("then：" + code + " 的狀態碼應為 " + expected + "（" + reason + "），實際 " + reply.status);
         }
     }
 
