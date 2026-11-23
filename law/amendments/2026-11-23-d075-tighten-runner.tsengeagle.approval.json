@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-23-d075-tighten-runner",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:e81bc7e14e57d7f8047849a311f2de26a4f3213c81af92405ef6fd3560d4ee1d",
+  "reviewed_commit": "85f135c394a078434b470e00cffa9938036d93ba",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEDv9A8fqh+PaK8DZzFfnoQtviRW4PN8iE839LhyQ4kmHN+WNYZhgn4c\n4Ux+xB5xS1qrVTXoeVwpnpieWUAiI2sKAQAAAFE=\n-----END SSH SIGNATURE-----\n"
+}
