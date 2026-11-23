@@ -444,6 +444,16 @@ examples:
         - { event: ReviewSubmissionSubmitted, with: { caseId: "${c}" } }
         - { event: InitialReviewCompleted,    with: { caseId: "${c}", submissionId: "${s1}" } }
 
+  # D-076 第 2 點：事件帶階段（domain-events.md §7.2）。
+  - name: submission_submitted_carries_the_initial_stage
+    basis: [RC-SUB-S3, RC-SUB-S5]
+    given: [{ use: answered_case }]
+    when: { run: SubmitInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      emits_include:
+        - { event: ReviewSubmissionSubmitted, with: { caseId: "${c}", submissionId: "${s1}", stage: INITIAL } }
+
   - name: rejects_submit_by_another_reviewer
     basis: [RC-SUB-01]
     given: [{ use: answered_case }]
@@ -670,6 +680,19 @@ examples:
           result: SUCCESS
           output: { "entries[stage=REREVIEW]": { status: DRAFT, comment: "複審評語" } }
 
+  # D-076 第 1 點：保存複審草稿也發 ReviewDraftSaved。
+  - name: rereview_draft_saved_carries_the_submission
+    basis: [RC-RDR-S2]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when:
+      run: SaveRereviewDraft
+      as: rereviewer_h1
+      input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "10" }], comment: "複審評語" }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewDraftSaved, with: { submissionId: "${s2}", caseId: "${c}" } }
+
   - name: rejects_rereview_draft_without_any_change
     basis: [RC-RDR-09]
     given: [{ use: rereview_answered }]
@@ -748,6 +771,43 @@ examples:
       emits_include:
         - event: RereviewCompleted
           with: { caseId: "${c}", submissionId: "${s2}", rereviewerId: u-rr1, rereviewScore: "15", finalScore: "10.00" }
+
+  # D-076 第 2 點：提交複審發兩個事件，與提交初審對稱。
+  - name: submitting_the_rereview_emits_exactly_two_events
+    basis: [RC-SRR-S3, RC-SRR-S5]
+    given: [{ use: rereview_answered }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewSubmissionSubmitted, with: { caseId: "${c}", submissionId: "${s2}", stage: REREVIEW } }
+        - { event: RereviewCompleted,         with: { caseId: "${c}", submissionId: "${s2}" } }
+
+  # D-076 第 4 點：必答題看這次提交採用的答案。草稿沒有作答、輸入也沒有帶答案。
+  - name: rejects_rereview_submit_with_a_required_item_unanswered
+    basis: [RC-SRR-09]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+
+  # 輸入帶了答案就看輸入：草稿有作答，輸入的答案是空的，仍然拒絕。
+  - name: rejects_rereview_submit_when_the_answers_in_the_input_miss_a_required_item
+    basis: [RC-SRR-09]
+    given: [{ use: rereview_answered }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [] } }
+    then: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+
+  # 草稿沒有作答，輸入的答案補齊了必答題：通過。
+  - name: submits_the_rereview_with_the_answers_in_the_input
+    basis: [RC-SRR-09, RC-SRR-S2]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when:
+      run: SubmitRereview
+      as: rereviewer_h1
+      input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "10" }], comment: "複審評語" }
+    then:
+      result: SUCCESS
+      output: { submissionId: "${s2}", status: SUBMITTED }
 
   - name: rejects_rereview_submit_by_another_rereviewer
     basis: [RC-SRR-03]
@@ -1035,5 +1095,3 @@ not_covered:
     reason: 案件在 INITIAL_REVIEW_COMPLETED 時，唯一的初審提交就是目前有效、已提交的那份；要做出別的情況需要修正已提交的初審，不在本次範圍
   - item: 提交不存在（RC-RDR-04、RC-SRR-04、RC-CLR-03）與不是目前有效的複審結果（RC-RDR-08、RC-SRR-08、RC-CLR-07）
     reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。不是目前有效的複審結果需要修正已提交的複審，不在本次範圍
-  - item: 保存複審草稿、提交複審是否發出 ReviewDraftSaved、ReviewSubmissionSubmitted（domain-events.md §7.1、§7.2）
-    reason: 兩節寫的是提交（不分階段）的事件；程式在複審沒有發出。D-069 沒有裁決，提交複審的範例用 emits_include，不斷言完整的事件清單

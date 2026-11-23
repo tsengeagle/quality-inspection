@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-23-d076-rereview-submission-events",
+  "decision": "D-076",
+  "reason": "D-076：複審的提交事件與必答題檢查（D-069 留下的兩件）。負責人對 docs/harness/27-rereview-submission-events-draft.md 的 V-1～V-5 全部照建議裁決。decision-log 新增 D-076：保存複審草稿發 ReviewDraftSaved（detail 的 totalScore 是 null）；提交複審發 ReviewSubmissionSubmitted 與 RereviewCompleted，事件補上 stage（初審一併補）；提交複審比照初審檢查必答題，看這次提交採用的答案；ReviewSubmission 的稽核紀錄沒有遮罩另開一題；CONDITIONAL 的必答規則與修正已提交的審查不在本裁決。規格：specs/review-case/usecases.yaml 新增 RC-SUB-S5、RC-RDR-S2、RC-SRR-09、RC-SRR-S5，SaveRereviewDraft 與 SubmitRereview 的 emits；examples.yaml 新增 6 個範例，移除一項 not_covered。其中 5 個範例一開始是紅的，加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。文件：domain-events.md §7.1、§7.2，api-spec.md §4.2；docs/harness/27 標為已裁決，更新題目清單（新增兩題）與 README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/examples.yaml",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

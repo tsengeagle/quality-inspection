@@ -4,12 +4,13 @@
 
 ## 進行中
 
-（目前沒有進行中的題目。）
+1. **D-069 留下的兩件：複審的提交事件與必答題檢查**（D-076）。修法 PR 之後是建構 PR。
 
 ## 待辦（依序）
 
-1. **D-069 留下的兩件**：複審不發 `ReviewDraftSaved`、`ReviewSubmissionSubmitted`；提交複審沒有必答題檢查。
-2. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）：改派、修正、不經複審結案、取消、退回。
+1. **報表的日期篩選固定以台北解讀**：報表匯出頁與儀表板的起日、迄日目前依瀏覽器的本地日期換算成查詢範圍。負責人 2026-11-23 決定固定成 `Asia/Taipei`（憲法草案第一條第 4 點要求只有日期的值由裁決指定時區）。
+2. **`ReviewSubmission` 稽核紀錄的遮罩**（D-076 第 3 點）：`DRAFT_SAVED`、`SUBMITTED` 的 `detail` 帶 `totalScore`，不在 D-071 的遮罩範圍。先查證兩個查詢出口會不會回傳，再決定要不要擴大遮罩。
+3. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）：改派、修正、不經複審結案、取消、退回。
 
 ## 已完成
 

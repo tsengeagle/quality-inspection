@@ -138,7 +138,7 @@ Accept: application/json
 | `REREVIEWER_HAS_READ_INITIAL`      |         422 | 指派或改派的複審醫師曾讀過本案完整初審（D-055） |
 | `CASE_NOT_IN_INITIAL_REVIEW_STAGE` |         422 | 案件不在該初審操作要求的狀態（開始初審、保存初審草稿、提交初審；D-067、D-068） |
 | `NOT_ASSIGNED_REVIEWER`            |         403 | 開始初審的人不是受指派的初審醫師（D-067） |
-| `REQUIRED_ITEMS_NOT_ANSWERED`      |         422 | 提交初審時有必答題沒有作答（D-067）   |
+| `REQUIRED_ITEMS_NOT_ANSWERED`      |         422 | 提交初審或複審時有必答題沒有作答（D-067、D-076）   |
 | `CASE_NOT_IN_REREVIEW_STAGE`       |         422 | 案件不在該複審操作要求的狀態（開始複審、保存複審草稿、提交複審、複審結案；D-069） |
 | `NO_REREVIEWER_ASSIGNED`           |         422 | 開始複審時案件還沒有指派複審醫師（D-069） |
 | `REREVIEWER_SAME_AS_REVIEWER`      |         422 | 指派的複審醫師是本案的初審醫師（D-017、D-069） |
