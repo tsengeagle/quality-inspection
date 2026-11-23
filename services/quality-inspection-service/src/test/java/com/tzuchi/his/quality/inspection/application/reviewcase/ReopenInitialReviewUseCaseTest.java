@@ -16,7 +16,7 @@ import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepositor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -28,7 +28,7 @@ class ReopenInitialReviewUseCaseTest {
     private CapturingDomainEventPublisher eventPublisher;
     private ReopenInitialReviewUseCase useCase;
 
-    private static final LocalDateTime DUE = LocalDateTime.of(2026, 2, 1, 23, 59);
+    private static final Instant DUE = Instant.parse("2026-02-01T23:59:00Z");
 
     @BeforeEach
     void setUp() {
@@ -46,7 +46,7 @@ class ReopenInitialReviewUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.RETURNED,
-                new ReviewerAssignment("reviewer-1", LocalDateTime.now()),
+                new ReviewerAssignment("reviewer-1", Instant.now()),
                 DUE,
                 null, "needs correction", null, null,
                 false, null, null, null, null, null,
@@ -102,7 +102,7 @@ class ReopenInitialReviewUseCaseTest {
     @Test
     void execute_notReturned_shouldThrow() {
         ReviewCase rc = ReviewCase.createFromSampling("c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", DUE, LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", DUE, Instant.now());
         repository.save(rc); // PENDING_INITIAL_REVIEW
 
         assertThrows(DomainStateConflictException.class,

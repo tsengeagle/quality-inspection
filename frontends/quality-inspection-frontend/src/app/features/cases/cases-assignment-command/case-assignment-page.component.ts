@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize, Observable } from 'rxjs';
+import { formatTaipeiDateTime, fromTaipeiDateTimeLocalInput, toTaipeiDateTimeLocalInput } from '@shared/time/taipei-time';
 
 import {
   AssignmentCandidateViewModel,
@@ -37,7 +38,6 @@ export interface CaseAssignmentContext {
 }
 
 
-const TAIPEI_OFFSET = '+08:00';
 @Component({
   selector: 'app-case-assignment-page',
   templateUrl: './case-assignment-page.component.html',
@@ -61,6 +61,9 @@ export class CaseAssignmentPageComponent implements OnInit {
   rereviewerCandidates: AssignmentCandidateViewModel[] = [];
   selectedReviewerId: string | null = null;
   selectedRereviewerId: string | null = null;
+  /** 畫面上的時間固定以 Asia/Taipei 顯示（D-075 第 5 點）。 */
+  readonly displayTime = formatTaipeiDateTime;
+
   reviewerDueAtInput = '';
   rereviewerDueAtInput = '';
   private assignmentContext?: AssignmentContextViewModel;
@@ -177,7 +180,7 @@ export class CaseAssignmentPageComponent implements OnInit {
       { label: '來源案件', value: this.assignmentContext?.sourceCaseKey ?? '尚未提供' },
       { label: '院區 / 病歷類型', value: `${this.assignmentContext?.hospitalId ?? '未提供'} / ${this.assignmentContext?.medicalRecordType ?? '未提供'}` },
       { label: '目前狀態', value: this.statusDisplayLabel },
-      { label: '目前截止日', value: this.context.effectiveDueAt || '尚未設定' }
+      { label: '目前截止日', value: formatTaipeiDateTime(this.context.effectiveDueAt, '尚未設定') }
     ];
   }
 
@@ -207,7 +210,7 @@ export class CaseAssignmentPageComponent implements OnInit {
 
   get currentDueDateLabel(): string {
     if (this.context.effectiveDueAt) {
-      return `目前截止日：${this.context.effectiveDueAt}`;
+      return `目前截止日：${formatTaipeiDateTime(this.context.effectiveDueAt)}`;
     }
 
     if (this.mode === 'MIXED_ASSIGNMENT') {
@@ -561,30 +564,12 @@ export class CaseAssignmentPageComponent implements OnInit {
     return this.normalizeDueAtInput(value) !== null;
   }
 
-  // D-073 第 4 點：datetime-local 的牆上時刻一律當成台北時間，送出時加上 +08:00，不依賴瀏覽器的時區。
+  // D-073 第 4 點、D-075 第 5 點：輸入框是台北時間，送出時加上 +08:00；換算都在 taipei-time。
   private normalizeDueAtInput(value: string): string | null {
-    const trimmedValue = value.trim();
-    if (!trimmedValue) {
-      return null;
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(trimmedValue)) {
-      return `${trimmedValue}:00${TAIPEI_OFFSET}`;
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(trimmedValue)) {
-      return `${trimmedValue}${TAIPEI_OFFSET}`;
-    }
-
-    return null;
+    return fromTaipeiDateTimeLocalInput(value);
   }
 
   private toDateTimeLocalInput(value?: string): string {
-    if (!value) {
-      return '';
-    }
-
-    const matchedValue = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
-    return matchedValue ? matchedValue[1] : '';
+    return toTaipeiDateTimeLocalInput(value);
   }
 }

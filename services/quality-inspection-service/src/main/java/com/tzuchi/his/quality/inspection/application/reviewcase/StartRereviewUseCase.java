@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 public class StartRereviewUseCase {
@@ -52,7 +52,7 @@ public class StartRereviewUseCase {
         }
         reviewCase.startRereview(actor.getUserId());
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(
-                idGenerator.newId(), caseId, actor.getUserId(), LocalDateTime.now(clock));
+                idGenerator.newId(), caseId, actor.getUserId(), Instant.now(clock));
         submissionRepository.save(rereviewDraft);
         reviewCase.setLatestRereviewSubmissionId(rereviewDraft.getSubmissionId());
         caseRepository.save(reviewCase);

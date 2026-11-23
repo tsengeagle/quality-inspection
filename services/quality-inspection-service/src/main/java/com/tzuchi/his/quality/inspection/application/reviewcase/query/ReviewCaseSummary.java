@@ -1,6 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class ReviewCaseSummary {
 
@@ -13,16 +13,16 @@ public class ReviewCaseSummary {
     private final String rereviewerId;
     private final String medicalRecordType;
     private final String sourceCaseKey;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime assignedAt;
-    private final LocalDateTime dueAt;
+    private final Instant createdAt;
+    private final Instant assignedAt;
+    private final Instant dueAt;
     private final String projectionType;
 
     public ReviewCaseSummary(String caseId, String projectId, String batchId,
                               String hospitalId, String status, String reviewerId,
                               String rereviewerId, String medicalRecordType,
-                              String sourceCaseKey, LocalDateTime createdAt,
-                              LocalDateTime assignedAt, LocalDateTime dueAt,
+                              String sourceCaseKey, Instant createdAt,
+                              Instant assignedAt, Instant dueAt,
                               String projectionType) {
         this.caseId = caseId;
         this.projectId = projectId;
@@ -48,9 +48,9 @@ public class ReviewCaseSummary {
     public String getRereviewerId() { return rereviewerId; }
     public String getMedicalRecordType() { return medicalRecordType; }
     public String getSourceCaseKey() { return sourceCaseKey; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getAssignedAt() { return assignedAt; }
-    public LocalDateTime getDueAt() { return dueAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getAssignedAt() { return assignedAt; }
+    public Instant getDueAt() { return dueAt; }
     public String getProjectionType() { return projectionType; }
 
     public ReviewCaseSummary withProjectionType(String projectionType) {

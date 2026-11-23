@@ -21,7 +21,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -67,7 +67,7 @@ class ReviewCaseQueryApiTest {
     private void seedSubmission(String submissionId, String caseId, ReviewStage stage,
                                 String reviewerId, SubmissionStatus status,
                                 int revisionNo, BigDecimal totalScore,
-                                LocalDateTime submittedAt) {
+                                Instant submittedAt) {
         ReviewSubmissionEntity e = new ReviewSubmissionEntity();
         e.setSubmissionId(submissionId);
         e.setCaseId(caseId);
@@ -178,10 +178,10 @@ class ReviewCaseQueryApiTest {
             caseRepo.save(e);
             seedSubmission("sub-init-1", "c1", ReviewStage.INITIAL, "reviewer-1",
                 SubmissionStatus.SUBMITTED, 1, BigDecimal.valueOf(82),
-                LocalDateTime.of(2026, 4, 1, 9, 0));
+                Instant.parse("2026-04-01T09:00:00Z"));
             seedSubmission("sub-rereview-1", "c1", ReviewStage.REREVIEW, "rereviewer-1",
                 SubmissionStatus.SUBMITTED, 1, BigDecimal.valueOf(88),
-                LocalDateTime.of(2026, 4, 2, 10, 0));
+                Instant.parse("2026-04-02T10:00:00Z"));
 
             mockMvc.perform(get("/review-cases/c1")
                     .header("api-key", rereviewerToken))
@@ -215,8 +215,8 @@ class ReviewCaseQueryApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.PENDING_REREVIEW);
         e.setReviewerId("reviewer-1");
-        e.setReviewerAssignedAt(LocalDateTime.of(2026, 4, 1, 10, 0));
-        e.setDueAt(LocalDateTime.of(2026, 4, 10, 23, 59));
+        e.setReviewerAssignedAt(Instant.parse("2026-04-01T10:00:00Z"));
+        e.setDueAt(Instant.parse("2026-04-10T23:59:00Z"));
         caseRepo.save(e);
 
         mockMvc.perform(get("/review-cases/c-assign/assignment-context")
@@ -228,7 +228,7 @@ class ReviewCaseQueryApiTest {
                 .andExpect(jsonPath("$.data.allowedActions[0]").value("ASSIGN_REREVIEWER"))
                 .andExpect(jsonPath("$.data.currentReviewer.userId").value("reviewer-1"))
                 .andExpect(jsonPath("$.data.currentReviewer.displayName").value("Dr. Reviewer One"))
-                .andExpect(jsonPath("$.data.reviewerDueAt").value("2026-04-10T23:59:00"));
+                .andExpect(jsonPath("$.data.reviewerDueAt").value("2026-04-10T23:59:00Z"));
     }
 
     @Test

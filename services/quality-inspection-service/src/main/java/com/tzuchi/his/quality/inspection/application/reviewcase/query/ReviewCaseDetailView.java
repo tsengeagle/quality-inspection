@@ -1,7 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 public class ReviewCaseDetailView {
@@ -18,11 +18,11 @@ public class ReviewCaseDetailView {
     private final BigDecimal initialReviewScore;
     private final BigDecimal finalScore;
     private final String finalConclusion;
-    private final LocalDateTime createdAt;
-    private final LocalDateTime assignedAt;
-    private final LocalDateTime dueAt;
-    private final LocalDateTime closedAt;
-    private final LocalDateTime cancelledAt;
+    private final Instant createdAt;
+    private final Instant assignedAt;
+    private final Instant dueAt;
+    private final Instant closedAt;
+    private final Instant cancelledAt;
     private final String latestInitialSubmissionId;
     private final String scoreSheetVersionRef;
     private final List<SubmissionSummaryItem> submissions;
@@ -41,9 +41,9 @@ public class ReviewCaseDetailView {
                                  String rereviewerId, String medicalRecordType,
                                  String sourceCaseKey, BigDecimal initialReviewScore,
                                  BigDecimal finalScore, String finalConclusion,
-                                 LocalDateTime createdAt, LocalDateTime assignedAt,
-                                 LocalDateTime dueAt, LocalDateTime closedAt,
-                                 LocalDateTime cancelledAt,
+                                 Instant createdAt, Instant assignedAt,
+                                 Instant dueAt, Instant closedAt,
+                                 Instant cancelledAt,
                                  List<SubmissionSummaryItem> submissions,
                                  String latestRereviewSubmissionId,
                                  String projectionType, String actorRole, boolean isOwner) {
@@ -59,9 +59,9 @@ public class ReviewCaseDetailView {
                                  String rereviewerId, String medicalRecordType,
                                  String sourceCaseKey, BigDecimal initialReviewScore,
                                  BigDecimal finalScore, String finalConclusion,
-                                 LocalDateTime createdAt, LocalDateTime assignedAt,
-                                 LocalDateTime dueAt, LocalDateTime closedAt,
-                                 LocalDateTime cancelledAt,
+                                 Instant createdAt, Instant assignedAt,
+                                 Instant dueAt, Instant closedAt,
+                                 Instant cancelledAt,
                                  String latestInitialSubmissionId,
                                  String scoreSheetVersionRef,
                                  List<SubmissionSummaryItem> submissions,
@@ -130,11 +130,11 @@ public class ReviewCaseDetailView {
     public BigDecimal getInitialReviewScore() { return initialReviewScore; }
     public BigDecimal getFinalScore() { return finalScore; }
     public String getFinalConclusion() { return finalConclusion; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getAssignedAt() { return assignedAt; }
-    public LocalDateTime getDueAt() { return dueAt; }
-    public LocalDateTime getClosedAt() { return closedAt; }
-    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getAssignedAt() { return assignedAt; }
+    public Instant getDueAt() { return dueAt; }
+    public Instant getClosedAt() { return closedAt; }
+    public Instant getCancelledAt() { return cancelledAt; }
     public String getLatestInitialSubmissionId() { return latestInitialSubmissionId; }
     public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public List<SubmissionSummaryItem> getSubmissions() { return submissions; }

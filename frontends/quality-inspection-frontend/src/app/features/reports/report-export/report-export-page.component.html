@@ -117,8 +117,8 @@
                   <tr *ngFor="let row of result.rows; trackBy: trackByCaseId" data-testid="export-row">
                     <td *ngFor="let column of columns" class="text-nowrap"
                         [class.text-muted]="isMaskedCell(row, column.field)">
-                      <ng-container *ngIf="column.field === 'createdAt' && row.createdAt; else plainCell">
-                        <time [attr.datetime]="row.createdAt">{{ row.createdAt | date: 'yyyy-MM-dd HH:mm:ss' }}</time>
+                      <ng-container *ngIf="isTimeCell(row, column.field); else plainCell">
+                        <time [attr.datetime]="row[column.field]">{{ cellText(row, column.field) }}</time>
                       </ng-container>
                       <ng-template #plainCell>{{ cellText(row, column.field) }}</ng-template>
                     </td>

@@ -6,7 +6,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.Submission
 
 import javax.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -47,7 +47,7 @@ public class ReviewSubmissionEntity {
     private String comment;
 
     @Column(name = "submitted_at")
-    private LocalDateTime submittedAt;
+    private Instant submittedAt;
 
     @Column(name = "based_on_score_sheet_version_id")
     private String basedOnScoreSheetVersionId;
@@ -60,10 +60,10 @@ public class ReviewSubmissionEntity {
     private String attachmentRefsJson;
 
     @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     public ReviewSubmissionEntity() {}
 
@@ -85,16 +85,16 @@ public class ReviewSubmissionEntity {
     public void setTotalScore(BigDecimal totalScore) { this.totalScore = totalScore; }
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    public Instant getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(Instant submittedAt) { this.submittedAt = submittedAt; }
     public String getBasedOnScoreSheetVersionId() { return basedOnScoreSheetVersionId; }
     public void setBasedOnScoreSheetVersionId(String v) { this.basedOnScoreSheetVersionId = v; }
     public String getSupersededBySubmissionId() { return supersededBySubmissionId; }
     public void setSupersededBySubmissionId(String v) { this.supersededBySubmissionId = v; }
     public String getAttachmentRefsJson() { return attachmentRefsJson; }
     public void setAttachmentRefsJson(String v) { this.attachmentRefsJson = v; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }

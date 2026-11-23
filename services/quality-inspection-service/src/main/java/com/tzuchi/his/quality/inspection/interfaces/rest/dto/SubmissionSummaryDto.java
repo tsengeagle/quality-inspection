@@ -1,7 +1,7 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class SubmissionSummaryDto {
 
@@ -12,14 +12,14 @@ public class SubmissionSummaryDto {
     private int revisionNo;
     private BigDecimal totalScore;
     private String comment;
-    private LocalDateTime submittedAt;
+    private Instant submittedAt;
     private String supersededBySubmissionId;
 
     public SubmissionSummaryDto() {}
 
     public SubmissionSummaryDto(String submissionId, String stage, String reviewerId,
                                  String status, int revisionNo, BigDecimal totalScore,
-                                 String comment, LocalDateTime submittedAt,
+                                 String comment, Instant submittedAt,
                                  String supersededBySubmissionId) {
         this.submissionId = submissionId;
         this.stage = stage;
@@ -46,8 +46,8 @@ public class SubmissionSummaryDto {
     public void setTotalScore(BigDecimal totalScore) { this.totalScore = totalScore; }
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
+    public Instant getSubmittedAt() { return submittedAt; }
+    public void setSubmittedAt(Instant submittedAt) { this.submittedAt = submittedAt; }
     public String getSupersededBySubmissionId() { return supersededBySubmissionId; }
     public void setSupersededBySubmissionId(String v) { this.supersededBySubmissionId = v; }
 }

@@ -6,7 +6,7 @@ import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,7 +15,7 @@ class ReviewCaseRereviewTest {
     private ReviewCase caseInProgress() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", Instant.parse("2026-12-31T23:59:00Z"), Instant.now());
         rc.startInitialReview("sub-1", "ss-1");
         return rc;
     }
@@ -98,7 +98,7 @@ class ReviewCaseRereviewTest {
     void unfixed_closeWithoutRereviewAndSendToRereviewAreRejected_D054() {
         ReviewCase rc = submitted("60");
         assertEquals("INVALID_STATE_TRANSITION",
-                assertThrows(DomainStateConflictException.class, () -> rc.closeWithoutRereview(LocalDateTime.now())).getErrorCode());
+                assertThrows(DomainStateConflictException.class, () -> rc.closeWithoutRereview(Instant.now())).getErrorCode());
         assertEquals("INVALID_STATE_TRANSITION",
                 assertThrows(DomainStateConflictException.class, rc::sendToRereview).getErrorCode());
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, rc.getStatus());
@@ -124,7 +124,7 @@ class ReviewCaseRereviewTest {
     @Test
     void closeWithoutRereview_happyPath_shouldCloseCaseWithInitialScore() {
         ReviewCase rc = caseAtInitialReviewCompleted();
-        rc.closeWithoutRereview(LocalDateTime.now());
+        rc.closeWithoutRereview(Instant.now());
         assertEquals(CaseStatus.CLOSED, rc.getStatus());
         assertEquals(new BigDecimal("60"), rc.getFinalScore());
         assertNotNull(rc.getClosedAt());
@@ -133,7 +133,7 @@ class ReviewCaseRereviewTest {
     @Test
     void closeWithoutRereview_wrongState_shouldThrow() {
         ReviewCase rc = caseInProgress();
-        assertThrows(DomainStateConflictException.class, () -> rc.closeWithoutRereview(LocalDateTime.now()));
+        assertThrows(DomainStateConflictException.class, () -> rc.closeWithoutRereview(Instant.now()));
     }
 
     // --- sendToRereview tests ---
@@ -163,8 +163,8 @@ class ReviewCaseRereviewTest {
     @Test
     void assignRereviewer_happyPath_shouldSetAssignment() {
         ReviewCase rc = caseAtPendingRereview();
-        LocalDateTime dueAt = LocalDateTime.of(2026, 6, 30, 23, 59);
-        rc.assignRereviewer("rereviewer-1", dueAt, LocalDateTime.now());
+        Instant dueAt = Instant.parse("2026-06-30T23:59:00Z");
+        rc.assignRereviewer("rereviewer-1", dueAt, Instant.now());
         assertNotNull(rc.getRereviewerAssignment());
         assertEquals("rereviewer-1", rc.getRereviewerAssignment().getReviewerId());
         assertEquals(dueAt, rc.getRereviewerDueAt());
@@ -176,7 +176,7 @@ class ReviewCaseRereviewTest {
         ReviewCase rc = caseAtPendingRereview();
         // initial reviewer is "reviewer-1" (set in caseInProgress)
         assertThrows(DomainRuleViolationException.class,
-                () -> rc.assignRereviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now()));
+                () -> rc.assignRereviewer("reviewer-1", Instant.now(), Instant.now()));
     }
 
     @Test
@@ -184,7 +184,7 @@ class ReviewCaseRereviewTest {
         ReviewCase rc = caseInProgress(); // INITIAL_REVIEW_IN_PROGRESS
         // D-069 第 2 點：與指派初審醫師相同
         DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
-                () -> rc.assignRereviewer("rereviewer-1", LocalDateTime.now(), LocalDateTime.now()));
+                () -> rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now()));
         assertEquals("CASE_NOT_ASSIGNABLE", e.getErrorCode());
     }
 
@@ -193,9 +193,9 @@ class ReviewCaseRereviewTest {
     @Test
     void reassignRereviewer_happyPath_shouldReplaceAssignment() {
         ReviewCase rc = caseAtPendingRereview();
-        rc.assignRereviewer("rereviewer-1", LocalDateTime.now(), LocalDateTime.now());
-        LocalDateTime newDue = LocalDateTime.of(2026, 7, 15, 23, 59);
-        rc.reassignRereviewer("rereviewer-2", newDue, LocalDateTime.now());
+        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
+        Instant newDue = Instant.parse("2026-07-15T23:59:00Z");
+        rc.reassignRereviewer("rereviewer-2", newDue, Instant.now());
         assertEquals("rereviewer-2", rc.getRereviewerAssignment().getReviewerId());
         assertEquals(newDue, rc.getRereviewerDueAt());
     }
@@ -203,9 +203,9 @@ class ReviewCaseRereviewTest {
     @Test
     void reassignRereviewer_sameAsInitialReviewer_shouldThrow() {
         ReviewCase rc = caseAtPendingRereview();
-        rc.assignRereviewer("rereviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
         assertThrows(DomainRuleViolationException.class,
-                () -> rc.reassignRereviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now()));
+                () -> rc.reassignRereviewer("reviewer-1", Instant.now(), Instant.now()));
     }
 
     // --- startRereview tests ---
@@ -213,7 +213,7 @@ class ReviewCaseRereviewTest {
     @Test
     void startRereview_happyPath_shouldTransitionToInProgress() {
         ReviewCase rc = caseAtPendingRereview();
-        rc.assignRereviewer("rereviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
         rc.startRereview("rereviewer-1");
         assertEquals(CaseStatus.REREVIEW_IN_PROGRESS, rc.getStatus());
     }
@@ -221,7 +221,7 @@ class ReviewCaseRereviewTest {
     @Test
     void startRereview_wrongActor_shouldThrow() {
         ReviewCase rc = caseAtPendingRereview();
-        rc.assignRereviewer("rereviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
         assertThrows(DomainRuleViolationException.class,
                 () -> rc.startRereview("someone-else"));
     }
@@ -245,7 +245,7 @@ class ReviewCaseRereviewTest {
 
     private ReviewCase caseAtRereviewInProgress() {
         ReviewCase rc = caseAtPendingRereview();
-        rc.assignRereviewer("rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59), LocalDateTime.now());
+        rc.assignRereviewer("rereviewer-1", Instant.parse("2026-06-30T23:59:00Z"), Instant.now());
         rc.startRereview("rereviewer-1");
         return rc;
     }
@@ -289,7 +289,7 @@ class ReviewCaseRereviewTest {
 
     // --- closeAfterRereview tests (D-034／D-053) ---
 
-    private static final LocalDateTime CLOSED_AT = LocalDateTime.of(2026, 11, 15, 10, 0);
+    private static final Instant CLOSED_AT = Instant.parse("2026-11-15T10:00:00Z");
 
     @Test
     void closeAfterRereview_fromRereviewInProgress_shouldCloseAndKeepScore() {
@@ -306,8 +306,8 @@ class ReviewCaseRereviewTest {
         ReviewCase rc = caseAtRereviewInProgress();
         rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
         rc.closeAfterRereview(CLOSED_AT);
-        LocalDateTime closedAt = rc.getClosedAt();
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class, () -> rc.closeAfterRereview(CLOSED_AT.plusMinutes(5)));
+        Instant closedAt = rc.getClosedAt();
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class, () -> rc.closeAfterRereview(CLOSED_AT.plus(java.time.Duration.ofMinutes(5))));
         assertEquals("CASE_TERMINAL", e.getErrorCode());
         assertEquals(closedAt, rc.getClosedAt());
     }
@@ -315,7 +315,7 @@ class ReviewCaseRereviewTest {
     @Test
     void closeAfterRereview_notInRereview_shouldReject() {
         ReviewCase rc = caseAtPendingRereview();
-        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> rc.closeAfterRereview(CLOSED_AT.plusMinutes(5)));
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class, () -> rc.closeAfterRereview(CLOSED_AT.plus(java.time.Duration.ofMinutes(5))));
         assertEquals("CASE_NOT_IN_REREVIEW_STAGE", e.getErrorCode());
         assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
         assertNull(rc.getClosedAt());
@@ -329,7 +329,7 @@ class ReviewCaseRereviewTest {
         rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
         rc.closeAfterRereview(CLOSED_AT);
         BigDecimal beforeScore = rc.getFinalScore();
-        LocalDateTime beforeClosedAt = rc.getClosedAt();
+        Instant beforeClosedAt = rc.getClosedAt();
         assertThrows(DomainStateConflictException.class, () -> rc.updateFinalScoreForRereview(
                 new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")));
         assertEquals(beforeScore, rc.getFinalScore());
@@ -340,13 +340,13 @@ class ReviewCaseRereviewTest {
     @Test
     void updateFinalScoreForRereview_cancelledCase_shouldThrow() {
         ReviewCase rc = caseAtPendingRereview();
-        rc.assignRereviewer("rereviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
         rc.startRereview("rereviewer-1");
         // Force cancel for test — use reconstitute
         ReviewCase cancelledCase = ReviewCase.reconstitute(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CANCELLED, null, null,
-                "test", null, LocalDateTime.now(), null,
+                "test", null, Instant.now(), null,
                 false, null, null, null, null, null,
                 null, null, null, null);
         assertThrows(DomainStateConflictException.class,

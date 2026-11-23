@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -108,7 +108,7 @@ public class ReviseInitialReviewUseCase {
 
         // Create new revision
         String newSubmissionId = UUID.randomUUID().toString();
-        LocalDateTime now = LocalDateTime.now(clock);
+        Instant now = Instant.now(clock);
         ReviewSubmission newSubmission = ReviewSubmission.createRevision(
                 newSubmissionId, oldSubmission, result.getScoredAnswers(),
                 result.getTotalScore(), comment, now);

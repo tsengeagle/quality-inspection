@@ -15,7 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
@@ -59,8 +59,8 @@ class ReviewCaseApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.PENDING_INITIAL_REVIEW);
         e.setReviewerId("reviewer-1");
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         jpaRepository.save(e);
     }
 
@@ -191,10 +191,10 @@ class ReviewCaseApiTest {
         seedCase("c1", CaseStatus.PENDING_REREVIEW);
         ReviewCaseEntity e = jpaRepository.findById("c1").orElseThrow();
         e.setReviewerId("reviewer-1");
-        e.setReviewerAssignedAt(LocalDateTime.now());
+        e.setReviewerAssignedAt(Instant.now());
         e.setRereviewerId("rereviewer-1");
-        e.setRereviewerAssignedAt(LocalDateTime.now());
-        e.setRereviewerDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
+        e.setRereviewerAssignedAt(Instant.now());
+        e.setRereviewerDueAt(Instant.parse("2026-06-30T23:59:00Z"));
         jpaRepository.save(e);
 
         String body = "{\"rereviewerId\":\"rereviewer-2\"}";
@@ -284,8 +284,8 @@ class ReviewCaseApiTest {
         seedCase("c1", CaseStatus.RETURNED);
         ReviewCaseEntity e = jpaRepository.findById("c1").orElseThrow();
         e.setReviewerId("reviewer-1");
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         jpaRepository.save(e);
 
         mockMvc.perform(post(BASE + "/c1/reopen")

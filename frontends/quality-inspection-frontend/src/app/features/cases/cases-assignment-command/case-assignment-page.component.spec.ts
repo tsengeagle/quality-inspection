@@ -90,9 +90,9 @@ describe('CaseAssignmentPageComponent', () => {
       allowedActions: ['ASSIGN_REVIEWER'],
       currentReviewer: undefined,
       currentRereviewer: undefined,
-      reviewerDueAt: '2026-04-20T12:00:00',
+      reviewerDueAt: '2026-04-20T04:00:00Z',
       rereviewerDueAt: undefined,
-      effectiveDueAt: '2026-04-20T12:00:00',
+      effectiveDueAt: '2026-04-20T04:00:00Z',
       ...overrides
     };
   }
@@ -170,17 +170,17 @@ describe('CaseAssignmentPageComponent', () => {
         userId: 'reviewer-1',
         displayName: 'Dr. Reviewer One',
         displayLabel: 'reviewer-1 | Dr. Reviewer One',
-        assignedAt: '2026-04-18T09:00:00'
+        assignedAt: '2026-04-18T01:00:00Z'
       },
-      rereviewerDueAt: '2026-04-26T12:00:00',
-      effectiveDueAt: '2026-04-26T12:00:00'
+      rereviewerDueAt: '2026-04-26T04:00:00Z',
+      effectiveDueAt: '2026-04-26T04:00:00Z'
     })));
 
     fixture.detectChanges();
 
     expect(component.mode).toBe('MIXED_ASSIGNMENT');
     expect(fixture.nativeElement.querySelector('.rereviewer-assignment-section')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('初審指派時間：2026-04-18T09:00:00');
+    expect(fixture.nativeElement.textContent).toContain('初審指派時間：2026-04-18 09:00');
     expect(fixture.nativeElement.textContent).toContain('複審醫師不可與目前初審醫師相同。');
     expect(component.primaryActionLabel).toBe('提交複審指派');
   });
@@ -213,7 +213,7 @@ describe('CaseAssignmentPageComponent', () => {
           userId: 'reviewer-1',
           displayName: 'Dr. Reviewer One',
           displayLabel: 'reviewer-1 | Dr. Reviewer One',
-          assignedAt: '2026-04-18T09:00:00'
+          assignedAt: '2026-04-18T01:00:00Z'
         }
       }))
     );

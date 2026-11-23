@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -42,7 +42,7 @@ class CloseWithoutRereviewUseCaseTest {
     private ReviewCase seedCompletedCase() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", Instant.now(), Instant.now());
         rc.startInitialReview("sub-1", "ss-1");
         rc.completeInitialReview(new BigDecimal("70"));
         // D-054：先固定初審，才依品質線判斷流向。

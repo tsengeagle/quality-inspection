@@ -19,9 +19,9 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
               rereviewerId: 'rereviewer-1',
               medicalRecordType: 'OUTPATIENT',
               sourceCaseKey: 'SK-009',
-              createdAt: '2026-04-01T08:00:00',
-              assignedAt: '2026-04-01T09:00:00',
-              dueAt: '2026-04-03T23:59:00',
+              createdAt: '2026-04-01T00:00:00Z',
+              assignedAt: '2026-04-01T01:00:00Z',
+              dueAt: '2026-04-03T15:59:00Z',
               projectionType: 'FULL'
             }
           ],
@@ -57,7 +57,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
               reviewerId: 'reviewer-1',
               status: 'SUBMITTED',
               revisionNo: 1,
-              submittedAt: '2026-04-01T08:00:00'
+              submittedAt: '2026-04-01T00:00:00Z'
             },
             {
               submissionId: 'SUB-011',
@@ -65,7 +65,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
               reviewerId: 'rereviewer-1',
               status: 'SUBMITTED',
               revisionNo: 2,
-              submittedAt: '2026-04-02T08:00:00'
+              submittedAt: '2026-04-02T00:00:00Z'
             }
           ],
           latestRereviewSubmissionId: 'SUB-011',
@@ -120,7 +120,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
               reviewerId: 'reviewer-1',
               status: 'SUPERSEDED',
               revisionNo: 1,
-              submittedAt: '2026-04-01T08:00:00',
+              submittedAt: '2026-04-01T00:00:00Z',
               supersededBySubmissionId: 'SUB-014-2'
             },
             {
@@ -129,7 +129,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
               reviewerId: 'rereviewer-1',
               status: 'SUBMITTED',
               revisionNo: 2,
-              submittedAt: '2026-04-02T08:00:00',
+              submittedAt: '2026-04-02T00:00:00Z',
               supersededBySubmissionId: null
             }
           ]
@@ -157,8 +157,8 @@ async function mockSamplingApi(page: Parameters<typeof test>[0]['page']): Promis
               eligibleCount: 80,
               selectedCount: 0,
               retryOfBatchId: null,
-              startedAt: '2026-04-01T08:00:00',
-              finishedAt: '2026-04-01T08:10:00'
+              startedAt: '2026-04-01T00:00:00Z',
+              finishedAt: '2026-04-01T00:10:00Z'
             }
           ],
           page: 0,

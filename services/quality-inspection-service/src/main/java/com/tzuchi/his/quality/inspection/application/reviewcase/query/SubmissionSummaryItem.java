@@ -1,6 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.math.BigDecimal;
 
 public class SubmissionSummaryItem {
@@ -11,16 +11,16 @@ public class SubmissionSummaryItem {
     private final int revisionNo;
     private final String status;
     private final BigDecimal totalScore;
-    private final LocalDateTime submittedAt;
+    private final Instant submittedAt;
 
     public SubmissionSummaryItem(String submissionId, String stage, int revisionNo,
-                                  String status, LocalDateTime submittedAt) {
+                                  String status, Instant submittedAt) {
         this(submissionId, stage, null, revisionNo, status, null, submittedAt);
     }
 
     public SubmissionSummaryItem(String submissionId, String stage, String reviewerId,
                                   int revisionNo, String status, BigDecimal totalScore,
-                                  LocalDateTime submittedAt) {
+                                  Instant submittedAt) {
         this.submissionId = submissionId;
         this.stage = stage;
         this.reviewerId = reviewerId;
@@ -36,5 +36,5 @@ public class SubmissionSummaryItem {
     public int getRevisionNo() { return revisionNo; }
     public String getStatus() { return status; }
     public BigDecimal getTotalScore() { return totalScore; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public Instant getSubmittedAt() { return submittedAt; }
 }

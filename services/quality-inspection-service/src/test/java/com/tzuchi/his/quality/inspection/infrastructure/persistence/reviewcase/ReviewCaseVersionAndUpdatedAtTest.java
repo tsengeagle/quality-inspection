@@ -30,7 +30,6 @@ import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import java.time.LocalDateTime;
 
 /**
  * D-045 第 1、3 點（案件版本欄位的樂觀鎖）與 D-037 第 1、5、6 點（案件 updatedAt）：
@@ -96,7 +95,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
         assertThat(jpa.findById("c1").orElseThrow().getVersion()).isZero();
 
         ReviewCase changed = repository.findById("c1").orElseThrow();
-        changed.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
+        changed.assignReviewer("doctor", Instant.parse("2026-12-31T23:59:00Z"), Instant.now());
         repository.save(changed);
         assertThat(updatedAt("c1")).isEqualTo(Instant.parse("2026-11-16T11:00:00Z"));
         assertThat(jpa.findById("c1").orElseThrow().getVersion()).isEqualTo(1L);
@@ -108,7 +107,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
         clock.set("2026-11-16T09:00:00Z");
 
         ReviewCase changed = repository.findById("c1").orElseThrow();
-        changed.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
+        changed.assignReviewer("doctor", Instant.parse("2026-12-31T23:59:00Z"), Instant.now());
         repository.save(changed);
 
         assertThat(updatedAt("c1")).isEqualTo(Instant.parse("2026-11-16T10:00:00Z"));
@@ -127,7 +126,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
         assertThat(updatedAt("legacy")).isNull();
 
         ReviewCase changed = repository.findById("legacy").orElseThrow();
-        changed.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
+        changed.assignReviewer("doctor", Instant.parse("2026-12-31T23:59:00Z"), Instant.now());
         repository.save(changed);
         assertThat(updatedAt("legacy")).isEqualTo(Instant.parse("2026-11-16T10:00:00Z"));
     }
@@ -143,10 +142,10 @@ class ReviewCaseVersionAndUpdatedAtTest {
             ReviewCase stale = repository.findById("c1").orElseThrow();
             inner.executeWithoutResult(s -> {
                 ReviewCase first = repository.findById("c1").orElseThrow();
-                first.assignReviewer("first-doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
+                first.assignReviewer("first-doctor", Instant.parse("2026-12-31T23:59:00Z"), Instant.now());
                 repository.save(first);
             });
-            stale.cancel("stale writer", LocalDateTime.now());
+            stale.cancel("stale writer", Instant.now());
             repository.save(stale);
         })).isInstanceOf(ObjectOptimisticLockingFailureException.class);
 
@@ -163,7 +162,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
     @Test
     void concurrentSubmissionOnlyWritesConflictEvenWhenTheTimeCannotAdvance() {
         repository.save(newCase("c1"));
-        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("s1", "c1", "doctor", LocalDateTime.now());
+        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("s1", "c1", "doctor", Instant.now());
         submissions.save(draft);
         clock.set("2026-11-16T09:00:00Z");
         TransactionTemplate outer = new TransactionTemplate(transactions);
@@ -175,10 +174,10 @@ class ReviewCaseVersionAndUpdatedAtTest {
             ReviewSubmission stale = submissions.findById("s1").orElseThrow();
             inner.executeWithoutResult(s -> {
                 ReviewSubmission first = submissions.findById("s1").orElseThrow();
-                first.updateDraft(List.of(AnswerItem.ofScored("Q", "first", BigDecimal.ONE)), BigDecimal.ONE, "first", LocalDateTime.now());
+                first.updateDraft(List.of(AnswerItem.ofScored("Q", "first", BigDecimal.ONE)), BigDecimal.ONE, "first", Instant.now());
                 submissions.save(first);
             });
-            stale.updateDraft(List.of(AnswerItem.ofScored("Q", "stale", BigDecimal.TEN)), BigDecimal.TEN, "stale", LocalDateTime.now());
+            stale.updateDraft(List.of(AnswerItem.ofScored("Q", "stale", BigDecimal.TEN)), BigDecimal.TEN, "stale", Instant.now());
             submissions.save(stale);
         })).isInstanceOf(ObjectOptimisticLockingFailureException.class);
 

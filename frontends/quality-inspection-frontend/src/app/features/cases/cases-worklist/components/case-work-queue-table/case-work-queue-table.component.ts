@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { Router } from '@angular/router';
+import { formatTaipeiDateTime } from '@shared/time/taipei-time';
 import { CaseSummaryItem } from '../../../services/cases.service';
 
 /** C06 — CaseWorkQueueTable (UI-009)
@@ -58,6 +59,6 @@ export class CaseWorkQueueTableComponent {
   @Input() showBusinessCommands = true;
 
   displayDate(value?: string | null): string {
-    return value ? value.replace('T', ' ').slice(0, 16) : '—';
+    return formatTaipeiDateTime(value);
   }
 }

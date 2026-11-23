@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -77,7 +77,7 @@ class ReviseInitialReviewUseCaseTest {
     private ReviewCase seedCompletedCase() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer(REVIEWER_ID, LocalDateTime.of(2026, 2, 1, 23, 59), LocalDateTime.now());
+        rc.assignReviewer(REVIEWER_ID, Instant.parse("2026-02-01T23:59:00Z"), Instant.now());
         rc.startInitialReview(SUBMISSION_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         rc.completeInitialReview(new BigDecimal("17.5"));
         caseRepo.save(rc);
@@ -86,13 +86,13 @@ class ReviseInitialReviewUseCaseTest {
 
     private ReviewSubmission seedSubmittedSubmission() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
         List<AnswerItem> answers = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
         );
-        sub.updateDraft(answers, new BigDecimal("17.5"), "initial comment", LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+        sub.updateDraft(answers, new BigDecimal("17.5"), "initial comment", Instant.now());
+        sub.submit(Instant.now());
         submissionRepo.save(sub);
         return sub;
     }
@@ -164,7 +164,7 @@ class ReviseInitialReviewUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CLOSED, null, null,
-                null, null, null, LocalDateTime.now(),
+                null, null, null, Instant.now(),
                 false, null, null, null, null, null,
                 null, null, null, null);
         caseRepo.save(rc);
@@ -180,7 +180,7 @@ class ReviseInitialReviewUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CANCELLED, null, null,
-                null, null, LocalDateTime.now(), null,
+                null, null, Instant.now(), null,
                 false, null, null, null, null, null,
                 null, null, null, null);
         caseRepo.save(rc);
@@ -205,8 +205,8 @@ class ReviseInitialReviewUseCaseTest {
 
         // Submission belongs to different case
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, "different-case", REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+                SUBMISSION_ID, "different-case", REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
+        sub.submit(Instant.now());
         submissionRepo.save(sub);
 
         assertThrows(BadRequestException.class,
@@ -222,8 +222,8 @@ class ReviseInitialReviewUseCaseTest {
         ReviewSubmission sub = ReviewSubmission.reconstitute(
                 SUBMISSION_ID, CASE_ID, com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage.REREVIEW,
                 REVIEWER_ID, SubmissionStatus.SUBMITTED, 1,
-                Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now(),
-                SCORE_SHEET_ID, null, null, LocalDateTime.now(), LocalDateTime.now());
+                Collections.emptyList(), BigDecimal.ZERO, null, Instant.now(),
+                SCORE_SHEET_ID, null, null, Instant.now(), Instant.now());
         submissionRepo.save(sub);
 
         assertThrows(DomainRuleViolationException.class,
@@ -250,7 +250,7 @@ class ReviseInitialReviewUseCaseTest {
 
         // Submission in DRAFT status (not submitted)
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
         submissionRepo.save(sub);
 
         assertThrows(DomainStateConflictException.class,

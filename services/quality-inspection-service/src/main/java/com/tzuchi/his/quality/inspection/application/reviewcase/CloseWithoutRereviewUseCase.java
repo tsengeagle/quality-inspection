@@ -11,7 +11,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseClosedWitho
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 public class CloseWithoutRereviewUseCase {
@@ -34,7 +34,7 @@ public class CloseWithoutRereviewUseCase {
         ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
         actor.requireHospitalScope(reviewCase.getHospitalId());
-        reviewCase.closeWithoutRereview(LocalDateTime.now(clock));
+        reviewCase.closeWithoutRereview(Instant.now(clock));
         caseRepository.save(reviewCase);
         eventPublisher.publish(new CaseClosedWithoutRereviewEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),

@@ -26,7 +26,7 @@ export const EXPORT_COLUMNS: readonly ExportColumn[] = [
   { field: 'initialScore', header: '初審分數' },
   { field: 'finalScore', header: '最終分數' },
   { field: 'createdAt', header: '建立時間' },
-  { field: 'closedAt', header: '結案時間（伺服器時間）' }
+  { field: 'closedAt', header: '結案時間' }
 ];
 
 const BOM = '﻿';
@@ -40,7 +40,7 @@ export function isMasked(row: ExportRowView, field: ExportField): boolean {
 
 /**
  * CSV 儲存格的原始值：被遮罩寫「已遮罩」，null 寫空字串。
- * createdAt（UTC）與 closedAt（伺服器時間）都原樣寫入 API 回傳的字串，不換算。
+ * createdAt 與 closedAt 都是 UTC 的時間點，原樣寫入 API 回傳的字串，不換算（D-075 第 6 點）。
  */
 function rawCell(row: ExportRowView, field: ExportField): string {
   if (isMasked(row, field)) {

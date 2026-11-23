@@ -33,7 +33,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Optional;
@@ -83,23 +82,23 @@ class CloseRereviewUseCaseTest {
     /** 複審已提交、尚未結案：案件 REREVIEW_IN_PROGRESS，最新複審提交為 SUBMITTED（D-053 第 4 點）。 */
     private ReviewCase seedSubmittedRereview() {
         ReviewCase rc = ReviewCase.createFromSampling(CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", Instant.now(), Instant.now());
         rc.startInitialReview("sub-init", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         rc.completeInitialReview(new BigDecimal("90"));
         // D-054：先固定初審，才依品質線判斷流向。 → PENDING_REREVIEW
         rc.fixInitialReview(rc.getLatestInitialSubmissionId(), "reviewer-1",
                 java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("90"), new BigDecimal("80"));
-        rc.assignRereviewer(REREVIEWER_ID, LocalDateTime.of(2026, 6, 30, 23, 59), LocalDateTime.now());
+        rc.assignRereviewer(REREVIEWER_ID, Instant.parse("2026-06-30T23:59:00Z"), Instant.now());
         rc.startRereview(REREVIEWER_ID); // → REREVIEW_IN_PROGRESS
         rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5")); // finalScore 80.00
         rc.setLatestRereviewSubmissionId(SUBMISSION_ID);
         caseRepo.save(rc);
 
-        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(SUBMISSION_ID, CASE_ID, REREVIEWER_ID, LocalDateTime.now());
+        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(SUBMISSION_ID, CASE_ID, REREVIEWER_ID, Instant.now());
         sub.updateDraft(Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
-                AnswerItem.ofScored("Q002", "10", new BigDecimal("5.0"))), new BigDecimal("15.0"), "comment", LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+                AnswerItem.ofScored("Q002", "10", new BigDecimal("5.0"))), new BigDecimal("15.0"), "comment", Instant.now());
+        sub.submit(Instant.now());
         submissionRepo.save(sub);
         return rc;
     }
@@ -127,7 +126,7 @@ class CloseRereviewUseCaseTest {
 
         ReviewCase saved = caseRepo.findById(CASE_ID).orElseThrow();
         assertEquals(CaseStatus.CLOSED, saved.getStatus());
-        assertEquals(LocalDateTime.ofInstant(NOW, ZONE), saved.getClosedAt());
+        assertEquals(NOW, saved.getClosedAt());
         assertEquals(0, new BigDecimal("80.00").compareTo(saved.getFinalScore()));
         assertEquals(SUBMISSION_ID, saved.getLatestRereviewSubmissionId());
 
@@ -173,7 +172,7 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_cancelledCase_shouldRejectWithCaseTerminal() {
         ReviewCase rc = seedSubmittedRereview();
-        rc.cancel("cancelled", LocalDateTime.now());
+        rc.cancel("cancelled", Instant.now());
         caseRepo.save(rc);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID));
@@ -185,7 +184,7 @@ class CloseRereviewUseCaseTest {
     void execute_secondClose_shouldRejectWithCaseTerminal_D053Point6() {
         seedSubmittedRereview();
         useCase.execute(rereviewer(), CASE_ID, SUBMISSION_ID);
-        LocalDateTime firstClosedAt = caseRepo.findById(CASE_ID).orElseThrow().getClosedAt();
+        Instant firstClosedAt = caseRepo.findById(CASE_ID).orElseThrow().getClosedAt();
         eventPublisher.events.clear();
 
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
@@ -198,7 +197,7 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_caseNotInRereview_shouldRejectWithCaseNotInRereviewStage() {
         ReviewCase rc = ReviewCase.createFromSampling(CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", Instant.now(), Instant.now());
         rc.startInitialReview("sub-init", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         rc.completeInitialReview(new BigDecimal("90"));
         // D-054：先固定初審，才依品質線判斷流向。 → PENDING_REREVIEW
@@ -223,8 +222,8 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_submissionOfAnotherCase_shouldRejectWithConflict() {
         seedSubmittedRereview();
-        ReviewSubmission other = ReviewSubmission.createRereviewDraft("sub-other", "c-other", REREVIEWER_ID, LocalDateTime.now());
-        other.submit(LocalDateTime.now());
+        ReviewSubmission other = ReviewSubmission.createRereviewDraft("sub-other", "c-other", REREVIEWER_ID, Instant.now());
+        other.submit(Instant.now());
         submissionRepo.save(other);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(rereviewer(), CASE_ID, "sub-other"));
@@ -235,8 +234,8 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_initialStageSubmission_shouldRejectWithConflict() {
         seedSubmittedRereview();
-        ReviewSubmission initial = ReviewSubmission.createInitialDraft("sub-init", CASE_ID, REREVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
-        initial.submit(LocalDateTime.now());
+        ReviewSubmission initial = ReviewSubmission.createInitialDraft("sub-init", CASE_ID, REREVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
+        initial.submit(Instant.now());
         submissionRepo.save(initial);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(rereviewer(), CASE_ID, "sub-init"));
@@ -268,7 +267,7 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_draftSubmission_shouldRejectWithSubmissionNotSubmitted() {
         ReviewCase rc = seedSubmittedRereview();
-        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-draft", CASE_ID, REREVIEWER_ID, LocalDateTime.now());
+        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-draft", CASE_ID, REREVIEWER_ID, Instant.now());
         submissionRepo.save(draft);
         rc.setLatestRereviewSubmissionId("sub-draft");
         caseRepo.save(rc);

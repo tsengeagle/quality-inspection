@@ -39,7 +39,7 @@ function row(overrides: Partial<ExportRowView> = {}): ExportRowView {
   return {
     caseId: 'CASE-001', projectId: 'PRJ-001', hospitalId: 'H001', status: 'CLOSED',
     reviewerId: 'reviewer-1', rereviewerId: null, initialScore: 85.5, finalScore: 0,
-    createdAt: '2026-10-02T01:00:00Z', closedAt: '2026-10-05T09:30:00', maskedFields: [],
+    createdAt: '2026-10-02T01:00:00Z', closedAt: '2026-10-05T01:30:00Z', maskedFields: [],
     ...overrides
   };
 }
@@ -201,12 +201,14 @@ describe('ReportExportPageComponent (UI-017)', () => {
       expect(cells[7]).toBe('0');
     });
 
-    it('shows closedAt exactly as returned, without timezone conversion', () => {
+    it('shows createdAt and closedAt in Taipei time (D-075)', () => {
       create();
       query();
       const cells = fixture.nativeElement.querySelectorAll('[data-testid="export-row"] td');
-      expect((cells[9] as HTMLElement).textContent?.trim()).toBe('2026-10-05T09:30:00');
-      expect(text('export-table')).toContain('結案時間（伺服器時間）');
+      expect((cells[8] as HTMLElement).textContent?.trim()).toBe('2026-10-02 09:00:00');
+      expect((cells[9] as HTMLElement).textContent?.trim()).toBe('2026-10-05 09:30:00');
+      expect(text('export-table')).toContain('結案時間');
+      expect(text('export-table')).not.toContain('伺服器時間');
     });
 
     it('shows 已遮罩 for masked scores, never 0, blank or —', () => {

@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { formatTaipeiDateTime } from '@shared/time/taipei-time';
 import { RevisionHistoryItem } from '../../../services/cases.service';
 import { RevisionStageTab } from '../../revision-history-page.component';
 
@@ -21,7 +22,7 @@ import { RevisionStageTab } from '../../revision-history-page.component';
           </span>
           <span class="action-type">{{ rev.status }}</span>
           <span class="author">{{ rev.reviewerId }}</span>
-          <span class="submitted-at">{{ rev.submittedAt }}</span>
+          <span class="submitted-at">{{ displayTime(rev.submittedAt) }}</span>
         </div>
       </div>
     </div>
@@ -41,6 +42,8 @@ import { RevisionStageTab } from '../../revision-history-page.component';
   `]
 })
 export class RevisionTimelineComponent {
+  /** 畫面上的時間固定以 Asia/Taipei 顯示（D-075 第 5 點）。 */
+  readonly displayTime = formatTaipeiDateTime;
   @Input() revisions: RevisionHistoryItem[] = [];
   @Input() stageTab: RevisionStageTab = 'ALL';
 

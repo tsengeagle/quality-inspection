@@ -27,7 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -97,7 +97,7 @@ class SubmitInitialReviewUseCaseTest {
     private ReviewCase seedCaseInProgress() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer(REVIEWER_ID, LocalDateTime.of(2026, 2, 1, 23, 59), LocalDateTime.now());
+        rc.assignReviewer(REVIEWER_ID, Instant.parse("2026-02-01T23:59:00Z"), Instant.now());
         rc.startInitialReview(SUBMISSION_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
         return rc;
@@ -105,12 +105,12 @@ class SubmitInitialReviewUseCaseTest {
 
     private ReviewSubmission seedDraftWithAnswers() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
         List<AnswerItem> answers = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
         );
-        sub.updateDraft(answers, new BigDecimal("17.5"), "draft comment", LocalDateTime.now());
+        sub.updateDraft(answers, new BigDecimal("17.5"), "draft comment", Instant.now());
         submissionRepo.save(sub);
         return sub;
     }
@@ -188,9 +188,9 @@ class SubmitInitialReviewUseCaseTest {
         seedScoreSheet();
         seedCaseInProgress();
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
-        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
+        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, Instant.now());
+        sub.submit(Instant.now());
         submissionRepo.save(sub);
 
         assertThrows(DomainStateConflictException.class,
@@ -203,10 +203,10 @@ class SubmitInitialReviewUseCaseTest {
         seedCaseInProgress();
 
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
         List<AnswerItem> partialAnswers = Collections.singletonList(
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5")));
-        sub.updateDraft(partialAnswers, new BigDecimal("7.5"), null, LocalDateTime.now());
+        sub.updateDraft(partialAnswers, new BigDecimal("7.5"), null, Instant.now());
         submissionRepo.save(sub);
 
         assertThrows(DomainRuleViolationException.class,
@@ -219,14 +219,14 @@ class SubmitInitialReviewUseCaseTest {
         // Create case but DON'T start initial review (status is PENDING_INITIAL_REVIEW, not IN_PROGRESS)
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer(REVIEWER_ID, LocalDateTime.of(2026, 2, 1, 23, 59), LocalDateTime.now());
+        rc.assignReviewer(REVIEWER_ID, Instant.parse("2026-02-01T23:59:00Z"), Instant.now());
         // Don't call rc.startInitialReview() — status stays PENDING_INITIAL_REVIEW
         caseRepo.save(rc);
 
         // Seed a submission manually so it passes submission lookup
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
-        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
+        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, Instant.now());
         submissionRepo.save(sub);
 
         assertThrows(DomainStateConflictException.class,
@@ -286,8 +286,8 @@ class SubmitInitialReviewUseCaseTest {
         rc.reopenInitialReview();
         rc.startInitialReview("sub-2", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
-        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
-        current.updateDraft(old.getAnswerSet(), old.getTotalScore(), "current", LocalDateTime.now());
+        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
+        current.updateDraft(old.getAnswerSet(), old.getTotalScore(), "current", Instant.now());
         submissionRepo.save(current);
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);

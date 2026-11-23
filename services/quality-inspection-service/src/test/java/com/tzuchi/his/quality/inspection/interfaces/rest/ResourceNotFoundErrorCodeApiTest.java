@@ -16,7 +16,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -44,7 +44,7 @@ class ResourceNotFoundErrorCodeApiTest {
         ReviewCaseEntity rc = new ReviewCaseEntity();
         rc.setCaseId("c1"); rc.setBatchId("b"); rc.setProjectId("p"); rc.setHospitalId("H001");
         rc.setStatus(CaseStatus.REREVIEW_IN_PROGRESS); rc.setReviewerId("initial");
-        rc.setRereviewerId("rr"); rc.setRereviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        rc.setRereviewerId("rr"); rc.setRereviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         cases.save(rc);
     }
 

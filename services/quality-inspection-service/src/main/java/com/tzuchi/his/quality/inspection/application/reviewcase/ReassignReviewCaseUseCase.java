@@ -10,7 +10,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseReass
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.Clock;
 
 @Service
@@ -29,7 +29,7 @@ public class ReassignReviewCaseUseCase {
         this.clock = clock;
     }
 
-    public void execute(ActorContext actor, String caseId, String newReviewerId, LocalDateTime dueAt) {
+    public void execute(ActorContext actor, String caseId, String newReviewerId, Instant dueAt) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
 
         ReviewCase reviewCase = repository.findById(caseId)
@@ -41,7 +41,7 @@ public class ReassignReviewCaseUseCase {
         String previousReviewerId = reviewCase.getReviewerAssignment() != null
                 ? reviewCase.getReviewerAssignment().getReviewerId() : null;
 
-        reviewCase.reassignReviewer(newReviewerId, dueAt, LocalDateTime.now(clock));
+        reviewCase.reassignReviewer(newReviewerId, dueAt, Instant.now(clock));
         repository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseReassignedEvent(

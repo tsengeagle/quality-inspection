@@ -16,7 +16,7 @@ import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepositor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -92,7 +92,7 @@ class CancelReviewCaseUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CLOSED, null, null,
-                null, null, LocalDateTime.now(), LocalDateTime.now(),
+                null, null, Instant.now(), Instant.now(),
                 false, null, null, null, null, null,
                 null, null, null, null);
         repository.save(rc);

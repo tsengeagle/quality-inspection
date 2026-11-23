@@ -10,7 +10,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseCance
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -37,7 +37,7 @@ public class CancelReviewCaseUseCase {
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
 
-        reviewCase.cancel(reason, LocalDateTime.now(clock));
+        reviewCase.cancel(reason, Instant.now(clock));
         repository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseCancelledEvent(

@@ -13,14 +13,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * D-073：帶時區的 dueAt 存成台北的牆上時刻（第 2 點）。換算結果要看資料庫，規格範例看不到，所以留在這裡。
+ * D-073、D-075：帶時區的 dueAt 存成同一個時間點，不論請求用哪個位移。存進資料庫的值規格範例看不到，所以留在這裡。
  * 「不帶時區回 400 VALIDATION_ERROR」與「其他讀不進來的本文維持現狀」由 specs/review-case/examples.yaml 的
  * 請求端範例保證（RC-G-05；D-074 R-8），這裡不重複。
  */
@@ -57,16 +57,16 @@ class DueAtTimeZoneApiTest {
     }
 
     @Test
-    void dueAtWithTaipeiOffsetIsStoredAsTaipeiWallTime() throws Exception {
+    void dueAtWithTaipeiOffsetIsStoredAsThatInstant() throws Exception {
         seedCase("c1");
         assign("2026-11-26T23:59:00+08:00");
-        assertEquals(LocalDateTime.of(2026, 11, 26, 23, 59), jpaRepository.findById("c1").orElseThrow().getDueAt());
+        assertEquals(Instant.parse("2026-11-26T15:59:00Z"), jpaRepository.findById("c1").orElseThrow().getDueAt());
     }
 
     @Test
-    void dueAtInUtcIsConvertedToTaipeiWallTime() throws Exception {
+    void dueAtInUtcIsStoredAsTheSameInstant() throws Exception {
         seedCase("c1");
         assign("2026-11-26T15:59:00Z");
-        assertEquals(LocalDateTime.of(2026, 11, 26, 23, 59), jpaRepository.findById("c1").orElseThrow().getDueAt());
+        assertEquals(Instant.parse("2026-11-26T15:59:00Z"), jpaRepository.findById("c1").orElseThrow().getDueAt());
     }
 }

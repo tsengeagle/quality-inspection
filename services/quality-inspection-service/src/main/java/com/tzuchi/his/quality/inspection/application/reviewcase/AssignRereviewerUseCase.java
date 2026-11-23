@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Service
 public class AssignRereviewerUseCase {
@@ -37,7 +36,7 @@ public class AssignRereviewerUseCase {
     }
 
     @Transactional
-    public void execute(ActorContext actor, String caseId, String rereviewerId, LocalDateTime dueAt) {
+    public void execute(ActorContext actor, String caseId, String rereviewerId, Instant dueAt) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewCase reviewCase = caseRepository.findById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
@@ -47,7 +46,7 @@ public class AssignRereviewerUseCase {
             throw new DomainRuleViolationException("REREVIEWER_HAS_READ_INITIAL",
                     "The rereviewer has already read this case's full initial review (D-055)");
         }
-        reviewCase.assignRereviewer(rereviewerId, dueAt, LocalDateTime.now(clock));
+        reviewCase.assignRereviewer(rereviewerId, dueAt, Instant.now(clock));
         caseRepository.save(reviewCase);
         // D-055 第 1、4 點：與指派變更同一個交易寫入歷史；任何一方失敗整筆回滾。
         historyPort.append(new RereviewerAssignmentRecord(reviewCase.getCaseId(), rereviewerId,

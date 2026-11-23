@@ -26,7 +26,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -127,7 +126,7 @@ class OracleSchemaMigrationTest {
         s.setTotalScore(new BigDecimal("88.50"));
         s.setComment("評語");
         s.setAttachmentRefsJson(LONG_TEXT);
-        s.setCreatedAt(LocalDateTime.of(2026, 1, 1, 8, 0));
+        s.setCreatedAt(Instant.parse("2026-01-01T08:00:00Z"));
         em.persistAndFlush(s);
         em.clear();
 

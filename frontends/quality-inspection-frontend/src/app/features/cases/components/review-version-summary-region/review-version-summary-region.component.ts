@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { formatTaipeiDateTime } from '@shared/time/taipei-time';
 
 /** S-07 用到的 SubmissionRef: 代表被引用的 submission 版本識別。 */
 export interface SubmissionRef {
@@ -16,6 +17,8 @@ export interface SubmissionRef {
   styleUrls: ['./review-version-summary-region.component.scss']
 })
 export class ReviewVersionSummaryRegionComponent {
+  /** 畫面上的時間固定以 Asia/Taipei 顯示（D-075 第 5 點）。 */
+  readonly displayTime = formatTaipeiDateTime;
   /** REVISION mode 的基準 submission 版本參照 */
   @Input() basedOnVersion?: SubmissionRef;
   /** 是否為 REVISION mode；僅 true 時渲染內容 */

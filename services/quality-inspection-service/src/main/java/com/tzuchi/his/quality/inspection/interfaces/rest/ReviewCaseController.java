@@ -21,9 +21,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
@@ -32,8 +31,6 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/review-cases")
 public class ReviewCaseController {
-
-    private static final ZoneId TAIPEI = ZoneId.of("Asia/Taipei");
 
     private final AssignReviewCaseUseCase assignUseCase;
     private final ReassignReviewCaseUseCase reassignUseCase;
@@ -186,7 +183,7 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @Valid @RequestBody AssignReviewerRequest request) {
-        assignUseCase.execute(actor, caseId, request.getReviewerId(), toTaipeiWallTime(request.getDueAt()));
+        assignUseCase.execute(actor, caseId, request.getReviewerId(), toInstant(request.getDueAt()));
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -195,7 +192,7 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @Valid @RequestBody ReassignReviewerRequest request) {
-        reassignUseCase.execute(actor, caseId, request.getReviewerId(), toTaipeiWallTime(request.getDueAt()));
+        reassignUseCase.execute(actor, caseId, request.getReviewerId(), toInstant(request.getDueAt()));
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -325,7 +322,7 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @RequestBody @Valid AssignRereviewerRequest request) {
-        assignRereviewerUseCase.execute(actor, caseId, request.getRereviewerId(), toTaipeiWallTime(request.getDueAt()));
+        assignRereviewerUseCase.execute(actor, caseId, request.getRereviewerId(), toInstant(request.getDueAt()));
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -337,7 +334,7 @@ public class ReviewCaseController {
         ReassignRereviewerCommand cmd = new ReassignRereviewerCommand();
         cmd.setCaseId(caseId);
         cmd.setRereviewerId(request.getRereviewerId());
-        cmd.setDueAt(toTaipeiWallTime(request.getDueAt()));
+        cmd.setDueAt(toInstant(request.getDueAt()));
         reassignRereviewerUseCase.execute(actor, cmd);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
@@ -433,11 +430,8 @@ public class ReviewCaseController {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * D-073 第 2 點：請求的 dueAt 帶時區；domain 的 dueAt 仍是台北的牆上時刻（D-072 違憲清單第 4 項），
-     * 在這裡換算。domain 改成 Instant 時移除。
-     */
-    private static LocalDateTime toTaipeiWallTime(OffsetDateTime dueAt) {
-        return dueAt == null ? null : dueAt.atZoneSameInstant(TAIPEI).toLocalDateTime();
+    /** D-073、D-075 第 1 點：請求的 dueAt 帶時區，直接換成時間點交給 use case。 */
+    private static Instant toInstant(OffsetDateTime dueAt) {
+        return dueAt == null ? null : dueAt.toInstant();
     }
 }

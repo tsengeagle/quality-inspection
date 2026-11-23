@@ -9,7 +9,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseEscal
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class RereviewSliceEventPropertiesTest {
 
     private static final Object SOURCE = new Object();
-    private static final LocalDateTime DUE_AT = LocalDateTime.of(2026, 12, 3, 23, 59, 59);
+    private static final Instant DUE_AT = Instant.parse("2026-12-03T23:59:59Z");
 
     @Test
     void initialReviewFixed() {

@@ -1,7 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** Read model for a single entry in the revision history of a review case. */
 public class RevisionHistoryEntry {
@@ -13,12 +13,12 @@ public class RevisionHistoryEntry {
     private final int revisionNo;
     private final BigDecimal totalScore;
     private final String comment;
-    private final LocalDateTime submittedAt;
+    private final Instant submittedAt;
     private final String supersededBySubmissionId;
 
     public RevisionHistoryEntry(String submissionId, String stage, String reviewerId,
                                 String status, int revisionNo, BigDecimal totalScore,
-                                String comment, LocalDateTime submittedAt,
+                                String comment, Instant submittedAt,
                                 String supersededBySubmissionId) {
         this.submissionId = submissionId;
         this.stage = stage;
@@ -38,6 +38,6 @@ public class RevisionHistoryEntry {
     public int getRevisionNo() { return revisionNo; }
     public BigDecimal getTotalScore() { return totalScore; }
     public String getComment() { return comment; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public Instant getSubmittedAt() { return submittedAt; }
     public String getSupersededBySubmissionId() { return supersededBySubmissionId; }
 }

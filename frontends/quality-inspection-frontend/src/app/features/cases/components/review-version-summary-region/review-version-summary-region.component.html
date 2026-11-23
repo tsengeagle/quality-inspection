@@ -5,7 +5,7 @@
     <span class="review-version-summary-region__id">{{ basedOnVersion.submissionId }}</span>
     <span class="review-version-summary-region__version">v{{ basedOnVersion.version }}</span>
     <span *ngIf="basedOnVersion.submittedAt" class="review-version-summary-region__date">
-      {{ basedOnVersion.submittedAt }}
+      {{ displayTime(basedOnVersion.submittedAt) }}
     </span>
   </ng-container>
 </div>

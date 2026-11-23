@@ -21,7 +21,7 @@ function rowDto(caseId: string) {
   return {
     caseId, projectId: 'PRJ-001', hospitalId: 'H001', status: 'CLOSED',
     reviewerId: 'reviewer-1', rereviewerId: null, initialScore: null, finalScore: 88,
-    createdAt: '2026-10-02T01:00:00Z', closedAt: '2026-10-05T09:30:00',
+    createdAt: '2026-10-02T01:00:00Z', closedAt: '2026-10-05T01:30:00Z',
     maskedFields: ['initialScore']
   };
 }

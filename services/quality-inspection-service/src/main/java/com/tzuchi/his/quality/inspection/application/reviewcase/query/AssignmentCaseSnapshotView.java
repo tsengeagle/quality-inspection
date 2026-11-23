@@ -1,6 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /** Read model for assignment-specific case snapshot data. */
 public class AssignmentCaseSnapshotView {
@@ -14,20 +14,20 @@ public class AssignmentCaseSnapshotView {
     private final String medicalRecordType;
     private final String status;
     private final String reviewerId;
-    private final LocalDateTime reviewerAssignedAt;
-    private final LocalDateTime reviewerDueAt;
+    private final Instant reviewerAssignedAt;
+    private final Instant reviewerDueAt;
     private final String rereviewerId;
-    private final LocalDateTime rereviewerAssignedAt;
-    private final LocalDateTime rereviewerDueAt;
+    private final Instant rereviewerAssignedAt;
+    private final Instant rereviewerDueAt;
 
     public AssignmentCaseSnapshotView(String caseId, String projectId, String projectName, String batchId,
                                       String hospitalId, String sourceCaseKey, String medicalRecordType,
                                       String status, String reviewerId,
-                                      LocalDateTime reviewerAssignedAt,
-                                      LocalDateTime reviewerDueAt,
+                                      Instant reviewerAssignedAt,
+                                      Instant reviewerDueAt,
                                       String rereviewerId,
-                                      LocalDateTime rereviewerAssignedAt,
-                                      LocalDateTime rereviewerDueAt) {
+                                      Instant rereviewerAssignedAt,
+                                      Instant rereviewerDueAt) {
         this.caseId = caseId;
         this.projectId = projectId;
         this.projectName = projectName;
@@ -53,9 +53,9 @@ public class AssignmentCaseSnapshotView {
     public String getMedicalRecordType() { return medicalRecordType; }
     public String getStatus() { return status; }
     public String getReviewerId() { return reviewerId; }
-    public LocalDateTime getReviewerAssignedAt() { return reviewerAssignedAt; }
-    public LocalDateTime getReviewerDueAt() { return reviewerDueAt; }
+    public Instant getReviewerAssignedAt() { return reviewerAssignedAt; }
+    public Instant getReviewerDueAt() { return reviewerDueAt; }
     public String getRereviewerId() { return rereviewerId; }
-    public LocalDateTime getRereviewerAssignedAt() { return rereviewerAssignedAt; }
-    public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
+    public Instant getRereviewerAssignedAt() { return rereviewerAssignedAt; }
+    public Instant getRereviewerDueAt() { return rereviewerDueAt; }
 }

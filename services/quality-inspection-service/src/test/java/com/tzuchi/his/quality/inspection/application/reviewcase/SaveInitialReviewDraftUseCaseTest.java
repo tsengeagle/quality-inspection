@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 class SaveInitialReviewDraftUseCaseTest {
 
@@ -75,7 +75,7 @@ class SaveInitialReviewDraftUseCaseTest {
 
     private ReviewSubmission seedDraftSubmission() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
         submissionRepo.save(sub);
         return sub;
     }
@@ -83,7 +83,7 @@ class SaveInitialReviewDraftUseCaseTest {
     private ReviewCase seedReviewCase() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 CASE_ID, "b1", "p1", HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer(REVIEWER_ID, java.time.LocalDateTime.now(), LocalDateTime.now());
+        rc.assignReviewer(REVIEWER_ID, java.time.Instant.now(), Instant.now());
         rc.startInitialReview(SUBMISSION_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
         return rc;
@@ -168,9 +168,9 @@ class SaveInitialReviewDraftUseCaseTest {
         seedPublishedScoreSheet();
         seedReviewCase();
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
-        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
+        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, Instant.now());
+        sub.submit(Instant.now());
         submissionRepo.save(sub);
 
         assertThrows(DomainStateConflictException.class,
@@ -255,12 +255,12 @@ class SaveInitialReviewDraftUseCaseTest {
         seedPublishedScoreSheet();
         ReviewCase rc = seedReviewCase();
         ReviewSubmission old = seedDraftSubmission();
-        old.updateDraft(Collections.emptyList(), new BigDecimal("7"), "historical", LocalDateTime.now());
+        old.updateDraft(Collections.emptyList(), new BigDecimal("7"), "historical", Instant.now());
         rc.returnToInitialReview("return");
         rc.reopenInitialReview();
         rc.startInitialReview("sub-2", com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseRepo.save(rc);
-        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), LocalDateTime.now());
+        ReviewSubmission current = ReviewSubmission.createInitialDraft("sub-2", CASE_ID, REVIEWER_ID, com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
         submissionRepo.save(current);
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);

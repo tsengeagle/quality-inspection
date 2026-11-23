@@ -27,7 +27,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.List;
@@ -67,15 +66,15 @@ class FixInitialReviewUseCaseTest {
 
     private void completedCase(CaseStatus status, String latestInitial) {
         cases.save(ReviewCase.reconstitute("c1", "b1", "p1", "H001", "SK-1", MedicalRecordType.OUTPATIENT,
-                status, new ReviewerAssignment("doctor", LocalDateTime.of(2026, 1, 1, 0, 0)), null,
+                status, new ReviewerAssignment("doctor", Instant.parse("2026-01-01T00:00:00Z")), null,
                 null, null, null, null, false, null, null, latestInitial, null, "ss:v1",
                 null, null, new BigDecimal("7"), null));
     }
 
     private void submission(String id, ReviewStage stage, String owner, SubmissionStatus status, BigDecimal score) {
         submissions.save(ReviewSubmission.reconstitute(id, "c1", stage, owner, status, 1, List.of(), score,
-                null, LocalDateTime.of(2026, 1, 2, 0, 0), "ss:v1", null, null,
-                LocalDateTime.of(2026, 1, 1, 0, 0), null));
+                null, Instant.parse("2026-01-02T00:00:00Z"), "ss:v1", null, null,
+                Instant.parse("2026-01-01T00:00:00Z"), null));
     }
 
     private static ActorContext actor(DomainRole role, String user, String hospital) {

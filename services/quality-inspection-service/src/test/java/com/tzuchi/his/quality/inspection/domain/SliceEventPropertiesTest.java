@@ -12,7 +12,7 @@ import com.tzuchi.his.quality.inspection.domain.sampling.event.SamplingCandidate
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,7 +72,7 @@ class SliceEventPropertiesTest {
     @Test
     void reviewCaseAssigned() {
         ReviewCaseAssignedEvent e = new ReviewCaseAssignedEvent(SOURCE, "u1", "U1", "H001", "c1", "r1",
-                LocalDateTime.of(2026, 12, 1, 17, 0));
+                Instant.parse("2026-12-01T09:00:00Z"));
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("r1", e.getAssignedReviewerId()),

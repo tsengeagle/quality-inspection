@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -45,7 +45,7 @@ class AssignRereviewerUseCaseTest {
     private ReviewCase seedPendingRereviewCase() {
         ReviewCase rc = ReviewCase.createFromSampling(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", LocalDateTime.now(), LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", Instant.now(), Instant.now());
         rc.startInitialReview("sub-1", "ss-1");
         rc.completeInitialReview(new BigDecimal("90"));
         // D-054：先固定初審，才依品質線判斷流向。
@@ -60,7 +60,7 @@ class AssignRereviewerUseCaseTest {
     void execute_happyPath_shouldAssignRereviewer() {
         seedPendingRereviewCase();
 
-        useCase.execute(managerActor(), "c1", "rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59));
+        useCase.execute(managerActor(), "c1", "rereviewer-1", Instant.parse("2026-06-30T23:59:00Z"));
 
         ReviewCase saved = caseRepository.findById("c1").orElseThrow();
         assertNotNull(saved.getRereviewerAssignment());
@@ -73,7 +73,7 @@ class AssignRereviewerUseCaseTest {
         seedPendingRereviewCase();
         // same as initial reviewer → D-017
 
-        assertThrows(Exception.class, () -> useCase.execute(managerActor(), "c1", "reviewer-1", LocalDateTime.now()));
+        assertThrows(Exception.class, () -> useCase.execute(managerActor(), "c1", "reviewer-1", Instant.now()));
     }
 
     @Test
@@ -91,7 +91,7 @@ class AssignRereviewerUseCaseTest {
 
         ActorContext wrongHospital = new ActorContext("mgr-1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
-        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, "c1", "rereviewer-1", LocalDateTime.of(2026, 6, 30, 23, 59)));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, "c1", "rereviewer-1", Instant.parse("2026-06-30T23:59:00Z")));
     }
     // ---- D-055 第 1、4 點：每次指派／改派都寫一筆歷史 ----
 
@@ -99,7 +99,7 @@ class AssignRereviewerUseCaseTest {
     void execute_writesAssignmentHistory() {
         seedPendingRereviewCase();
 
-        useCase.execute(managerActor(), "c1", "rereviewer-9", LocalDateTime.of(2026, 6, 30, 23, 59));
+        useCase.execute(managerActor(), "c1", "rereviewer-9", Instant.parse("2026-06-30T23:59:00Z"));
 
         assertEquals(1, records.history.size());
         RereviewerAssignmentRecord r = records.history.get(0);
@@ -115,7 +115,7 @@ class AssignRereviewerUseCaseTest {
         seedPendingRereviewCase();
         // D-017
 
-        assertThrows(DomainRuleViolationException.class, () -> useCase.execute(managerActor(), "c1", "reviewer-1", LocalDateTime.now()));
+        assertThrows(DomainRuleViolationException.class, () -> useCase.execute(managerActor(), "c1", "reviewer-1", Instant.now()));
         assertTrue(records.history.isEmpty());
     }
 
@@ -129,7 +129,7 @@ class AssignRereviewerUseCaseTest {
         records.record("c1", "auditor-7", NOW);
 
         DomainRuleViolationException ex = assertThrows(DomainRuleViolationException.class,
-                () -> useCase.execute(managerActor(), "c1", "auditor-7", LocalDateTime.of(2026, 6, 30, 23, 59)));
+                () -> useCase.execute(managerActor(), "c1", "auditor-7", Instant.parse("2026-06-30T23:59:00Z")));
 
         assertEquals("REREVIEWER_HAS_READ_INITIAL", ex.getErrorCode());
         ReviewCase saved = caseRepository.findById("c1").orElseThrow();
@@ -144,6 +144,6 @@ class AssignRereviewerUseCaseTest {
         seedPendingRereviewCase();
         records.record("other-case", "auditor-7", NOW);
 
-        assertDoesNotThrow(() -> useCase.execute(managerActor(), "c1", "auditor-7", LocalDateTime.of(2026, 6, 30, 23, 59)));
+        assertDoesNotThrow(() -> useCase.execute(managerActor(), "c1", "auditor-7", Instant.parse("2026-06-30T23:59:00Z")));
     }
 }
