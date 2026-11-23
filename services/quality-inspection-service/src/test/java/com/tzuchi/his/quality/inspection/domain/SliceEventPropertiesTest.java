@@ -11,6 +11,8 @@ import com.tzuchi.his.quality.inspection.domain.sampling.event.SamplingBatchStar
 import com.tzuchi.his.quality.inspection.domain.sampling.event.SamplingCandidatesPreparedEvent;
 import org.junit.jupiter.api.Test;
 
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -101,10 +103,11 @@ class SliceEventPropertiesTest {
     @Test
     void reviewSubmissionSubmitted() {
         ReviewSubmissionSubmittedEvent e = new ReviewSubmissionSubmittedEvent(SOURCE, "r1", "R1", "H001", "c1", "s1",
-                new BigDecimal("85.50"), "r1");
+                ReviewStage.REREVIEW, new BigDecimal("85.50"), "r1");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("s1", e.getSubmissionId()),
+                () -> assertEquals(ReviewStage.REREVIEW, e.getStage()),
                 () -> assertEquals("{\"caseId\":\"c1\",\"totalScore\":85.50,\"reviewerId\":\"r1\"}", e.getDetail()));
     }
 

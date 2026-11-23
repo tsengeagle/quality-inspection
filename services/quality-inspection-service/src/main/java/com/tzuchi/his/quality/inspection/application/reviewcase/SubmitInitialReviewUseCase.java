@@ -154,7 +154,7 @@ public class SubmitInitialReviewUseCase {
         eventPublisher.publish(new ReviewSubmissionSubmittedEvent(
                 this, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
-                submission.getSubmissionId(), result.getTotalScore(), actor.getUserId()));
+                submission.getSubmissionId(), ReviewStage.INITIAL, result.getTotalScore(), actor.getUserId()));
         eventPublisher.publish(new InitialReviewCompletedEvent(
                 this, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId, reviewCase.getProjectId(),

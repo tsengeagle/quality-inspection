@@ -20,6 +20,9 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.event.RereviewComplet
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionSubmittedEvent;
+import com.tzuchi.his.quality.inspection.domain.scoresheet.RequiredRule;
+import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreItem;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
 import org.springframework.stereotype.Service;
@@ -27,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
@@ -113,6 +117,23 @@ public class SubmitRereviewUseCase {
                 ? answers.stream().map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue())).collect(Collectors.toList())
                 : submission.getAnswerSet();
 
+        // D-076 第 4 點：必答題看這次提交採用的答案（輸入有 answers 就看它，包括空的清單），與初審（D-067）相同
+        Set<String> answeredItemIds = currentAnswers.stream()
+                .map(AnswerItem::getItemId)
+                .collect(Collectors.toSet());
+
+        List<String> missingRequired = scoreSheet.getSections().stream()
+                .flatMap(s -> s.getItems().stream())
+                .filter(item -> item.getRequiredRule() == RequiredRule.ALWAYS_REQUIRED)
+                .map(ScoreItem::getItemId)
+                .filter(id -> !answeredItemIds.contains(id))
+                .collect(Collectors.toList());
+
+        if (!missingRequired.isEmpty()) {
+            throw new DomainRuleViolationException("REQUIRED_ITEMS_NOT_ANSWERED",
+                    "Required items not answered: " + String.join(", ", missingRequired));
+        }
+
         // Calculate scores server-side
         List<AnswerItem> rawItems = currentAnswers.stream()
                 .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
@@ -137,6 +158,11 @@ public class SubmitRereviewUseCase {
                 version.getRereviewWeight());
         caseRepository.save(reviewCase);
 
+        // D-076 第 2 點：與提交初審對稱，先發 ReviewSubmissionSubmitted，再發 RereviewCompleted
+        eventPublisher.publish(new ReviewSubmissionSubmittedEvent(
+                this, actor.getUserId(), actor.getUserName(),
+                reviewCase.getHospitalId(), caseId,
+                submission.getSubmissionId(), ReviewStage.REREVIEW, result.getTotalScore(), actor.getUserId()));
         eventPublisher.publish(new RereviewCompletedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
                 reviewCase.getCaseId(), submission.getSubmissionId(), actor.getUserId(),

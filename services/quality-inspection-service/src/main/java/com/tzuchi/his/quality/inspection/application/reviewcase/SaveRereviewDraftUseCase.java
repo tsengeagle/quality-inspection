@@ -2,6 +2,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
+import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
@@ -16,6 +17,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewDraftSavedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,13 +33,16 @@ public class SaveRereviewDraftUseCase {
 
     private final ReviewCaseRepository caseRepository;
     private final ReviewSubmissionRepository submissionRepository;
+    private final DomainEventPublisher eventPublisher;
     private final Clock clock;
 
     public SaveRereviewDraftUseCase(ReviewCaseRepository caseRepository,
                                      ReviewSubmissionRepository submissionRepository,
+                                     DomainEventPublisher eventPublisher,
                                      Clock clock) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
+        this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
@@ -92,6 +97,12 @@ public class SaveRereviewDraftUseCase {
         BigDecimal keptScore = submission.getTotalScore() != null ? submission.getTotalScore() : BigDecimal.ZERO;
         submission.updateDraft(rawAnswers, keptScore, comment, Instant.now(clock));
         submissionRepository.save(submission);
+
+        // D-076 第 1 點：與初審一致發 ReviewDraftSaved；複審草稿沒有有意義的分數，detail 的 totalScore 寫 null
+        eventPublisher.publish(new ReviewDraftSavedEvent(
+                this, actor.getUserId(), actor.getUserName(),
+                reviewCase.getHospitalId(), caseId, submission.getSubmissionId(), null));
+
         return new SaveDraftResult(
                 submission.getSubmissionId(),
                 submission.getStatus().name(),
