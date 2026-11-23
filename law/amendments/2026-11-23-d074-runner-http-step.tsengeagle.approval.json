@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-23-d074-runner-http-step",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:bd2a076d214fa1479c09454c11ad648c56484bff7b4814594879670dbfda7d77",
+  "reviewed_commit": "ab8693e7b93be6bd8f50e332a2136f05a7f97b54",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAED4QARmCsQWuExa/INLYgAxOfbZnPAyHIiTwhBzm+CSykp3Xaonx/NP\np0FSy1zcFvA5q1cDXkL3eg9T9DDLs3EJAQAAAEk=\n-----END SSH SIGNATURE-----\n"
+}
