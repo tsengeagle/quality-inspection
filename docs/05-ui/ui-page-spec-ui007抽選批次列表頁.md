@@ -543,8 +543,8 @@ tab_filters:
       "excludedCount": 40,
       "selectedCount": 30,
       "retryOfBatchId": null,
-      "startedAt": "2026-04-02T09:00:00+08:00",
-      "finishedAt": "2026-04-02T09:01:12+08:00"
+      "startedAt": "2026-04-02T01:00:00Z",
+      "finishedAt": "2026-04-02T01:01:12Z"
     },
     {
       "batchId": "BATCH-002",
@@ -558,8 +558,8 @@ tab_filters:
       "excludedCount": 0,
       "selectedCount": 0,
       "retryOfBatchId": "BATCH-001",
-      "startedAt": "2026-04-03T09:00:00+08:00",
-      "finishedAt": "2026-04-03T09:00:10+08:00"
+      "startedAt": "2026-04-03T01:00:00Z",
+      "finishedAt": "2026-04-03T01:00:10Z"
     }
   ],
   "meta": {

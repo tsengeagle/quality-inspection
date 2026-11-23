@@ -574,9 +574,9 @@ query_params:
   "reviewerId": "DOC-1001",
   "rereviewerId": "DOC-2001",
   "caseStatus": "PENDING_REREVIEW",
-  "dueAt": "2026-04-10T23:59:59+08:00",
+  "dueAt": "2026-04-10T15:59:59Z",
   "finalScore": null,
-  "updatedAt": "2026-04-02T14:10:00+08:00",
+  "updatedAt": "2026-04-02T06:10:00Z",
   "viewMode": "FULL"
 }
 ```
@@ -591,8 +591,8 @@ query_params:
   "caseStatus": "PENDING_REREVIEW",
   "reviewerId": "DOC-1001",
   "rereviewerId": "DOC-2001",
-  "dueAt": "2026-04-10T23:59:59+08:00",
-  "updatedAt": "2026-04-02T14:10:00+08:00",
+  "dueAt": "2026-04-10T15:59:59Z",
+  "updatedAt": "2026-04-02T06:10:00Z",
   "viewMode": "METADATA_ONLY"
 }
 ```

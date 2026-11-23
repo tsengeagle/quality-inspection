@@ -672,7 +672,7 @@ page_modes:
   "data": {
     "caseId": "RC-001",
     "reviewerId": "DOC-1001",
-    "dueAt": "2026-04-10T23:59:59+08:00",
+    "dueAt": "2026-04-10T15:59:59Z",
     "caseStatus": "PENDING_INITIAL_REVIEW"
   }
 }

@@ -70,7 +70,7 @@
   "eventName": "ReviewProjectCreated",
   "projectId": "RP-001",
   "hospitalId": "H-01",
-  "occurredAt": "2026-04-02T10:00:00+08:00"
+  "occurredAt": "2026-04-02T02:00:00Z"
 }
 ```
 
@@ -222,7 +222,7 @@
   "batchId": "BATCH-001",
   "projectId": "RP-001",
   "executionMode": "SCHEDULED",
-  "occurredAt": "2026-04-02T02:00:00+08:00"
+  "occurredAt": "2026-04-01T18:00:00Z"
 }
 ```
 
@@ -252,7 +252,7 @@
   "populationCount": 1200,
   "eligibleCount": 300,
   "excludedCount": 40,
-  "occurredAt": "2026-04-02T02:10:00+08:00"
+  "occurredAt": "2026-04-01T18:10:00Z"
 }
 ```
 
@@ -286,7 +286,7 @@
   "eventName": "ReviewCasesSelected",
   "batchId": "BATCH-001",
   "selectedCount": 30,
-  "occurredAt": "2026-04-02T02:10:00+08:00"
+  "occurredAt": "2026-04-01T18:10:00Z"
 }
 ```
 
@@ -318,7 +318,7 @@
   "eligibleCount": 300,
   "excludedCount": 40,
   "selectedCount": 30,
-  "occurredAt": "2026-04-02T02:20:00+08:00"
+  "occurredAt": "2026-04-01T18:20:00Z"
 }
 ```
 
@@ -383,8 +383,8 @@
   "eventName": "ReviewCaseAssigned",
   "caseId": "RC-001",
   "assignedReviewerId": "DOC-1001",
-  "dueAt": "2026-04-10T23:59:59+08:00",
-  "occurredAt": "2026-04-02T10:30:00+08:00"
+  "dueAt": "2026-04-10T15:59:59Z",
+  "occurredAt": "2026-04-02T02:30:00Z"
 }
 ```
 
@@ -413,7 +413,7 @@
   "caseId": "RC-001",
   "submissionId": "SUB-INIT-001",
   "reviewerId": "DOC-123",
-  "occurredAt": "2026-04-02T02:10:00+08:00"
+  "occurredAt": "2026-04-01T18:10:00Z"
 }
 ```
 
@@ -446,7 +446,7 @@
   "reviewerId": "DOC-123",
   "totalScore": 88.5,
   "qualityThreshold": 80,
-  "occurredAt": "2026-04-02T14:10:00+08:00"
+  "occurredAt": "2026-04-02T06:10:00Z"
 }
 ```
 
@@ -479,7 +479,7 @@
   "triggeredBySubmissionId": "SUB-INIT-001",
   "initialScore": 88.5,
   "qualityThreshold": 80,
-  "occurredAt": "2026-04-02T14:10:01+08:00"
+  "occurredAt": "2026-04-02T06:10:01Z"
 }
 ```
 
@@ -506,8 +506,8 @@
   "eventName": "RereviewerAssigned",
   "caseId": "RC-001",
   "rereviewerId": "DOC-2001",
-  "dueAt": "2026-04-20T23:59:59+08:00",
-  "occurredAt": "2026-04-12T10:30:00+08:00"
+  "dueAt": "2026-04-20T15:59:59Z",
+  "occurredAt": "2026-04-12T02:30:00Z"
 }
 ```
 
@@ -536,7 +536,7 @@
   "caseId": "RC-001",
   "submissionId": "SUB-RR-001",
   "rereviewerId": "DOC-2001",
-  "occurredAt": "2026-04-13T09:00:00+08:00"
+  "occurredAt": "2026-04-13T01:00:00Z"
 }
 ```
 
@@ -567,7 +567,7 @@
   "rereviewerId": "DOC-2001",
   "rereviewScore": 84,
   "finalScore": 86.25,
-  "occurredAt": "2026-04-13T15:00:00+08:00"
+  "occurredAt": "2026-04-13T07:00:00Z"
 }
 ```
 
@@ -601,7 +601,7 @@
   "eventName": "ReviewCaseClosed",
   "caseId": "RC-001",
   "submissionId": "SUB-RR-001",
-  "occurredAt": "2026-04-14T10:00:00+08:00"
+  "occurredAt": "2026-04-14T02:00:00Z"
 }
 ```
 
@@ -677,7 +677,7 @@
   "eventName": "InitialReviewFixed",
   "caseId": "RC-20260402-0001",
   "submissionId": "SUB-INIT-001",
-  "occurredAt": "2026-04-02T14:10:01+08:00"
+  "occurredAt": "2026-04-02T06:10:01Z"
 }
 ```
 
@@ -717,7 +717,7 @@
   "eventName": "ReviewDraftSaved",
   "submissionId": "SUB-INIT-001",
   "caseId": "RC-001",
-  "occurredAt": "2026-04-02T02:10:00+08:00"
+  "occurredAt": "2026-04-01T18:10:00Z"
 }
 ```
 
@@ -750,7 +750,7 @@
   "stage": "INITIAL",
   "reviewerId": "DOC-123",
   "totalScore": 88.5,
-  "occurredAt": "2026-04-02T14:10:00+08:00"
+  "occurredAt": "2026-04-02T06:10:00Z"
 }
 ```
 
@@ -819,7 +819,7 @@
   "stage": "INITIAL",
   "revisionNo": 2,
   "triggeredBy": "DOC-123",
-  "occurredAt": "2026-04-02T15:00:00+08:00"
+  "occurredAt": "2026-04-02T07:00:00Z"
 }
 ```
 

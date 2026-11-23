@@ -54,7 +54,8 @@ Accept: application/json
 ### 3.3 時間格式
 
 * 依 `decision-log.md`「憲法草案」第一條（D-072）：ISO-8601 延伸格式，必須帶時區、寫出秒；輸出一律 UTC，例如 `2026-04-02T06:10:00Z`；不帶時區的輸入回 `VALIDATION_ERROR`。
-* 目前程式仍有違憲處（D-072 第 4 點的清單），修正之前以該清單為準。本文件其他章節帶 `+08:00` 的範例，隨相關的 PR 改成 UTC。
+* 回應與事件的時間範例都是 UTC（D-075 第 8 點）。請求的範例保留 `+08:00`：輸入接受任何位移，前端依 D-073 以台北時間送出。
+* 目前程式仍有違憲處（D-072 第 4 點的清單，D-075 更正並補充），修正之前以該清單為準；D-075 的建構 PR 合併後，時間一律以 `Instant` 表示。
 
 ### 3.4 ID 命名
 
@@ -1010,10 +1011,10 @@ Accept: application/json
       "userId": "reviewer-1",
       "displayName": "Dr. Reviewer One",
       "displayLabel": "reviewer-1 | Dr. Reviewer One",
-      "assignedAt": "2026-04-01T10:00:00+08:00"
+      "assignedAt": "2026-04-01T02:00:00Z"
     },
     "currentRereviewer": null,
-    "reviewerDueAt": "2026-04-10T23:59:59+08:00",
+    "reviewerDueAt": "2026-04-10T15:59:59Z",
     "rereviewerDueAt": null,
     "effectiveDueAt": null
   }
@@ -1552,14 +1553,14 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
       "stage": "INITIAL",
       "revisionNo": 1,
       "status": "SUPERSEDED",
-      "submittedAt": "2026-04-02T14:10:00+08:00"
+      "submittedAt": "2026-04-02T06:10:00Z"
     },
     {
       "submissionId": "SUB-INIT-002",
       "stage": "INITIAL",
       "revisionNo": 2,
       "status": "SUBMITTED",
-      "submittedAt": "2026-04-02T15:00:00+08:00"
+      "submittedAt": "2026-04-02T07:00:00Z"
     }
   ]
 }
@@ -1745,7 +1746,7 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
   "status": "PENDING_REREVIEW",
   "reviewerId": "DOC-1001",
   "rereviewerId": "DOC-2001",
-  "submittedAt": "2026-04-02T14:10:00+08:00"
+  "submittedAt": "2026-04-02T06:10:00Z"
 }
 ```
 
