@@ -5,7 +5,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 import java.math.BigDecimal;
 
 /**
- * Published when a reviewer saves a draft of the initial review.
+ * Published when a reviewer saves a draft of the initial review or a rereviewer saves a rereview draft.
  */
 public class ReviewDraftSavedEvent extends DomainEvent {
 

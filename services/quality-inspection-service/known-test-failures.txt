@@ -6,11 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-# ---- D-076：複審的提交事件與必答題檢查。規格先立法，程式由建構 PR 配合（D-076 第 7 點）----
-# 保存複審草稿還沒有發 ReviewDraftSaved；提交複審還沒有發 ReviewSubmissionSubmitted；事件還沒有 stage
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/submission_submitted_carries_the_initial_stage
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rereview_draft_saved_carries_the_submission
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/submitting_the_rereview_emits_exactly_two_events
-# 提交複審還沒有必答題檢查
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereview_submit_with_a_required_item_unanswered
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereview_submit_when_the_answers_in_the_input_miss_a_required_item

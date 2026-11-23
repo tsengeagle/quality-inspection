@@ -10,6 +10,7 @@ import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
+import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewSubmissionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +35,8 @@ class SaveRereviewDraftUseCaseTest {
     void setUp() {
         caseRepository = new InMemoryReviewCaseRepository();
         submissionRepository = new InMemoryReviewSubmissionRepository();
-        useCase = new SaveRereviewDraftUseCase(caseRepository, submissionRepository, Clock.systemDefaultZone());
+        useCase = new SaveRereviewDraftUseCase(caseRepository, submissionRepository,
+                new CapturingDomainEventPublisher(), Clock.systemDefaultZone());
     }
 
     private ActorContext rereviewerActor() {
