@@ -38,7 +38,7 @@ public interface ExampleWorld {
 
     /**
      * 把 use case 的輸出轉成只有對應表、清單與單一值的結構，供路徑選取與比對。
-     * 時間要轉成 ISO 8601 字串；不帶時區的時間維持不帶時區，由執行器依 local_time_zone 解讀。
+     * 時間要轉成 ISO 8601 字串；不帶時區的時間維持不帶時區，執行器不把它當成時間點（D-075 第 7 點）。
      */
     Object tree(Object value);
 

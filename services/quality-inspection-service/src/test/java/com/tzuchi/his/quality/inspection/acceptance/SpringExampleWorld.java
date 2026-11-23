@@ -45,7 +45,6 @@ public final class SpringExampleWorld implements ExampleWorld, ApplicationListen
             .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     private final List<EmittedEvent> events = Collections.synchronizedList(new ArrayList<>());
     private volatile boolean active;
-    private volatile ZoneId zone;
 
     public SpringExampleWorld(AcceptanceClock clock, AcceptancePorts ports) {
         this.clock = clock;
@@ -54,7 +53,6 @@ public final class SpringExampleWorld implements ExampleWorld, ApplicationListen
 
     @Override
     public void begin(Instant clockStart, ZoneId zone) {
-        this.zone = zone;
         clock.fix(clockStart, zone);
         ports.activate();
         events.clear();
@@ -64,15 +62,9 @@ public final class SpringExampleWorld implements ExampleWorld, ApplicationListen
     @Override
     public void end() {
         active = false;
-        zone = null;
         events.clear();
         ports.deactivate();
         clock.release();
-    }
-
-    /** spec_version 2 的範例執行期間是 local_time_zone，其他時候是 null。 */
-    public ZoneId localTimeZone() {
-        return zone;
     }
 
     @Override

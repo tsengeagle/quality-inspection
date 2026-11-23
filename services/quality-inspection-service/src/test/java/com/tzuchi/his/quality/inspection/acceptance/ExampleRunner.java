@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -377,8 +376,9 @@ public final class ExampleRunner {
     }
 
     /**
-     * @param zone spec_version 2 的 local_time_zone：規格寫的是帶時區的時間時，比對時間點（D-065 第 5 點），
-     *             實際值不帶時區就依這個時區解讀。null 表示 spec_version 1，時間不特別處理。
+     * @param zone spec_version 2 的 local_time_zone；不是 null 時，規格寫的帶時區的時間比對時間點（D-065 第 5 點）。
+     *             實際值不帶時區就不是時間點，比對不通過（D-075 第 7 點：不再依時區解讀）。
+     *             null 表示 spec_version 1，時間不特別處理。
      */
     static boolean same(Object expected, Object actual, ZoneId zone) {
         if (expected == null || actual == null) {
@@ -410,7 +410,7 @@ public final class ExampleRunner {
         if (zone != null) {
             Instant wanted = instantWithZone(expected);
             if (wanted != null) {
-                return wanted.equals(instantOf(actual, zone));
+                return wanted.equals(instantOf(actual));
             }
         }
         BigDecimal ed = decimal(expected);
@@ -1118,8 +1118,8 @@ public final class ExampleRunner {
         return null;
     }
 
-    /** 實際值代表的時間點；不帶時區的時間依 zone 解讀。不是時間就回傳 null。 */
-    private static Instant instantOf(Object actual, ZoneId zone) {
+    /** 實際值代表的時間點。不帶時區的時間（LocalDateTime、沒有位移的字串）不是時間點，與不是時間一樣回傳 null（D-075 第 7 點）。 */
+    private static Instant instantOf(Object actual) {
         if (actual instanceof Instant) {
             return (Instant) actual;
         }
@@ -1129,24 +1129,10 @@ public final class ExampleRunner {
         if (actual instanceof ZonedDateTime) {
             return ((ZonedDateTime) actual).toInstant();
         }
-        if (actual instanceof LocalDateTime) {
-            return ((LocalDateTime) actual).atZone(zone).toInstant();
-        }
         if (actual instanceof Date) {
             return ((Date) actual).toInstant();
         }
-        if (actual instanceof String) {
-            Instant withZone = instantWithZone(actual);
-            if (withZone != null) {
-                return withZone;
-            }
-            try {
-                return LocalDateTime.parse((String) actual).atZone(zone).toInstant();
-            } catch (DateTimeParseException e) {
-                return null;
-            }
-        }
-        return null;
+        return instantWithZone(actual);
     }
 
     private static List<String> strings(Object node, String what) {

@@ -58,7 +58,7 @@ class AcceptanceExamplesTest {
 
         Set<String> specified = specs.useCaseNames();
         Map<String, Object> profile = specs.profile();
-        UseCaseInvoker invoker = new SpringUseCaseInvoker(context, world);
+        UseCaseInvoker invoker = new SpringUseCaseInvoker(context);
         HttpInvoker http = new SpringHttpInvoker(mockMvc, context.getEnvironment());
         Map<String, Object> httpCommon = specs.httpCommon();
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
