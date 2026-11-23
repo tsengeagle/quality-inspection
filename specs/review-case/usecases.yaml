@@ -26,6 +26,7 @@ sources:
   - { decision: D-070 }
   - { decision: D-071 }
   - { decision: D-073 }
+  - { decision: D-076 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.9、§6.12、§7.1、§7.2" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.10、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
 
@@ -269,6 +270,7 @@ usecases:
         - { id: RC-SUB-S2, text: 初審提交的狀態是 SUBMITTED，submittedAt 是提交當時的時間,  status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
         - { id: RC-SUB-S3, text: ReviewSubmissionSubmitted 帶有 caseId 與 submissionId, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§7.2" }, { decision: D-066 }] }
         - { id: RC-SUB-S4, text: InitialReviewCompleted 帶有 caseId 與 submissionId, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.4" }, { decision: D-067 }] }
+        - { id: RC-SUB-S5, text: ReviewSubmissionSubmitted 的 stage 是 INITIAL, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§7.2" }, { decision: D-076 }] }
       emits:
         - { event: ReviewSubmissionSubmitted, status: decided,  source: [{ doc: docs/02-ddd/domain-events.md, section: "§7.2" }] }
         - { event: InitialReviewCompleted,    status: decided,  source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.4" }, { decision: D-067 }] }
@@ -490,6 +492,9 @@ usecases:
     success:
       state:
         - { id: RC-RDR-S1, text: 草稿的答案與評語等於輸入, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+        - { id: RC-RDR-S2, text: ReviewDraftSaved 帶有 submissionId 與 caseId, status: decided, source: [{ decision: D-076 }, { doc: docs/02-ddd/domain-events.md, section: "§7.1" }] }
+      emits:
+        - { event: ReviewDraftSaved, status: decided, source: [{ decision: D-076 }, { doc: docs/02-ddd/domain-events.md, section: "§7.1" }] }
 
   - name: SubmitRereview
     kind: command
@@ -542,13 +547,20 @@ usecases:
         outcome: { result: REJECTED, code: CONFLICT }
         status: decided
         source: [{ decision: D-053 }]
+      - id: RC-SRR-09
+        when: 這次提交採用的答案（輸入有 answers 就是它，否則是草稿的答案）裡，評分表有必答的題目沒有作答
+        outcome: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+        status: decided
+        source: [{ decision: D-076 }]
     success:
       state:
         - { id: RC-SRR-S1, text: status 維持 REREVIEW_IN_PROGRESS，不結案、不固定, status: decided, source: [{ decision: D-032 }, { decision: D-053 }, { scenario: TS-RR-003 }] }
         - { id: RC-SRR-S2, text: 複審提交的狀態是 SUBMITTED，submittedAt 是提交當時的時間；totalScore 由系統依評分表計算, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-032 }] }
         - { id: RC-SRR-S3, text: RereviewCompleted 帶有 caseId、submissionId、rereviewerId、rereviewScore、finalScore；finalScore 依 D-012、D-020 由初審與複審分數加權, status: decided, source: [{ decision: D-070 }, { doc: docs/02-ddd/domain-events.md, section: "§6.8、§14" }] }
         - { id: RC-SRR-S4, text: 輸出沒有 finalScore，也沒有初審的分數, status: decided, source: [{ decision: D-033 }, { decision: D-053 }] }
+        - { id: RC-SRR-S5, text: ReviewSubmissionSubmitted 帶有 caseId 與 submissionId，stage 是 REREVIEW, status: decided, source: [{ decision: D-076 }, { doc: docs/02-ddd/domain-events.md, section: "§7.2" }] }
       emits:
+        - { event: ReviewSubmissionSubmitted, status: decided, source: [{ decision: D-076 }, { doc: docs/02-ddd/domain-events.md, section: "§7.2" }] }
         - { event: RereviewCompleted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.8" }] }
     output:
       fields:

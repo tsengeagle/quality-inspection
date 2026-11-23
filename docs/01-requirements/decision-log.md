@@ -3088,3 +3088,52 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/02-ddd/domain-events.md`、`docs/03-contracts/api-spec.md`（§3.3 與各回應範例）、`docs/05-ui/` 六份頁面規格
 - `docs/harness/26-datetime-instant-draft.md`、`docs/harness/25-topic-backlog.md`
 - 後續：建構 PR（`domain/reviewcase/`、`application/reviewcase/`、`infrastructure/persistence/`、`interfaces/rest/`、`reporting/`、`SystemClockConfig`、前端的時間顯示與 CSV）；修法 PR 二（`acceptance/`、`specs/README.md`、`specs/spec-profile.yaml` 的註解）
+
+---
+
+## D-076 — 複審的提交事件與必答題檢查（D-069 留下的兩件）
+
+### Status
+
+`accepted`（2026-11-23，負責人對 `docs/harness/27-rereview-submission-events-draft.md` 的 V-1～V-5 全部照建議裁決）
+
+### Decision
+
+1. **保存複審草稿發 `ReviewDraftSaved`（V-1 選 A）**：
+   - 與初審一致，照 `domain-events.md` §7.1「某一審查階段」的字面。欄位是 `submissionId`、`caseId`。
+   - 稽核 `detail` 的格式不變（`{"caseId":"…","totalScore":…}`）；複審草稿沒有有意義的分數（D-069 第 7 點），`totalScore` 寫 `null`，不寫舊值或 0。
+2. **提交複審發 `ReviewSubmissionSubmitted`（V-2 選 A）**：
+   - 提交複審發兩個事件：`ReviewSubmissionSubmitted` 與 `RereviewCompleted`，與提交初審（`ReviewSubmissionSubmitted` 與 `InitialReviewCompleted`）對稱。
+   - 事件補上 §7.2 要求的 `stage`（`INITIAL`／`REREVIEW`），初審一併補。稽核的 `action`、`detail` 逐字不變（D-066 第 2 點）。
+   - 規格把 `SubmitRereview` 的事件清單寫完整；D-069 留下的 `not_covered` 項目移除。
+3. **`ReviewSubmission` 的稽核紀錄沒有遮罩（V-3 選 A）**：
+   - 查證時發現：`DRAFT_SAVED`、`SUBMITTED` 的 `detail` 帶 `totalScore`，`entityType` 是 `ReviewSubmission`，不在 D-071 的遮罩範圍（D-071 只列 `ReviewCase` 的 action）。
+   - 另開一題，排在本題之後：先查證兩個查詢出口會不會回傳這些紀錄，再決定要不要擴大遮罩。本題不擴大遮罩。
+   - 第 1、2 點實作之後，複審也會寫入這兩種紀錄，`SUBMITTED` 帶複審的分數。負責人知悉並同意先照本裁決進行。
+4. **提交複審的必答題檢查（V-4 選 A）**：
+   - 評分表有 `ALWAYS_REQUIRED` 的題目沒有作答時，回 `REQUIRED_ITEMS_NOT_ANSWERED`（422，`rule_violation`），與初審（D-067）相同。
+   - 檢查的是這次提交採用的答案：輸入有 `answers` 就看它（包括空的清單），沒有帶就看草稿。
+   - 順序在狀態、指派、提交歸屬的檢查之後，計分之前。
+5. **不在本裁決（V-5）**：
+   - `CONDITIONAL` 的必答規則：初審與複審都沒有檢查，屬於評分表規則的題目。
+   - 修正已提交的初審與複審（`ReviseInitialReview`、`ReviseRereview`）還沒有立法；它們發不發這兩個事件、有沒有必答題檢查，等修正立法時處理。
+6. **一開始是紅的範例**：照 D-066 第 5 點，本裁決的修法 PR 把紅的範例加進 `known-test-failures.txt`，由建構 PR 移除。
+7. **順序**：本裁決、規格、`domain-events.md`、`api-spec.md`、`known-test-failures.txt` 在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-069「不在本裁決」留下的兩件；題目清單的下一題。
+- **草案與查證**：`docs/harness/27-rereview-submission-events-draft.md`（main = `3411657`）。程式現況：保存複審草稿不發事件；提交複審只發 `RereviewCompleted`，沒有必答題檢查；兩個事件類別都沒有 `stage`。
+- **與既有裁決的關係**：
+  - 補完 D-069（複審切片）；必答題檢查比照 D-067。
+  - 第 2 點照 D-066 第 2 點（`detail` 逐字不變）。
+  - 第 3 點是 D-071 的後續題，D-071 的條文不改。
+- **還沒有查證的**：`ListAuditTrails` 與 `GetCaseLifecycle` 會不會回傳 `ReviewSubmission` 的紀錄；D-071 當時是刻意不納入還是漏掉。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（`RC-SUB-S5`、`RC-RDR-S2`、`RC-SRR-09`、`RC-SRR-S5`，`SaveRereviewDraft` 與 `SubmitRereview` 的 `emits`）、`specs/review-case/examples.yaml`（6 個新範例，移除一項 `not_covered`）
+- `docs/02-ddd/domain-events.md` §7.1、§7.2；`docs/03-contracts/api-spec.md` §4.2
+- `services/quality-inspection-service/known-test-failures.txt`（5 個）
+- `docs/harness/25-topic-backlog.md`（新增「`ReviewSubmission` 稽核紀錄的遮罩」「報表的日期篩選固定以台北解讀」）
+- 後續：建構 PR（`SaveRereviewDraftUseCase`、`SubmitRereviewUseCase`、`ReviewDraftSavedEvent`、`ReviewSubmissionSubmittedEvent`）
