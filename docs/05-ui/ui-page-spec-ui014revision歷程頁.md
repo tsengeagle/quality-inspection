@@ -608,7 +608,7 @@ detail_modes:
       "stage": "INITIAL",
       "revisionNo": 1,
       "status": "SUPERSEDED",
-      "submittedAt": "2026-04-02T14:10:00+08:00",
+      "submittedAt": "2026-04-02T06:10:00Z",
       "submittedBy": "DOC-1001",
       "totalScore": 88.5,
       "isCurrent": false
@@ -618,7 +618,7 @@ detail_modes:
       "stage": "INITIAL",
       "revisionNo": 2,
       "status": "SUBMITTED",
-      "submittedAt": "2026-04-02T15:00:00+08:00",
+      "submittedAt": "2026-04-02T07:00:00Z",
       "submittedBy": "DOC-1001",
       "totalScore": 91.0,
       "isCurrent": true
@@ -657,7 +657,7 @@ detail_modes:
   "stage": "INITIAL",
   "revisionNo": 2,
   "status": "SUBMITTED",
-  "submittedAt": "2026-04-02T15:00:00+08:00",
+  "submittedAt": "2026-04-02T07:00:00Z",
   "submittedBy": "DOC-1001",
   "isCurrent": true,
   "viewMode": "METADATA_ONLY"

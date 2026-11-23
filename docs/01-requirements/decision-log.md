@@ -3026,3 +3026,65 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/harness/25-topic-backlog.md`（題目清單）
 - 後續：修法 PR 二（執行器與範例）、建構 PR
 
+---
+
+## D-075 — 違憲清單第 3～6 項：時間改成時間點（`Instant`）
+
+### Status
+
+`accepted`（2026-11-23，負責人對 `docs/harness/26-datetime-instant-draft.md` 的 N-1～N-8 全部照建議裁決；並說明目前沒有正式環境，也沒有需要保留資料的環境）
+
+### Decision
+
+1. **範圍與順序（N-1 選 A）**：違憲清單第 3 項（HTTP 的輸出）與第 4 項（domain 與 persistence）一起做，從 domain 改起。domain、persistence、use case、view、匯出的時間全部改成 `Instant`，HTTP 輸出因此是 UTC `Z`。D-073 第 2 點放在 controller 的換算（以 `Asia/Taipei` 換成牆上時刻）一併移除：DTO 的 `OffsetDateTime` 直接換成 `Instant` 交給 use case。
+2. **補充違憲清單（N-2 選 A）**：D-072 第 4 點第 4 項漏列 `ReviewSubmission` 的 `createdAt`、`submittedAt`、`updatedAt`。這三個值同樣是 `LocalDateTime`，也以不帶時區的格式輸出（`submittedAt`、`initialSubmittedAt`）。補進清單，這次一起改。
+3. **更正 D-072 第 4 點第 4 項的說法**：
+   - 該項寫「這六個值代表台北的牆上時刻」。查證後只有 `dueAt`、`rereviewerDueAt` 是（由 controller 以 `Asia/Taipei` 換算）。
+   - `assignedAt`、`rereviewerAssignedAt`、`closedAt`、`cancelledAt`，以及第 2 點的三個值，是 `LocalDateTime.now(clock)`，而時鐘是 `Clock.systemDefaultZone()`，所以是伺服器 JVM 時區的牆上時刻。
+   - D-072 的條文不改，以本點為更正。
+4. **既有資料與時鐘（N-3）**：
+   - 不轉換既有資料，不新增 migration。欄位型別（`timestamp`）不改，`hibernate.jdbc.time_zone: UTC` 不改；改成 `Instant` 之後，同一欄存的是 UTC。
+   - 負責人說明：目前沒有正式環境，也沒有需要保留資料的環境。本機與 demo 的資料庫重建。
+   - 時鐘改成 `Clock.systemUTC()`。「現在」一律以 `Instant.now(clock)` 取得。
+5. **前端顯示（N-4 選 A；D-073 第 6 點留下的題目）**：
+   - 畫面上的時間固定以 `Asia/Taipei` 顯示，輸入框也以台北時間填入；送出時照 D-073 第 4 點加上 `+08:00`。不依賴瀏覽器的時區。
+   - 換算的位置（憲法第一條第 3 點）：前端一個共用的函式，所有時間的顯示與輸入框都經過它。
+   - 報表匯出頁的 `createdAt` 原本寫「以使用者瀏覽器的本地時間顯示」，一併改成固定 `Asia/Taipei`。
+   - 前端必須與後端在同一個建構 PR 修改，否則畫面上的時間會差 8 小時。
+6. **匯出的 `closedAt`（N-5 選 A）**：
+   - `POST /reports/export` 回應的 `closedAt` 改成 `Instant`，輸出 UTC `Z`，與同一列的 `createdAt` 一致。
+   - CSV 由前端產生：`closedAt` 與 `createdAt` 一樣寫入 ISO-8601 UTC，欄位標題從「結案時間（伺服器時間）」改成「結案時間」。
+7. **`local_time_zone` 與執行器（N-6 選 A；違憲清單第 5 項）**：建構 PR 合併之後，另開修法 PR 收緊：
+   - 執行器移除替不帶時區的時間所做的兩處換算（輸入的 `SpringUseCaseInvoker.localTime`、輸出的 `ExampleRunner.instantOf`）；程式輸出不帶時區的時間時，範例直接失敗。
+   - `local_time_zone` 只用來決定範例時鐘的時區，`specs/README.md` 第九、十節照改。
+   - 順序必須在建構 PR 之後，否則現有範例會全部失敗。
+8. **文件（N-7；違憲清單第 6 項）**：
+   - `domain-events.md`、`api-spec.md`、`docs/05-ui/` 的事件與回應範例改成 UTC `Z`，換算成同一個時刻。
+   - 請求的範例保留 `+08:00`：輸入接受任何位移（第一條第 2 點），前端依 D-073 以台北時間送出。
+   - `ui-page-spec-ui017` 依第 5、6 點修改 `createdAt`、`closedAt` 的呈現。
+9. **未立法的範圍與 `REASSIGNED`（N-8）**：
+   - 改派、修正、不經複審結案、取消、退回都是 `grandfathered`（D-060）。依負責人裁決，在暫准範圍內照憲法第一條實作。只改時間的型別與格式，不改業務規則。
+   - `ReviewCaseReassignedEvent` 的 `dueAt` 改成 `Instant` 之後，稽核 `detail` 的 `dueAt` 是 UTC `Z`，違憲清單第 1 項的 `REASSIGNED` 一併修正（D-072 第 5 點已容許）。
+10. **規格**：`specs/` 的時間型別是 `datetime`，範例都已經寫帶時區的值，預期不用修改，建構之後應維持通過。這是推論，建構 PR 驗證；若有範例需要修改，另開修法 PR，不在建構 PR 裡改。
+11. **順序**：
+    1. 修法 PR 一：本裁決、文件範例、`docs/harness/26` 標為已裁決、更新題目清單。程式不動（P4）。
+    2. 建構 PR：後端與前端一起改。
+    3. 修法 PR 二：第 7 點的收緊。
+12. **違憲清單的註記**：建構 PR 合併後，D-072 第 4 點第 1 項的 `REASSIGNED`、第 3 項、第 4 項（含第 2 點補充的三個值）、第 6 項修正完成；第 5 項由修法 PR 二完成。D-072 的條文不改，以本點為註記，PR 編號於合併後補記在題目清單。
+
+### Relationship / Evidence
+
+- **依據**：憲法草案第一條；D-072 第 4 點的違憲清單；D-073 第 2、6 點。
+- **草案與查證**：`docs/harness/26-datetime-instant-draft.md`（main = `edb7f61`）。`src/main` 有 39 個檔案使用 `LocalDateTime`；時鐘是 `Clock.systemDefaultZone()`；前端把時間當成字串顯示（取前 16 個字元），沒有換算時區；匯出是 JSON 回應，CSV 由前端產生。
+- **與草案不同**：草案 N-5 寫「匯出檔的格式還沒有查證」。查證後 CSV 由前端產生（`ui-page-spec-ui017` §5.2），所以第 6 點多了 CSV 的欄位標題；報表匯出頁 `createdAt` 的顯示方式併入第 5 點。
+- **與既有裁決的關係**：
+  - 更正並補充 D-072 第 4 點第 4 項（第 2、3 點）。
+  - 取代 D-073 第 2 點中「controller 換成牆上時刻、use case 的簽名不變」的做法；D-073 其餘各點不變。
+  - D-045（正式資料庫沒有資料）是第 4 點不轉換資料的前提。
+- **還沒有查證的**：`Instant` 經 Jackson 輸出時的小數位數；demo 資料與前端測試是否依賴不帶時區的格式。
+
+### Mapping
+
+- `docs/02-ddd/domain-events.md`、`docs/03-contracts/api-spec.md`（§3.3 與各回應範例）、`docs/05-ui/` 六份頁面規格
+- `docs/harness/26-datetime-instant-draft.md`、`docs/harness/25-topic-backlog.md`
+- 後續：建構 PR（`domain/reviewcase/`、`application/reviewcase/`、`infrastructure/persistence/`、`interfaces/rest/`、`reporting/`、`SystemClockConfig`、前端的時間顯示與 CSV）；修法 PR 二（`acceptance/`、`specs/README.md`、`specs/spec-profile.yaml` 的註解）

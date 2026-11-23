@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-23-d075-datetime-instant",
+  "decision": "D-075",
+  "reason": "D-075：違憲清單第 3～6 項，時間改成時間點（修法 PR 一：裁決與文件）。負責人對 docs/harness/26-datetime-instant-draft.md 的 N-1～N-8 全部照建議裁決，並說明目前沒有正式環境、也沒有需要保留資料的環境。decision-log 新增 D-075：domain、persistence、use case、view、匯出的時間全部改成 Instant，移除 D-073 放在 controller 的換算；補充違憲清單漏列的 ReviewSubmission 三個時間；更正 D-072 第 4 點第 4 項的說法（只有 dueAt 類是台北的牆上時刻，其餘是 JVM 時區）；不轉換既有資料、不加 migration，時鐘改成 UTC；前端固定以 Asia/Taipei 顯示；匯出的 closedAt 輸出 UTC，CSV 標題改成「結案時間」；建構之後另開修法 PR 收緊執行器與 local_time_zone；暫准範圍內只改時間的型別與格式，REASSIGNED 一併修正。文件（都不是律法路徑，依 @allowed-with-amendment 一起改）：domain-events.md、api-spec.md、docs/05-ui 的事件與回應範例改成 UTC Z（換算成同一個時刻），請求的範例保留 +08:00；api-spec §3.3 與 ui-page-spec-ui017 的說明照改；docs/harness/26 標為已裁決，更新 25-topic-backlog.md 與 README 索引。規格（specs/）與程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/amendments/"
+  ]
+}
