@@ -47,9 +47,9 @@ describe('CasesService', () => {
             rereviewerId: 'rereviewer-1',
             medicalRecordType: 'OUTPATIENT',
             sourceCaseKey: 'SK-001',
-            createdAt: '2026-04-01T08:00:00',
-            assignedAt: '2026-04-01T09:00:00',
-            dueAt: '2026-04-03T23:59:00',
+            createdAt: '2026-04-01T00:00:00Z',
+            assignedAt: '2026-04-01T01:00:00Z',
+            dueAt: '2026-04-03T15:59:00Z',
             projectionType: 'FULL'
           }
         ],
@@ -72,9 +72,9 @@ describe('CasesService', () => {
           sourceCaseKey: 'SK-001',
           reviewerId: 'reviewer-1',
           rereviewerId: 'rereviewer-1',
-          createdAt: '2026-04-01T08:00:00',
-          assignedAt: '2026-04-01T09:00:00',
-          dueAt: '2026-04-03T23:59:00'
+          createdAt: '2026-04-01T00:00:00Z',
+          assignedAt: '2026-04-01T01:00:00Z',
+          dueAt: '2026-04-03T15:59:00Z'
         }
       ],
       page: 0,
@@ -129,7 +129,7 @@ describe('CasesService', () => {
             reviewerId: 'reviewer-1',
             status: 'SUPERSEDED',
             revisionNo: 1,
-            submittedAt: '2026-04-01T08:00:00',
+            submittedAt: '2026-04-01T00:00:00Z',
             supersededBySubmissionId: 'SUB-002'
           },
           {
@@ -138,7 +138,7 @@ describe('CasesService', () => {
             reviewerId: 'rereviewer-1',
             status: 'SUBMITTED',
             revisionNo: 2,
-            submittedAt: '2026-04-02T08:00:00',
+            submittedAt: '2026-04-02T00:00:00Z',
             supersededBySubmissionId: null
           }
         ]
@@ -159,7 +159,7 @@ describe('CasesService', () => {
           revisionNo: 1,
           totalScore: undefined,
           comment: undefined,
-          submittedAt: '2026-04-01T08:00:00',
+          submittedAt: '2026-04-01T00:00:00Z',
           supersededBySubmissionId: 'SUB-002',
           isCurrentEffective: false
         },
@@ -171,7 +171,7 @@ describe('CasesService', () => {
           revisionNo: 2,
           totalScore: undefined,
           comment: undefined,
-          submittedAt: '2026-04-02T08:00:00',
+          submittedAt: '2026-04-02T00:00:00Z',
           supersededBySubmissionId: null,
           isCurrentEffective: true
         }
@@ -208,7 +208,7 @@ describe('CasesService', () => {
             status: 'SUBMITTED',
             revisionNo: 1,
             totalScore: 88,
-            submittedAt: '2026-04-01T08:00:00'
+            submittedAt: '2026-04-01T00:00:00Z'
           }
         ],
         latestRereviewSubmissionId: 'SUB-REREVIEW-001',
@@ -228,19 +228,19 @@ describe('CasesService', () => {
             submissionId: 'SUB-INITIAL-001',
             revisionNo: 1,
             status: 'SUBMITTED',
-            submittedAt: '2026-04-01T08:00:00'
+            submittedAt: '2026-04-01T00:00:00Z'
           },
           editableSubmission: {
             submissionId: 'SUB-INITIAL-001',
             revisionNo: 1,
             status: 'SUBMITTED',
-            submittedAt: '2026-04-01T08:00:00'
+            submittedAt: '2026-04-01T00:00:00Z'
           },
           basedOnVersion: {
             submissionId: 'SUB-INITIAL-001',
             revisionNo: 1,
             status: 'SUBMITTED',
-            submittedAt: '2026-04-01T08:00:00'
+            submittedAt: '2026-04-01T00:00:00Z'
           }
         },
         rereviewContext: {
@@ -269,14 +269,14 @@ describe('CasesService', () => {
             submissionId: 'SUB-REREVIEW-BASE-001',
             revisionNo: 1,
             status: 'SUBMITTED',
-            submittedAt: '2026-04-01T09:00:00'
+            submittedAt: '2026-04-01T01:00:00Z'
           },
           initialSubmissionId: 'SUB-INITIAL-001',
           initialSubmissionRevisionNo: 1,
           initialReviewerId: 'reviewer-1',
           initialReviewerName: 'Dr. Initial',
           initialTotalScore: 88,
-          initialSubmittedAt: '2026-04-01T08:00:00',
+          initialSubmittedAt: '2026-04-01T00:00:00Z',
           finalScore: 91,
           finalConclusion: 'PASS'
         }
@@ -312,7 +312,7 @@ describe('CasesService', () => {
           revisionNo: 1,
           totalScore: 88,
           comment: undefined,
-          submittedAt: '2026-04-01T08:00:00',
+          submittedAt: '2026-04-01T00:00:00Z',
           supersededBySubmissionId: undefined,
           isCurrentEffective: true
         }
@@ -331,19 +331,19 @@ describe('CasesService', () => {
           submissionId: 'SUB-INITIAL-001',
           version: 1,
           status: 'SUBMITTED',
-          submittedAt: '2026-04-01T08:00:00'
+          submittedAt: '2026-04-01T00:00:00Z'
         },
         editableSubmission: {
           submissionId: 'SUB-INITIAL-001',
           version: 1,
           status: 'SUBMITTED',
-          submittedAt: '2026-04-01T08:00:00'
+          submittedAt: '2026-04-01T00:00:00Z'
         },
         basedOnVersion: {
           submissionId: 'SUB-INITIAL-001',
           version: 1,
           status: 'SUBMITTED',
-          submittedAt: '2026-04-01T08:00:00'
+          submittedAt: '2026-04-01T00:00:00Z'
         }
       },
       rereviewContext: {
@@ -371,13 +371,13 @@ describe('CasesService', () => {
           submissionId: 'SUB-REREVIEW-BASE-001',
           version: 1,
           status: 'SUBMITTED',
-          submittedAt: '2026-04-01T09:00:00'
+          submittedAt: '2026-04-01T01:00:00Z'
         },
         initialSubmissionId: 'SUB-INITIAL-001',
         initialSubmissionRevisionNo: 1,
         initialReviewerId: 'reviewer-1',
         initialReviewerName: 'Dr. Initial',
-        initialSubmittedAt: '2026-04-01T08:00:00'
+        initialSubmittedAt: '2026-04-01T00:00:00Z'
       }
     });
     // D-033：複審頁的快取不得保留初審分數或可反推初審分數的值，即使後端回傳了也一樣。
@@ -626,12 +626,12 @@ describe('CasesService', () => {
           userId: 'reviewer-1',
           displayName: 'Dr. Reviewer One',
           displayLabel: 'reviewer-1 | Dr. Reviewer One',
-          assignedAt: '2026-04-18T09:00:00'
+          assignedAt: '2026-04-18T01:00:00Z'
         },
         currentRereviewer: null,
-        reviewerDueAt: '2026-04-20T12:00:00',
-        rereviewerDueAt: '2026-04-26T12:00:00',
-        effectiveDueAt: '2026-04-26T12:00:00'
+        reviewerDueAt: '2026-04-20T04:00:00Z',
+        rereviewerDueAt: '2026-04-26T04:00:00Z',
+        effectiveDueAt: '2026-04-26T04:00:00Z'
       }
     });
 
@@ -681,12 +681,12 @@ describe('CasesService', () => {
           userId: 'reviewer-1',
           displayName: 'Dr. Reviewer One',
           displayLabel: 'reviewer-1 | Dr. Reviewer One',
-          assignedAt: '2026-04-18T09:00:00'
+          assignedAt: '2026-04-18T01:00:00Z'
         },
         currentRereviewer: undefined,
-        reviewerDueAt: '2026-04-20T12:00:00',
-        rereviewerDueAt: '2026-04-26T12:00:00',
-        effectiveDueAt: '2026-04-26T12:00:00'
+        reviewerDueAt: '2026-04-20T04:00:00Z',
+        rereviewerDueAt: '2026-04-26T04:00:00Z',
+        effectiveDueAt: '2026-04-26T04:00:00Z'
       },
       [
         {
@@ -714,11 +714,11 @@ describe('CasesService', () => {
   it('maps assignment command endpoints and payloads', () => {
     const reviewerPayload = {
       reviewerId: 'reviewer-1',
-      dueAt: '2026-04-20T12:00:00'
+      dueAt: '2026-04-20T04:00:00Z'
     };
     const rereviewerPayload = {
       rereviewerId: 'rereviewer-1',
-      dueAt: '2026-04-26T12:00:00'
+      dueAt: '2026-04-26T04:00:00Z'
     };
     const actual: unknown[] = [];
 

@@ -21,7 +21,7 @@ import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.event.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -74,7 +74,7 @@ class InitialReviewIntegrityIntegrationTest {
         rc.setHospitalId("H001");
         rc.setStatus(CaseStatus.INITIAL_REVIEW_IN_PROGRESS);
         rc.setReviewerId("doctor");
-        rc.setReviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        rc.setReviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setLatestInitialSubmissionId("s1");
         rc.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
         rc.setInitialReviewScore(BigDecimal.TEN);
@@ -91,7 +91,7 @@ class InitialReviewIntegrityIntegrationTest {
         sub.setTotalScore(BigDecimal.TEN);
         sub.setComment("original");
         sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
-        sub.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        sub.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
         sub.setUpdatedAt(sub.getCreatedAt());
         submissions.save(sub);
     }
@@ -260,7 +260,7 @@ class InitialReviewIntegrityIntegrationTest {
         String s1 = start.execute(actor("H001"), "c1");
         ReviewSubmission first = submissionRepository.findById(s1).orElseThrow();
         first.updateDraft(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)),
-                BigDecimal.TEN, "historical", LocalDateTime.now());
+                BigDecimal.TEN, "historical", Instant.now());
         submissionRepository.save(first);
         ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         returnReview.execute(manager, "c1", "return for review");
@@ -269,7 +269,7 @@ class InitialReviewIntegrityIntegrationTest {
         assertNotEquals(s1, s2);
         ReviewSubmission second = submissionRepository.findById(s2).orElseThrow();
         second.updateDraft(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)),
-                BigDecimal.TEN, "current", LocalDateTime.now());
+                BigDecimal.TEN, "current", Instant.now());
         submissionRepository.save(second);
         assertEquals(1, submissions.findById(s1).orElseThrow().getRevisionNo());
         assertEquals(1, submissions.findById(s2).orElseThrow().getRevisionNo());

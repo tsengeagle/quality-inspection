@@ -16,7 +16,7 @@ import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepositor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -28,7 +28,7 @@ class ReturnInitialReviewUseCaseTest {
     private CapturingDomainEventPublisher eventPublisher;
     private ReturnInitialReviewUseCase useCase;
 
-    private static final LocalDateTime DUE = LocalDateTime.of(2026, 2, 1, 23, 59);
+    private static final Instant DUE = Instant.parse("2026-02-01T23:59:00Z");
 
     @BeforeEach
     void setUp() {
@@ -46,7 +46,7 @@ class ReturnInitialReviewUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.INITIAL_REVIEW_IN_PROGRESS,
-                new ReviewerAssignment("reviewer-1", LocalDateTime.now()),
+                new ReviewerAssignment("reviewer-1", Instant.now()),
                 DUE,
                 null, null, null, null,
                 false, null, null, null, null, null,

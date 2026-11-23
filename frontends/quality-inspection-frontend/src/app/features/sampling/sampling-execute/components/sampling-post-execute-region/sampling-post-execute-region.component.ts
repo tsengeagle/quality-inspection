@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { formatTaipeiDateTime } from '@shared/time/taipei-time';
 
 /** SP-06a — SamplingPostExecuteRegion: 顯示執行結果（COMPLETED） */
 @Component({
@@ -12,8 +13,8 @@ import { Component, Input } from '@angular/core';
       <div *ngIf="result" class="result-content">
         <p class="result-reason" *ngIf="result.batchId">正式批次：{{ result.batchId }}</p>
         <p class="result-details" *ngIf="result.description">{{ result.description }}</p>
-        <p class="result-details" *ngIf="result.startedAt">開始時間：{{ result.startedAt }}</p>
-        <p class="result-details" *ngIf="result.finishedAt">完成時間：{{ result.finishedAt }}</p>
+        <p class="result-details" *ngIf="result.startedAt">開始時間：{{ displayTime(result.startedAt) }}</p>
+        <p class="result-details" *ngIf="result.finishedAt">完成時間：{{ displayTime(result.finishedAt) }}</p>
       </div>
     </section>
   `,
@@ -53,6 +54,8 @@ import { Component, Input } from '@angular/core';
   `]
 })
 export class SamplingPostExecuteRegionComponent {
+  /** 畫面上的時間固定以 Asia/Taipei 顯示（D-075 第 5 點）。 */
+  readonly displayTime = formatTaipeiDateTime;
   @Input() result:
     | {
         tone: 'success' | 'failed';

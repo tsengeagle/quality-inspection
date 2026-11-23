@@ -36,7 +36,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -81,7 +80,7 @@ class RereviewerHistoryReadAccessApiTest {
         ReviewCaseEntity rc = new ReviewCaseEntity();
         rc.setCaseId("c1"); rc.setBatchId("b"); rc.setProjectId("p"); rc.setHospitalId("H001");
         rc.setStatus(CaseStatus.PENDING_REREVIEW); rc.setReviewerId("initial");
-        rc.setReviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        rc.setReviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setInitialReviewScore(new BigDecimal("92")); rc.setFinalScore(new BigDecimal("92"));
         rc.setLatestInitialSubmissionId("i2");
         cases.save(rc);
@@ -104,7 +103,7 @@ class RereviewerHistoryReadAccessApiTest {
         s.setStatus(state); s.setRevisionNo(id.equals("i2") ? 2 : 1);
         s.setAnswerSet(List.of(AnswerItem.ofScored("Q", "SECRET_INITIAL_ANSWER", BigDecimal.TEN)));
         s.setTotalScore(new BigDecimal("92")); s.setComment("SECRET_INITIAL_COMMENT");
-        s.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0)); s.setSubmittedAt(s.getCreatedAt());
+        s.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z")); s.setSubmittedAt(s.getCreatedAt());
         if (state == SubmissionStatus.SUPERSEDED) s.setSupersededBySubmissionId("i2");
         return s;
     }
@@ -284,5 +283,5 @@ class RereviewerHistoryReadAccessApiTest {
         assertThat(cases.findById("c1").orElseThrow().getRereviewerId()).isNull();
     }
 
-    private static final LocalDateTime DUE_AT = LocalDateTime.of(2026, 12, 31, 23, 59);
+    private static final Instant DUE_AT = Instant.parse("2026-12-31T23:59:00Z");
 }

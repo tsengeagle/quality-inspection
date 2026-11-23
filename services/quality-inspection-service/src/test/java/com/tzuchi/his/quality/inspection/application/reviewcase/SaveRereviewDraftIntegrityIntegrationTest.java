@@ -28,7 +28,7 @@ import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,7 +65,7 @@ class SaveRereviewDraftIntegrityIntegrationTest {
         rc.setHospitalId(hospital);
         rc.setStatus(CaseStatus.REREVIEW_IN_PROGRESS);
         rc.setRereviewerId("doctor");
-        rc.setRereviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        rc.setRereviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setLatestRereviewSubmissionId("s" + id.substring(1));
         rc.setInitialReviewScore(new BigDecimal("90"));
         rc.setFinalScore(new BigDecimal("80"));
@@ -83,7 +83,7 @@ class SaveRereviewDraftIntegrityIntegrationTest {
         sub.setAnswerSet(Collections.singletonList(AnswerItem.ofRaw("Q1", "old")));
         sub.setTotalScore(new BigDecimal("12"));
         sub.setComment("old comment");
-        sub.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        sub.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
         sub.setUpdatedAt(sub.getCreatedAt());
         return sub;
     }

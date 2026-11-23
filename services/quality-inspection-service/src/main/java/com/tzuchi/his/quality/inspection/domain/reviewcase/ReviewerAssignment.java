@@ -1,6 +1,6 @@
 package com.tzuchi.his.quality.inspection.domain.reviewcase;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -9,9 +9,9 @@ import java.util.Objects;
 public class ReviewerAssignment {
 
     private final String reviewerId;
-    private final LocalDateTime assignedAt;
+    private final Instant assignedAt;
 
-    public ReviewerAssignment(String reviewerId, LocalDateTime assignedAt) {
+    public ReviewerAssignment(String reviewerId, Instant assignedAt) {
         Objects.requireNonNull(reviewerId, "reviewerId must not be null");
         Objects.requireNonNull(assignedAt, "assignedAt must not be null");
         this.reviewerId = reviewerId;
@@ -20,7 +20,7 @@ public class ReviewerAssignment {
 
     public String getReviewerId() { return reviewerId; }
 
-    public LocalDateTime getAssignedAt() { return assignedAt; }
+    public Instant getAssignedAt() { return assignedAt; }
 
     @Override
     public boolean equals(Object o) {

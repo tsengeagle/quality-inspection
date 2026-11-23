@@ -15,7 +15,7 @@ import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepositor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -28,7 +28,7 @@ class AssignReviewCaseUseCaseTest {
     private CapturingDomainEventPublisher eventPublisher;
     private AssignReviewCaseUseCase useCase;
 
-    private static final LocalDateTime DUE = LocalDateTime.of(2026, 2, 1, 23, 59);
+    private static final Instant DUE = Instant.parse("2026-02-01T23:59:00Z");
 
     @BeforeEach
     void setUp() {

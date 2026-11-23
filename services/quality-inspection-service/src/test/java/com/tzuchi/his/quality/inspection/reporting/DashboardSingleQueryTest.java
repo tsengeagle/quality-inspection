@@ -15,7 +15,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import javax.persistence.EntityManagerFactory;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -41,7 +40,7 @@ class DashboardSingleQueryTest {
         cases.deleteAll();
     }
 
-    private void save(String id, CaseStatus status, String rereviewerId, LocalDateTime dueAt) {
+    private void save(String id, CaseStatus status, String rereviewerId, Instant dueAt) {
         ReviewCaseEntity e = new ReviewCaseEntity();
         e.setCaseId(id); e.setBatchId("b"); e.setProjectId("p"); e.setHospitalId("H001");
         e.setStatus(status); e.setRereviewerId(rereviewerId); e.setDueAt(dueAt);
@@ -66,8 +65,8 @@ class DashboardSingleQueryTest {
 
     @Test
     void countsAndRatesAreCorrectForMixedCases() {
-        LocalDateTime past = LocalDateTime.of(2000, 1, 1, 0, 0);
-        LocalDateTime future = LocalDateTime.of(2999, 1, 1, 0, 0);
+        Instant past = Instant.parse("2000-01-01T00:00:00Z");
+        Instant future = Instant.parse("2999-01-01T00:00:00Z");
         save("closed-rereviewed", CaseStatus.CLOSED, "rr", past);     // 已結案、有複審；逾期不計（已結案）
         save("closed-plain", CaseStatus.CLOSED, null, null);           // 已結案
         save("overdue", CaseStatus.PENDING_INITIAL_REVIEW, null, past); // 逾期

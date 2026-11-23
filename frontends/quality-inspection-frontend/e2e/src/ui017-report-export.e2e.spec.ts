@@ -16,7 +16,7 @@ function exportRow(caseId: string, overrides: Record<string, unknown> = {}) {
   return {
     caseId, projectId: 'PRJ-001', hospitalId: 'HOSPITAL-001', status: 'CLOSED',
     reviewerId: 'reviewer-1', rereviewerId: null, initialScore: 85.5, finalScore: 90,
-    createdAt: '2026-10-02T01:00:00Z', closedAt: '2026-10-05T09:30:00', maskedFields: [],
+    createdAt: '2026-10-02T01:00:00Z', closedAt: '2026-10-05T01:30:00Z', maskedFields: [],
     ...overrides
   };
 }
@@ -32,7 +32,7 @@ test.describe('UI-017 report export', () => {
     await page.clock.setFixedTime(new Date('2026-11-17T09:00:00+08:00'));
   });
 
-  test('queries the previous full month, shows masked scores and server-time closedAt', async ({ page }) => {
+  test('queries the previous full month, shows masked scores and Taipei-time closedAt', async ({ page }) => {
     const requests: Record<string, unknown>[] = [];
     await page.route(EXPORT_URL, async route => {
       const body = route.request().postDataJSON();
@@ -71,7 +71,7 @@ test.describe('UI-017 report export', () => {
     const rows = page.getByTestId('export-row');
     await expect(rows).toHaveCount(3);
     await expect(rows.nth(0).locator('td').nth(8)).toHaveText('2026-10-02 09:00:00');
-    await expect(rows.nth(0).locator('td').nth(9)).toHaveText('2026-10-05T09:30:00');
+    await expect(rows.nth(0).locator('td').nth(9)).toHaveText('2026-10-05 09:30:00');
     await expect(rows.nth(1).locator('td').nth(6)).toHaveText('已遮罩');
     await expect(rows.nth(1).locator('td').nth(7)).toHaveText('已遮罩');
   });
@@ -117,9 +117,9 @@ test.describe('UI-017 report export', () => {
     expect([...bytes.subarray(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
     const text = bytes.subarray(3).toString('utf-8');
     expect(text.split('\r\n')).toEqual([
-      '案件,專案,院區,狀態,初審醫師,複審醫師,初審分數,最終分數,建立時間,結案時間（伺服器時間）',
-      'CASE-001,PRJ-001,HOSPITAL-001,CLOSED,reviewer-1,,85.5,90,2026-10-02T01:00:00Z,2026-10-05T09:30:00',
-      'CASE-002,PRJ-001,HOSPITAL-001,CLOSED,reviewer-1,,已遮罩,已遮罩,2026-10-02T01:00:00Z,2026-10-05T09:30:00',
+      '案件,專案,院區,狀態,初審醫師,複審醫師,初審分數,最終分數,建立時間,結案時間',
+      'CASE-001,PRJ-001,HOSPITAL-001,CLOSED,reviewer-1,,85.5,90,2026-10-02T01:00:00Z,2026-10-05T01:30:00Z',
+      'CASE-002,PRJ-001,HOSPITAL-001,CLOSED,reviewer-1,,已遮罩,已遮罩,2026-10-02T01:00:00Z,2026-10-05T01:30:00Z',
       "'=CMD(),\"A,B\",HOSPITAL-001,CLOSED,reviewer-1,,85.5,90,2026-10-02T01:00:00Z,",
       ''
     ]);

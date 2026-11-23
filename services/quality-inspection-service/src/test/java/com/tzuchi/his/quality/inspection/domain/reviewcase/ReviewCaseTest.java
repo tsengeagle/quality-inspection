@@ -7,13 +7,13 @@ import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ReviewCaseTest {
 
-    private static final LocalDateTime DUE = LocalDateTime.of(2026, 2, 1, 23, 59);
+    private static final Instant DUE = Instant.parse("2026-02-01T23:59:00Z");
 
     // --- Helper ---
 
@@ -23,7 +23,7 @@ class ReviewCaseTest {
 
     private ReviewCase createPendingInitialReview() {
         ReviewCase rc = createPendingAssignment();
-        rc.assignReviewer("reviewer-1", DUE, LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", DUE, Instant.now());
         return rc;
     }
 
@@ -56,7 +56,7 @@ class ReviewCaseTest {
     void assignReviewer_fromSelectedPending_shouldSucceed() {
         ReviewCase rc = createPendingAssignment();
 
-        rc.assignReviewer("reviewer-1", DUE, LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", DUE, Instant.now());
 
         assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, rc.getStatus());
         assertNotNull(rc.getReviewerAssignment());
@@ -69,7 +69,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingInitialReview(); // already PENDING_INITIAL_REVIEW
 
         DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
-                () -> rc.assignReviewer("reviewer-2", DUE, LocalDateTime.now()));
+                () -> rc.assignReviewer("reviewer-2", DUE, Instant.now()));
         assertEquals("CASE_NOT_ASSIGNABLE", e.getErrorCode());
     }
 
@@ -78,7 +78,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingAssignment();
 
         DomainValidationException e = assertThrows(DomainValidationException.class,
-                () -> rc.assignReviewer(null, DUE, LocalDateTime.now()));
+                () -> rc.assignReviewer(null, DUE, Instant.now()));
         assertEquals("VALIDATION_ERROR", e.getErrorCode());
     }
 
@@ -87,7 +87,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingAssignment();
 
         DomainValidationException e = assertThrows(DomainValidationException.class,
-                () -> rc.assignReviewer("reviewer-1", null, LocalDateTime.now()));
+                () -> rc.assignReviewer("reviewer-1", null, Instant.now()));
         assertEquals("VALIDATION_ERROR", e.getErrorCode());
         assertEquals(CaseStatus.SELECTED_PENDING_ASSIGNMENT, rc.getStatus());
     }
@@ -97,9 +97,9 @@ class ReviewCaseTest {
     @Test
     void reassignReviewer_fromPendingInitialReview_shouldSucceed() {
         ReviewCase rc = createPendingInitialReview();
-        LocalDateTime newDue = DUE.plusDays(7);
+        Instant newDue = DUE.plus(java.time.Duration.ofDays(7));
 
-        rc.reassignReviewer("reviewer-2", newDue, LocalDateTime.now());
+        rc.reassignReviewer("reviewer-2", newDue, Instant.now());
 
         assertEquals(CaseStatus.PENDING_INITIAL_REVIEW, rc.getStatus());
         assertEquals("reviewer-2", rc.getReviewerAssignment().getReviewerId());
@@ -111,7 +111,7 @@ class ReviewCaseTest {
         ReviewCase rc = createPendingAssignment(); // SELECTED_PENDING_ASSIGNMENT
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.reassignReviewer("reviewer-2", DUE, LocalDateTime.now()));
+                () -> rc.reassignReviewer("reviewer-2", DUE, Instant.now()));
     }
 
     // --- cancel ---
@@ -120,7 +120,7 @@ class ReviewCaseTest {
     void cancel_fromSelectedPending_shouldSucceed() {
         ReviewCase rc = createPendingAssignment();
 
-        rc.cancel("project cancelled", LocalDateTime.now());
+        rc.cancel("project cancelled", Instant.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
         assertEquals("project cancelled", rc.getCancelReason());
@@ -131,7 +131,7 @@ class ReviewCaseTest {
     void cancel_fromPendingInitialReview_shouldSucceed() {
         ReviewCase rc = createPendingInitialReview();
 
-        rc.cancel("reviewer unavailable", LocalDateTime.now());
+        rc.cancel("reviewer unavailable", Instant.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
     }
@@ -140,7 +140,7 @@ class ReviewCaseTest {
     void cancel_fromInProgress_shouldSucceed() {
         ReviewCase rc = createInProgress();
 
-        rc.cancel("duplicate case", LocalDateTime.now());
+        rc.cancel("duplicate case", Instant.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
     }
@@ -149,7 +149,7 @@ class ReviewCaseTest {
     void cancel_fromReturned_shouldSucceed() {
         ReviewCase rc = createReturned();
 
-        rc.cancel("no longer needed", LocalDateTime.now());
+        rc.cancel("no longer needed", Instant.now());
 
         assertEquals(CaseStatus.CANCELLED, rc.getStatus());
     }
@@ -160,16 +160,16 @@ class ReviewCaseTest {
         rc.forceStatus(CaseStatus.CLOSED);
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.cancel("too late", LocalDateTime.now()));
+                () -> rc.cancel("too late", Instant.now()));
     }
 
     @Test
     void cancel_fromCancelled_shouldThrow() {
         ReviewCase rc = createPendingAssignment();
-        rc.cancel("first cancel", LocalDateTime.now());
+        rc.cancel("first cancel", Instant.now());
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.cancel("second cancel", LocalDateTime.now()));
+                () -> rc.cancel("second cancel", Instant.now()));
     }
 
     // --- returnToInitialReview ---
@@ -216,7 +216,7 @@ class ReviewCaseTest {
 
     @Test
     void reconstitute_shouldRestoreAllFields() {
-        LocalDateTime assignedAt = LocalDateTime.of(2026, 1, 10, 9, 0);
+        Instant assignedAt = Instant.parse("2026-01-10T09:00:00Z");
         ReviewerAssignment assignment = new ReviewerAssignment("reviewer-1", assignedAt);
 
         ReviewCase rc = ReviewCase.reconstitute(

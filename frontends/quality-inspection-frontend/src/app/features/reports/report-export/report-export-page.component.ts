@@ -5,6 +5,7 @@ import { Subject, finalize, merge, takeUntil } from 'rxjs';
 import { ActorContext } from '@core/actor-context/actor-context.model';
 import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { AccessControlService } from '@shared/access/access-control.service';
+import { formatTaipeiDateTime } from '@shared/time/taipei-time';
 import { CsvFileSaver } from '../services/csv-file-saver.service';
 import {
   ExportCriteria,
@@ -38,6 +39,7 @@ interface AppliedQuery {
 }
 
 const EMPTY_VALUE = '—';
+const TIME_FIELDS: readonly ExportField[] = ['createdAt', 'closedAt'];
 
 @Component({
   selector: 'app-report-export-page',
@@ -214,13 +216,21 @@ export class ReportExportPageComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** 表格儲存格：被遮罩顯示「已遮罩」，空值顯示「—」；closedAt 原樣顯示。 */
+  /** 表格儲存格：被遮罩顯示「已遮罩」，空值顯示「—」；createdAt、closedAt 以台北時間顯示（D-075 第 5、6 點）。 */
   cellText(row: ExportRowView, field: ExportField): string {
     if (isMasked(row, field)) {
       return MASKED_LABEL;
     }
     const value = row[field];
-    return value === null || value === undefined || value === '' ? EMPTY_VALUE : String(value);
+    if (value === null || value === undefined || value === '') {
+      return EMPTY_VALUE;
+    }
+    return TIME_FIELDS.includes(field) ? formatTaipeiDateTime(String(value), EMPTY_VALUE, true) : String(value);
+  }
+
+  /** 有值、沒被遮罩的時間欄位：用 time 元素，datetime 屬性保留 API 回傳的 UTC 值。 */
+  isTimeCell(row: ExportRowView, field: ExportField): boolean {
+    return TIME_FIELDS.includes(field) && !!row[field] && !isMasked(row, field);
   }
 
   isMaskedCell(row: ExportRowView, field: ExportField): boolean {

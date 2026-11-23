@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 public class SaveRereviewDraftUseCase {
@@ -90,7 +90,7 @@ public class SaveRereviewDraftUseCase {
         }
 
         BigDecimal keptScore = submission.getTotalScore() != null ? submission.getTotalScore() : BigDecimal.ZERO;
-        submission.updateDraft(rawAnswers, keptScore, comment, LocalDateTime.now(clock));
+        submission.updateDraft(rawAnswers, keptScore, comment, Instant.now(clock));
         submissionRepository.save(submission);
         return new SaveDraftResult(
                 submission.getSubmissionId(),

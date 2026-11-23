@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 複審的獨立結案（D-034、D-053）。
@@ -83,7 +83,7 @@ public class CloseRereviewUseCase {
                     "Submission is not the current rereview result");
         }
 
-        reviewCase.closeAfterRereview(LocalDateTime.now(clock));
+        reviewCase.closeAfterRereview(Instant.now(clock));
         caseRepository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseClosedEvent(

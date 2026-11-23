@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,7 +65,7 @@ class PermanentBlindReviewReadApiTest {
         ReviewCaseEntity rc = new ReviewCaseEntity();
         rc.setCaseId("c1"); rc.setBatchId("b"); rc.setProjectId("p"); rc.setHospitalId("H001");
         rc.setStatus(CaseStatus.PENDING_REREVIEW); rc.setReviewerId("initial");
-        rc.setReviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        rc.setReviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setRereviewerId("rr"); rc.setRereviewerAssignedAt(rc.getReviewerAssignedAt());
         rc.setInitialReviewScore(new BigDecimal("92")); rc.setFinalScore(new BigDecimal("86"));
         rc.setFinalConclusion("SECRET_INITIAL_CONCLUSION");
@@ -95,7 +95,7 @@ class PermanentBlindReviewReadApiTest {
         s.setTotalScore(new BigDecimal(stage == ReviewStage.INITIAL ? "92" : "80"));
         s.setComment(stage == ReviewStage.INITIAL ? "SECRET_INITIAL_COMMENT" : "own comment");
         s.setAttachmentRefsJson(stage == ReviewStage.INITIAL ? "SECRET_INITIAL_ATTACHMENT" : "own attachment");
-        s.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0)); s.setSubmittedAt(s.getCreatedAt());
+        s.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z")); s.setSubmittedAt(s.getCreatedAt());
         if (state == SubmissionStatus.SUPERSEDED) s.setSupersededBySubmissionId("i2");
         return s;
     }
@@ -279,7 +279,7 @@ class PermanentBlindReviewReadApiTest {
         ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         ReviewCaseEntity unassigned = cases.findById("c1").orElseThrow();
         unassigned.setRereviewerId(null); unassigned.setRereviewerAssignedAt(null); cases.save(unassigned);
-        assign.execute(manager, "c1", "A", LocalDateTime.of(2026, 12, 31, 23, 59));
+        assign.execute(manager, "c1", "A", Instant.parse("2026-12-31T23:59:00Z"));
         ReassignRereviewerCommand next = new ReassignRereviewerCommand();
         next.setCaseId("c1"); next.setRereviewerId("B");
         reassign.execute(manager, next);
@@ -437,7 +437,7 @@ class PermanentBlindReviewReadApiTest {
         ReviewCaseEntity unassigned = cases.findById("c1").orElseThrow();
         unassigned.setRereviewerId(null); unassigned.setRereviewerAssignedAt(null); cases.save(unassigned);
         ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        assign.execute(manager, "c1", "A", LocalDateTime.of(2026, 12, 31, 23, 59));
+        assign.execute(manager, "c1", "A", Instant.parse("2026-12-31T23:59:00Z"));
         ReassignRereviewerCommand next = new ReassignRereviewerCommand(); next.setCaseId("c1"); next.setRereviewerId("B");
         reassign.execute(manager, next);
         assertTrue(submissions.findByCaseIdAndStage("c1", ReviewStage.REREVIEW).isEmpty());

@@ -15,7 +15,7 @@ import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepositor
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 
@@ -28,7 +28,7 @@ class ReassignReviewCaseUseCaseTest {
     private CapturingDomainEventPublisher eventPublisher;
     private ReassignReviewCaseUseCase useCase;
 
-    private static final LocalDateTime DUE = LocalDateTime.of(2026, 2, 1, 23, 59);
+    private static final Instant DUE = Instant.parse("2026-02-01T23:59:00Z");
 
     @BeforeEach
     void setUp() {
@@ -39,7 +39,7 @@ class ReassignReviewCaseUseCaseTest {
 
     private ReviewCase createAssignedCase() {
         ReviewCase rc = ReviewCase.createFromSampling("c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
-        rc.assignReviewer("reviewer-1", DUE, LocalDateTime.now());
+        rc.assignReviewer("reviewer-1", DUE, Instant.now());
         repository.save(rc);
         return rc;
     }
@@ -51,7 +51,7 @@ class ReassignReviewCaseUseCaseTest {
     @Test
     void execute_happyPath_shouldReassign() {
         createAssignedCase();
-        LocalDateTime newDue = DUE.plusDays(7);
+        Instant newDue = DUE.plus(java.time.Duration.ofDays(7));
 
         useCase.execute(hospitalManager(), "c1", "reviewer-2", newDue);
 

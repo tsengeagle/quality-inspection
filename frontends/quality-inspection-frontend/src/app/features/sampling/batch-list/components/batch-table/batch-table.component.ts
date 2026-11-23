@@ -1,4 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { formatTaipeiDateTime } from '@shared/time/taipei-time';
 import { SamplingBatchSummaryItem } from '../../../services/sampling.service';
 import { AccessControlService } from '@shared/access/access-control.service';
 
@@ -54,8 +55,8 @@ import { AccessControlService } from '@shared/access/access-control.service';
             </td>
             <td>
               <div class="cell-stack" [attr.data-testid]="'batch-row-timing-' + b.batchId">
-                <span>開始時間：{{ b.createdAt || '-' }}</span>
-                <span>完成時間：{{ b.finishedAt || '-' }}</span>
+                <span>開始時間：{{ displayTime(b.createdAt, '-') }}</span>
+                <span>完成時間：{{ displayTime(b.finishedAt, '-') }}</span>
                 <span>重跑來源：{{ b.retryOfBatchId || '無' }}</span>
               </div>
             </td>
@@ -137,6 +138,8 @@ import { AccessControlService } from '@shared/access/access-control.service';
   `]
 })
 export class BatchTableComponent {
+  /** 畫面上的時間固定以 Asia/Taipei 顯示（D-075 第 5 點）。 */
+  readonly displayTime = formatTaipeiDateTime;
   @Input() batches: SamplingBatchSummaryItem[] = [];
   @Input() role = 'HOSPITAL_MANAGER';
   @Output() viewCases = new EventEmitter<string>();

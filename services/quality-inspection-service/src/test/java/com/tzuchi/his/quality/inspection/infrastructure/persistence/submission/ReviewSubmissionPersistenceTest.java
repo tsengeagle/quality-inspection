@@ -11,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -33,7 +33,7 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void saveAndFindById_draftSubmission_shouldRoundTrip() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
+                "sub-1", "c1", "reviewer-1", "ss-1", Instant.now());
 
         repository.save(sub);
 
@@ -54,12 +54,12 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void saveAndFindById_withAnswerSet_shouldPreserveJsonRoundTrip() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-2", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
+                "sub-2", "c1", "reviewer-1", "ss-1", Instant.now());
         List<AnswerItem> answers = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))
         );
-        sub.updateDraft(answers, new BigDecimal("17.5"), "draft comment", LocalDateTime.now());
+        sub.updateDraft(answers, new BigDecimal("17.5"), "draft comment", Instant.now());
 
         repository.save(sub);
 
@@ -76,9 +76,9 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void saveAndFindById_submittedSubmission_shouldPreserveStatus() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-3", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
-        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+                "sub-3", "c1", "reviewer-1", "ss-1", Instant.now());
+        sub.updateDraft(Collections.emptyList(), BigDecimal.ZERO, null, Instant.now());
+        sub.submit(Instant.now());
 
         repository.save(sub);
 
@@ -90,9 +90,9 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void findByCaseIdAndStage_shouldReturnMatchingSubmissions() {
         ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
-                "sub-a", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
+                "sub-a", "c1", "reviewer-1", "ss-1", Instant.now());
         ReviewSubmission sub2 = ReviewSubmission.createInitialDraft(
-                "sub-b", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
+                "sub-b", "c1", "reviewer-1", "ss-1", Instant.now());
         repository.save(sub1);
         repository.save(sub2);
 
@@ -103,7 +103,7 @@ class ReviewSubmissionPersistenceTest {
     @Test
     void findLatestByCaseIdAndStage_shouldReturnHighestRevisionNo() {
         ReviewSubmission sub1 = ReviewSubmission.createInitialDraft(
-                "sub-first", "c1", "reviewer-1", "ss-1", LocalDateTime.now());
+                "sub-first", "c1", "reviewer-1", "ss-1", Instant.now());
         repository.save(sub1);
 
         // Seed a second submission with higher revisionNo directly via JPA
@@ -116,8 +116,8 @@ class ReviewSubmissionPersistenceTest {
         e2.setRevisionNo(2);
         e2.setTotalScore(BigDecimal.ZERO);
         e2.setBasedOnScoreSheetVersionId("ss-1");
-        e2.setCreatedAt(LocalDateTime.now());
-        e2.setUpdatedAt(LocalDateTime.now());
+        e2.setCreatedAt(Instant.now());
+        e2.setUpdatedAt(Instant.now());
         jpa.save(e2);
 
         Optional<ReviewSubmission> latest = repository.findLatestByCaseIdAndStage("c1", ReviewStage.INITIAL);

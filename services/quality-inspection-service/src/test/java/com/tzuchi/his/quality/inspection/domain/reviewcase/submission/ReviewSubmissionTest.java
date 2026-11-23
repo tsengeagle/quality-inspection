@@ -4,7 +4,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictExcept
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -18,7 +18,7 @@ class ReviewSubmissionTest {
     @Test
     void createInitialDraft_shouldCreateWithCorrectDefaults() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
+                "sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
 
         assertEquals("sub-1", sub.getSubmissionId());
         assertEquals("c1", sub.getCaseId());
@@ -37,25 +37,25 @@ class ReviewSubmissionTest {
     @Test
     void createInitialDraft_nullSubmissionId_shouldThrow() {
         assertThrows(NullPointerException.class,
-                () -> ReviewSubmission.createInitialDraft(null, "c1", "r1", "ss-v1", LocalDateTime.now()));
+                () -> ReviewSubmission.createInitialDraft(null, "c1", "r1", "ss-v1", Instant.now()));
     }
 
     @Test
     void createInitialDraft_nullCaseId_shouldThrow() {
         assertThrows(NullPointerException.class,
-                () -> ReviewSubmission.createInitialDraft("sub-1", null, "r1", "ss-v1", LocalDateTime.now()));
+                () -> ReviewSubmission.createInitialDraft("sub-1", null, "r1", "ss-v1", Instant.now()));
     }
 
     @Test
     void createInitialDraft_nullReviewerId_shouldThrow() {
         assertThrows(NullPointerException.class,
-                () -> ReviewSubmission.createInitialDraft("sub-1", "c1", null, "ss-v1", LocalDateTime.now()));
+                () -> ReviewSubmission.createInitialDraft("sub-1", "c1", null, "ss-v1", Instant.now()));
     }
 
     @Test
     void createInitialDraft_nullScoreSheetVersionId_shouldThrow() {
         assertThrows(NullPointerException.class,
-                () -> ReviewSubmission.createInitialDraft("sub-1", "c1", "r1", null, LocalDateTime.now()));
+                () -> ReviewSubmission.createInitialDraft("sub-1", "c1", "r1", null, Instant.now()));
     }
 
     // --- updateDraft ---
@@ -63,13 +63,13 @@ class ReviewSubmissionTest {
     @Test
     void updateDraft_shouldUpdateAnswersAndScore() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
+                "sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
 
         List<AnswerItem> scored = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.00")),
                 AnswerItem.ofScored("Q002", "85", new BigDecimal("85.00"))
         );
-        sub.updateDraft(scored, new BigDecimal("95.00"), "looks good", LocalDateTime.now());
+        sub.updateDraft(scored, new BigDecimal("95.00"), "looks good", Instant.now());
 
         assertEquals(2, sub.getAnswerSet().size());
         assertEquals(new BigDecimal("95.00"), sub.getTotalScore());
@@ -80,17 +80,17 @@ class ReviewSubmissionTest {
     @Test
     void updateDraft_calledMultipleTimes_shouldOverwrite() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
+                "sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
 
         List<AnswerItem> first = Collections.singletonList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.00")));
-        sub.updateDraft(first, new BigDecimal("10.00"), "first draft", LocalDateTime.now());
+        sub.updateDraft(first, new BigDecimal("10.00"), "first draft", Instant.now());
 
         List<AnswerItem> second = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.00")),
                 AnswerItem.ofScored("Q002", "85", new BigDecimal("85.00"))
         );
-        sub.updateDraft(second, new BigDecimal("95.00"), "second draft", LocalDateTime.now());
+        sub.updateDraft(second, new BigDecimal("95.00"), "second draft", Instant.now());
 
         assertEquals(2, sub.getAnswerSet().size());
         assertEquals(new BigDecimal("95.00"), sub.getTotalScore());
@@ -100,28 +100,28 @@ class ReviewSubmissionTest {
     @Test
     void updateDraft_afterSubmit_shouldThrow() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+                "sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
+        sub.submit(Instant.now());
 
         List<AnswerItem> answers = Collections.singletonList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.00")));
 
         assertThrows(DomainStateConflictException.class,
-                () -> sub.updateDraft(answers, new BigDecimal("10.00"), "too late", LocalDateTime.now()));
+                () -> sub.updateDraft(answers, new BigDecimal("10.00"), "too late", Instant.now()));
     }
 
     @Test
     void updateDraft_nullScoredAnswers_shouldThrow() {
-        ReviewSubmission sub = ReviewSubmission.createInitialDraft("sub-1", "c1", "r1", "ss-v1", LocalDateTime.now());
+        ReviewSubmission sub = ReviewSubmission.createInitialDraft("sub-1", "c1", "r1", "ss-v1", Instant.now());
         assertThrows(NullPointerException.class,
-                () -> sub.updateDraft(null, java.math.BigDecimal.ZERO, "comment", LocalDateTime.now()));
+                () -> sub.updateDraft(null, java.math.BigDecimal.ZERO, "comment", Instant.now()));
     }
 
     @Test
     void updateDraft_nullTotalScore_shouldThrow() {
-        ReviewSubmission sub = ReviewSubmission.createInitialDraft("sub-1", "c1", "r1", "ss-v1", LocalDateTime.now());
+        ReviewSubmission sub = ReviewSubmission.createInitialDraft("sub-1", "c1", "r1", "ss-v1", Instant.now());
         assertThrows(NullPointerException.class,
-                () -> sub.updateDraft(java.util.Collections.emptyList(), null, "comment", LocalDateTime.now()));
+                () -> sub.updateDraft(java.util.Collections.emptyList(), null, "comment", Instant.now()));
     }
 
     // --- submit ---
@@ -129,9 +129,9 @@ class ReviewSubmissionTest {
     @Test
     void submit_fromDraft_shouldTransitionToSubmitted() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
+                "sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
 
-        sub.submit(LocalDateTime.now());
+        sub.submit(Instant.now());
 
         assertEquals(SubmissionStatus.SUBMITTED, sub.getStatus());
         assertNotNull(sub.getSubmittedAt());
@@ -140,10 +140,10 @@ class ReviewSubmissionTest {
     @Test
     void submit_alreadySubmitted_shouldThrow() {
         ReviewSubmission sub = ReviewSubmission.createInitialDraft(
-                "sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+                "sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
+        sub.submit(Instant.now());
 
-        assertThrows(DomainStateConflictException.class, () -> sub.submit(LocalDateTime.now()));
+        assertThrows(DomainStateConflictException.class, () -> sub.submit(Instant.now()));
     }
 
     // --- reconstitute ---
@@ -152,7 +152,7 @@ class ReviewSubmissionTest {
     void reconstitute_shouldRestoreAllFields() {
         List<AnswerItem> answers = Collections.singletonList(
                 AnswerItem.reconstitute("Q001", "true", new BigDecimal("10.00")));
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         ReviewSubmission sub = ReviewSubmission.reconstitute(
                 "sub-1", "c1", ReviewStage.INITIAL, "reviewer-1",
@@ -180,7 +180,7 @@ class ReviewSubmissionTest {
         );
 
         ReviewSubmission rev = ReviewSubmission.createRevision(
-                "sub-2", old, newAnswers, new BigDecimal("100.00"), "revised comment", LocalDateTime.now());
+                "sub-2", old, newAnswers, new BigDecimal("100.00"), "revised comment", Instant.now());
 
         assertEquals("sub-2", rev.getSubmissionId());
         assertEquals("c1", rev.getCaseId());
@@ -196,21 +196,21 @@ class ReviewSubmissionTest {
 
     @Test
     void createRevision_fromDraftSubmission_throwsConflict() {
-        ReviewSubmission draft = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
+        ReviewSubmission draft = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
 
         assertThrows(DomainStateConflictException.class,
                 () -> ReviewSubmission.createRevision(
-                        "sub-2", draft, Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now()));
+                        "sub-2", draft, Collections.emptyList(), BigDecimal.ZERO, null, Instant.now()));
     }
 
     @Test
     void createRevision_fromSupersededSubmission_throwsConflict() {
         ReviewSubmission old = createSubmittedSubmission();
-        old.markSuperseded("sub-other", LocalDateTime.now());
+        old.markSuperseded("sub-other", Instant.now());
 
         assertThrows(DomainStateConflictException.class,
                 () -> ReviewSubmission.createRevision(
-                        "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now()));
+                        "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, Instant.now()));
     }
 
     @Test
@@ -218,7 +218,7 @@ class ReviewSubmissionTest {
         ReviewSubmission old = createSubmittedSubmission();
 
         ReviewSubmission rev = ReviewSubmission.createRevision(
-                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, Instant.now());
 
         assertEquals(old.getCaseId(), rev.getCaseId());
         assertEquals(old.getStage(), rev.getStage());
@@ -231,7 +231,7 @@ class ReviewSubmissionTest {
         ReviewSubmission old = createSubmittedSubmission();
 
         ReviewSubmission rev = ReviewSubmission.createRevision(
-                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, Instant.now());
 
         assertEquals(old.getRevisionNo() + 1, rev.getRevisionNo());
     }
@@ -241,7 +241,7 @@ class ReviewSubmissionTest {
         ReviewSubmission old = createSubmittedSubmission();
 
         ReviewSubmission rev = ReviewSubmission.createRevision(
-                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, LocalDateTime.now());
+                "sub-2", old, Collections.emptyList(), BigDecimal.ZERO, null, Instant.now());
 
         assertEquals(SubmissionStatus.SUBMITTED, rev.getStatus());
     }
@@ -252,7 +252,7 @@ class ReviewSubmissionTest {
     void markSuperseded_fromSubmitted_succeeds() {
         ReviewSubmission sub = createSubmittedSubmission();
 
-        sub.markSuperseded("sub-new", LocalDateTime.now());
+        sub.markSuperseded("sub-new", Instant.now());
 
         assertEquals(SubmissionStatus.SUPERSEDED, sub.getStatus());
         assertEquals("sub-new", sub.getSupersededBySubmissionId());
@@ -260,10 +260,10 @@ class ReviewSubmissionTest {
 
     @Test
     void markSuperseded_fromDraft_throwsConflict() {
-        ReviewSubmission draft = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
+        ReviewSubmission draft = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
 
         assertThrows(DomainStateConflictException.class,
-                () -> draft.markSuperseded("sub-new", LocalDateTime.now()));
+                () -> draft.markSuperseded("sub-new", Instant.now()));
     }
 
     @Test
@@ -271,14 +271,14 @@ class ReviewSubmissionTest {
         ReviewSubmission sub = createSubmittedSubmission();
 
         assertThrows(NullPointerException.class,
-                () -> sub.markSuperseded(null, LocalDateTime.now()));
+                () -> sub.markSuperseded(null, Instant.now()));
     }
 
     // --- createRereviewDraft ---
 
     @Test
     void createRereviewDraft_shouldCreateWithStageRereview() {
-        ReviewSubmission sub = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", LocalDateTime.now());
+        ReviewSubmission sub = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", Instant.now());
         assertEquals("sub-r1", sub.getSubmissionId());
         assertEquals("c1", sub.getCaseId());
         assertEquals("rereviewer-1", sub.getReviewerId());
@@ -290,8 +290,8 @@ class ReviewSubmissionTest {
     // --- Helper ---
 
     private ReviewSubmission createSubmittedSubmission() {
-        ReviewSubmission sub = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1", LocalDateTime.now());
-        sub.submit(LocalDateTime.now());
+        ReviewSubmission sub = ReviewSubmission.createInitialDraft("sub-1", "c1", "reviewer-1", "ss-v1", Instant.now());
+        sub.submit(Instant.now());
         return sub;
     }
 }

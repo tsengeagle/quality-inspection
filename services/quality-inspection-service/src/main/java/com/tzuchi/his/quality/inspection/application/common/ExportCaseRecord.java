@@ -2,7 +2,6 @@ package com.tzuchi.his.quality.inspection.application.common;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 /**
  * D-057：匯出用的案件唯讀資料（逐案資料列的來源）。放在 application.common，
@@ -19,11 +18,11 @@ public final class ExportCaseRecord {
     private final BigDecimal initialScore;
     private final BigDecimal finalScore;
     private final Instant createdAt;
-    private final LocalDateTime closedAt;
+    private final Instant closedAt;
 
     public ExportCaseRecord(String caseId, String projectId, String hospitalId, String status,
                             String reviewerId, String rereviewerId, BigDecimal initialScore,
-                            BigDecimal finalScore, Instant createdAt, LocalDateTime closedAt) {
+                            BigDecimal finalScore, Instant createdAt, Instant closedAt) {
         this.caseId = caseId;
         this.projectId = projectId;
         this.hospitalId = hospitalId;
@@ -45,5 +44,5 @@ public final class ExportCaseRecord {
     public BigDecimal getInitialScore() { return initialScore; }
     public BigDecimal getFinalScore() { return finalScore; }
     public Instant getCreatedAt() { return createdAt; }
-    public LocalDateTime getClosedAt() { return closedAt; }
+    public Instant getClosedAt() { return closedAt; }
 }

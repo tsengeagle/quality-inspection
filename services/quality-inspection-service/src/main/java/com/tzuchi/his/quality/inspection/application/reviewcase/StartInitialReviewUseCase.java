@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -94,7 +94,7 @@ public class StartInitialReviewUseCase {
         // Create draft submission
         String submissionId = UUID.randomUUID().toString();
         ReviewSubmission submission = ReviewSubmission.createInitialDraft(
-                submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, LocalDateTime.now(clock));
+                submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, Instant.now(clock));
 
         // Transition case
         reviewCase.startInitialReview(submissionId, scoreSheetVersionRef);

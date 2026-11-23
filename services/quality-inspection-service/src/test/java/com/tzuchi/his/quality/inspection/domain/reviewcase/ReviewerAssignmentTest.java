@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.domain.reviewcase;
 
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -10,7 +10,7 @@ class ReviewerAssignmentTest {
 
     @Test
     void create_withValidArgs_shouldSetFields() {
-        LocalDateTime now = LocalDateTime.of(2026, 1, 15, 10, 0);
+        Instant now = Instant.parse("2026-01-15T10:00:00Z");
         ReviewerAssignment assignment = new ReviewerAssignment("reviewer-1", now);
 
         assertEquals("reviewer-1", assignment.getReviewerId());
@@ -20,7 +20,7 @@ class ReviewerAssignmentTest {
     @Test
     void create_nullReviewerId_shouldThrow() {
         assertThrows(NullPointerException.class,
-                () -> new ReviewerAssignment(null, LocalDateTime.now()));
+                () -> new ReviewerAssignment(null, Instant.now()));
     }
 
     @Test
@@ -31,7 +31,7 @@ class ReviewerAssignmentTest {
 
     @Test
     void equals_sameValues_shouldBeEqual() {
-        LocalDateTime now = LocalDateTime.of(2026, 1, 15, 10, 0);
+        Instant now = Instant.parse("2026-01-15T10:00:00Z");
         ReviewerAssignment a1 = new ReviewerAssignment("reviewer-1", now);
         ReviewerAssignment a2 = new ReviewerAssignment("reviewer-1", now);
 
@@ -41,7 +41,7 @@ class ReviewerAssignmentTest {
 
     @Test
     void equals_differentValues_shouldNotBeEqual() {
-        LocalDateTime now = LocalDateTime.of(2026, 1, 15, 10, 0);
+        Instant now = Instant.parse("2026-01-15T10:00:00Z");
         ReviewerAssignment a1 = new ReviewerAssignment("reviewer-1", now);
         ReviewerAssignment a2 = new ReviewerAssignment("reviewer-2", now);
 

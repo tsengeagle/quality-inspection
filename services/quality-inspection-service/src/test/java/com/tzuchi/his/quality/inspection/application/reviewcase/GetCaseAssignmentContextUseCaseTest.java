@@ -7,7 +7,7 @@ import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -45,8 +45,8 @@ class GetCaseAssignmentContextUseCaseTest {
         queryPort.put(new AssignmentCaseSnapshotView(
                 "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
                 "PENDING_REREVIEW", "reviewer-1",
-                LocalDateTime.of(2026, 4, 1, 10, 0),
-                LocalDateTime.of(2026, 4, 10, 23, 59),
+                Instant.parse("2026-04-01T10:00:00Z"),
+                Instant.parse("2026-04-10T23:59:00Z"),
                 null, null, null));
 
         AssignmentBootstrapView result = useCase.execute(managerActor(), "c1");
@@ -55,7 +55,7 @@ class GetCaseAssignmentContextUseCaseTest {
         assertEquals(List.of("ASSIGN_REREVIEWER"), result.getAllowedActions());
         assertEquals("reviewer-1", result.getCurrentReviewer().getUserId());
         assertEquals("Dr. Reviewer One", result.getCurrentReviewer().getDisplayName());
-        assertEquals(LocalDateTime.of(2026, 4, 10, 23, 59), result.getReviewerDueAt());
+        assertEquals(Instant.parse("2026-04-10T23:59:00Z"), result.getReviewerDueAt());
         assertNull(result.getEffectiveDueAt());
     }
 

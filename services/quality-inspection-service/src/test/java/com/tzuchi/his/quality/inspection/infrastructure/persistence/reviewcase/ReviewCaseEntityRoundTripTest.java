@@ -11,7 +11,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,8 +30,8 @@ class ReviewCaseEntityRoundTripTest {
                 "case-rt-1", "batch-1", "proj-1", "hosp-1",
                 "SK-001", MedicalRecordType.INPATIENT,
                 CaseStatus.PENDING_INITIAL_REVIEW,
-                new ReviewerAssignment("reviewer-1", LocalDateTime.of(2025, 6, 1, 10, 0)),
-                LocalDateTime.of(2025, 6, 15, 23, 59),
+                new ReviewerAssignment("reviewer-1", Instant.parse("2025-06-01T10:00:00Z")),
+                Instant.parse("2025-06-15T23:59:00Z"),
                 null, null, null, null,
                 false, null, null,
                 null, null, null,
@@ -52,7 +52,7 @@ class ReviewCaseEntityRoundTripTest {
         assertThat(rc.getStatus()).isEqualTo(CaseStatus.PENDING_INITIAL_REVIEW);
         assertThat(rc.getReviewerAssignment()).isNotNull();
         assertThat(rc.getReviewerAssignment().getReviewerId()).isEqualTo("reviewer-1");
-        assertThat(rc.getDueAt()).isEqualTo(LocalDateTime.of(2025, 6, 15, 23, 59));
+        assertThat(rc.getDueAt()).isEqualTo(Instant.parse("2025-06-15T23:59:00Z"));
     }
 
     @Test
@@ -92,7 +92,7 @@ class ReviewCaseEntityRoundTripTest {
                 CaseStatus.CANCELLED,
                 null, null,
                 "Duplicate case", null,
-                LocalDateTime.of(2025, 7, 1, 12, 0), null,
+                Instant.parse("2025-07-01T12:00:00Z"), null,
                 false, null, null,
                 null, null, null,
                 null, null, null, null
@@ -105,6 +105,6 @@ class ReviewCaseEntityRoundTripTest {
         ReviewCase rc = loaded.get();
         assertThat(rc.getStatus()).isEqualTo(CaseStatus.CANCELLED);
         assertThat(rc.getCancelReason()).isEqualTo("Duplicate case");
-        assertThat(rc.getCancelledAt()).isEqualTo(LocalDateTime.of(2025, 7, 1, 12, 0));
+        assertThat(rc.getCancelledAt()).isEqualTo(Instant.parse("2025-07-01T12:00:00Z"));
     }
 }

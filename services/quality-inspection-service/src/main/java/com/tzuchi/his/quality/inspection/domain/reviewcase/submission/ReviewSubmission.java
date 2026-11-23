@@ -3,7 +3,7 @@ package com.tzuchi.his.quality.inspection.domain.reviewcase.submission;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,12 +25,12 @@ public class ReviewSubmission {
     private List<AnswerItem> answerSet;
     private BigDecimal totalScore;
     private String comment;
-    private LocalDateTime submittedAt;
+    private Instant submittedAt;
     private String basedOnScoreSheetVersionId;
     private String supersededBySubmissionId;
     private String attachmentRefsJson;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 
     protected ReviewSubmission() {
         // for persistence / reconstitution
@@ -42,7 +42,7 @@ public class ReviewSubmission {
      */
     public static ReviewSubmission createInitialDraft(
             String submissionId, String caseId, String reviewerId,
-            String scoreSheetVersionId, LocalDateTime createdAt) {
+            String scoreSheetVersionId, Instant createdAt) {
         Objects.requireNonNull(submissionId, "submissionId must not be null");
         Objects.requireNonNull(caseId, "caseId must not be null");
         Objects.requireNonNull(reviewerId, "reviewerId must not be null");
@@ -68,7 +68,7 @@ public class ReviewSubmission {
      * Called by StartRereviewUseCase.
      */
     public static ReviewSubmission createRereviewDraft(String submissionId, String caseId, String reviewerId,
-                                                       LocalDateTime createdAt) {
+                                                       Instant createdAt) {
         ReviewSubmission s = new ReviewSubmission();
         s.submissionId = submissionId;
         s.caseId = caseId;
@@ -89,11 +89,11 @@ public class ReviewSubmission {
             String submissionId, String caseId, ReviewStage stage,
             String reviewerId, SubmissionStatus status, int revisionNo,
             List<AnswerItem> answerSet, BigDecimal totalScore,
-            String comment, LocalDateTime submittedAt,
+            String comment, Instant submittedAt,
             String basedOnScoreSheetVersionId,
             String supersededBySubmissionId,
             String attachmentRefsJson,
-            LocalDateTime createdAt, LocalDateTime updatedAt) {
+            Instant createdAt, Instant updatedAt) {
         ReviewSubmission sub = new ReviewSubmission();
         sub.submissionId = submissionId;
         sub.caseId = caseId;
@@ -117,7 +117,7 @@ public class ReviewSubmission {
      * Update draft answers and score. Can be called multiple times while in DRAFT.
      */
     public void updateDraft(List<AnswerItem> scoredAnswers, BigDecimal totalScore, String comment,
-                            LocalDateTime updatedAt) {
+                            Instant updatedAt) {
         requireDraft();
         Objects.requireNonNull(scoredAnswers, "scoredAnswers must not be null");
         Objects.requireNonNull(totalScore, "totalScore must not be null");
@@ -130,7 +130,7 @@ public class ReviewSubmission {
     /**
      * Submit this draft. Transitions DRAFT → SUBMITTED. Irreversible.
      */
-    public void submit(LocalDateTime submittedAt) {
+    public void submit(Instant submittedAt) {
         requireDraft();
         Objects.requireNonNull(submittedAt, "submittedAt must not be null");
         this.status = SubmissionStatus.SUBMITTED;
@@ -148,7 +148,7 @@ public class ReviewSubmission {
             List<AnswerItem> scoredAnswers,
             BigDecimal totalScore,
             String comment,
-            LocalDateTime submittedAt) {
+            Instant submittedAt) {
         Objects.requireNonNull(submittedAt, "submittedAt must not be null");
         Objects.requireNonNull(newSubmissionId, "newSubmissionId must not be null");
         Objects.requireNonNull(oldSubmission, "oldSubmission must not be null");
@@ -181,7 +181,7 @@ public class ReviewSubmission {
      * Mark this submission as SUPERSEDED by a newer revision.
      * Only SUBMITTED submissions can be superseded.
      */
-    public void markSuperseded(String newSubmissionId, LocalDateTime updatedAt) {
+    public void markSuperseded(String newSubmissionId, Instant updatedAt) {
         if (this.status != SubmissionStatus.SUBMITTED) {
             throw new DomainStateConflictException("SUBMISSION_NOT_SUBMITTED",
                     "Can only supersede a SUBMITTED submission. Current: " + this.status);
@@ -210,10 +210,10 @@ public class ReviewSubmission {
     public List<AnswerItem> getAnswerSet() { return Collections.unmodifiableList(answerSet != null ? answerSet : Collections.emptyList()); }
     public BigDecimal getTotalScore() { return totalScore; }
     public String getComment() { return comment; }
-    public LocalDateTime getSubmittedAt() { return submittedAt; }
+    public Instant getSubmittedAt() { return submittedAt; }
     public String getBasedOnScoreSheetVersionId() { return basedOnScoreSheetVersionId; }
     public String getSupersededBySubmissionId() { return supersededBySubmissionId; }
     public String getAttachmentRefsJson() { return attachmentRefsJson; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 }

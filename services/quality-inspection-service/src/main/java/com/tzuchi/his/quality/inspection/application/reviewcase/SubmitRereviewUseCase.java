@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 public class SubmitRereviewUseCase {
@@ -120,7 +120,7 @@ public class SubmitRereviewUseCase {
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Update draft with scored answers, then submit
-        LocalDateTime now = LocalDateTime.now(clock);
+        Instant now = Instant.now(clock);
         submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, now);
         submission.submit(now);
         submissionRepository.save(submission);

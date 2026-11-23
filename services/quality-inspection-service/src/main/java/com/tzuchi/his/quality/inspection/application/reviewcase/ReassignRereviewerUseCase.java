@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Service
 public class ReassignRereviewerUseCase {
@@ -48,7 +47,7 @@ public class ReassignRereviewerUseCase {
             throw new DomainRuleViolationException("REREVIEWER_HAS_READ_INITIAL",
                     "The rereviewer has already read this case's full initial review (D-055)");
         }
-        reviewCase.reassignRereviewer(cmd.getRereviewerId(), cmd.getDueAt(), LocalDateTime.now(clock));
+        reviewCase.reassignRereviewer(cmd.getRereviewerId(), cmd.getDueAt(), Instant.now(clock));
         caseRepository.save(reviewCase);
         // D-055 第 1、4 點：與指派變更同一個交易寫入歷史；任何一方失敗整筆回滾。
         historyPort.append(new RereviewerAssignmentRecord(reviewCase.getCaseId(), cmd.getRereviewerId(),

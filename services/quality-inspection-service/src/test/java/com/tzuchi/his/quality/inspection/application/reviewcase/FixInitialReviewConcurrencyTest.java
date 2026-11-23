@@ -28,7 +28,7 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -81,7 +81,7 @@ class FixInitialReviewConcurrencyTest {
         rc.setHospitalId("H001");
         rc.setStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
         rc.setReviewerId("doctor");
-        rc.setReviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        rc.setReviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setLatestInitialSubmissionId("i1");
         rc.setScoreSheetVersionRef(ScoreSheetVersionId.of("ss", 1));
         rc.setInitialReviewScore(BigDecimal.TEN);
@@ -98,7 +98,7 @@ class FixInitialReviewConcurrencyTest {
         sub.setAnswerSet(List.of(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)));
         sub.setTotalScore(BigDecimal.TEN);
         sub.setBasedOnScoreSheetVersionId(ScoreSheetVersionId.of("ss", 1));
-        sub.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        sub.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
         sub.setSubmittedAt(sub.getCreatedAt());
         submissions.save(sub);
 

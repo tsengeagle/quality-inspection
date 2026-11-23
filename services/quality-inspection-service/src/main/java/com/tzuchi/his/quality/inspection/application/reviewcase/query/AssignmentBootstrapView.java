@@ -1,6 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /** Read model for UI-011 manager-facing assignment bootstrap context. */
@@ -20,9 +20,9 @@ public class AssignmentBootstrapView {
     private final List<String> allowedActions;
     private final AssignmentAssigneeSummaryView currentReviewer;
     private final AssignmentAssigneeSummaryView currentRereviewer;
-    private final LocalDateTime reviewerDueAt;
-    private final LocalDateTime rereviewerDueAt;
-    private final LocalDateTime effectiveDueAt;
+    private final Instant reviewerDueAt;
+    private final Instant rereviewerDueAt;
+    private final Instant effectiveDueAt;
 
     public AssignmentBootstrapView(String caseId, String projectId, String projectName, String batchId,
                                    String hospitalId, String sourceCaseKey, String medicalRecordType,
@@ -30,9 +30,9 @@ public class AssignmentBootstrapView {
                                    String blockedReason, List<String> allowedActions,
                                    AssignmentAssigneeSummaryView currentReviewer,
                                    AssignmentAssigneeSummaryView currentRereviewer,
-                                   LocalDateTime reviewerDueAt,
-                                   LocalDateTime rereviewerDueAt,
-                                   LocalDateTime effectiveDueAt) {
+                                   Instant reviewerDueAt,
+                                   Instant rereviewerDueAt,
+                                   Instant effectiveDueAt) {
         this.caseId = caseId;
         this.projectId = projectId;
         this.projectName = projectName;
@@ -66,7 +66,7 @@ public class AssignmentBootstrapView {
     public List<String> getAllowedActions() { return allowedActions; }
     public AssignmentAssigneeSummaryView getCurrentReviewer() { return currentReviewer; }
     public AssignmentAssigneeSummaryView getCurrentRereviewer() { return currentRereviewer; }
-    public LocalDateTime getReviewerDueAt() { return reviewerDueAt; }
-    public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
-    public LocalDateTime getEffectiveDueAt() { return effectiveDueAt; }
+    public Instant getReviewerDueAt() { return reviewerDueAt; }
+    public Instant getRereviewerDueAt() { return rereviewerDueAt; }
+    public Instant getEffectiveDueAt() { return effectiveDueAt; }
 }

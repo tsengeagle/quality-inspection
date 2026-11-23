@@ -29,7 +29,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -121,8 +121,8 @@ class InitialReviewApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.PENDING_INITIAL_REVIEW);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         caseJpa.save(e);
     }
 
@@ -136,8 +136,8 @@ class InitialReviewApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.INITIAL_REVIEW_IN_PROGRESS);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         e.setLatestInitialSubmissionId("sub-1");
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseJpa.save(e);
@@ -151,8 +151,8 @@ class InitialReviewApiTest {
         sub.setRevisionNo(1);
         sub.setTotalScore(BigDecimal.ZERO);
         sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        sub.setCreatedAt(LocalDateTime.now());
-        sub.setUpdatedAt(LocalDateTime.now());
+        sub.setCreatedAt(Instant.now());
+        sub.setUpdatedAt(Instant.now());
         submissionJpa.save(sub);
     }
 
@@ -166,8 +166,8 @@ class InitialReviewApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.INITIAL_REVIEW_IN_PROGRESS);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         e.setLatestInitialSubmissionId("sub-1");
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseJpa.save(e);
@@ -186,8 +186,8 @@ class InitialReviewApiTest {
         sub.setTotalScore(new BigDecimal("17.5"));
         sub.setComment("draft comment");
         sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        sub.setCreatedAt(LocalDateTime.now());
-        sub.setUpdatedAt(LocalDateTime.now());
+        sub.setCreatedAt(Instant.now());
+        sub.setUpdatedAt(Instant.now());
         submissionJpa.save(sub);
     }
 
@@ -334,8 +334,8 @@ class InitialReviewApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.INITIAL_REVIEW_IN_PROGRESS);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         e.setLatestInitialSubmissionId("sub-1");
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         caseJpa.save(e);
@@ -351,8 +351,8 @@ class InitialReviewApiTest {
                 AnswerItem.ofScored("Q002", "15", new BigDecimal("7.5"))));
         sub.setTotalScore(new BigDecimal("7.5"));
         sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        sub.setCreatedAt(LocalDateTime.now());
-        sub.setUpdatedAt(LocalDateTime.now());
+        sub.setCreatedAt(Instant.now());
+        sub.setUpdatedAt(Instant.now());
         submissionJpa.save(sub);
 
         mockMvc.perform(post(BASE + "/c1/initial-review/submit")

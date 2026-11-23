@@ -1,7 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 /** Read model for UI-013 rereviewer-facing bootstrap context. */
@@ -24,7 +24,7 @@ public class RereviewBootstrapView {
     private final String initialReviewerId;
     private final String initialReviewerName;
     private final BigDecimal initialTotalScore;
-    private final LocalDateTime initialSubmittedAt;
+    private final Instant initialSubmittedAt;
     private final BigDecimal finalScore;
     private final String finalConclusion;
 
@@ -40,7 +40,7 @@ public class RereviewBootstrapView {
                                  String initialReviewerId,
                                  String initialReviewerName,
                                  BigDecimal initialTotalScore,
-                                 LocalDateTime initialSubmittedAt,
+                                 Instant initialSubmittedAt,
                                  BigDecimal finalScore,
                                  String finalConclusion) {
         this.pageMode = pageMode;
@@ -82,7 +82,7 @@ public class RereviewBootstrapView {
     public String getInitialReviewerId() { return initialReviewerId; }
     public String getInitialReviewerName() { return initialReviewerName; }
     public BigDecimal getInitialTotalScore() { return initialTotalScore; }
-    public LocalDateTime getInitialSubmittedAt() { return initialSubmittedAt; }
+    public Instant getInitialSubmittedAt() { return initialSubmittedAt; }
     public BigDecimal getFinalScore() { return finalScore; }
     public String getFinalConclusion() { return finalConclusion; }
 }

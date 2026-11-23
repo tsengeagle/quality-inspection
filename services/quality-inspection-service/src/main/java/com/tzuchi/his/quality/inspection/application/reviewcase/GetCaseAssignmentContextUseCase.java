@@ -7,7 +7,7 @@ import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -60,7 +60,7 @@ public class GetCaseAssignmentContextUseCase {
 
     private AssignmentAssigneeSummaryView resolveAssigneeSummary(String hospitalId,
                                                                  String userId,
-                                                                 LocalDateTime assignedAt) {
+                                                                 Instant assignedAt) {
         if (userId == null) {
             return null;
         }
@@ -128,7 +128,7 @@ public class GetCaseAssignmentContextUseCase {
         }
     }
 
-    private LocalDateTime resolveEffectiveDueAt(AssignmentCaseSnapshotView snapshot) {
+    private Instant resolveEffectiveDueAt(AssignmentCaseSnapshotView snapshot) {
         if ("PENDING_REREVIEW".equals(snapshot.getStatus())) {
             return snapshot.getRereviewerDueAt();
         }

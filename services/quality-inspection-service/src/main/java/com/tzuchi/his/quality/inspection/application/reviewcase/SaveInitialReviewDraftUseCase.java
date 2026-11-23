@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -103,7 +103,7 @@ public class SaveInitialReviewDraftUseCase {
         // If no answers, update with empty + zero
         if (answers == null || answers.isEmpty()) {
             rejectIfUnchanged(Collections.emptyList(), comment, submission);
-            submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment, LocalDateTime.now(clock));
+            submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment, Instant.now(clock));
             submissionRepository.save(submission);
 
             eventPublisher.publish(new ReviewDraftSavedEvent(
@@ -136,7 +136,7 @@ public class SaveInitialReviewDraftUseCase {
         rejectIfUnchanged(result.getScoredAnswers(), comment, submission);
 
         // Update draft
-        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, LocalDateTime.now(clock));
+        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, Instant.now(clock));
         submissionRepository.save(submission);
 
         // Publish event

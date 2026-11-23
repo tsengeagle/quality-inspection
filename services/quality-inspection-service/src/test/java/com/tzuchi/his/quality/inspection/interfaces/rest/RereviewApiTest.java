@@ -29,7 +29,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -130,8 +130,8 @@ class RereviewApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         e.setLatestInitialSubmissionId("init-sub-1");
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setInitialReviewScore(new BigDecimal("17.5"));
@@ -150,9 +150,9 @@ class RereviewApiTest {
         ));
         initSub.setTotalScore(new BigDecimal("17.5"));
         initSub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        initSub.setSubmittedAt(LocalDateTime.now());
-        initSub.setCreatedAt(LocalDateTime.now());
-        initSub.setUpdatedAt(LocalDateTime.now());
+        initSub.setSubmittedAt(Instant.now());
+        initSub.setCreatedAt(Instant.now());
+        initSub.setUpdatedAt(Instant.now());
         submissionJpa.save(initSub);
     }
 
@@ -166,8 +166,8 @@ class RereviewApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.PENDING_REREVIEW);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         e.setRereviewRequired(true);
         e.setLatestInitialSubmissionId("init-sub-1");
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
@@ -187,9 +187,9 @@ class RereviewApiTest {
         ));
         initSub.setTotalScore(new BigDecimal("17.5"));
         initSub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        initSub.setSubmittedAt(LocalDateTime.now());
-        initSub.setCreatedAt(LocalDateTime.now());
-        initSub.setUpdatedAt(LocalDateTime.now());
+        initSub.setSubmittedAt(Instant.now());
+        initSub.setCreatedAt(Instant.now());
+        initSub.setUpdatedAt(Instant.now());
         submissionJpa.save(initSub);
     }
 
@@ -203,12 +203,12 @@ class RereviewApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.PENDING_REREVIEW);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         e.setRereviewRequired(true);
         e.setRereviewerId(REREVIEWER_ID);
-        e.setRereviewerAssignedAt(LocalDateTime.now());
-        e.setRereviewerDueAt(LocalDateTime.of(2026, 6, 30, 23, 59));
+        e.setRereviewerAssignedAt(Instant.now());
+        e.setRereviewerDueAt(Instant.parse("2026-06-30T23:59:00Z"));
         e.setLatestInitialSubmissionId("init-sub-1");
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setInitialReviewScore(new BigDecimal("17.5"));
@@ -227,9 +227,9 @@ class RereviewApiTest {
         ));
         initSub.setTotalScore(new BigDecimal("17.5"));
         initSub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        initSub.setSubmittedAt(LocalDateTime.now());
-        initSub.setCreatedAt(LocalDateTime.now());
-        initSub.setUpdatedAt(LocalDateTime.now());
+        initSub.setSubmittedAt(Instant.now());
+        initSub.setCreatedAt(Instant.now());
+        initSub.setUpdatedAt(Instant.now());
         submissionJpa.save(initSub);
     }
 

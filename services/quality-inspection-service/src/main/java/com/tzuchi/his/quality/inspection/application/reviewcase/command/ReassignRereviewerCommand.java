@@ -1,7 +1,7 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.command;
 
 import javax.validation.constraints.NotBlank;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class ReassignRereviewerCommand {
 
@@ -9,7 +9,7 @@ public class ReassignRereviewerCommand {
     private String caseId;
     @NotBlank
     private String rereviewerId;
-    private LocalDateTime dueAt;
+    private Instant dueAt;
 
     public String getCaseId() { return caseId; }
     public void setCaseId(String caseId) { this.caseId = caseId; }
@@ -17,6 +17,6 @@ public class ReassignRereviewerCommand {
     public String getRereviewerId() { return rereviewerId; }
     public void setRereviewerId(String rereviewerId) { this.rereviewerId = rereviewerId; }
 
-    public LocalDateTime getDueAt() { return dueAt; }
-    public void setDueAt(LocalDateTime dueAt) { this.dueAt = dueAt; }
+    public Instant getDueAt() { return dueAt; }
+    public void setDueAt(Instant dueAt) { this.dueAt = dueAt; }
 }

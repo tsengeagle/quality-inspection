@@ -11,7 +11,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,7 +40,7 @@ class ReviewCaseCreatedAtTest {
         assertThat(createdAt).isNotNull().isBetween(before, after);
 
         ReviewCase loaded = repository.findById("c1").orElseThrow();
-        loaded.assignReviewer("doctor", LocalDateTime.of(2026, 12, 31, 23, 59), LocalDateTime.now());
+        loaded.assignReviewer("doctor", Instant.parse("2026-12-31T23:59:00Z"), Instant.now());
         repository.save(loaded);
 
         assertThat(jpa.findById("c1").orElseThrow().getCreatedAt()).isEqualTo(createdAt);

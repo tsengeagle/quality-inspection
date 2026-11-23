@@ -29,7 +29,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -125,8 +125,8 @@ class RevisionApiTest {
         e.setMedicalRecordType("OUTPATIENT");
         e.setStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
         e.setReviewerId(REVIEWER_ID);
-        e.setReviewerAssignedAt(LocalDateTime.now());
-        e.setDueAt(LocalDateTime.of(2026, 2, 1, 23, 59));
+        e.setReviewerAssignedAt(Instant.now());
+        e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
         e.setLatestInitialSubmissionId(SUBMISSION_ID);
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setFinalScore(new BigDecimal("17.5"));
@@ -145,10 +145,10 @@ class RevisionApiTest {
         ));
         sub.setTotalScore(new BigDecimal("17.5"));
         sub.setComment("initial review");
-        sub.setSubmittedAt(LocalDateTime.now());
+        sub.setSubmittedAt(Instant.now());
         sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
-        sub.setCreatedAt(LocalDateTime.now());
-        sub.setUpdatedAt(LocalDateTime.now());
+        sub.setCreatedAt(Instant.now());
+        sub.setUpdatedAt(Instant.now());
         submissionJpa.save(sub);
     }
 

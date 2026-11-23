@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Use case: Revise a submitted rereview.
@@ -119,7 +119,7 @@ public class ReviseRereviewUseCase {
 
         // 7. Create revision using static method
         String newSubmissionId = "sub-rev-" + UUID.randomUUID().toString();
-        LocalDateTime now = LocalDateTime.now(clock);
+        Instant now = Instant.now(clock);
         ReviewSubmission revision = ReviewSubmission.createRevision(
                 newSubmissionId,
                 oldSubmission,

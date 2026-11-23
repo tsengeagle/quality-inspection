@@ -2,7 +2,7 @@ package com.tzuchi.his.quality.inspection.domain.reviewcase.event;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * 指派或改派複審醫師（domain-events.md §6.6，D-070 第 1 點）。
@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class RereviewerAssignedEvent extends DomainEvent {
 
     private final String rereviewerId;
-    private final LocalDateTime dueAt;
+    private final Instant dueAt;
 
     public RereviewerAssignedEvent(Object source,
                                    String actorUserId,
@@ -19,7 +19,7 @@ public class RereviewerAssignedEvent extends DomainEvent {
                                    String hospitalId,
                                    String caseId,
                                    String rereviewerId,
-                                   LocalDateTime dueAt,
+                                   Instant dueAt,
                                    boolean reassignment) {
         super(source, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEWER_ASSIGNED",
                 reassignment
@@ -31,5 +31,5 @@ public class RereviewerAssignedEvent extends DomainEvent {
 
     public String getCaseId() { return getEntityId(); }
     public String getRereviewerId() { return rereviewerId; }
-    public LocalDateTime getDueAt() { return dueAt; }
+    public Instant getDueAt() { return dueAt; }
 }

@@ -5,7 +5,6 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "review_case")
@@ -73,10 +72,10 @@ public class ReviewCaseEntity {
     private String reviewerId;
 
     @Column(name = "reviewer_assigned_at")
-    private LocalDateTime reviewerAssignedAt;
+    private Instant reviewerAssignedAt;
 
     @Column(name = "due_at")
-    private LocalDateTime dueAt;
+    private Instant dueAt;
 
     @Column(name = "cancel_reason")
     private String cancelReason;
@@ -85,10 +84,10 @@ public class ReviewCaseEntity {
     private String returnReason;
 
     @Column(name = "cancelled_at")
-    private LocalDateTime cancelledAt;
+    private Instant cancelledAt;
 
     @Column(name = "closed_at")
-    private LocalDateTime closedAt;
+    private Instant closedAt;
 
     // --- B3b/B3c reserved ---
 
@@ -115,10 +114,10 @@ public class ReviewCaseEntity {
     private String rereviewerId;
 
     @Column(name = "rereviewer_assigned_at")
-    private LocalDateTime rereviewerAssignedAt;
+    private Instant rereviewerAssignedAt;
 
     @Column(name = "rereviewer_due_at")
-    private LocalDateTime rereviewerDueAt;
+    private Instant rereviewerDueAt;
 
     @Column(name = "initial_review_score", precision = 10, scale = 2)
     private BigDecimal initialReviewScore;
@@ -152,11 +151,11 @@ public class ReviewCaseEntity {
     public String getReviewerId() { return reviewerId; }
     public void setReviewerId(String reviewerId) { this.reviewerId = reviewerId; }
 
-    public LocalDateTime getReviewerAssignedAt() { return reviewerAssignedAt; }
-    public void setReviewerAssignedAt(LocalDateTime reviewerAssignedAt) { this.reviewerAssignedAt = reviewerAssignedAt; }
+    public Instant getReviewerAssignedAt() { return reviewerAssignedAt; }
+    public void setReviewerAssignedAt(Instant reviewerAssignedAt) { this.reviewerAssignedAt = reviewerAssignedAt; }
 
-    public LocalDateTime getDueAt() { return dueAt; }
-    public void setDueAt(LocalDateTime dueAt) { this.dueAt = dueAt; }
+    public Instant getDueAt() { return dueAt; }
+    public void setDueAt(Instant dueAt) { this.dueAt = dueAt; }
 
     public String getCancelReason() { return cancelReason; }
     public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
@@ -164,11 +163,11 @@ public class ReviewCaseEntity {
     public String getReturnReason() { return returnReason; }
     public void setReturnReason(String returnReason) { this.returnReason = returnReason; }
 
-    public LocalDateTime getCancelledAt() { return cancelledAt; }
-    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+    public Instant getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
 
-    public LocalDateTime getClosedAt() { return closedAt; }
-    public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
+    public Instant getClosedAt() { return closedAt; }
+    public void setClosedAt(Instant closedAt) { this.closedAt = closedAt; }
 
     public boolean isRereviewRequired() { return rereviewRequired; }
     public void setRereviewRequired(boolean rereviewRequired) { this.rereviewRequired = rereviewRequired; }
@@ -191,11 +190,11 @@ public class ReviewCaseEntity {
     public String getRereviewerId() { return rereviewerId; }
     public void setRereviewerId(String rereviewerId) { this.rereviewerId = rereviewerId; }
 
-    public LocalDateTime getRereviewerAssignedAt() { return rereviewerAssignedAt; }
-    public void setRereviewerAssignedAt(LocalDateTime rereviewerAssignedAt) { this.rereviewerAssignedAt = rereviewerAssignedAt; }
+    public Instant getRereviewerAssignedAt() { return rereviewerAssignedAt; }
+    public void setRereviewerAssignedAt(Instant rereviewerAssignedAt) { this.rereviewerAssignedAt = rereviewerAssignedAt; }
 
-    public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
-    public void setRereviewerDueAt(LocalDateTime rereviewerDueAt) { this.rereviewerDueAt = rereviewerDueAt; }
+    public Instant getRereviewerDueAt() { return rereviewerDueAt; }
+    public void setRereviewerDueAt(Instant rereviewerDueAt) { this.rereviewerDueAt = rereviewerDueAt; }
 
     public BigDecimal getInitialReviewScore() { return initialReviewScore; }
     public void setInitialReviewScore(BigDecimal initialReviewScore) { this.initialReviewScore = initialReviewScore; }

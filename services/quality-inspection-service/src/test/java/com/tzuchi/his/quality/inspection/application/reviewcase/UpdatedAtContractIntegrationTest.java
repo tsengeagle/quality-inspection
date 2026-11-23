@@ -20,7 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.event.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -71,7 +71,7 @@ class UpdatedAtContractIntegrationTest {
         rc.setHospitalId("H001");
         rc.setStatus(CaseStatus.INITIAL_REVIEW_IN_PROGRESS);
         rc.setReviewerId("doctor");
-        rc.setReviewerAssignedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        rc.setReviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setLatestInitialSubmissionId("s1");
         rc.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
         rc.setInitialReviewScore(BigDecimal.TEN);
@@ -88,7 +88,7 @@ class UpdatedAtContractIntegrationTest {
         sub.setTotalScore(BigDecimal.TEN);
         sub.setComment("original");
         sub.setBasedOnScoreSheetVersionId(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of("ss", 1));
-        sub.setCreatedAt(LocalDateTime.of(2026, 1, 1, 0, 0));
+        sub.setCreatedAt(Instant.parse("2026-01-01T00:00:00Z"));
         sub.setUpdatedAt(sub.getCreatedAt());
         submissions.save(sub);
     }
@@ -118,7 +118,7 @@ class UpdatedAtContractIntegrationTest {
         ReviewCaseEntity rc = cases.findById("c1").orElseThrow();
         rc.setStatus(CaseStatus.REREVIEW_IN_PROGRESS);
         rc.setReviewerId("initial-doctor"); // Preserve D-017 distinct initial/rereview identities.
-        rc.setRereviewerId("doctor"); rc.setRereviewerAssignedAt(LocalDateTime.of(2026,1,1,0,0));
+        rc.setRereviewerId("doctor"); rc.setRereviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setLatestRereviewSubmissionId("s1"); cases.save(rc);
         ReviewSubmissionEntity sub = submissions.findById("s1").orElseThrow();
         sub.setStage(ReviewStage.REREVIEW); submissions.save(sub);

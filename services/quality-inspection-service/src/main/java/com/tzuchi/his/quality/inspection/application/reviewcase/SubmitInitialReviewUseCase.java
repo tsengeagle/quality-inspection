@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.Clock;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -141,7 +141,7 @@ public class SubmitInitialReviewUseCase {
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Update with final scores, then submit
-        LocalDateTime now = LocalDateTime.now(clock);
+        Instant now = Instant.now(clock);
         submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), submission.getComment(), now);
         submission.submit(now);
         submissionRepository.save(submission);

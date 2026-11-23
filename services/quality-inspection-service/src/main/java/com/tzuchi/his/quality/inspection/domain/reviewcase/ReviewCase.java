@@ -7,7 +7,6 @@ import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -29,11 +28,11 @@ public class ReviewCase {
 
     // --- B3a: assignment ---
     private ReviewerAssignment reviewerAssignment;
-    private LocalDateTime dueAt;
+    private Instant dueAt;
     private String cancelReason;
     private String returnReason;
-    private LocalDateTime cancelledAt;
-    private LocalDateTime closedAt;
+    private Instant cancelledAt;
+    private Instant closedAt;
 
     // --- B3b/B3c: reserved (nullable, not used in B3a) ---
     private boolean rereviewRequired;
@@ -45,7 +44,7 @@ public class ReviewCase {
 
     // --- B4: rereview ---
     private ReviewerAssignment rereviewerAssignment;
-    private LocalDateTime rereviewerDueAt;
+    private Instant rereviewerDueAt;
     private BigDecimal initialReviewScore;
     private String latestRereviewSubmissionId;
 
@@ -86,11 +85,11 @@ public class ReviewCase {
     public static ReviewCase reconstitute(
             String caseId, String batchId, String projectId, String hospitalId,
             String sourceCaseKey, MedicalRecordType medicalRecordType,
-            CaseStatus status, ReviewerAssignment reviewerAssignment, LocalDateTime dueAt,
-            String cancelReason, String returnReason, LocalDateTime cancelledAt, LocalDateTime closedAt,
+            CaseStatus status, ReviewerAssignment reviewerAssignment, Instant dueAt,
+            String cancelReason, String returnReason, Instant cancelledAt, Instant closedAt,
             boolean rereviewRequired, BigDecimal finalScore, String finalConclusion,
             String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef,
-            ReviewerAssignment rereviewerAssignment, LocalDateTime rereviewerDueAt,
+            ReviewerAssignment rereviewerAssignment, Instant rereviewerDueAt,
             BigDecimal initialReviewScore,
             String latestRereviewSubmissionId) {
         return reconstitute(caseId, batchId, projectId, hospitalId, sourceCaseKey, medicalRecordType,
@@ -104,11 +103,11 @@ public class ReviewCase {
     public static ReviewCase reconstitute(
             String caseId, String batchId, String projectId, String hospitalId,
             String sourceCaseKey, MedicalRecordType medicalRecordType,
-            CaseStatus status, ReviewerAssignment reviewerAssignment, LocalDateTime dueAt,
-            String cancelReason, String returnReason, LocalDateTime cancelledAt, LocalDateTime closedAt,
+            CaseStatus status, ReviewerAssignment reviewerAssignment, Instant dueAt,
+            String cancelReason, String returnReason, Instant cancelledAt, Instant closedAt,
             boolean rereviewRequired, BigDecimal finalScore, String finalConclusion,
             String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef,
-            ReviewerAssignment rereviewerAssignment, LocalDateTime rereviewerDueAt,
+            ReviewerAssignment rereviewerAssignment, Instant rereviewerDueAt,
             BigDecimal initialReviewScore,
             String latestRereviewSubmissionId,
             Instant initialFixedAt, String initialFixedBy, String initialFixedSubmissionId) {
@@ -144,7 +143,7 @@ public class ReviewCase {
 
     // --- B3a Domain Methods ---
 
-    public void assignReviewer(String reviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
+    public void assignReviewer(String reviewerId, Instant dueAt, Instant assignedAt) {
         // D-067 第 2 點：輸入檢查在狀態檢查之前
         if (reviewerId == null || reviewerId.isBlank()) {
             throw new DomainValidationException("VALIDATION_ERROR", "reviewerId must not be blank");
@@ -162,7 +161,7 @@ public class ReviewCase {
         this.status = CaseStatus.PENDING_INITIAL_REVIEW;
     }
 
-    public void reassignReviewer(String newReviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
+    public void reassignReviewer(String newReviewerId, Instant dueAt, Instant assignedAt) {
         if (this.status != CaseStatus.PENDING_INITIAL_REVIEW) {
             throw new DomainStateConflictException("CASE_NOT_PENDING_INITIAL_REVIEW",
                     "Cannot reassign reviewer: case status is " + this.status);
@@ -173,7 +172,7 @@ public class ReviewCase {
         this.dueAt = dueAt;
     }
 
-    public void cancel(String reason, LocalDateTime cancelledAt) {
+    public void cancel(String reason, Instant cancelledAt) {
         if (this.status == CaseStatus.CLOSED || this.status == CaseStatus.CANCELLED) {
             throw new DomainStateConflictException("CASE_TERMINAL",
                     "Cannot cancel: case is in terminal status " + this.status);
@@ -283,7 +282,7 @@ public class ReviewCase {
 
     // --- B4 Domain Methods ---
 
-    public void closeWithoutRereview(LocalDateTime closedAt) {
+    public void closeWithoutRereview(Instant closedAt) {
         if (this.status != CaseStatus.INITIAL_REVIEW_COMPLETED) {
             throw new DomainStateConflictException("CASE_NOT_INITIAL_REVIEW_COMPLETED",
                     "Can only close-without-rereview from INITIAL_REVIEW_COMPLETED. Current: " + this.status);
@@ -304,7 +303,7 @@ public class ReviewCase {
         this.status = CaseStatus.PENDING_REREVIEW;
     }
 
-    public void assignRereviewer(String rereviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
+    public void assignRereviewer(String rereviewerId, Instant dueAt, Instant assignedAt) {
         // D-069 第 2 點：與指派初審醫師相同，輸入檢查在狀態檢查之前
         if (rereviewerId == null || rereviewerId.isBlank()) {
             throw new DomainValidationException("VALIDATION_ERROR", "rereviewerId must not be blank");
@@ -328,7 +327,7 @@ public class ReviewCase {
         this.rereviewerDueAt = dueAt;
     }
 
-    public void reassignRereviewer(String rereviewerId, LocalDateTime dueAt, LocalDateTime assignedAt) {
+    public void reassignRereviewer(String rereviewerId, Instant dueAt, Instant assignedAt) {
         if (this.status != CaseStatus.PENDING_REREVIEW) {
             // D-069 第 2 點：與初審的對應操作一致（422）
             throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
@@ -388,7 +387,7 @@ public class ReviewCase {
      * 結案目標是否為目前有效的已提交複審結果、操作者是否為提交者，由 application 層在呼叫前檢查。
      * 已結案或已取消回 CASE_TERMINAL（D-053 第 6 點）。結案時間由呼叫端傳入（ARCH-02）。
      */
-    public void closeAfterRereview(LocalDateTime closedAt) {
+    public void closeAfterRereview(Instant closedAt) {
         Objects.requireNonNull(closedAt, "closedAt must not be null");
         requireNotTerminal();
         if (this.status != CaseStatus.REREVIEW_IN_PROGRESS) {
@@ -463,11 +462,11 @@ public class ReviewCase {
     public MedicalRecordType getMedicalRecordType() { return medicalRecordType; }
     public CaseStatus getStatus() { return status; }
     public ReviewerAssignment getReviewerAssignment() { return reviewerAssignment; }
-    public LocalDateTime getDueAt() { return dueAt; }
+    public Instant getDueAt() { return dueAt; }
     public String getCancelReason() { return cancelReason; }
     public String getReturnReason() { return returnReason; }
-    public LocalDateTime getCancelledAt() { return cancelledAt; }
-    public LocalDateTime getClosedAt() { return closedAt; }
+    public Instant getCancelledAt() { return cancelledAt; }
+    public Instant getClosedAt() { return closedAt; }
     public boolean isRereviewRequired() { return rereviewRequired; }
     public BigDecimal getFinalScore() { return finalScore; }
     public String getFinalConclusion() { return finalConclusion; }
@@ -475,7 +474,7 @@ public class ReviewCase {
     public String getRuleSnapshotRef() { return ruleSnapshotRef; }
     public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public ReviewerAssignment getRereviewerAssignment() { return rereviewerAssignment; }
-    public LocalDateTime getRereviewerDueAt() { return rereviewerDueAt; }
+    public Instant getRereviewerDueAt() { return rereviewerDueAt; }
     public BigDecimal getInitialReviewScore() { return initialReviewScore; }
     public String getLatestRereviewSubmissionId() { return latestRereviewSubmissionId; }
     public Instant getInitialFixedAt() { return initialFixedAt; }

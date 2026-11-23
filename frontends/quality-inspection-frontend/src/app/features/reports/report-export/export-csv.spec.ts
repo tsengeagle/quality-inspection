@@ -12,7 +12,7 @@ function row(overrides: Partial<ExportRowView> = {}): ExportRowView {
     initialScore: 85.5,
     finalScore: 90,
     createdAt: '2026-10-02T01:00:00Z',
-    closedAt: '2026-10-05T09:30:00',
+    closedAt: '2026-10-05T01:30:00Z',
     maskedFields: [],
     ...overrides
   };
@@ -33,7 +33,7 @@ describe('buildExportCsv', () => {
 
   it('writes the same headers as the table, in the same order', () => {
     expect(lines(buildExportCsv([]))[0]).toBe(
-      '案件,專案,院區,狀態,初審醫師,複審醫師,初審分數,最終分數,建立時間,結案時間（伺服器時間）'
+      '案件,專案,院區,狀態,初審醫師,複審醫師,初審分數,最終分數,建立時間,結案時間'
     );
     expect(EXPORT_COLUMNS.map(c => c.field)).toEqual([
       'caseId', 'projectId', 'hospitalId', 'status', 'reviewerId', 'rereviewerId',
@@ -41,9 +41,9 @@ describe('buildExportCsv', () => {
     ]);
   });
 
-  it('writes createdAt as the UTC instant and closedAt exactly as returned, without appending Z', () => {
+  it('writes createdAt and closedAt as the UTC instants the API returned (D-075)', () => {
     expect(lines(buildExportCsv([row()]))[1]).toBe(
-      'CASE-001,PRJ-001,H001,CLOSED,reviewer-1,,85.5,90,2026-10-02T01:00:00Z,2026-10-05T09:30:00'
+      'CASE-001,PRJ-001,H001,CLOSED,reviewer-1,,85.5,90,2026-10-02T01:00:00Z,2026-10-05T01:30:00Z'
     );
   });
 
