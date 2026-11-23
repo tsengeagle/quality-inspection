@@ -5,8 +5,6 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.ReviewCaseEntity;
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.reviewcase.ReviewCaseJpaRepository;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,13 +16,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * D-073：指派與改派的 dueAt 必須帶時區（憲法草案第一條第 2 點）。
- * 拒絕發生在讀取請求本文時、進入 use case 之前，所以案件只需要存在；狀態直接存 entity。
+ * D-073：帶時區的 dueAt 存成台北的牆上時刻（第 2 點）。換算結果要看資料庫，規格範例看不到，所以留在這裡。
+ * 「不帶時區回 400 VALIDATION_ERROR」與「其他讀不進來的本文維持現狀」由 specs/review-case/examples.yaml 的
+ * 請求端範例保證（RC-G-05；D-074 R-8），這裡不重複。
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -70,32 +68,5 @@ class DueAtTimeZoneApiTest {
         seedCase("c1");
         assign("2026-11-26T15:59:00Z");
         assertEquals(LocalDateTime.of(2026, 11, 26, 23, 59), jpaRepository.findById("c1").orElseThrow().getDueAt());
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"assign-reviewer", "reassign-reviewer", "assign-rereviewer", "reassign-rereviewer"})
-    void dueAtWithoutTimeZoneIsRejected(String command) throws Exception {
-        seedCase("c1");
-        mockMvc.perform(post(BASE + "/c1/" + command)
-                        .header("api-key", hmToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reviewerId\":\"reviewer-1\",\"rereviewerId\":\"rr-1\","
-                                + "\"dueAt\":\"2026-11-26T23:59:00\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.error.message").isNotEmpty());
-        assertNull(jpaRepository.findById("c1").orElseThrow().getDueAt());
-    }
-
-    @Test
-    void otherUnreadableBodiesKeepTheExistingResponse() throws Exception {
-        seedCase("c1");
-        mockMvc.perform(post(BASE + "/c1/assign-reviewer")
-                        .header("api-key", hmToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"reviewerId\":"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string(""));
     }
 }
