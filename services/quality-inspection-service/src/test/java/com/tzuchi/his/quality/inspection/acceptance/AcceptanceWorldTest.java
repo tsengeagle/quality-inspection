@@ -204,7 +204,6 @@ class AcceptanceWorldTest {
         SpringExampleWorld world = world();
         world.onApplicationEvent(new ThingRenamedEvent(this, "t-0", START));
         world.begin(START, TAIPEI);
-        assertEquals(TAIPEI, world.localTimeZone());
         world.onApplicationEvent(new ThingRenamedEvent(this, "t-1", START));
 
         List<ExampleWorld.EmittedEvent> events = world.takeEvents();
@@ -220,7 +219,6 @@ class AcceptanceWorldTest {
         assertTrue(world.takeEvents().isEmpty());
 
         world.end();
-        assertEquals(null, world.localTimeZone());
         world.onApplicationEvent(new ThingRenamedEvent(this, "t-2", START));
         assertTrue(world.takeEvents().isEmpty());
     }
@@ -240,8 +238,8 @@ class AcceptanceWorldTest {
         assertEquals("2026-11-27T07:59:59", map.get("dueAt"));
         assertEquals(Arrays.asList("a", "b"), map.get("tags"));
         assertTrue(ExampleRunner.same("0.5", map.get("score"), TAIPEI));
-        // 不帶時區的輸出依 local_time_zone 解讀：07:59:59（台北）就是前一天 23:59:59Z
-        assertTrue(ExampleRunner.same("2026-11-26T23:59:59Z", map.get("dueAt"), TAIPEI));
+        // 不帶時區的輸出不是時間點（D-075 第 7 點）：不依 local_time_zone 解讀，也不當成 UTC
+        assertFalse(ExampleRunner.same("2026-11-26T23:59:59Z", map.get("dueAt"), TAIPEI));
         assertFalse(ExampleRunner.same("2026-11-27T07:59:59Z", map.get("dueAt"), TAIPEI));
         assertEquals(null, world().tree(null));
     }

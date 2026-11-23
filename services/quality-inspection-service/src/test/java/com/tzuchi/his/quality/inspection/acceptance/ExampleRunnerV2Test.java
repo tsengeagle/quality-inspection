@@ -104,8 +104,8 @@ class ExampleRunnerV2Test {
                     thing.put("id", id);
                     thing.put("name", input.get("name"));
                     thing.put("dueAt", input.get("dueAt"));
-                    // 不帶時區的當地時間，像應用程式的 LocalDateTime
-                    thing.put("createdAt", LocalDateTime.ofInstant(world.now, world.zone).toString());
+                    // 時間點，像應用程式的 Instant 輸出（UTC）
+                    thing.put("createdAt", world.now.toString());
                     thing.put("secret", "s3cret");
                     thing.put("parts", Arrays.asList(part("A", 1, "first"), part("B", 2, "second")));
                     things.put(id, thing);
@@ -512,10 +512,22 @@ class ExampleRunnerV2Test {
                 "  - name: e",
                 "    given: [{ use: thing }]",
                 "    when: { run: GetThing, as: owner, input: { id: \"${t}\" } }",
-                // createdAt 是不帶時區的 17:00（台北）；規格寫 UTC 的 09:00，是同一個時間點
+                // 時鐘從 17:00+08:00 開始，createdAt 輸出 UTC 的 09:00，是同一個時間點
                 "    then: { result: SUCCESS, output: { createdAt: \"2026-11-19T09:00:00Z\" } }");
         assertDoesNotThrow(() -> r.run("e"));
         assertEquals(ZoneId.of("Asia/Taipei"), world.zone);
+    }
+
+    @Test
+    void timesWithoutAZoneAreNotInstants() {
+        ZoneId taipei = ZoneId.of("Asia/Taipei");
+        // D-075 第 7 點：程式輸出不帶時區的時間，不依 local_time_zone 解讀，比對一律不通過
+        assertFalse(ExampleRunner.same("2026-11-19T09:00:00Z", "2026-11-19T17:00:00", taipei));
+        assertFalse(ExampleRunner.same("2026-11-19T09:00:00Z", "2026-11-19T09:00:00", taipei));
+        assertFalse(ExampleRunner.same("2026-11-19T09:00:00Z", LocalDateTime.of(2026, 11, 19, 17, 0), taipei));
+        // 帶時區的值照常比對時間點，不論位移
+        assertTrue(ExampleRunner.same("2026-11-19T09:00:00Z", "2026-11-19T17:00:00+08:00", taipei));
+        assertTrue(ExampleRunner.same("2026-11-19T09:00:00Z", Instant.parse("2026-11-19T09:00:00Z"), taipei));
     }
 
     @Test

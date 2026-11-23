@@ -4,17 +4,12 @@
 
 ## 進行中
 
-1. **D-072 違憲清單其餘各項：時間改成 `Instant`**（D-075）。修法 PR 一是裁決與文件範例；之後是建構 PR（後端與前端一起改），最後是修法 PR 二（收緊執行器與 `local_time_zone`）。涵蓋：
-   - 第 1 項剩下的 `REASSIGNED`；
-   - 第 3 項：HTTP 輸出的時間格式；
-   - 第 4 項：`ReviewCase` 的六個值，加上 D-075 補充的 `ReviewSubmission` 三個值；
-   - 第 5 項：`spec-profile.yaml` 的 `local_time_zone`；
-   - 第 6 項：文件範例改成 UTC。
+（目前沒有進行中的題目。）
 
 ## 待辦（依序）
 
-2. **D-069 留下的兩件**：複審不發 `ReviewDraftSaved`、`ReviewSubmissionSubmitted`；提交複審沒有必答題檢查。
-3. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）：改派、修正、不經複審結案、取消、退回。
+1. **D-069 留下的兩件**：複審不發 `ReviewDraftSaved`、`ReviewSubmissionSubmitted`；提交複審沒有必答題檢查。
+2. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）：改派、修正、不經複審結案、取消、退回。
 
 ## 已完成
 
@@ -25,3 +20,7 @@
 | 違憲清單第 1 項的 `ASSIGNED` | D-072 第 6 點 | #134 |
 | 違憲清單第 2 項：HTTP 收進來的 `dueAt` 帶時區 | D-073 | #135、#136 |
 | 規格格式 v2.1：請求端的範例 | D-074 | #137、#138、#139 |
+| 違憲清單第 1 項的 `REASSIGNED`、第 3、4、6 項：時間改成 `Instant`（含 `ReviewSubmission` 的三個時間） | D-075 | #140、#141 |
+| 違憲清單第 5 項：`local_time_zone` 只用於範例時鐘，執行器不再解讀不帶時區的時間 | D-075 第 7 點 | 修法 PR 二（本表所在的 PR） |
+
+D-072 第 4 點的違憲清單到此全部修正完成（D-075 第 12 點）。

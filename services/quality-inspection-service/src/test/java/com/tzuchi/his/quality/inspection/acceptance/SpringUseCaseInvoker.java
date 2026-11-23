@@ -11,12 +11,7 @@ import org.springframework.util.ClassUtils;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -35,6 +30,7 @@ import java.util.Set;
  *   <li>規格的輸入名稱在 execute 裡找不到同名參數，範例無法執行。</li>
  *   <li>被拒絕的錯誤代碼取自例外的 getErrorCode()；沒有這個方法，就是「被拒絕但沒有錯誤代碼」。</li>
  *   <li>輸出依屬性名稱比對（Jackson 轉換 getter）。</li>
+ *   <li>輸入的時間原樣交給 Jackson：參數是時間點（Instant）就收帶時區的值；不替不帶時區的參數換算（D-075 第 7 點）。</li>
  * </ul>
  *
  * <p>名稱對不上時範例會失敗，修正的方向是讓程式使用規格的詞彙，而不是在這裡加對照。</p>
@@ -43,23 +39,12 @@ public final class SpringUseCaseInvoker implements UseCaseInvoker {
 
     private static final String SUFFIX = "UseCase";
 
-    private final SpringExampleWorld world;
     private final ApplicationContext context;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private final Map<String, String> beanNames = new HashMap<>();
     private final Set<String> duplicated = new LinkedHashSet<>();
 
     public SpringUseCaseInvoker(ApplicationContext context) {
-        this(context, null);
-    }
-
-    /**
-     * @param world spec_version 2 的環境。範例執行期間，輸入裡帶時區的時間對到不帶時區的參數
-     *              （LocalDateTime）時，先換算成 local_time_zone 的當地時間（D-065 第 5 點）。
-     *              只處理 execute 的參數本身，不處理物件或清單裡面的時間。
-     */
-    public SpringUseCaseInvoker(ApplicationContext context, SpringExampleWorld world) {
-        this.world = world;
         this.context = context;
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);
@@ -110,7 +95,7 @@ public final class SpringUseCaseInvoker implements UseCaseInvoker {
             }
             JavaType type = mapper.getTypeFactory().constructType(p.getParameterizedType());
             try {
-                args[i] = mapper.convertValue(localTime(p.getType(), input.get(name)), type);
+                args[i] = mapper.convertValue(input.get(name), type);
             } catch (IllegalArgumentException e) {
                 throw new RunnerProblem(useCase + " 的輸入 " + name + "=" + input.get(name) + " 無法轉成 "
                         + type + "：" + e.getMessage());
@@ -141,25 +126,6 @@ public final class SpringUseCaseInvoker implements UseCaseInvoker {
             throw new RunnerProblem("輸出是單一值（" + value + "），沒有欄位可以比對");
         }
         return mapper.convertValue(value, new TypeReference<Map<String, Object>>() { });
-    }
-
-    /** 參數是 LocalDateTime、輸入是帶時區的時間，而且正在執行 spec_version 2 的範例：換算成當地時間。其餘原樣返回。 */
-    private Object localTime(Class<?> parameterType, Object value) {
-        ZoneId zone = world == null ? null : world.localTimeZone();
-        if (zone == null || parameterType != LocalDateTime.class) {
-            return value;
-        }
-        if (value instanceof Date) {
-            return ((Date) value).toInstant().atZone(zone).toLocalDateTime().toString();
-        }
-        if (value instanceof String) {
-            try {
-                return OffsetDateTime.parse((String) value).atZoneSameInstant(zone).toLocalDateTime().toString();
-            } catch (DateTimeParseException e) {
-                return value;
-            }
-        }
-        return value;
     }
 
     private static Method executeMethod(String useCase, Class<?> type) {

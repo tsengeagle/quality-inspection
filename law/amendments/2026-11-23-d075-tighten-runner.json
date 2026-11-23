@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-23-d075-tighten-runner",
+  "decision": "D-075",
+  "reason": "D-075 第 7 點（違憲清單第 5 項）：修法 PR 二，收緊執行器與 local_time_zone。建構 PR #141 已合併，程式的時間都是時間點，執行器不再需要替不帶時區的時間換算。執行器（acceptance/）：ExampleRunner.instantOf 移除 LocalDateTime 與沒有位移的字串的解讀，程式輸出不帶時區的時間時比對不通過；SpringUseCaseInvoker 移除 localTime（輸入原樣交給參數），不再需要 SpringExampleWorld，建構子只剩一個；SpringExampleWorld 移除 localTimeZone()。測試：ExampleRunnerV2Test 的假 use case 改成輸出時間點，新增 timesWithoutAZoneAreNotInstants；AcceptanceWorldTest 改成斷言不帶時區的輸出不通過。規格：specs/README.md 第九、十節與 specs/spec-profile.yaml 的註解改寫 local_time_zone 的用途（只決定範例時鐘的時區）；設定值與範例都沒有改。docs/harness/25-topic-backlog.md 補記 D-075 的 PR 編號（D-075 第 12 點）。程式（src/main）沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/README.md",
+    "specs/spec-profile.yaml",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/",
+    "law/amendments/"
+  ]
+}

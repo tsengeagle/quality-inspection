@@ -272,7 +272,7 @@ use case：
 | `guard_order` | `text`（字串）、`source`（`decision` 的清單） | guard 順序的說明（第三節規則 5）。只給人看，不檢查順序；`source` 的裁決要存在於決策紀錄 |
 
 | `clock_start` | 帶時區的 ISO 8601 時間 | 只有 `profile_version: 2`，必填。沒有寫 `clock` 的範例從這個時間開始 |
-| `local_time_zone` | `UTC` 或「地區/城市」 | 只有 `profile_version: 2`，必填。不帶時區的時間依這個時區解讀；執行器提供的時鐘也用這個時區。本專案是 `Asia/Taipei` |
+| `local_time_zone` | `UTC` 或「地區/城市」 | 只有 `profile_version: 2`，必填。範例時鐘的時區（D-075 第 7 點：只有這個用途，不再用來解讀不帶時區的時間）。本專案是 `Asia/Taipei` |
 
 `actor_fields`、`usecase_actor_fields`、`error_categories` 不可以是空的。設定檔也是封閉結構，不認得的欄位判為內容不合法。
 
@@ -396,8 +396,8 @@ use case：
 | `then` 的 `output`、`absent`、`only` | 比對 `when` 的輸出。`when` 的 `save` 先存，所以 `then` 可以引用它存的變數 |
 | 路徑 | 輸出先轉成對應表與清單再選取。屬性不存在與值是 null，對 `absent` 是同一件事；對 `output` 不是 |
 | `use_expect` | 具名斷言在下，直接寫的欄位蓋上去 |
-| 時間 | 規格寫帶時區的時間時，比對時間點。程式輸出不帶時區的時間，依 `local_time_zone` 解讀 |
-| 輸入的時間 | `execute` 的參數是不帶時區的時間（`LocalDateTime`）時，把輸入換算成 `local_time_zone` 的當地時間。只處理參數本身，不處理物件或清單裡面的時間 |
+| 時間 | 規格寫帶時區的時間時，比對時間點。程式輸出不帶時區的時間不是時間點，比對不通過（憲法草案第一條；D-075 第 7 點） |
+| 輸入的時間 | 原樣交給 `execute` 的參數，執行器不換算。參數要是時間點（`Instant`）；不帶時區的參數（`LocalDateTime`）收不到帶時區的輸入，範例無法執行（D-075 第 7 點） |
 | `clock`、`advance` | 應用程式注入的 `Clock` 在範例期間固定不動，只有 `advance` 會讓它前進。範例結束後回到系統時間 |
 | `matrix` | 每一列是一個測試，名稱是 `<目錄>/<name>.<值>.<值>` |
 | `emits`、`emits_include` | 擷取 `when` 執行期間發出的事件；準備步驟發出的不算。事件 `X` 是類別 `XEvent`，`with` 比對它的屬性（getter） |
