@@ -981,6 +981,48 @@ examples:
       result: SUCCESS
       absent: ["content[*].detail"]
 
+  # ---------- 請求端（D-073、D-074；格式 v2.1） ----------
+  # 這些拒絕發生在讀取請求本文時、進入 use case 之前，所以案件只需要存在。
+
+  - name: rejects_a_due_at_without_a_time_zone
+    basis: [RC-G-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    matrix:
+      columns: [endpoint, field]
+      key: [endpoint]
+      rows:
+        - [assign-reviewer,     reviewerId]
+        - [reassign-reviewer,   reviewerId]
+        - [assign-rereviewer,   rereviewerId]
+        - [reassign-rereviewer, rereviewerId]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/${endpoint}"
+        body_raw: '{"${field}":"u-r1","dueAt":"2026-11-26T23:59:00"}'
+      as: manager_h1
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output: { "content[caseId=${c}]": { status: SELECTED_PENDING_ASSIGNMENT } }
+          absent: ["content[caseId=${c}].dueAt"]
+
+  # D-073 第 3 點：其他讀不進來的本文不決定怎麼處理，維持現狀（框架預設的 400、沒有本文）。
+  # 它是 RC-G-05 的邊界：讀不進來、但不是時間格式的問題時，不回 VALIDATION_ERROR。
+  - name: keeps_the_bare_response_for_an_unreadable_body
+    basis: [RC-G-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/assign-reviewer"
+        body_raw: '{"reviewerId":'
+      as: manager_h1
+    then: { status: 400, body: empty }
 
 not_covered:
   - item: 逾期

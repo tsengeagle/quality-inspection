@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-23-d074-runner-http-step",
+  "decision": "D-074",
+  "reason": "D-074 第 9 點第 2 項：修法 PR 二，執行器與第一批請求端的範例。執行器（acceptance/）：ExampleRunner 的 when 可以是 http 步驟；新增 HttpInvoker 與以 MockMvc 送出請求的 SpringHttpInvoker；api-key 由操作者與 spec-profile.yaml 的 role_claims 產生，anonymous 不帶；回應不是 2xx 就算被拒絕，沿用 checkEvents；狀態碼依 http-common.yaml 的 transport_codes 與 status_by_category 推得並檢查；then: { status, body: empty } 比對沒有外殼的回應；quality-inspection.hospital-id 有值時停下來，不執行任何一步（第 7 點）；given、observe 出現 http 步驟時無法執行。AcceptanceExamplesTest 加上 @AutoConfigureMockMvc；SpecFiles 讀 http-common.yaml 與各目錄的錯誤代碼分類。新增 ExampleRunnerHttpTest（29 個）。規格：specs/review-case/examples.yaml 新增 D-073 的範例 5 個（四個端點收到不帶時區的 dueAt 回 VALIDATION_ERROR；其他讀不進來的本文維持 400 與空本文），都是綠的。範例必須有 basis，而 D-073 的拒絕不屬於任何 use case、原本沒有規則可以引用；負責人裁決（2026-11-23）在 specs/review-case/usecases.yaml 新增 guard RC-G-05（請求本文的時間不帶時區 → REJECTED VALIDATION_ERROR，source D-073），不列入任何 use case 的 guards，五個範例都以它為 basis。specs/README.md 第十一節的限制改寫成現況。程式（src/main）沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/README.md",
+    "specs/review-case/examples.yaml",
+    "specs/review-case/usecases.yaml",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/",
+    "law/amendments/"
+  ]
+}

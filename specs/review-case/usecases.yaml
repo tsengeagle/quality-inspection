@@ -25,6 +25,7 @@ sources:
   - { decision: D-069 }
   - { decision: D-070 }
   - { decision: D-071 }
+  - { decision: D-073 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.9、§6.12、§7.1、§7.2" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.10、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
 
@@ -75,6 +76,13 @@ guards:
     outcome: { result: REJECTED, code: SUBMISSION_NOT_FOUND }
     status: decided
     source: [{ decision: D-054 }]
+  # 請求端的規則（D-073）：在讀取請求本文時、進入 use case 之前檢查，所以不列在任何 use case 的 guards。
+  # 範例是 examples.yaml 的 http 步驟（D-074，格式 v2.1）。
+  - id: RC-G-05
+    when: 請求本文的時間不帶時區
+    outcome: { result: REJECTED, code: VALIDATION_ERROR }
+    status: decided
+    source: [{ decision: D-073 }]
 
 input_types:
   AnswerInput:

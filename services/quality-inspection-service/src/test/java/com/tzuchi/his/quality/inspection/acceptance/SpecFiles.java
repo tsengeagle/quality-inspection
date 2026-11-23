@@ -78,6 +78,29 @@ final class SpecFiles {
         return Files.isRegularFile(file) ? load(file) : Collections.emptyMap();
     }
 
+    /** http-common.yaml（D-061）；不存在就是空的。http 步驟用它推得狀態碼（D-074 第 4 點）。 */
+    Map<String, Object> httpCommon() {
+        Path file = root.resolve("http-common.yaml");
+        return Files.isRegularFile(file) ? load(file) : Collections.emptyMap();
+    }
+
+    /** 一個規格目錄的錯誤代碼 → 分類（usecases.yaml 的 error_codes）。沒有 usecases.yaml 就是空的。 */
+    Map<String, String> errorCategories(String directory) {
+        Map<String, String> out = new LinkedHashMap<>();
+        Path file = root.resolve(directory).resolve("usecases.yaml");
+        if (!Files.isRegularFile(file)) {
+            return out;
+        }
+        Object items = load(file).get("error_codes");
+        for (Object item : items instanceof List ? (List<?>) items : new ArrayList<>()) {
+            if (item instanceof Map && ((Map<?, ?>) item).get("code") instanceof String
+                    && ((Map<?, ?>) item).get("category") instanceof String) {
+                out.put((String) ((Map<?, ?>) item).get("code"), (String) ((Map<?, ?>) item).get("category"));
+            }
+        }
+        return out;
+    }
+
     private Set<String> names(String fileName, String listField) {
         Set<String> out = new HashSet<>();
         for (Path directory : directories()) {
