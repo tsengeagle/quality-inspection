@@ -204,12 +204,17 @@ USECASES_SCHEMA_V2 = _map({
     "output_types": ("named", _list(TYPE_FIELD)),
     "usecases": _list(USECASE_V2),
 })
-STEP_FIELDS_V2 = dict(STEP_FIELDS, advance="str", port="str", returns="any")
+# v2.1（D-074 第 2 點）：http 步驟，只能用在 when。body 照常檢查；body_raw 原封不動送出，只能用在被拒絕的範例
+HTTP_REQUEST = _map({"method": "str", "path": "str", "body": "any", "body_raw": "str", "query": ("named", "any")})
+HTTP_METHODS = {"GET", "POST", "PUT", "PATCH", "DELETE"}
+ANONYMOUS = "anonymous"
+STEP_FIELDS_V2 = dict(STEP_FIELDS, advance="str", port="str", returns="any", http=HTTP_REQUEST)
 STEP_V2 = _map(STEP_FIELDS_V2)
 ASSERT_FIELDS = {"result": ("enum", RESULTS), "code": "str", "output": ("named", "any"),
                  "absent": _list("str"), "only": ("named", _list("str")), "use_expect": "str"}
 EMITTED = _list(_map({"event": "str", "with": ("named", "any")}))
-THEN_FIELDS = dict(ASSERT_FIELDS, emits=EMITTED, emits_include=EMITTED)
+# v2.1（D-074 第 4 點）：沒有回應外殼的回應，只能與 body_raw 一起用
+THEN_FIELDS = dict(ASSERT_FIELDS, emits=EMITTED, emits_include=EMITTED, status="int", body=("enum", {"empty"}))
 OBSERVE_STEP_V2 = _map(dict(STEP_FIELDS_V2, expect=_map(ASSERT_FIELDS)))
 EXAMPLES_SCHEMA_V2 = _map({
     "spec_version": "int", "kind": "str", "aggregate": "str",
@@ -254,7 +259,9 @@ PROFILE_SCHEMA = _map({
 })
 PROFILE_REQUIRED = ("actor_fields", "usecase_actor_fields", "error_categories", "guard_order")
 # profile_version 2（D-065 第 5 點）：多兩項，一樣必填。spec_version 2 的規格需要它。
-PROFILE_SCHEMA_V2 = _map(dict(PROFILE_SCHEMA[1], clock_start="str", local_time_zone="str"))
+# v2.1（D-074 第 5 點）：role_claims 選填，http 步驟需要它：範例的角色 → 請求的 api-key 裡的角色名稱
+PROFILE_SCHEMA_V2 = _map(dict(PROFILE_SCHEMA[1], clock_start="str", local_time_zone="str",
+                              role_claims=("named", "str")))
 PROFILE_REQUIRED_V2 = PROFILE_REQUIRED + ("clock_start", "local_time_zone")
 
 
@@ -425,6 +432,18 @@ def decision_log_path(repo, manifest_rel):
     raise NotEvaluated("律法清冊 %s 沒有 @decision-log 指示" % manifest_rel)
 
 
+def load_transport_codes(specs_dir):
+    """http-common.yaml 的 transport_codes（D-061）：不屬於任何 use case 的錯誤代碼。沒有這個檔案時是空的。"""
+    path = os.path.join(specs_dir, "http-common.yaml")
+    if not os.path.isfile(path):
+        return set()
+    try:
+        doc = yaml.safe_load(read(path)) or {}
+    except yaml.YAMLError:
+        return set()  # http-common.yaml 由 HttpContractFilesTest 檢查，這裡不重複
+    return {item.get("code") for item in doc.get("transport_codes") or [] if isinstance(item, dict)}
+
+
 class Context:
     """跨 aggregate 共用的資料：各種出處的來源文字、禁用詞彙。"""
 
@@ -435,6 +454,7 @@ class Context:
         if not os.path.isfile(log):
             raise NotEvaluated("找不到決策紀錄 %s（清冊的 @decision-log）" % log_rel)
         self.decision_log = read(log)
+        self.transport_codes = load_transport_codes(specs_dir)
         # None 代表專案沒有設定：用到該類出處的規則會被列為問題
         self.design_text = read_dir_text(os.path.join(repo, design_rel)) if design_rel else None
         self.testing_text = read_dir_text(os.path.join(repo, testing_rel)) if testing_rel else None
@@ -902,16 +922,24 @@ class Aggregate:
                     self.notes.append("%s：斷言了 proposed 的事件 %s，還不能當驗收依據" % (where, event))
                 self.check_times(where, emitted.get("with"))
 
-    def check_step_v2(self, where, step, needs, actors, expectations):
+    def check_step_v2(self, where, step, needs, actors, expectations, allow_http=False):
         """回傳這一步執行的 use case：(Aggregate, 名稱)；不是 run 或找不到時回傳 None。"""
         if not isinstance(step, dict):
             self.error(where, "每個步驟必須是對應表，實際是 %r" % (step,))
             return None
-        kinds = [key for key in ("run", "use", "port", "advance") if key in step]
+        kinds = [key for key in ("run", "use", "port", "advance", "http") if key in step]
         if len(kinds) != 1:
-            self.error(where, "步驟必須是 run、use、port、advance 其中一種，實際有 %s" % ("、".join(kinds) or "無"))
+            self.error(where, "步驟必須是 run、use、port、advance、http 其中一種，實際有 %s" % ("、".join(kinds) or "無"))
             return None
         kind = kinds[0]
+        if kind == "http":
+            if not allow_http:
+                self.error(where, "http 只能用在 when；準備狀態一律走 use case（D-074 第 6 點）")
+            else:
+                self.check_http_step(where, step, actors)
+            return None
+        if step.get("as") == ANONYMOUS:
+            self.error(where, "as: anonymous 只能用在 http 步驟")
         if "returns" in step and kind != "port":
             self.error(where, "returns 只能和 port 一起用")
         if kind == "use":
@@ -949,6 +977,77 @@ class Aggregate:
         if "expect" in step:
             self.check_assertion(where + " expect", step["expect"], target, expectations)
         return target
+
+    def check_http_step(self, where, step, actors):
+        """D-074 第 2～5 點：請求端的步驟。"""
+        request = step.get("http")
+        if not isinstance(request, dict):
+            self.error(where, "http 必須是對應表")
+            return
+        method, path = request.get("method"), request.get("path")
+        if method not in HTTP_METHODS:
+            self.error(where, "http.method 必須是 %s 其中之一，實際是 %r" % ("、".join(sorted(HTTP_METHODS)), method))
+        if not isinstance(path, str) or not path.startswith("/") or "?" in path:
+            self.error(where, "http.path 必須以 / 開頭、不含 query（query 另外寫），實際是 %r" % (path,))
+        elif method in HTTP_METHODS:
+            self.check_http_endpoint(where, method, path)
+        if "body" in request and "body_raw" in request:
+            self.error(where, "http.body 與 http.body_raw 只能擇一")
+        self.check_times(where, request.get("body"))
+        self.check_times(where, request.get("query"))
+        actor = step.get("as")
+        if not isinstance(actor, str):
+            self.error(where, "http 步驟必須有 as（不帶 api-key 時寫 as: %s）" % ANONYMOUS)
+        elif actor != ANONYMOUS and actor not in actors:
+            self.error(where, "as 引用了不存在的操作者 %s" % actor)
+        elif actor != ANONYMOUS and not self.ctx.profile.get("role_claims"):
+            self.error(where, "http 步驟要由操作者產生 api-key：spec-profile.yaml 必須有 role_claims")
+        claims = self.ctx.profile.get("role_claims") or {}
+        roles = actors.get(actor, {}).get("roles") if isinstance(actors.get(actor), dict) else None
+        missing = sorted(r for r in roles or [] if claims and r not in claims)
+        if missing:
+            self.error(where, "spec-profile.yaml 的 role_claims 沒有角色 %s" % "、".join(missing))
+        for key in ("save", "input", "expect"):
+            if key in step:
+                self.error(where, "http 步驟不能有 %s" % key)
+
+    def check_http_endpoint(self, where, method, path):
+        """目錄有 http.yaml 時，method 與 path 必須是其中的端點；路徑參數 {x} 對到 ${變數} 或任何值。"""
+        contract = os.path.join(self.path, "http.yaml")
+        if not os.path.isfile(contract):
+            return
+        try:
+            endpoints = (yaml.safe_load(read(contract)) or {}).get("endpoints") or []
+        except yaml.YAMLError:
+            return  # http.yaml 由 HttpContractFilesTest 檢查，這裡不重複
+        mine = path.rstrip("/").split("/")
+        for endpoint in endpoints:
+            if not isinstance(endpoint, dict) or endpoint.get("method") != method:
+                continue
+            theirs = str(endpoint.get("path", "")).rstrip("/").split("/")
+            if len(theirs) == len(mine) and all(
+                    t == m or (t.startswith("{") and t.endswith("}")) for t, m in zip(theirs, mine)):
+                return
+        self.error(where, "%s %s 不是本目錄 http.yaml 的端點" % (method, path))
+
+    def check_http_then(self, where, request, then):
+        """D-074 第 3、4 點：body_raw 只能用在被拒絕的範例；status、body 只能與 body_raw 一起用。"""
+        raw = isinstance(request, dict) and "body_raw" in request
+        bare = isinstance(then, dict) and ("status" in then or "body" in then)
+        if bare and not raw:
+            self.error(where, "then.status、then.body 只能與 http.body_raw 一起用（沒有回應外殼的回應）")
+        if bare:
+            if then.get("body") != "empty" or not isinstance(then.get("status"), int):
+                self.error(where, "沒有回應外殼時，then 要同時寫 status（整數）與 body: empty")
+            extra = [k for k in then if k not in ("status", "body")]
+            if extra:
+                self.error(where, "沒有回應外殼時，then 只能有 status 與 body，實際還有 %s" % "、".join(sorted(extra)))
+        elif raw and (not isinstance(then, dict) or then.get("result") != "REJECTED"):
+            self.error(where, "http.body_raw 只能用在被拒絕的範例（then.result 是 REJECTED）")
+        code = then.get("code") if isinstance(then, dict) else None
+        if isinstance(code, str) and code not in self.error_codes and code not in self.ctx.transport_codes:
+            self.error(where, "code %s 不在 %s 的 error_codes，也不在 http-common.yaml 的 transport_codes"
+                       % (code, self.dirname))
 
     def expand_matrix(self, example):
         """D-065 第 6 點：把有 matrix 的範例展開成每一列一個範例。回傳 [(名稱, 範例)]。"""
@@ -1070,12 +1169,21 @@ class Aggregate:
                 self.check_step_v2(where + " observe", step, needs, actors, expectations)
             when = example.get("when")
             target = None
-            if not isinstance(when, dict) or "run" not in when:
-                self.error(where, "when 必須執行一支 use case（run）")
+            is_http = isinstance(when, dict) and "http" in when
+            if not isinstance(when, dict) or ("run" not in when and not is_http):
+                self.error(where, "when 必須執行一支 use case（run）或送出一個請求（http）")
             else:
-                target = self.check_step_v2(where + " when", when, needs, actors, expectations)
-            then = self.check_assertion(where + " then", example.get("then"), target, expectations)
-            if example.get("then") is None:
+                target = self.check_step_v2(where + " when", when, needs, actors, expectations, allow_http=True)
+            raw_then = example.get("then")
+            if is_http:
+                self.check_http_then(where + " then", when.get("http"), raw_then)
+            if not is_http and isinstance(raw_then, dict) and ("status" in raw_then or "body" in raw_then):
+                self.error(where + " then", "then.status、then.body 只能用在 http 的 when")
+            if is_http and isinstance(raw_then, dict) and "status" in raw_then:
+                then = None  # 沒有回應外殼：只比對狀態碼與空本文，不走斷言欄位的檢查
+            else:
+                then = self.check_assertion(where + " then", raw_then, target, expectations)
+            if raw_then is None:
                 self.error(where, "沒有 then")
             if then is None:
                 continue

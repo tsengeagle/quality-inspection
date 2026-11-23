@@ -27,3 +27,12 @@ guard_order:
 clock_start: "2026-11-19T17:00:00+08:00"
 # 程式的輸入或輸出是不帶時區的時間時，依這個時區解讀；執行器提供的時鐘也用這個時區
 local_time_zone: Asia/Taipei
+
+# 請求端的範例（D-074 第 5 點，格式 v2.1）：範例的角色 → 請求的 api-key（JWT）裡 user_role 的 role_name。
+# 程式以 DomainRole.valueOf(role_name.toUpperCase()) 轉換（TzJwtParser），所以是一對一
+role_claims:
+  HOSPITAL_MANAGER: hospital_manager
+  REVIEWER: reviewer
+  REREVIEWER: rereviewer
+  AUDITOR: auditor
+  SYSTEM_ADMIN: system_admin

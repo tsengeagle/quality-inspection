@@ -1090,5 +1090,113 @@ class SpecLintV2Test(unittest.TestCase):
         self.assertIn("相同，result 或 code 卻不同", report)
 
 
+class SpecLintHttpStepTest(unittest.TestCase):
+    """D-074（格式 v2.1）：when 的 http 步驟。沿用 v2 的回歸樣本，在 review-case 加一個請求端的範例再改壞。"""
+
+    FIXTURE = SpecLintV2Test.FIXTURE
+    setUp = SpecLintV2Test.setUp
+    tearDown = SpecLintV2Test.tearDown
+    write, read, change, lint, assert_blocked = (SpecLintV2Test.write, SpecLintV2Test.read, SpecLintV2Test.change,
+                                                 SpecLintV2Test.lint, SpecLintV2Test.assert_blocked)
+    EXAMPLES = "specs/review-case/examples.yaml"
+    ROLE_CLAIMS = ("role_claims: { HOSPITAL_MANAGER: hospital_manager, REVIEWER: reviewer, REREVIEWER: rereviewer, "
+                   "AUDITOR: auditor, SYSTEM_ADMIN: system_admin }\n")
+    HTTP_EXAMPLE = """
+  - name: rejects_a_due_at_without_a_time_zone
+    basis: [RC-ASG-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http: { method: POST, path: "/review-cases/${c}/assign-reviewer", body_raw: '{"reviewerId":"u-r1","dueAt":"2026-11-26T23:59:00"}' }
+      as: manager_h1
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+"""
+
+    def setUp(self):
+        SpecLintV2Test.setUp(self)
+        self.write("specs/spec-profile.yaml", PROFILE_V2 + self.ROLE_CLAIMS)
+        self.change(self.EXAMPLES, "\nexamples:\n", "\nexamples:\n" + self.HTTP_EXAMPLE)
+
+    def replace_example(self, old, new):
+        self.change(self.EXAMPLES, old, new)
+
+    def test_http_example_passes(self):
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+
+    def test_body_raw_is_exempt_from_the_time_zone_rule_but_body_is_not(self):
+        self.replace_example("""body_raw: '{"reviewerId":"u-r1","dueAt":"2026-11-26T23:59:00"}'""",
+                             """body: { reviewerId: u-r1, dueAt: "2026-11-26T23:59:00" }""")
+        self.assert_blocked("時間必須帶時區")
+
+    def test_body_raw_only_in_rejected_examples(self):
+        self.replace_example("    then: { result: REJECTED, code: VALIDATION_ERROR }\n\n  # ---------- ListReviewCases",
+                             "    then: { result: SUCCESS }\n\n  # ---------- ListReviewCases")
+        self.assert_blocked("http.body_raw 只能用在被拒絕的範例")
+
+    def test_body_and_body_raw_are_exclusive(self):
+        self.replace_example("body_raw: '", "body: { reviewerId: u-r1 }, body_raw: '")
+        self.assert_blocked("http.body 與 http.body_raw 只能擇一")
+
+    def test_http_is_not_allowed_in_given(self):
+        self.replace_example("    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]\n    when:\n      http:",
+                             "    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }, "
+                             "{ http: { method: GET, path: /review-cases }, as: manager_h1 }]\n    when:\n      http:")
+        self.assert_blocked("http 只能用在 when")
+
+    def test_method_must_be_known(self):
+        self.replace_example("method: POST", "method: FETCH")
+        self.assert_blocked("http.method 必須是")
+
+    def test_path_must_start_with_a_slash_and_have_no_query(self):
+        self.replace_example('path: "/review-cases/${c}/assign-reviewer"', 'path: "/review-cases?x=1"')
+        self.assert_blocked("http.path 必須以 / 開頭、不含 query")
+
+    def test_code_must_be_an_error_code_or_a_transport_code(self):
+        self.change(self.EXAMPLES, "    as: manager_h1\n    then: { result: REJECTED, code: VALIDATION_ERROR }\n\n  # ---------- ListReviewCases",
+                    "    as: manager_h1\n    then: { result: REJECTED, code: NOT_A_CODE }\n\n  # ---------- ListReviewCases")
+        self.assert_blocked("code NOT_A_CODE 不在 review-case 的 error_codes，也不在 http-common.yaml 的 transport_codes")
+
+    def test_transport_codes_come_from_http_common(self):
+        self.change(self.EXAMPLES, "    as: manager_h1\n    then: { result: REJECTED, code: VALIDATION_ERROR }\n\n  # ---------- ListReviewCases",
+                    "    as: anonymous\n    then: { result: REJECTED, code: UNAUTHORIZED }\n\n  # ---------- ListReviewCases")
+        self.assert_blocked("code UNAUTHORIZED 不在")
+        self.write("specs/http-common.yaml", "transport_codes:\n  - { code: UNAUTHORIZED, status: 401 }\n")
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+
+    def test_anonymous_only_in_http_steps(self):
+        self.change(self.EXAMPLES, "when: { run: ListReviewCases, as: manager_h2", "when: { run: ListReviewCases, as: anonymous")
+        self.assert_blocked("as: anonymous 只能用在 http 步驟")
+
+    def test_http_needs_role_claims_for_a_named_actor(self):
+        self.write("specs/spec-profile.yaml", PROFILE_V2)
+        self.assert_blocked("spec-profile.yaml 必須有 role_claims")
+
+    def test_role_claims_must_cover_the_actors_roles(self):
+        self.write("specs/spec-profile.yaml", PROFILE_V2 + "role_claims: { REVIEWER: reviewer }\n")
+        self.assert_blocked("role_claims 沒有角色 HOSPITAL_MANAGER")
+
+    def test_bare_response_needs_body_raw_and_only_status_and_body(self):
+        self.change(self.EXAMPLES, "    as: manager_h1\n    then: { result: REJECTED, code: VALIDATION_ERROR }\n\n  # ---------- ListReviewCases",
+                    "    as: manager_h1\n    then: { status: 400, body: empty }\n\n  # ---------- ListReviewCases")
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+        self.change(self.EXAMPLES, "then: { status: 400, body: empty }", "then: { status: 400, body: empty, result: REJECTED }")
+        self.assert_blocked("沒有回應外殼時，then 只能有 status 與 body")
+
+    def test_status_is_only_for_http(self):
+        self.change(self.EXAMPLES, "    then:\n      result: SUCCESS\n      output: { content: [] }",
+                    "    then:\n      status: 200\n      result: SUCCESS\n      output: { content: [] }")
+        self.assert_blocked("then.status、then.body 只能用在 http 的 when")
+
+    def test_path_must_match_http_yaml_when_present(self):
+        self.write("specs/review-case/http.yaml", "endpoints:\n  - { usecase: AssignReviewCase, method: POST, "
+                   "path: \"/review-cases/{caseId}/assign-reviewer\" }\n")
+        passed, report = self.lint()
+        self.assertTrue(passed, report)
+        self.replace_example("/assign-reviewer\"", "/assign-somebody\"")
+        self.assert_blocked("不是本目錄 http.yaml 的端點")
+
+
 if __name__ == "__main__":
     unittest.main()

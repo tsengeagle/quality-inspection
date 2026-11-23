@@ -2958,3 +2958,71 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/03-contracts/api-spec.md` §10.3、§10.5（`dueAt` 必須帶時區）
 - 後續：建構 PR（四個 DTO、`ReviewCaseController`、`GlobalExceptionHandler`、前端指派頁面、API 測試）
 
+---
+
+## D-074 — 規格格式 v2.1：請求端的範例
+
+### Status
+
+`accepted`（2026-11-22，負責人對 `docs/harness/24-request-side-examples-draft.md` 的 R-1～R-8 全部照建議裁決，並同意第 7 點新增的院區覆寫檢查）
+
+### Decision
+
+1. **範圍（R-1 選 A）**：請求端的範例只寫 use case 範例看不到的行為：
+   - 請求本文的讀取（格式、型別、時區）；
+   - 認證；
+   - 錯誤代碼對到的 HTTP 狀態碼與外殼。
+
+   業務規則仍只寫在 use case 範例，同一條規則不在兩層重複。
+2. **寫法（R-2 選 A）**：寫在同一份 `examples.yaml`，`when` 新增 `http` 步驟（`method`、`path`、`body`、`body_raw`、`query`）。`given` 沿用 fixture。目錄有 `http.yaml` 時，`method` 與 `path` 必須是其中的端點。
+3. **請求本文（R-3）**：
+   - `body` 照常檢查，包括 D-065 第 5 點「時間要帶時區」；
+   - `body_raw` 原封不動送出，不受該條約束，也不檢查內容，只能用在被拒絕的範例，或沒有外殼的回應；
+   - `body` 與 `body_raw` 擇一。
+4. **`then`（R-4）**：
+   - 寫法沿用 use case 範例。`code` 必須在本目錄的 `error_codes` 或 `http-common.yaml` 的 `transport_codes`。
+   - 狀態碼不寫，由執行器依 `http-common.yaml` 推得並檢查。
+   - 沒有外殼的回應寫成 `then: { status, body: empty }`，只能與 `body_raw` 一起用。
+5. **操作者（R-5）**：
+   - 執行器依操作者產生 `api-key`（JWT）。角色經 `spec-profile.yaml` 新增的 `role_claims` 轉換。
+   - 查證：程式以 `DomainRole.valueOf(role_name.toUpperCase())` 轉換，五個角色一對一；`user_role` 是清單，可以表示多個角色。
+   - 新增 `as: anonymous`，只能用在 `http` 步驟。
+6. **版本與 `spec_lint`（R-6）**：
+   - 版本是格式 v2.1，檔案仍是 `spec_version: 2`，說明在 `specs/README.md` 第十一節。
+   - `given`、`observe`、fixture 不允許 `http` 步驟。
+   - `http` 步驟納入「情境相同的範例」的比較。
+7. **院區覆寫（查證後新增，負責人同意）**：
+   - `TzJwtParser` 在 `quality-inspection.hospital-id`（環境變數 `QUALITY_INSPECTION_HOSPITAL_ID`）有值時，會忽略 JWT 的院區。
+   - 執行器在跑 `http` 範例之前必須確認這個設定是空的；有值就停下來（執行器的問題，不是範例失敗），不讓操作者的院區被悄悄換掉。
+   - 查證時本機與 CI 都沒有設定。
+8. **執行器（R-7）**：
+   - `AcceptanceExamplesTest` 加上 MockMvc，`http` 步驟以 MockMvc 送出。
+   - 查證：
+     - 加上 MockMvc 之後，現有 174 個範例的名稱與結果不變，執行時間在量測誤差內（約 3.7～4.0 秒）。
+     - 這個測試本來就有獨立的 Spring context，不會多建一個。
+   - 事件沿用同步擷取：回應不是 2xx 就算被拒絕，被拒絕時不得有事件（D-065 第 7 點）。
+   - 以 MockMvc 實測：
+     - 不帶時區回 400，沒有事件；
+     - 成功回 200，有 `ReviewCaseAssigned`；
+     - 業務規則拒絕回 422，沒有事件。
+9. **順序（比照 D-065）**：
+   1. 修法 PR 一：本裁決、`specs/README.md` 第十一節、`spec_lint` 與它的測試、`spec-profile.yaml` 的 `role_claims`。這個 PR 合併之後、修法 PR 二合併之前，`specs/` 不得出現 `http` 步驟。
+   2. 修法 PR 二：執行器與它的測試，以及 `specs/review-case/` 的第一批範例（D-073 的四個端點不帶時區回 `VALIDATION_ERROR`、其他讀不進來的本文維持現狀）。範例應該直接是綠的。
+   3. 建構 PR：依 R-8 刪除 `DueAtTimeZoneApiTest` 中與範例重複的部分；換算結果要看資料庫，這一部分保留。
+10. **D-072 違憲清單的註記**：第 2 項已由 PR #136 修正（D-073 的建構 PR）。D-072 的條文不改，以本點為註記。
+
+### Relationship / Evidence
+
+- **起因**：D-073 第 7 點。「不帶時區回 400」沒有可以執行的規格，由不在律法清冊的 JUnit 測試保證，而且 `given` 是手工存 entity。
+- **草案與查證**：`docs/harness/24-request-side-examples-draft.md`（main = `04bbdb0`），第十二節是三項查證的紀錄。
+- **與既有裁決的關係**：
+  - 延伸 D-065（格式 v2.0）與 D-061（HTTP 契約）。HTTP 契約仍只比對回應形狀；`http` 步驟的回應也會被它觀察到。
+  - `role_claims` 依 D-064，專案的部分放在設定檔。
+
+### Mapping
+
+- `specs/README.md` 第十一節；`specs/spec-profile.yaml` 的 `role_claims`
+- `harness-core/spec_lint.py`（`http` 步驟、`body_raw`、沒有外殼的 `then`、`transport_codes`、`role_claims`），`harness-core/tests/test_spec_lint.py`（`SpecLintHttpStepTest`）
+- `docs/harness/25-topic-backlog.md`（題目清單）
+- 後續：修法 PR 二（執行器與範例）、建構 PR
+
