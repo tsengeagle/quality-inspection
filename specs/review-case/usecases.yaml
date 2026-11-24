@@ -678,6 +678,7 @@ usecases:
   # ---------- 稽核：生命週期與稽核軌跡（D-071） ----------
   # 帶分數的 action（D-071 第 1 點）：INITIAL_REVIEW_COMPLETED、CASE_ESCALATED_TO_REREVIEW（帶 score 時）、
   # REREVIEW_SUBMITTED、REREVIEW_REVISED、CASE_CLOSED_WITHOUT_REREVIEW。
+  # D-078：ReviewSubmission 的 DRAFT_SAVED、SUBMITTED 也帶分數，以所屬案件判斷（只有稽核軌跡會回傳）。
   # 遮罩條件依案件「目前」的狀態與複審指派歷史判斷，不依事件發生時（D-071 第 2 點）。
 
   - name: GetCaseLifecycle
@@ -740,11 +741,11 @@ usecases:
         status: decided
         source: [{ decision: D-033 }, { decision: D-071 }]
       - id: RC-AUD-02
-        when: 某一筆是 ReviewCase 帶分數的 action，且該案符合 RC-LCY-02 的條件
+        when: 某一筆是帶分數的紀錄（ReviewCase 帶分數的 action，或 ReviewSubmission 的 DRAFT_SAVED、SUBMITTED），且所屬案件符合 RC-LCY-02 的條件；ReviewSubmission 的紀錄找不到所屬案件時也算
         text: 這一筆沒有 detail；其他筆不受影響
         outcome: { result: SUCCESS }
         status: decided
-        source: [{ decision: D-055 }, { decision: D-071 }, { rule: RC-LCY-02 }]
+        source: [{ decision: D-055 }, { decision: D-071 }, { decision: D-078 }, { rule: RC-LCY-02 }]
       - id: RC-AUD-03
         when: 讀取成功
         text: 讀取不寫入初審讀取者紀錄，也不遞增案件版本
