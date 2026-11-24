@@ -5,12 +5,11 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 import java.time.Instant;
 
 /**
- * Published when a reviewer is assigned (or when a case is reopened to PENDING_INITIAL_REVIEW).
+ * Published when a reviewer is assigned.
  */
 public class ReviewCaseAssignedEvent extends DomainEvent {
 
     // dueAt 是時間點（D-075），detail 輸出 UTC（憲法第一條）。
-    // 重新開啟初審（ReopenInitialReview）沒有 dueAt，detail 照舊是 "null"。
 
     private final String assignedReviewerId;
 

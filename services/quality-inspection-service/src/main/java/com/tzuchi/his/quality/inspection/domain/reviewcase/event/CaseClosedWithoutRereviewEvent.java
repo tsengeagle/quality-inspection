@@ -12,4 +12,6 @@ public class CaseClosedWithoutRereviewEvent extends DomainEvent {
                                            String detail) {
         super(source, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "CASE_CLOSED_WITHOUT_REREVIEW", detail);
     }
+
+    public String getCaseId() { return getEntityId(); }
 }

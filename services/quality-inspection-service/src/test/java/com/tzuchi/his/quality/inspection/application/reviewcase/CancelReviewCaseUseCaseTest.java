@@ -5,6 +5,7 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
@@ -99,5 +100,28 @@ class CancelReviewCaseUseCaseTest {
 
         assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(hospitalManager(), "c1", "reason"));
+    }
+
+    @Test
+    void execute_blankReason_shouldThrowValidation() {
+        ReviewCase rc = ReviewCase.createFromSampling("c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
+        repository.save(rc);
+
+        DomainValidationException ex = assertThrows(DomainValidationException.class,
+                () -> useCase.execute(hospitalManager(), "c1", "   "));
+        assertEquals("VALIDATION_ERROR", ex.getErrorCode());
+    }
+
+    @Test
+    void execute_reasonWithQuotesAndNewlines_shouldProduceValidJsonDetail() {
+        ReviewCase rc = ReviewCase.createFromSampling("c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
+        repository.save(rc);
+
+        useCase.execute(hospitalManager(), "c1", "a\"b\\c\nd");
+
+        ReviewCaseCancelledEvent event = (ReviewCaseCancelledEvent) eventPublisher.events.get(0);
+        assertEquals("c1", event.getCaseId());
+        assertEquals("a\"b\\c\nd", event.getReason());
+        assertEquals("{\"reason\":\"a\\\"b\\\\c\\nd\"}", event.getDetail());
     }
 }

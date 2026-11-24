@@ -10,7 +10,7 @@ import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewerAssignment;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseAssignedEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseReopenedEvent;
 import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,13 +67,16 @@ class ReopenInitialReviewUseCaseTest {
     }
 
     @Test
-    void execute_shouldPublishAssignedEvent() {
+    void execute_shouldPublishReopenedEvent() {
         createReturnedCase();
 
         useCase.execute(hospitalManager(), "c1");
 
         assertEquals(1, eventPublisher.events.size());
-        assertInstanceOf(ReviewCaseAssignedEvent.class, eventPublisher.events.get(0));
+        ReviewCaseReopenedEvent event = (ReviewCaseReopenedEvent) eventPublisher.events.get(0);
+        assertEquals("c1", event.getCaseId());
+        assertEquals("REOPENED", event.getAction());
+        assertEquals("reviewer-1", event.getReviewerId());
     }
 
     @Test

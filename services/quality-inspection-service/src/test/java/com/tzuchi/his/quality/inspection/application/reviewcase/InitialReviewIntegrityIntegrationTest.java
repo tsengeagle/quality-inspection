@@ -46,8 +46,6 @@ class InitialReviewIntegrityIntegrationTest {
     @SpyBean private ReviewCaseRepositoryImpl caseRepository;
     @SpyBean private ReviewSubmissionRepositoryImpl submissionRepository;
     @Autowired private StartInitialReviewUseCase start;
-    @Autowired private ReturnInitialReviewUseCase returnReview;
-    @Autowired private ReopenInitialReviewUseCase reopen;
 
     @BeforeEach
     void seed() {
@@ -257,17 +255,19 @@ class InitialReviewIntegrityIntegrationTest {
         pending.setStatus(CaseStatus.PENDING_INITIAL_REVIEW);
         pending.setLatestInitialSubmissionId(null);
         cases.save(pending);
-        String s1 = start.execute(actor("H001"), "c1");
+        String s1 = start.execute(actor("H001"), "c1").getSubmissionId();
         ReviewSubmission first = submissionRepository.findById(s1).orElseThrow();
         first.updateDraft(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)),
                 BigDecimal.TEN, "historical", Instant.now());
         submissionRepository.save(first);
-        ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        returnReview.execute(manager, "c1", "return for review");
-        reopen.execute(manager, "c1");
-        String s2 = start.execute(actor("H001"), "c1");
-        assertNotEquals(s1, s2);
-        ReviewSubmission second = submissionRepository.findById(s2).orElseThrow();
+        // D-080 第 3 點後，退回再重開會沿用 s1，做不出兩份初審提交；直接寫入第二份並指給案件。
+        String s2 = "s2-current";
+        ReviewSubmission second = ReviewSubmission.createInitialDraft(
+                s2, "c1", "doctor", first.getBasedOnScoreSheetVersionId(), Instant.now());
+        submissionRepository.save(second);
+        ReviewCaseEntity inProgress = cases.findById("c1").orElseThrow();
+        inProgress.setLatestInitialSubmissionId(s2);
+        cases.save(inProgress);
         second.updateDraft(Collections.singletonList(AnswerItem.ofScored("Q", "true", BigDecimal.TEN)),
                 BigDecimal.TEN, "current", Instant.now());
         submissionRepository.save(second);

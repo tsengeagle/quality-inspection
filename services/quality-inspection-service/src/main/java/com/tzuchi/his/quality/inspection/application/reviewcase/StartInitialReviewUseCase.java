@@ -12,6 +12,7 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.InitialReviewStartedEvent;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
@@ -51,9 +52,9 @@ public class StartInitialReviewUseCase {
     /**
      * Start initial review: create a draft submission and transition the case.
      *
-     * @return the new submission ID
+     * @return 初審提交 ID（新建，或退回後重開時沿用的 DRAFT）
      */
-    public String execute(ActorContext actor, String caseId) {
+    public StartInitialReviewResult execute(ActorContext actor, String caseId) {
         actor.requireRole(DomainRole.REVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(caseId)
@@ -91,16 +92,24 @@ public class StartInitialReviewUseCase {
                     "Score sheet must be PUBLISHED to start review");
         }
 
-        // Create draft submission
-        String submissionId = UUID.randomUUID().toString();
-        ReviewSubmission submission = ReviewSubmission.createInitialDraft(
-                submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, Instant.now(clock));
+        // 退回後重開：已有初審提交且仍是 DRAFT 就沿用，作答與評語保留（D-080 第 3 點、RC-STI-S4）
+        ReviewSubmission existingDraft = reviewCase.getLatestInitialSubmissionId() == null ? null
+                : submissionRepository.findById(reviewCase.getLatestInitialSubmissionId())
+                        .filter(s -> s.getStatus() == SubmissionStatus.DRAFT)
+                        .orElse(null);
+
+        String submissionId;
+        if (existingDraft != null) {
+            submissionId = existingDraft.getSubmissionId();
+        } else {
+            // Create draft submission
+            submissionId = UUID.randomUUID().toString();
+            submissionRepository.save(ReviewSubmission.createInitialDraft(
+                    submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, Instant.now(clock)));
+        }
 
         // Transition case
         reviewCase.startInitialReview(submissionId, scoreSheetVersionRef);
-
-        // Persist
-        submissionRepository.save(submission);
         caseRepository.save(reviewCase);
 
         // Publish event
@@ -109,6 +118,6 @@ public class StartInitialReviewUseCase {
                 reviewCase.getHospitalId(), caseId,
                 actor.getUserId(), submissionId));
 
-        return submissionId;
+        return new StartInitialReviewResult(submissionId);
     }
 }
