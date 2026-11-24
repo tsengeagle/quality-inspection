@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-24-d080-case-return-cancel-close",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:11d3ed59755622065cbe287be7ecbbaf6b496efd8f1056c1adf921311dfcb644",
+  "reviewed_commit": "641d9546b879860dadbdfcdaa24f0020097ce755",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBVbPmlVGQACuNqUu3PI4kQbepSHbskNgnVWHrKA+ItmAFkoRZo2rgf\n+k0ChvF63OdZFwbScsRVqPxioPw/lCICAQAAAHQ=\n-----END SSH SIGNATURE-----\n"
+}
