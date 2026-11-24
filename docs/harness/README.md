@@ -51,6 +51,7 @@
 | `24-request-side-examples-draft.md` | 規格格式 v2.1：請求端的範例（R-1～R-8，已由 D-074 裁決）：範圍、寫法、`body_raw`、`then`、操作者與 `api-key`、執行器；附三項查證 |
 | `25-topic-backlog.md` | 題目清單：負責人核准的立法題目與順序（不是律法） |
 | `27-rereview-submission-events-draft.md` | D-069 留下的兩件：複審的提交事件與必答題檢查（V-1～V-5，已由 D-076 裁決）；附 `ReviewSubmission` 稽核紀錄沒有遮罩的發現 |
+| `28-report-date-filter-taipei-draft.md` | 報表的日期篩選固定以台北解讀（V-1～V-5，已由 D-077 裁決）：送出轉換、預設區間、範圍、測試的時區 |
 | `26-datetime-instant-draft.md` | 違憲清單第 3～6 項：時間改成 `Instant`（N-1～N-8，已由 D-075 裁決）：順序、`ReviewSubmission` 的時間、既有資料與時鐘、前端顯示、匯出、`local_time_zone`、文件範例、未立法範圍 |
 | `samples/card-v2-trial/` | 格式樣本（不是律法）：白板 V10 照格式 v2 草案的試寫、暫時的檢查 `v2check.py`；v2.1 的回歸樣本 |
 | `samples/reviewcase-v2-trial/` | 格式樣本（不是律法）：ReviewCase 照格式 v2 草案 B 組的試寫。`round-1/` 是薄切片與 12 個缺口；`round-2/` 是直向切片，用草案第十三節 Q-10～Q-20 建議的寫法重寫 |

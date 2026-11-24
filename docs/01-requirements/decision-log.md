@@ -3137,3 +3137,46 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`（5 個）
 - `docs/harness/25-topic-backlog.md`（新增「`ReviewSubmission` 稽核紀錄的遮罩」「報表的日期篩選固定以台北解讀」）
 - 後續：建構 PR（`SaveRereviewDraftUseCase`、`SubmitRereviewUseCase`、`ReviewDraftSavedEvent`、`ReviewSubmissionSubmittedEvent`）
+
+## D-077 — 報表的日期篩選固定以台北解讀
+
+### Status
+
+`accepted`（2026-11-24，負責人對 `docs/harness/28-report-date-filter-taipei-draft.md` 的 V-1～V-5 全部照建議裁決；V-4 的測試時區用 `UTC`）
+
+### Decision
+
+1. **日期欄位的意義與送出轉換（V-1 選 A）**：
+   - 報表匯出頁（UI-017）與儀表板（UI-015）的起日、迄日是 `Asia/Taipei` 的日曆日期（`YYYY-MM-DD`），不依瀏覽器的時區。這是憲法草案第一條第 4 點要求的時區指定。
+   - `from` ＝ 起日 00:00 `+08:00`；`to` ＝ 迄日**次日** 00:00 `+08:00`。兩者以 UTC（`Z`）送出，維持 D-057 的含起不含迄，畫面上的迄日含當天。
+   - 例：起日 2026-10-01、迄日 2026-10-31 → `from=2026-09-30T16:00:00Z`、`to=2026-10-31T16:00:00Z`。
+   - 換算的位置（憲法草案第一條第 3 點）：前端的 `features/reports/report-export/export-date-range.ts`。後端只收時間點，不做日期換算；HTTP 契約不變。
+2. **預設區間（V-2）**：「上一個整月」以台北的今天計算。例：瀏覽器在 UTC、時間是 2026-11-30T17:00:00Z（台北已是 2026-12-01 01:00）時，預設區間是 2026-11-01～2026-11-30。
+3. **範圍（V-3）**：
+   - UI-015 與 UI-017 共用同一個換算。
+   - CSV 檔名的日期是畫面上的台北日期，檔名格式不變。
+   - 後端不改；`reporting/` 與 `ReportController.java` 在 `law/coverage.txt` 維持 `grandfathered`。
+   - 建構 PR 一併修正 `report-export.service.ts` 中 `closedAt` 過時的註解（D-075 之後是 `Instant`）。
+4. **測試（V-4）**：
+   - 單元測試的預期值寫死 UTC 字串，不再以瀏覽器時區的 `new Date(...)` 計算；加上第 2 點的跨月例子，以注入的時鐘固定「今天」。
+   - 單元測試與 e2e 在 `UTC` 時區執行（Karma 以 `TZ=UTC`，Playwright 以 `timezoneId: 'UTC'`），使不在 UTC+8 的瀏覽器也被測到。具體作法在建構 PR 決定，以 Windows 與 Linux 的 CI 都能跑為準。
+5. **不在本裁決（V-5）**：
+   - 後端 `reporting` 的立法。
+   - `ReviewSubmission` 稽核紀錄的遮罩（D-076 第 3 點），照題目清單排在本題之後。
+   - 其他頁面沒有只有日期的輸入（查證：前端只有這兩頁共四個 `type="date"` 欄位）；指派頁的 `dueAt` 是時刻，已由 D-073 處理。
+6. **順序**：本裁決與 UI 文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：題目清單待辦第 1 項；負責人 2026-11-23 決定固定成 `Asia/Taipei`。
+- **草案與查證**：`docs/harness/28-report-date-filter-taipei-draft.md`（main = `a18fbb7`）。程式現況：`toExportRange` 與 `previousFullMonth` 以瀏覽器本地時間換算；後端 `from`、`to` 已是 `Instant`，以 `from ≤ createdAt < to` 過濾。
+- **與既有裁決的關係**：
+  - 補上 D-057 沒有寫的畫面日期時區；D-057 的條文不改。
+  - 依憲法草案第一條第 3、4 點；前端以固定 `+08:00` 換算，與 D-073 第 4 點、D-075 第 5 點相同（台北沒有日光節約時間）。
+- **還沒有查證的**：無。
+
+### Mapping
+
+- `docs/05-ui/ui-page-spec-ui017報表匯出頁.md` §4、§5 檔名、§8 第 1 項；`docs/05-ui/ui-page-spec-ui015儀表板頁.md` §4、§8 第 1 項
+- `docs/harness/25-topic-backlog.md`（本題移到進行中；D-075 修法 PR 二補上 #142；D-076 移到已完成）
+- 後續：建構 PR（`export-date-range.ts` 與其單元測試、Karma 與 Playwright 的時區設定、`report-export.service.ts` 的註解）
