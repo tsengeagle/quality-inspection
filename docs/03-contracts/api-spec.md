@@ -1173,7 +1173,7 @@ Accept: application/json
 
 * 案件須為 `INITIAL_REVIEW_IN_PROGRESS`，否則 `409 CASE_NOT_IN_PROGRESS`
 * `reason` 不得空白，否則 `400 VALIDATION_ERROR`
-* 進行中的初審提交維持 `DRAFT`；重開後開始初審沿用它
+* 進行中的初審提交維持 `DRAFT`；重開後由同一位醫師開始初審時沿用它，改派後由新醫師開始時建立新的提交（D-081）
 
 #### Request
 

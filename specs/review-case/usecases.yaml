@@ -205,7 +205,8 @@ usecases:
       state:
         - { id: RC-STI-S1, text: status = INITIAL_REVIEW_IN_PROGRESS,                          status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
         - { id: RC-STI-S2, text: 案件還沒有初審提交時，建立一份初審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
-        - { id: RC-STI-S4, text: 案件已有初審提交且它是 DRAFT（退回後重開）時，沿用這份提交，不建立新的；輸出的 submissionId 是原本的提交，作答與評語保留, status: decided, source: [{ decision: D-080 }] }
+        - { id: RC-STI-S4, text: 案件已有初審提交、它是 DRAFT、且它的醫師是操作者（退回後重開）時，沿用這份提交，不建立新的；輸出的 submissionId 是原本的提交，作答與評語保留, status: decided, source: [{ decision: D-080 }, { decision: D-081 }] }
+        - { id: RC-STI-S5, text: 案件已有初審提交、它是 DRAFT、但它的醫師不是操作者（重開後改派）時，建立一份新的初審提交（同 RC-STI-S2），原本的提交維持 DRAFT、留在修正歷史, status: decided, source: [{ decision: D-081 }] }
         - { id: RC-STI-S3, text: InitialReviewStarted 帶有 caseId、submissionId 與 reviewerId, status: decided, source: [{ decision: D-067 }, { doc: docs/02-ddd/domain-events.md, section: "§6.3" }] }
       emits:
         - { event: InitialReviewStarted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.3" }] }

@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-24-d081-restart-draft-owner",
+  "decision": "D-081",
+  "reason": "D-081：重開後改派，新醫師開始初審建立新的提交（D-080 第 3 點的更正）。切片 A 起草前實測發現，#153 之後重開再改派，新醫師開始初審拿到原醫師的 DRAFT、保存被拒，案件卡在初審中。負責人裁決先單獨修、只有同一位醫師才沿用草稿（docs/harness/32 的 Y-1 照建議）。規格：usecases.yaml 的 RC-STI-S4 加上醫師條件、新增 RC-STI-S5；examples.yaml 新增 1 個範例，以未立法的 ReassignReviewCase 製造前提而列在 needs，一開始是紅的，加進 known-test-failures.txt，由切片 A 的建構 PR 移除（D-066 第 5 點）；本裁決的建構 PR 以整合測試驗證。文件：api-spec §10.8、domain-events §6.10、草稿 32、題目清單（D-080 移到已完成）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/examples.yaml",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}
