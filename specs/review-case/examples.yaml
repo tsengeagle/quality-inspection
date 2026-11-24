@@ -1042,13 +1042,15 @@ examples:
       absent: ["content[*].detail"]
 
   # D-078：ReviewSubmission 的 DRAFT_SAVED、SUBMITTED 以所屬案件判斷。
+  # 初審的 DRAFT_SAVED 寫入時院區是空字串，院區人員查不到（題目清單待辦 2），所以這裡只檢查 SUBMITTED；
+  # DRAFT_SAVED 的遮罩由 ScoredDetailMask 的單元測試固定。
   - name: audit_trails_mask_submission_rows_before_rereview_for_an_auditor
     basis: [RC-AUD-02]
     given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
     when: { run: ListAuditTrails, as: auditor_h1, input: { aggregateType: ReviewSubmission, aggregateId: "${s1}" } }
     then:
       result: SUCCESS
-      absent: ["content[action=DRAFT_SAVED].detail", "content[action=SUBMITTED].detail"]
+      absent: ["content[action=SUBMITTED].detail"]
 
   - name: audit_trails_mask_submission_rows_before_rereview_for_a_manager
     basis: [RC-AUD-02]
@@ -1056,7 +1058,7 @@ examples:
     when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewSubmission, aggregateId: "${s1}" } }
     then:
       result: SUCCESS
-      absent: ["content[action=DRAFT_SAVED].detail", "content[action=SUBMITTED].detail"]
+      absent: ["content[action=SUBMITTED].detail"]
 
   - name: audit_trails_show_submission_rows_after_close
     basis: [RC-AUD-02]
