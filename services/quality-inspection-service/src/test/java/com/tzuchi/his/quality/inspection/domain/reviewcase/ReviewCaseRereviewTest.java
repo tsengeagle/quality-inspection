@@ -208,6 +208,27 @@ class ReviewCaseRereviewTest {
                 () -> rc.reassignRereviewer("reviewer-1", Instant.now(), Instant.now()));
     }
 
+    @Test
+    void reassignRereviewer_beforeAnyAssignment_shouldThrowNoRereviewerAssigned() {
+        // D-082 第 4 點
+        ReviewCase rc = caseAtPendingRereview();
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
+                () -> rc.reassignRereviewer("rereviewer-2", Instant.now(), Instant.now()));
+        assertEquals("NO_REREVIEWER_ASSIGNED", e.getErrorCode());
+        assertNull(rc.getRereviewerAssignment());
+    }
+
+    @Test
+    void reassignRereviewer_toSamePerson_shouldOnlyChangeDueDate() {
+        // D-082 第 3 點
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
+        Instant newDue = Instant.parse("2026-07-20T23:59:00Z");
+        rc.reassignRereviewer("rereviewer-1", newDue, Instant.now());
+        assertEquals("rereviewer-1", rc.getRereviewerAssignment().getReviewerId());
+        assertEquals(newDue, rc.getRereviewerDueAt());
+    }
+
     // --- startRereview tests ---
 
     @Test

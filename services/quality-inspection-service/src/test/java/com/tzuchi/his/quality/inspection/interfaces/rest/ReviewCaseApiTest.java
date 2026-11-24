@@ -157,7 +157,8 @@ class ReviewCaseApiTest {
     }
 
     @Test
-    void reassignReviewer_notAssigned_shouldReturn409() throws Exception {
+    void reassignReviewer_notAssigned_shouldReturn422() throws Exception {
+        // D-082 第 1 點：與指派一致，422 CASE_NOT_ASSIGNABLE
         seedCase("c1", CaseStatus.SELECTED_PENDING_ASSIGNMENT);
 
         ReassignReviewerRequest req = new ReassignReviewerRequest();
@@ -168,7 +169,8 @@ class ReviewCaseApiTest {
                         .header("api-key", hmToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isConflict());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("CASE_NOT_ASSIGNABLE"));
     }
 
     // --- REREVIEW ASSIGN ---

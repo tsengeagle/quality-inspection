@@ -110,8 +110,20 @@ class ReviewCaseTest {
     void reassignReviewer_fromNonPendingInitialReview_shouldThrow() {
         ReviewCase rc = createPendingAssignment(); // SELECTED_PENDING_ASSIGNMENT
 
-        assertThrows(DomainStateConflictException.class,
+        // D-082 第 1 點：與指派一致（422）
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
                 () -> rc.reassignReviewer("reviewer-2", DUE, Instant.now()));
+        assertEquals("CASE_NOT_ASSIGNABLE", e.getErrorCode());
+    }
+
+    @Test
+    void reassignReviewer_blankInput_shouldFailValidationBeforeStateCheck() {
+        // D-082 第 2 點：輸入檢查在狀態檢查之前（案件仍是待指派）
+        ReviewCase rc = createPendingAssignment();
+        assertEquals("VALIDATION_ERROR", assertThrows(DomainValidationException.class,
+                () -> rc.reassignReviewer(" ", DUE, Instant.now())).getErrorCode());
+        assertEquals("VALIDATION_ERROR", assertThrows(DomainValidationException.class,
+                () -> rc.reassignReviewer("reviewer-2", null, Instant.now())).getErrorCode());
     }
 
     // --- cancel ---
