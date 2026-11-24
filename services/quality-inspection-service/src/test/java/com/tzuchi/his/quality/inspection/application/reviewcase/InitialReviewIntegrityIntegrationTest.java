@@ -46,6 +46,9 @@ class InitialReviewIntegrityIntegrationTest {
     @SpyBean private ReviewCaseRepositoryImpl caseRepository;
     @SpyBean private ReviewSubmissionRepositoryImpl submissionRepository;
     @Autowired private StartInitialReviewUseCase start;
+    @Autowired private ReturnInitialReviewUseCase returnReview;
+    @Autowired private ReopenInitialReviewUseCase reopen;
+    @Autowired private ReassignReviewCaseUseCase reassign;
 
     @BeforeEach
     void seed() {
@@ -245,6 +248,41 @@ class InitialReviewIntegrityIntegrationTest {
         assertEquals(before, snapshot());
         assertEquals(beforeEvents, events.stream(DomainEvent.class).count());
         assertEquals(beforeAudit, audit.count());
+    }
+
+    @Test
+    void returnReopenStart_sameReviewer_reusesDraft() {
+        ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+        returnReview.execute(manager, "c1", "needs more");
+        reopen.execute(manager, "c1");
+
+        assertEquals("s1", start.execute(actor("H001"), "c1").getSubmissionId());
+        assertEquals(1, submissions.count());
+        assertEquals("original", submissions.findById("s1").orElseThrow().getComment());
+    }
+
+    @Test
+    void returnReopenReassignStart_newReviewer_createsOwnDraftAndCanSave() {
+        // D-081：重開後改派，新醫師不得拿到原醫師的草稿
+        ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
+        returnReview.execute(manager, "c1", "needs more");
+        reopen.execute(manager, "c1");
+        reassign.execute(manager, "c1", "doctor2", Instant.parse("2026-12-01T00:00:00Z"));
+        ActorContext doctor2 = new ActorContext("doctor2", "Doctor 2", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
+
+        String s2 = start.execute(doctor2, "c1").getSubmissionId();
+        assertNotEquals("s1", s2);
+        assertEquals(s2, saveDraft.execute(doctor2, "c1", answers("false"), "mine").getSubmissionId());
+
+        ReviewSubmissionEntity mine = submissions.findById(s2).orElseThrow();
+        assertEquals("doctor2", mine.getReviewerId());
+        assertEquals(SubmissionStatus.DRAFT, mine.getStatus());
+        assertEquals("mine", mine.getComment());
+        ReviewSubmissionEntity old = submissions.findById("s1").orElseThrow();
+        assertEquals("doctor", old.getReviewerId());
+        assertEquals(SubmissionStatus.DRAFT, old.getStatus());
+        assertEquals("original", old.getComment());
+        assertEquals(s2, cases.findById("c1").orElseThrow().getLatestInitialSubmissionId());
     }
 
     @ParameterizedTest

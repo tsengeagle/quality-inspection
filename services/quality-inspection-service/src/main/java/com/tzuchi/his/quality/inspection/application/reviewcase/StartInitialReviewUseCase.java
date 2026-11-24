@@ -92,10 +92,12 @@ public class StartInitialReviewUseCase {
                     "Score sheet must be PUBLISHED to start review");
         }
 
-        // 退回後重開：已有初審提交且仍是 DRAFT 就沿用，作答與評語保留（D-080 第 3 點、RC-STI-S4）
+        // 退回後重開：已有初審提交、仍是 DRAFT、且是操作者的才沿用，作答與評語保留（D-080 第 3 點、RC-STI-S4）。
+        // 改派後換了醫師就建立新的提交，舊的留在修正歷史（D-081、RC-STI-S5）。
         ReviewSubmission existingDraft = reviewCase.getLatestInitialSubmissionId() == null ? null
                 : submissionRepository.findById(reviewCase.getLatestInitialSubmissionId())
                         .filter(s -> s.getStatus() == SubmissionStatus.DRAFT)
+                        .filter(s -> actor.getUserId().equals(s.getReviewerId()))
                         .orElse(null);
 
         String submissionId;
