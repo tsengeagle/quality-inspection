@@ -3276,3 +3276,30 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/02-ddd/state-machine.md`（§3.2、§3.5、第 7 節）、`docs/02-ddd/domain-events.md`（§6.9～§6.11、新增 §6.13、§6.14）、`docs/02-ddd/permission-matrix.md`（§6）、`docs/03-contracts/api-spec.md`（§10.7、§10.8、§10.11）
 - 後續：建構 PR。除了第 2、3、5、9 點，`CloseWithoutRereviewUseCase.execute` 改收 `caseId`（規格範例以參數名稱呼叫 use case），`CloseWithoutRereviewCommand` 隨之移除
+
+## D-081 — 重開後改派，新醫師開始初審建立新的提交（D-080 第 3 點的更正）
+
+### Status
+
+`accepted`（2026-11-24，負責人裁決：先單獨修，只有同一位醫師才沿用草稿；`docs/harness/32-restart-draft-owner-draft.md` 的 Y-1 照建議）
+
+### Decision
+
+1. **沿用的條件（Y-1）**：開始初審時，案件已有初審提交且它是 `DRAFT`，**而且它的醫師是操作者**，才沿用這份提交（RC-STI-S4 加上醫師條件）。
+2. **醫師不同時**：建立一份新的初審提交（同 RC-STI-S2），案件改指新提交；原本的提交維持 `DRAFT`、留在修正歷史，不作廢、不刪除（RC-STI-S5）。這與 D-080 之前的行為相同。
+3. **D-080 的其餘點不變**：第 3 點「退回時進行中的初審提交維持 `DRAFT`」、第 4 點「重開不要求改派」照舊。
+4. **一開始是紅的範例**：`restarts_with_a_new_draft_after_reopen_and_reassign` 照 D-066 第 5 點加進 `known-test-failures.txt`。它以未立法的改派製造前提，列在 `needs`，所以在切片 A 立法 `ReassignReviewCase` 之前不會執行，由切片 A 的建構 PR 移除。本裁決的建構 PR 另以整合測試驗證「重開後改派，新醫師開始初審並保存草稿」。
+5. **順序**：本裁決、規格、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：切片 A（改派）起草前的實測。D-080 的建構 PR（#153）照 RC-STI-S4 實作後，「作答 → 退回 → 重開 → 改派給 u-r2 → u-r2 開始初審」拿到 u-r1 的 `DRAFT`（`reviewerId = u-r1`，作答與評語是 u-r1 的），u-r2 保存草稿回 `SUBMISSION_NOT_OWNED_BY_ACTOR`。初審中不能改派、也不能重開，案件只能取消。
+- **查證**：`docs/harness/32-restart-draft-owner-draft.md`（main = `ce5eae1`）。以暫時的規格範例走真實寫入路徑實測，跑完還原，沒有提交。
+- **與既有裁決的關係**：更正 D-080 第 3 點與 RC-STI-S4 的適用範圍；D-080 條文不改，以本裁決為註記。`ReassignReviewCase` 仍未立法（切片 A），範例只用它製造前提。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（RC-STI-S4 加上醫師條件、新增 RC-STI-S5）、`examples.yaml`（1 個範例）
+- `services/quality-inspection-service/known-test-failures.txt`（1 個）
+- `docs/03-contracts/api-spec.md`（§10.8）、`docs/02-ddd/domain-events.md`（§6.10）
+- 後續：建構 PR（`StartInitialReviewUseCase` 沿用前比對提交的醫師與操作者，加整合測試）；範例由切片 A 的建構 PR 轉綠

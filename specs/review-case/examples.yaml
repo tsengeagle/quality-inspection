@@ -1193,6 +1193,43 @@ examples:
             entries:
               - { submissionId: "${s1}", stage: INITIAL, status: DRAFT, revisionNo: 1, totalScore: "20", comment: "初審評語" }
 
+  - name: restarts_with_a_new_draft_after_reopen_and_reassign
+    basis: [RC-STI-S5]
+    # 改派還沒立法（切片 A）；立法前這個範例不執行、算未通過（D-081 第 4 點）
+    needs: [ReassignReviewCase]
+    given:
+      - use: answered_case
+      - run: ReturnInitialReview
+        as: manager_h1
+        input: { caseId: "${c}", reason: "需補充病歷資料" }
+      - run: ReopenInitialReview
+        as: manager_h1
+        input: { caseId: "${c}" }
+      - run: ReassignReviewCase
+        as: manager_h1
+        input: { caseId: "${c}", newReviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" }
+      - run: StartInitialReview
+        as: reviewer2_h1
+        input: { caseId: "${c}" }
+        save: { s2: submissionId }
+    when:
+      run: SaveInitialReviewDraft
+      as: reviewer2_h1
+      input:
+        caseId: "${c}"
+        answers: [{ itemId: I1, answerValue: "10" }]
+        comment: "改派後評語"
+    then: { result: SUCCESS }
+    observe:
+      - run: GetRevisionHistory
+        as: manager_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            "entries[submissionId=${s1}]": { reviewerId: u-r1, status: DRAFT, comment: "初審評語" }
+            "entries[submissionId=${s2}]": { reviewerId: u-r2, status: DRAFT, revisionNo: 1, comment: "改派後評語" }
+
   - name: cancels_any_case_that_is_not_terminal
     basis: [RC-T-13, RC-T-14, RC-T-15, RC-T-16, RC-T-17, RC-T-18, RC-T-19, RC-CAN-S1, RC-CAN-S2]
     matrix:
