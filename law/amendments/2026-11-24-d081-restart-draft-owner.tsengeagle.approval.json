@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-24-d081-restart-draft-owner",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:07d9b9b35728042e30cfad495822002bcf7cb3d68f676f04707952ee3f04936e",
+  "reviewed_commit": "013c541511f3606a7d663d06dddc7cf239325af1",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAECqk7Vq/y7JjxZE/hWwaal+Qe0pWdT6jBoNEZtUJsqGpqXmBHYcc42K\nTIYEbbZwnz75SJNsTXJnjlXxBHzWVgIPAQAAAHk=\n-----END SSH SIGNATURE-----\n"
+}
