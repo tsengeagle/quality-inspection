@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-24-d077-report-date-taipei",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:55befb35b686775062d4df0ea403e629a6309cea8467c0b4be22e4298ac92e50",
+  "reviewed_commit": "f4ffdcaae4ec701a2573eb19e96d59e9a040090d",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBxW9iuZ+OpqAg7VsCwJY8wrriQiSGBs50Ytm4LmsNw2UeLwn1/WoaF\nJYvWUnDG1jUDz2XbnfTvOV0alAFOBGgFAQAAAFw=\n-----END SSH SIGNATURE-----\n"
+}
