@@ -3303,3 +3303,39 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`（1 個）
 - `docs/03-contracts/api-spec.md`（§10.8）、`docs/02-ddd/domain-events.md`（§6.10）
 - 後續：建構 PR（`StartInitialReviewUseCase` 沿用前比對提交的醫師與操作者，加整合測試）；範例由切片 A 的建構 PR 轉綠
+
+## D-082 — ReviewCase 切片 A：改派初審醫師、改派複審醫師
+
+### Status
+
+`accepted`（2026-11-24，負責人對 `docs/harness/33-reassign-draft.md` 的 Z-1～Z-7 全部照建議裁決，並表示日後有必要再調整）
+
+### Decision
+
+1. **改派初審醫師的狀態錯誤（Z-1 選 A）**：案件不是 `PENDING_INITIAL_REVIEW` 時回 422 `CASE_NOT_ASSIGNABLE`，與指派初審醫師、指派／改派複審醫師一致；`CASE_NOT_PENDING_INITIAL_REVIEW` 停用。
+2. **輸入檢查（Z-2 選 A）**：兩個改派都在狀態檢查之前檢查醫師與 `dueAt` 必填，空白也算沒給，回 400 `VALIDATION_ERROR`（同 D-067、D-069）。
+3. **改派給同一個人（Z-3 選 A）**：允許，用來只改期限；照樣發出事件，改派複審醫師照樣寫入複審指派歷史（D-055）。
+4. **還沒指派複審醫師就改派（Z-4 選 A）**：拒絕，422 `NO_REREVIEWER_ASSIGNED`。
+5. **改派複審醫師的事件（Z-5 選 A）**：沿用 `RereviewerAssigned`（`REREVIEWER_ASSIGNED`），帶 `caseId`、`rereviewerId`、`dueAt`，另帶 `reassignment`（改派為 `true`，指派為 `false`）；稽核 `detail` 照舊是 `{"rereviewerId":…,"reassignment":true}`。D-070 第 1 點留下的問題以此結案。
+6. **改派初審醫師的事件（Z-6）**：`ReviewCaseReassigned`（`REASSIGNED`）帶 `caseId`、`previousReviewerId`、`newReviewerId`、`dueAt`；稽核 `detail` 以 JSON 序列化產生，格式維持 `{"previousReviewerId":…,"newReviewerId":…,"dueAt":…}`。不帶分數，不列入 D-071 的遮罩清單。
+7. **檢查順序與輸入名稱（Z-7）**：
+   - 改派複審醫師依序檢查：輸入 → 狀態 → 尚未指派 → 與初審醫師相同 → 讀過初審（D-055 第 5 點）。指派複審醫師（已立法）一併改成「輸入 → 狀態 → 與初審醫師相同 → 讀過初審」，狀態不對時先回 `CASE_NOT_ASSIGNABLE`。讀過初審的範例仍等讀取遮罩立法（`model.yaml` 的 `deferred_behaviors`）。
+   - use case 的輸入名稱用 `reviewerId`、`rereviewerId`，與指派和 HTTP 一致；`ReassignRereviewer` 改收參數，`ReassignRereviewerCommand` 移除。
+   - D-081 的範例 `restarts_with_a_new_draft_after_reopen_and_reassign` 改用 `reviewerId`、移除 `needs`，由本裁決的建構 PR 轉綠。
+8. **複審中不得改派複審醫師**：D-055 已決定；`permission-matrix.md` 第 9 節待確認第 2 點以此結案。
+9. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+10. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：題目清單「還沒立法的 ReviewCase 範圍」切片 A。
+- **草案與查證**：`docs/harness/33-reassign-draft.md`（main = `bfd9cf8`）。以暫時的規格範例走真實寫入與查詢路徑實測：空白的初審醫師會被接受；還沒指派複審醫師也能改派並記成改派；改派初審醫師的狀態錯誤是 409 `CASE_NOT_PENDING_INITIAL_REVIEW`。
+- **與既有裁決的關係**：沿用 D-017、D-055、D-067、D-069、D-070、D-073、D-075；修改已立法的 `AssignRereviewer` 檢查順序（第 7 點）。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（兩個 use case）、`model.yaml`（`RC-T-20`、`RC-T-21`）、`examples.yaml`（改派的範例；D-081 範例改輸入名稱、移除 `needs`）
+- `law/coverage.txt`（兩個 use case、`ReviewCaseReassignedEvent`、`ReassignRereviewerCommand`）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/02-ddd/state-machine.md`（§3.2）、`docs/02-ddd/domain-events.md`（§6.6、新增 §6.15）、`docs/02-ddd/permission-matrix.md`（第 9 節）、`docs/03-contracts/api-spec.md`（§10.4、§10.6）
+- 後續：建構 PR

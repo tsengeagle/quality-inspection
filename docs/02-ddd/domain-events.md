@@ -498,6 +498,7 @@
 ### 發布條件
 
 * `assignRereviewer(...)` 成功
+* `reassignRereviewer(...)` 成功（D-082 第 5 點）
 
 ### 最低必要欄位（D-070）
 
@@ -510,6 +511,8 @@
   "occurredAt": "2026-04-12T02:30:00Z"
 }
 ```
+
+* `reassignment`：改派為 `true`，指派為 `false`（D-082 第 5 點）；稽核 `detail` 改派時是 `{"rereviewerId":"…","reassignment":true}`
 
 ---
 
@@ -773,6 +776,39 @@
 
 * 稽核 action 是 `CASE_CLOSED_WITHOUT_REREVIEW`，`detail` 是 `{"finalScore":…}`，依 D-071 遮罩
 * 與複審路徑的 `ReviewCaseClosed`（§6.9）以事件區分結案路徑
+
+---
+
+## 6.15 `ReviewCaseReassigned`
+
+### Emitted By
+
+* `ReviewCase`
+
+### 業務意義
+
+初審開始前改派初審醫師或期限（D-082）。
+
+### 發布條件
+
+* `reassignReviewer(...)` 成功；狀態維持 `PENDING_INITIAL_REVIEW`
+
+### 最低必要欄位（D-082）
+
+```json
+{
+  "eventName": "ReviewCaseReassigned",
+  "caseId": "RC-001",
+  "previousReviewerId": "U-R1",
+  "newReviewerId": "U-R2",
+  "dueAt": "2026-04-05T15:59:59Z",
+  "occurredAt": "2026-04-02T02:00:00Z"
+}
+```
+
+* 稽核 action 是 `REASSIGNED`，`detail` 以 JSON 序列化產生：`{"previousReviewerId":"…","newReviewerId":"…","dueAt":"…"}`
+* 改派給原本的醫師（只改期限）也發出，前後醫師相同
+* 不帶分數，不列入遮罩清單（D-071）
 
 ---
 

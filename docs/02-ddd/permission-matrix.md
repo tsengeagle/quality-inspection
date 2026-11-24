@@ -164,7 +164,7 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 ## 9) Pending Confirmation
 
 1. SYSTEM_ADMIN 在 UI-006/UI-011 是否允許 metadata-readonly 落地入口（目前採 N）。
-2. `REREVIEW_IN_PROGRESS` 是否允許 manager 改派 rereviewer（UI-011 目前偏保守不開）。
+2. [Resolved D-082] `REREVIEW_IN_PROGRESS` 不得改派 rereviewer（D-055），回 `422 CASE_NOT_ASSIGNABLE`。
 3. REVIEWER / REREVIEWER 在 UI-014 的 default tab 是否固定（目前依 page spec 建議，不宣稱強制）。
 4. audit trail 入口在各頁權限是否需單獨 matrix（本版先視為 UI-010/UI-014 的 read capability）。
 

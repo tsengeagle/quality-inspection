@@ -59,6 +59,7 @@ ReviewCaseStatus:
 | SELECTED_PENDING_ASSIGNMENT | cancel | CANCELLED | 未開始審查 |
 | PENDING_INITIAL_REVIEW | startInitialReview | INITIAL_REVIEW_IN_PROGRESS | 僅 assigned reviewer |
 | PENDING_INITIAL_REVIEW | cancel | CANCELLED | 未結案 |
+| PENDING_INITIAL_REVIEW | reassignReviewer | PENDING_INITIAL_REVIEW | D-082：改派初審醫師或期限；可改派給原本的醫師（只改期限） |
 | INITIAL_REVIEW_IN_PROGRESS | submitInitialReview | INITIAL_REVIEW_COMPLETED | 先形成 submitted 初審版本 |
 | INITIAL_REVIEW_IN_PROGRESS | returnInitialReview | RETURNED | 需有退回原因 |
 | INITIAL_REVIEW_IN_PROGRESS | cancel | CANCELLED | 未結案 |
@@ -71,6 +72,7 @@ ReviewCaseStatus:
 | INITIAL_REVIEW_COMPLETED | cancel | CANCELLED | D-080：未結案 |
 | PENDING_REREVIEW | startRereview | REREVIEW_IN_PROGRESS | 僅 assigned rereviewer |
 | PENDING_REREVIEW | cancel | CANCELLED | 未結案 |
+| PENDING_REREVIEW | reassignRereviewer | PENDING_REREVIEW | D-082：須已指派複審醫師（否則 `NO_REREVIEWER_ASSIGNED`）；複審中不得改派（D-055） |
 | REREVIEW_IN_PROGRESS | cancel | CANCELLED | D-080：未結案 |
 | REREVIEW_IN_PROGRESS | submitRereview | REREVIEW_IN_PROGRESS（最新複審提交為 SUBMITTED） | D-032：合法提交且無其他既有阻擋條件即具資格；不自動固定／結案；不新增 enum（D-053） |
 | REREVIEW_IN_PROGRESS（最新複審提交為 SUBMITTED） | 合法有效複審結果提交醫師另行 Close Command | CLOSED | D-032／034：執行時重驗資格與有效版本，同時固定尚未固定的複審結果；CLOSED 即代表已固定（D-053） |

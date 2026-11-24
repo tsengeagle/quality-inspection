@@ -28,8 +28,10 @@ sources:
   - { decision: D-073 }
   - { decision: D-076 }
   - { decision: D-080 }
+  - { decision: D-081 }
+  - { decision: D-082 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.12、§7.1、§7.2" }
-  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.7–§10.11、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3–§10.11、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
 
 error_codes:
   - { code: ROLE_DENIED,                      category: denied,         status: decided,  source: [{ decision: D-023 }] }
@@ -634,6 +636,72 @@ usecases:
         - { name: submissionId, type: id }
 
   # ---------- 退回、重開、取消、不經複審結案（D-080） ----------
+
+  - name: ReassignReviewCase
+    kind: command
+    summary: 管理者在初審開始前改派初審醫師或期限
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId,     type: id,       required: true }
+      - { name: reviewerId, type: id,       required: true }
+      - { name: dueAt,      type: datetime, required: true, status: decided, source: [{ decision: D-073 }, { doc: docs/03-contracts/api-spec.md, section: "§10.4" }] }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-RAS-01
+        when: reviewerId 或 dueAt 沒有給（空白也算），在狀態檢查之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-082 }]
+      - id: RC-RAS-02
+        when: 案件的 status 不是 PENDING_INITIAL_REVIEW
+        outcome: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+        status: decided
+        source: [{ decision: D-082 }]
+    success:
+      state:
+        - { id: RC-RAS-S1, text: status 維持 PENDING_INITIAL_REVIEW；reviewerId、dueAt 等於輸入；原本的醫師不能再開始初審, status: decided, source: [{ decision: D-082 }] }
+        - { id: RC-RAS-S2, text: 改派給原本的醫師也成功（只改期限），照樣發出事件, status: decided, source: [{ decision: D-082 }] }
+        - { id: RC-RAS-S3, text: "ReviewCaseReassigned 帶有 caseId、previousReviewerId、newReviewerId、dueAt；稽核 detail 是 {\"previousReviewerId\":…,\"newReviewerId\":…,\"dueAt\":…}", status: decided, source: [{ decision: D-082 }, { doc: docs/02-ddd/domain-events.md, section: "§6.15" }] }
+      emits:
+        - { event: ReviewCaseReassigned, status: decided, source: [{ decision: D-082 }, { doc: docs/02-ddd/domain-events.md, section: "§6.15" }] }
+
+  - name: ReassignRereviewer
+    kind: command
+    summary: 管理者在複審開始前改派複審醫師或期限
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId,       type: id,       required: true }
+      - { name: rereviewerId, type: id,       required: true }
+      - { name: dueAt,        type: datetime, required: true, status: decided, source: [{ decision: D-073 }, { doc: docs/03-contracts/api-spec.md, section: "§10.6" }] }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-RRR-01
+        when: rereviewerId 或 dueAt 沒有給（空白也算），在狀態檢查之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-082 }]
+      - id: RC-RRR-02
+        when: 案件的 status 不是 PENDING_REREVIEW（含 REREVIEW_IN_PROGRESS）
+        outcome: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-069 }, { decision: D-082 }]
+      - id: RC-RRR-03
+        when: 案件還沒有指派複審醫師
+        outcome: { result: REJECTED, code: NO_REREVIEWER_ASSIGNED }
+        status: decided
+        source: [{ decision: D-082 }]
+      - id: RC-RRR-04
+        when: rereviewerId 是本案的初審醫師
+        outcome: { result: REJECTED, code: REREVIEWER_SAME_AS_REVIEWER }
+        status: decided
+        source: [{ decision: D-017 }]
+    success:
+      state:
+        - { id: RC-RRR-S1, text: status 維持 PENDING_REREVIEW；rereviewerId、dueAt 等於輸入；原本的複審醫師不能再開始複審, status: decided, source: [{ decision: D-082 }] }
+        - { id: RC-RRR-S2, text: 改派給原本的複審醫師也成功（只改期限），照樣發出事件, status: decided, source: [{ decision: D-082 }] }
+        - { id: RC-RRR-S3, text: RereviewerAssigned 帶有 caseId、rereviewerId、dueAt，reassignment 為 true（指派時為 false）, status: decided, source: [{ decision: D-070 }, { decision: D-082 }, { doc: docs/02-ddd/domain-events.md, section: "§6.6" }] }
+      emits:
+        - { event: RereviewerAssigned, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.6" }] }
 
   - name: ReturnInitialReview
     kind: command
