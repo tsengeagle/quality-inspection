@@ -198,6 +198,21 @@ fixtures:
         as: rereviewer_h1
         input: { caseId: "${c}", submissionId: "${s2}" }
 
+  # D-080：退回、取消的案件。
+  case_in_RETURNED:
+    steps:
+      - use: case_in_INITIAL_REVIEW_IN_PROGRESS
+      - run: ReturnInitialReview
+        as: manager_h1
+        input: { caseId: "${c}", reason: "需補充病歷資料" }
+
+  case_in_CANCELLED:
+    steps:
+      - use: case_in_PENDING_INITIAL_REVIEW
+      - run: CancelReviewCase
+        as: manager_h1
+        input: { caseId: "${c}", reason: "病歷資料有誤" }
+
 # 具名斷言可以包含 result 與 code，所以矩陣的一列可以是「被拒絕」。
 expectations:
   full_content:
@@ -1067,6 +1082,207 @@ examples:
       result: SUCCESS
       output:
         "content[action=SUBMITTED]": { detail: '{"caseId":"${c}","totalScore":20,"reviewerId":"u-r1"}' }
+
+  # ---------- 退回、重開、取消、不經複審結案（D-080） ----------
+
+  - name: returns_the_initial_review
+    basis: [RC-T-10, RC-RET-S1, RC-RET-S2]
+    derived_from: [TS-IR-008]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: ReturnInitialReview, as: manager_h1, input: { caseId: "${c}", reason: "需補充病歷資料" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseReturned, with: { caseId: "${c}", reason: "需補充病歷資料" } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: RETURNED } } }
+
+  - name: return_reason_is_escaped_in_the_audit_detail
+    basis: [RC-RET-S3]
+    given:
+      - use: case_in_INITIAL_REVIEW_IN_PROGRESS
+      - run: ReturnInitialReview
+        as: manager_h1
+        input: { caseId: "${c}", reason: 'a"b\c' }
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewCase, aggregateId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[action=RETURNED]": { detail: '{"reason":"a\"b\\c"}' }
+
+  - name: rejects_return_when_not_in_progress
+    basis: [RC-RET-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: ReturnInitialReview, as: manager_h1, input: { caseId: "${c}", reason: "需補充病歷資料" } }
+    then: { result: REJECTED, code: CASE_NOT_IN_PROGRESS }
+
+  - name: rejects_a_blank_return_reason
+    basis: [RC-RET-02]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: ReturnInitialReview, as: manager_h1, input: { caseId: "${c}", reason: "   " } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_return_by_a_reviewer
+    basis: [RC-G-01]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: ReturnInitialReview, as: reviewer_h1, input: { caseId: "${c}", reason: "需補充病歷資料" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: reopens_a_returned_case
+    basis: [RC-T-11, RC-REO-S1, RC-REO-S2]
+    derived_from: [TS-TR-005]
+    given: [{ use: case_in_RETURNED }]
+    when: { run: ReopenInitialReview, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseReopened, with: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output:
+            "content[caseId=${c}]": { status: PENDING_INITIAL_REVIEW, reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" }
+
+  - name: reopen_is_recorded_as_reopened
+    basis: [RC-REO-S2]
+    derived_from: [TS-TR-005]
+    given:
+      - use: case_in_RETURNED
+      - run: ReopenInitialReview
+        as: manager_h1
+        input: { caseId: "${c}" }
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewCase, aggregateId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[action=REOPENED]": { detail: '{"reviewerId":"u-r1","dueAt":"2026-11-26T23:59:59Z"}' }
+
+  - name: rejects_reopen_when_not_returned
+    basis: [RC-REO-01]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: ReopenInitialReview, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_RETURNED }
+
+  - name: restarts_with_the_same_draft_after_reopen
+    basis: [RC-STI-S4]
+    given:
+      - use: answered_case
+      - run: ReturnInitialReview
+        as: manager_h1
+        input: { caseId: "${c}", reason: "需補充病歷資料" }
+      - run: ReopenInitialReview
+        as: manager_h1
+        input: { caseId: "${c}" }
+    when: { run: StartInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { submissionId: "${s1}" }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            entries:
+              - { submissionId: "${s1}", stage: INITIAL, status: DRAFT, revisionNo: 1, totalScore: "20", comment: "初審評語" }
+
+  - name: cancels_any_case_that_is_not_terminal
+    basis: [RC-T-13, RC-T-14, RC-T-15, RC-T-16, RC-T-17, RC-T-18, RC-T-19, RC-CAN-S1, RC-CAN-S2]
+    matrix:
+      columns: [state]
+      key: [state]
+      rows:
+        - [SELECTED_PENDING_ASSIGNMENT]
+        - [PENDING_INITIAL_REVIEW]
+        - [INITIAL_REVIEW_IN_PROGRESS]
+        - [RETURNED]
+        - [INITIAL_REVIEW_COMPLETED]
+        - [PENDING_REREVIEW]
+        - [REREVIEW_IN_PROGRESS]
+    given:
+      - use: "case_in_${state}"
+    when: { run: CancelReviewCase, as: manager_h1, input: { caseId: "${c}", reason: "病歷資料有誤" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseCancelled, with: { caseId: "${c}", reason: "病歷資料有誤" } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: CANCELLED } } }
+
+  - name: rejects_cancel_of_a_terminal_case
+    basis: [RC-CAN-01]
+    matrix:
+      columns: [state]
+      key: [state]
+      rows:
+        - [CLOSED]
+        - [CANCELLED]
+    given:
+      - use: "case_in_${state}"
+    when: { run: CancelReviewCase, as: manager_h1, input: { caseId: "${c}", reason: "病歷資料有誤" } }
+    then: { result: REJECTED, code: CASE_TERMINAL }
+
+  - name: rejects_a_blank_cancel_reason
+    basis: [RC-CAN-02]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: CancelReviewCase, as: manager_h1, input: { caseId: "${c}", reason: "" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: cancel_reason_is_escaped_in_the_audit_detail
+    basis: [RC-CAN-S3]
+    given:
+      - use: case_in_PENDING_INITIAL_REVIEW
+      - run: CancelReviewCase
+        as: manager_h1
+        input: { caseId: "${c}", reason: "第一行\n\"第二行\"" }
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewCase, aggregateId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[action=CANCELLED]": { detail: '{"reason":"第一行\n\"第二行\""}' }
+
+  - name: closes_without_rereview
+    basis: [RC-T-12, RC-CWR-S1, RC-CWR-S2]
+    given: [{ use: low_score_fixed_case }]
+    when: { run: CloseWithoutRereview, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: CaseClosedWithoutRereview, with: { caseId: "${c}" } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: CLOSED } } }
+      - run: ListAuditTrails
+        as: manager_h1
+        input: { aggregateType: ReviewCase, aggregateId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            "content[action=CASE_CLOSED_WITHOUT_REREVIEW]": { detail: '{"finalScore":5}' }
+
+  - name: rejects_close_before_fixing
+    basis: [RC-CWR-02]
+    given: [{ use: low_score_completed_case }]
+    when: { run: CloseWithoutRereview, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+
+  - name: rejects_close_of_a_case_in_rereview
+    basis: [RC-CWR-01]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: CloseWithoutRereview, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: CASE_NOT_INITIAL_REVIEW_COMPLETED }
 
   # ---------- 請求端（D-073、D-074；格式 v2.1） ----------
   # 這些拒絕發生在讀取請求本文時、進入 use case 之前，所以案件只需要存在。

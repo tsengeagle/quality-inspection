@@ -1142,7 +1142,12 @@ Accept: application/json
 
 #### 權限
 
-* `HOSPITAL_MANAGER`
+* `HOSPITAL_MANAGER`，且案件為本院
+
+#### 限制（D-080）
+
+* 案件不是 `CLOSED`／`CANCELLED`，否則 `409 CASE_TERMINAL`；其他狀態都可以取消
+* `reason` 不得空白，否則 `400 VALIDATION_ERROR`
 
 #### Request
 
@@ -1162,8 +1167,13 @@ Accept: application/json
 
 #### 權限
 
-* 待你後續定義更細角色；目前建議 `HOSPITAL_MANAGER` 或流程規則允許的控制角色
-* 若尚未定稿，可先標記 implementation pending
+* `HOSPITAL_MANAGER`，且案件為本院（D-080 第 6 點）
+
+#### 限制（D-080）
+
+* 案件須為 `INITIAL_REVIEW_IN_PROGRESS`，否則 `409 CASE_NOT_IN_PROGRESS`
+* `reason` 不得空白，否則 `400 VALIDATION_ERROR`
+* 進行中的初審提交維持 `DRAFT`；重開後開始初審沿用它
 
 #### Request
 
@@ -1233,6 +1243,8 @@ Accept: application/json
 
 * 案件須為 `RETURNED`，否則 `409 CASE_NOT_RETURNED`
 * 成功後清除退回原因，案件為 `PENDING_INITIAL_REVIEW`
+* 沿用原本的初審醫師與期限；要換人或改期限，重開後改派（D-080 第 4 點）
+* 稽核紀錄是 `REOPENED`，不是 `ASSIGNED`（D-080 第 2 點）
 
 #### Request
 

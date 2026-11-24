@@ -84,7 +84,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/InitialReviewCompletedEvent.java             legislated  specs/review-case/
 
 # ---- 已立法：初審固定到複審結案的複審切片（D-069 第 1 點）。寫在目錄那幾列之後，以最後一行為準 ----
-# 只列範例直接執行的 use case 與事件類別；改派、修正、不經複審結案、取消、退回仍是暫准。
+# 只列範例直接執行的 use case 與事件類別；改派、修正、讀取仍是暫准（不經複審結案、取消、退回、重開見 D-080）。
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/FixInitialReviewUseCase.java                       legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SendToRereviewUseCase.java                         legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/AssignRereviewerUseCase.java                       legislated  specs/review-case/
@@ -99,3 +99,15 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseEscalatedToRereviewEvent.java           legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/RereviewCompletedEvent.java                       legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseClosedEvent.java                        legislated  specs/review-case/
+
+# ---- 已立法：退回、重開、取消、不經複審結案（D-080）。寫在目錄那幾列之後，以最後一行為準 ----
+# ReviewCaseReopenedEvent 由建構 PR 建立（D-080 第 2 點），先列在這裡。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReturnInitialReviewUseCase.java           legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReopenInitialReviewUseCase.java           legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/CancelReviewCaseUseCase.java              legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/CloseWithoutRereviewUseCase.java          legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/command/CloseWithoutRereviewCommand.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseReturnedEvent.java             legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseCancelledEvent.java            legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/CaseClosedWithoutRereviewEvent.java      legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseReopenedEvent.java             legislated  specs/review-case/

@@ -121,6 +121,10 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 | retrySamplingBatch (UI-007) | N | Y | N | N | N | batch retryable |
 | assignReviewer / reassignReviewer (UI-011) | N | Y | N | N | N | case state assignable |
 | assignRereviewer / reassignRereviewer (UI-011) | N | Y | N | N | N | rereview stage assignable |
+| returnInitialReview | N | Y | N | N | N | D-080：本院；case = INITIAL_REVIEW_IN_PROGRESS |
+| reopenInitialReview | N | Y | N | N | N | D-080：本院；case = RETURNED |
+| cancelReviewCase | N | Y | N | N | N | D-080：本院；case 不是 CLOSED／CANCELLED |
+| closeWithoutRereview | N | Y | N | N | N | D-031、D-080：本院；初審已固定，case = INITIAL_REVIEW_COMPLETED |
 | startInitialReview (UI-012) | N | N | Y | N | N | actor = assigned reviewer |
 | saveInitialDraft (UI-012) | N | N | Y | N | N | actor/scope valid |
 | submitInitialReview (UI-012) | N | N | Y | N | N | draft valid + actor owned |
