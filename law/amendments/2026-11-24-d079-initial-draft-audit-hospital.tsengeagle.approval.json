@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-24-d079-initial-draft-audit-hospital",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:3ecd7557e620ed97fd208510c9e169e9364050568bd3df2a879c0f1f7e3393f9",
+  "reviewed_commit": "547cd010ab3cfa0867dc52f775660cf9e0c038d0",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEC+S2Ru1IyWdyB/b0p6O2X+Qx+tmo63zLpvUV8wKy/fg+mf8tU36YFQ\nSCaD79xtDlDiONGr6lwFkh/hKv0TPxMOAQAAAG4=\n-----END SSH SIGNATURE-----\n"
+}
