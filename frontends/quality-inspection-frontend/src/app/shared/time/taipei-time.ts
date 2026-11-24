@@ -6,7 +6,7 @@
  */
 export const TAIPEI_OFFSET = '+08:00';
 
-const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
+export const TAIPEI_OFFSET_MS = 8 * 60 * 60 * 1000;
 /** 帶時區的 ISO-8601 時間。不帶時區的值不是合憲的輸出，不猜它的時區。 */
 const ZONED_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
