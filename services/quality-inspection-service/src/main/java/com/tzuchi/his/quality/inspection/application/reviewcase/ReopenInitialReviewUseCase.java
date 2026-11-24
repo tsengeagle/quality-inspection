@@ -6,7 +6,7 @@ import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseAssignedEvent;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseReopenedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,7 +35,7 @@ public class ReopenInitialReviewUseCase {
         reviewCase.reopenInitialReview();
         repository.save(reviewCase);
 
-        eventPublisher.publish(new ReviewCaseAssignedEvent(
+        eventPublisher.publish(new ReviewCaseReopenedEvent(
                 this, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 reviewCase.getReviewerAssignment().getReviewerId(),

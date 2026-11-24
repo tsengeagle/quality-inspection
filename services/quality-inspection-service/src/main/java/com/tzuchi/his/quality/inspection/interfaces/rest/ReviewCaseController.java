@@ -228,7 +228,7 @@ public class ReviewCaseController {
     public ResponseEntity<ApiResponse<StartInitialReviewResponse>> startInitialReview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
-        String submissionId = startInitialReviewUseCase.execute(actor, caseId);
+        String submissionId = startInitialReviewUseCase.execute(actor, caseId).getSubmissionId();
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(new StartInitialReviewResponse(submissionId)));
@@ -303,9 +303,7 @@ public class ReviewCaseController {
     public ResponseEntity<ApiResponse<Void>> closeWithoutRereview(
             @CurrentActor ActorContext actor,
             @PathVariable String caseId) {
-        CloseWithoutRereviewCommand cmd = new CloseWithoutRereviewCommand();
-        cmd.setCaseId(caseId);
-        closeWithoutRereviewUseCase.execute(actor, cmd);
+        closeWithoutRereviewUseCase.execute(actor, caseId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 

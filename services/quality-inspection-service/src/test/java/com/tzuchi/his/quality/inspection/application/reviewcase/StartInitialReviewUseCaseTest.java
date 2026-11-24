@@ -95,7 +95,7 @@ class StartInitialReviewUseCaseTest {
         seedAssignedCase();
         seedProjectWithScoreSheet();
 
-        String submissionId = useCase.execute(reviewer(), CASE_ID);
+        String submissionId = useCase.execute(reviewer(), CASE_ID).getSubmissionId();
 
         assertNotNull(submissionId);
 

@@ -6,23 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-# ---- D-080：退回、重開、取消、不經複審結案。規格先立法，程式由建構 PR 配合（D-080 第 10、11 點）----
-# 事件少了 caseId／reason、重開還發 ASSIGNED、理由沒有跳脫、空白理由沒有拒絕、重開後開始初審建立新提交、CloseWithoutRereviewUseCase.execute 收 command
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancel_reason_is_escaped_in_the_audit_detail
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancels_any_case_that_is_not_terminal.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancels_any_case_that_is_not_terminal.INITIAL_REVIEW_IN_PROGRESS
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancels_any_case_that_is_not_terminal.PENDING_INITIAL_REVIEW
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancels_any_case_that_is_not_terminal.PENDING_REREVIEW
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancels_any_case_that_is_not_terminal.REREVIEW_IN_PROGRESS
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancels_any_case_that_is_not_terminal.RETURNED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/cancels_any_case_that_is_not_terminal.SELECTED_PENDING_ASSIGNMENT
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/closes_without_rereview
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_blank_cancel_reason
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_blank_return_reason
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_close_before_fixing
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_close_of_a_case_in_rereview
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/reopen_is_recorded_as_reopened
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/reopens_a_returned_case
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/restarts_with_the_same_draft_after_reopen
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/return_reason_is_escaped_in_the_audit_detail
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/returns_the_initial_review

@@ -3,7 +3,6 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.CloseWithoutRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseRepository;
@@ -29,10 +28,10 @@ public class CloseWithoutRereviewUseCase {
     }
 
     @Transactional
-    public void execute(ActorContext actor, CloseWithoutRereviewCommand cmd) {
+    public void execute(ActorContext actor, String caseId) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
-        ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.closeWithoutRereview(Instant.now(clock));
         caseRepository.save(reviewCase);

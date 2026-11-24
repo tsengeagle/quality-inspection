@@ -4,10 +4,10 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.CloseWithoutRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCase;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.event.CaseClosedWithoutRereviewEvent;
 import com.tzuchi.his.quality.inspection.testfixture.CapturingDomainEventPublisher;
 import com.tzuchi.his.quality.inspection.testfixture.InMemoryReviewCaseRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,36 +56,30 @@ class CloseWithoutRereviewUseCaseTest {
     @Test
     void execute_happyPath_shouldCloseCase() {
         seedCompletedCase();
-        CloseWithoutRereviewCommand cmd = new CloseWithoutRereviewCommand();
-        cmd.setCaseId("c1");
-
-        useCase.execute(managerActor(), cmd);
+        useCase.execute(managerActor(), "c1");
 
         ReviewCase saved = caseRepository.findById("c1").orElseThrow();
         assertEquals(CaseStatus.CLOSED, saved.getStatus());
         assertNotNull(saved.getClosedAt());
         assertEquals(1, eventPublisher.events.size());
+        CaseClosedWithoutRereviewEvent event = (CaseClosedWithoutRereviewEvent) eventPublisher.events.get(0);
+        assertEquals("c1", event.getCaseId());
+        assertEquals("CASE_CLOSED_WITHOUT_REREVIEW", event.getAction());
     }
 
     @Test
     void execute_wrongRole_shouldThrow() {
         seedCompletedCase();
-        CloseWithoutRereviewCommand cmd = new CloseWithoutRereviewCommand();
-        cmd.setCaseId("c1");
-
         ActorContext wrongActor = new ActorContext("reviewer-1", "Reviewer",
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(wrongActor, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(wrongActor, "c1"));
     }
 
     @Test
     void execute_wrongHospital_shouldThrowAccessDenied() {
         seedCompletedCase();
-        CloseWithoutRereviewCommand cmd = new CloseWithoutRereviewCommand();
-        cmd.setCaseId("c1");
-
         ActorContext wrongHospital = new ActorContext("mgr-1", "Manager",
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
-        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, cmd));
+        assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongHospital, "c1"));
     }
 }

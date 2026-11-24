@@ -5,6 +5,7 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
@@ -105,5 +106,26 @@ class ReturnInitialReviewUseCaseTest {
 
         assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(hospitalManager(), "c1", "reason"));
+    }
+
+    @Test
+    void execute_blankReason_shouldThrowValidation() {
+        createInProgressCase();
+
+        DomainValidationException ex = assertThrows(DomainValidationException.class,
+                () -> useCase.execute(hospitalManager(), "c1", "   "));
+        assertEquals("VALIDATION_ERROR", ex.getErrorCode());
+    }
+
+    @Test
+    void execute_reasonWithQuotesAndNewlines_shouldProduceValidJsonDetail() {
+        createInProgressCase();
+
+        useCase.execute(hospitalManager(), "c1", "a\"b\\c\nd");
+
+        ReviewCaseReturnedEvent event = (ReviewCaseReturnedEvent) eventPublisher.events.get(0);
+        assertEquals("c1", event.getCaseId());
+        assertEquals("a\"b\\c\nd", event.getReason());
+        assertEquals("{\"reason\":\"a\\\"b\\\\c\\nd\"}", event.getDetail());
     }
 }
