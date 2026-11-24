@@ -1376,6 +1376,13 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * 不可覆寫舊 submission
 * 建立新 revision
 
+#### 錯誤（D-083）
+
+* 案件已終止 `409 CASE_TERMINAL`；提交找不到 `404 SUBMISSION_NOT_FOUND`
+* 提交不屬於本案或不是初審、不是目前有效的初審結果 `409 CONFLICT`
+* 操作者不是提交者 `403 NOT_SUBMISSION_OWNER`；提交不是 `SUBMITTED` `409 SUBMISSION_NOT_SUBMITTED`；初審已固定 `409 INVALID_STATE_TRANSITION`
+* 必答題沒有作答 `422 REQUIRED_ITEMS_NOT_ANSWERED`；`answers` 與 `comment` 都沒有變更 `409 NO_CHANGES`
+
 #### Request
 
 ```json
@@ -1400,6 +1407,8 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
     "oldSubmissionId": "SUB-INIT-001",
     "newSubmissionId": "SUB-INIT-002",
     "revisionNo": 2,
+    "totalScore": 3,
+    "status": "SUBMITTED",
     "stage": "INITIAL",
     "caseId": "RC-001"
   }
@@ -1485,6 +1494,14 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
 * 不可覆寫舊 submission
 * 建立新 revision
 
+#### 錯誤（D-083）
+
+* 案件已終止 `409 CASE_TERMINAL`；不是受指派的複審醫師 `403 NOT_ASSIGNED_REREVIEWER`；提交找不到 `404 SUBMISSION_NOT_FOUND`
+* 提交不屬於本案或不是複審、不是目前有效的複審結果 `409 CONFLICT`
+* 操作者不是提交者 `403 NOT_SUBMISSION_OWNER`；提交不是 `SUBMITTED` `409 SUBMISSION_NOT_SUBMITTED`
+* 必答題沒有作答 `422 REQUIRED_ITEMS_NOT_ANSWERED`；`answers` 與 `comment` 都沒有變更 `409 NO_CHANGES`
+* 回應沒有 `finalScore` 與初審分數（D-033）
+
 #### Request
 
 ```json
@@ -1508,6 +1525,8 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
     "oldSubmissionId": "SUB-RR-001",
     "newSubmissionId": "SUB-RR-002",
     "revisionNo": 2,
+    "totalScore": 5,
+    "status": "SUBMITTED",
     "stage": "REREVIEW",
     "caseId": "RC-001"
   }

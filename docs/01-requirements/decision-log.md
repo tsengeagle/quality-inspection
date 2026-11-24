@@ -3339,3 +3339,43 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/02-ddd/state-machine.md`（§3.2）、`docs/02-ddd/domain-events.md`（§6.6、新增 §6.15）、`docs/02-ddd/permission-matrix.md`（第 9 節）、`docs/03-contracts/api-spec.md`（§10.4、§10.6）
 - 後續：建構 PR
+
+## D-083 — ReviewCase 切片 D：修正已提交的初審與複審，並立法 `ReviewCase.java`
+
+### Status
+
+`accepted`（2026-11-24，負責人決定把 `ReviewCase.java` 提早到本切片立法；對 `docs/harness/34-revise-and-reviewcase-draft.md` 的 U-1～U-10 全部照建議裁決）
+
+### Decision
+
+1. **必答題（U-1 選 A）**：修正與提交相同，輸入的 `answers` 裡評分表有必答的題目沒有作答時，回 422 `REQUIRED_ITEMS_NOT_ANSWERED`（D-067、D-076）。
+2. **沒有變更（U-2 選 A）**：`answers` 與 `comment` 都和被修正的提交相同時，回 409 `NO_CHANGES`（比照 D-038）。
+3. **稽核紀錄（U-3 選 A）**：修正複審也發 `ReviewSubmissionRevised`（`ReviewSubmission` 的 `REVISED`，不帶分數），與修正初審對稱；`RereviewRevised`（`REREVIEW_REVISED`，帶分數，D-071 遮罩）照舊。修正初審不另寫 `ReviewCase` 的紀錄。
+4. **目標不對（U-4）**：提交不屬於本案或階段不對，兩個修正一律回 409 `CONFLICT`（D-054 第 6 點）；`SUBMISSION_NOT_INITIAL` 與修正初審的 400 請求錯誤停用。
+5. **事件與輸出（U-5）**：
+   - `ReviewSubmissionRevised` 帶 `caseId`、`oldSubmissionId`、`newSubmissionId`、`stage`、`revisionNo`；`RereviewRevised` 帶 `caseId`、`oldSubmissionId`、`newSubmissionId`、`rereviewScore`、`finalScore`。兩者稽核 `detail` 格式不變，以 JSON 序列化產生。
+   - 輸出 `{ newSubmissionId, oldSubmissionId, revisionNo, totalScore, status, stage, caseId }`；修正的人只看得到自己階段的分數（D-033），修正複審的輸出沒有 `finalScore` 與初審分數。
+6. **輸入與 ID（U-6）**：`ReviseRereview` 改收參數（`caseId`、`submissionId`、`answers`、`comment`），`answers` 與修正初審同型別；`ReviseRereviewCommand` 移除。新提交 ID 一律是 UUID。
+7. **檢查順序**：
+   - 修正初審：角色 → 載入 → 院區 → 案件未終止 → 提交存在 → 屬於本案且是初審 → 操作者是提交者 → `SUBMITTED` → 目前有效 → 未固定 → 必答題 → 有變更。
+   - 修正複審：角色 → 載入 → 院區 → 案件未終止 → 受指派的複審醫師 → 提交存在 → 屬於本案且是複審 → 操作者是提交者 → `SUBMITTED` → 目前有效 → 必答題 → 有變更。
+8. **`ReviewCase.java` 立法（U-7、U-8）**：`ReviewCase.java`、`CaseStatus.java`、`ReviewerAssignment.java`、`ReviewCaseRepository.java` 登記為已立法（`specs/review-case/`）。`model.yaml` 補上不變式 RC-INV-03（`finalScore` 的計算，D-012、D-020、D-032）、RC-INV-04（固定後不得修正初審；終止後不得修正、提交或再審）、RC-INV-05（初審醫師與複審醫師不同人，D-017）。`domain/reviewcase/` 目錄那一列仍是 grandfathered（`submission/` 等最後處理）。
+9. **目前有效的複審提交（U-9）**：記錄複審修正改由 domain 方法檢查與執行（舊提交是目前有效的、重算 `finalScore`、改指新提交），對應修正初審的 `recordInitialReviewRevision`；`setLatestRereviewSubmissionId`、`updateFinalScore` 不再公開。行為不變。
+10. **沒有被寫入的欄位（U-10 選 A）**：`rereviewRequired`、`finalConclusion`、`ruleSnapshotRef` 不在本次立法範圍，列進 `deferred_behaviors`，等讀取（切片 E）決定是否移除。
+11. **加權取專案目前的版本**：維持 D-068 第 4 點的已知問題（`deferred_behaviors`），修正複審與提交複審相同。
+12. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+13. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：題目清單「還沒立法的 ReviewCase 範圍」切片 D；負責人 2026-11-24 在 #157 合併後決定 `ReviewCase.java` 提早到本切片，避免建構 PR 一再依先例修改未立法的檔案。
+- **草案與查證**：`docs/harness/34-revise-and-reviewcase-draft.md`（main = `623552a`）。以暫時的規格範例走真實寫入與查詢路徑實測：必答題沒答、沒有變更都能修正成功；修正複審沒有 `REVISED` 紀錄；分數重算正確。
+- **與既有裁決的關係**：沿用 D-006、D-012、D-017、D-020、D-031、D-032、D-033、D-038、D-053、D-054、D-067、D-068、D-071、D-076。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（`ReviseInitialReview`、`ReviseRereview`）、`model.yaml`（RC-INV-03～05、`deferred_behaviors`）、`examples.yaml`（修正的範例；`not_covered` 的理由更新）
+- `law/coverage.txt`（兩個 use case、`ReviseRereviewCommand`、`RevisionResult`、兩個事件、`ReviewCase.java`、`CaseStatus.java`、`ReviewerAssignment.java`、`ReviewCaseRepository.java`）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/02-ddd/domain-events.md`（§8.1、新增 §8.2）、`docs/03-contracts/api-spec.md`（§11.4、§12.4）
+- 後續：建構 PR

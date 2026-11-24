@@ -21,6 +21,7 @@ sources:
   - { decision: D-069 }
   - { decision: D-080 }
   - { decision: D-082 }
+  - { decision: D-083 }
   - { doc: docs/02-ddd/state-machine.md, section: "§3" }
   - { doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1、§6" }
 
@@ -76,6 +77,18 @@ transitions:
 terminal_states: [CLOSED, CANCELLED]
 
 invariants:
+  - id: RC-INV-03
+    text: finalScore 在複審前等於目前有效的初審分數；複審提交或修正後 = 初審分數 × 初審權重 + 複審分數 × 複審權重，四捨五入到兩位小數
+    status: decided
+    source: [{ decision: D-012 }, { decision: D-020 }, { decision: D-032 }, { decision: D-083 }]
+  - id: RC-INV-04
+    text: 初審固定後不得修正初審；CLOSED、CANCELLED 之後不得修正、提交或再審
+    status: decided
+    source: [{ decision: D-006 }, { decision: D-031 }, { decision: D-032 }, { decision: D-054 }, { decision: D-083 }]
+  - id: RC-INV-05
+    text: 案件的初審醫師與複審醫師不是同一人
+    status: decided
+    source: [{ decision: D-017 }, { decision: D-083 }]
   - id: RC-INV-02
     text: SYSTEM_ADMIN 只取得 metadata，取不到任何階段的答案、分數、評語
     status: decided
@@ -86,4 +99,5 @@ deferred_behaviors:
   - updatedAt（D-037）：本次範圍內沒有輸出它的查詢
   - 讀過完整初審的人不得被指派為複審醫師（D-055 第 5 點）：讀取紀錄由完整初審的讀取產生，本次範圍內的範例做不出「讀過、之後才受派」的狀態，等讀取遮罩立法（D-069）
   - 品質線與權重取自專案目前的版本，不是案件建立時的版本：與 D-068 第 4 點同一題，等專案版本管理立法（D-069）
-  - 案件詳情與提交明細的讀取遮罩；修正已提交的初審與複審
+  - 案件詳情與提交明細的讀取遮罩（切片 E）
+  - 案件的 rereviewRequired、finalConclusion、ruleSnapshotRef 沒有任何行為寫入，等讀取（切片 E）決定是否移除（D-083 第 10 點）
