@@ -2,6 +2,8 @@
 
 狀態：**已裁決**（2026-11-24）。負責人對 V-1～V-5 全部照建議裁決（V-2 選 A），並要求立法前掃過其他種類的 `detail`（結果在第七節）。條文是 `decision-log.md` 的 D-078，以那裡為準。本文件不是律法，下面保留起草時的版本（main = `2fd49e6`）。題號 V-1～V-5 只在本文件使用。
 
+> **更正（2026-11-24，建構時發現）**：第二節證據鏈第 1 步寫「保存草稿發 `ReviewDraftSavedEvent`，同樣帶 `hospitalId`」是錯的。初審保存草稿傳的院區是空字串（`SaveInitialReviewDraftUseCase` 兩處），只有複審草稿與兩種 `SUBMITTED` 帶院區。所以院區人員以 `ListAuditTrails` 查不到初審的 `DRAFT_SAVED`，這類紀錄不會外洩分數，但也看不到。查錯的原因：只讀了事件的建構子，沒有逐一讀發出事件的地方；實測用的是手造、院區已填好的紀錄，沒有走真正的寫入路徑。#147 的兩個範例因此改成只檢查 `SUBMITTED`；`DRAFT_SAVED` 仍在遮罩清單內。初審草稿缺院區另列為題目清單的待辦。
+
 ## 一、背景
 
 - D-076 第 3 點：`DRAFT_SAVED`、`SUBMITTED` 的 `detail` 帶 `totalScore`，`entityType` 是 `ReviewSubmission`，不在 D-071 的遮罩範圍。D-076 決定另開一題：先查證兩個查詢出口會不會回傳，再決定要不要擴大遮罩。

@@ -9,6 +9,7 @@
 ## 待辦（依序）
 
 1. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）：改派、修正、不經複審結案、取消、退回。
+2. **初審 `DRAFT_SAVED` 的稽核紀錄沒有院區**：`SaveInitialReviewDraftUseCase` 傳空字串，院區人員在稽核軌跡看不到這類紀錄（D-078 建構時發現；草稿 29 的更正）。要補上院區，以及已寫入的紀錄怎麼處理，需要裁決。
 
 ## 已完成
 

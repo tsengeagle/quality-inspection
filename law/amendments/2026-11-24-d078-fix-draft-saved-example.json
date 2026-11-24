@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-24-d078-fix-draft-saved-example",
+  "decision": "D-078",
+  "reason": "修正 #147 的兩個範例（audit_trails_mask_submission_rows_before_rereview_for_an_auditor／_for_a_manager）。建構時發現初審保存草稿寫入的院區是空字串，院區人員以 ListAuditTrails 查不到初審的 DRAFT_SAVED，範例的 absent 選不到任何一筆而失敗，與遮罩無關。負責人選 A：兩個範例只檢查 SUBMITTED，DRAFT_SAVED 仍在 D-078 的遮罩清單，由單元測試固定。草稿 29 加上更正，初審草稿缺院區列入題目清單待辦。裁決條文不變；程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/review-case/examples.yaml",
+    "law/amendments/"
+  ]
+}
