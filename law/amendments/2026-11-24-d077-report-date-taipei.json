@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-24-d077-report-date-taipei",
+  "decision": "D-077",
+  "reason": "D-077：報表的日期篩選固定以台北解讀。負責人對 docs/harness/28-report-date-filter-taipei-draft.md 的 V-1～V-5 全部照建議裁決（V-4 的測試時區用 UTC）。decision-log 新增 D-077：UI-015、UI-017 的起日、迄日是 Asia/Taipei 的日曆日期；from 是起日 00:00 +08:00、to 是迄日次日 00:00 +08:00，以 UTC 送出，換算在前端 export-date-range.ts；預設的上一個整月以台北的今天計算；後端與 HTTP 契約不變，reporting 維持 grandfathered；測試在 UTC 時區執行。文件：UI-017 §4、§5 檔名、§8 第 1 項，UI-015 §4、§8 第 1 項；docs/harness/28 標為已裁決，更新題目清單與 README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/amendments/"
+  ]
+}
