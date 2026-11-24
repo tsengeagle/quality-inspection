@@ -6,5 +6,22 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-# ---- D-081：重開後改派，新醫師開始初審拿到原醫師的草稿、無法保存。規格先立法，範例以未立法的改派製造前提（needs），由切片 A 的建構 PR 移除（D-081 第 4 點）----
+# ---- D-082：改派初審醫師、改派複審醫師。規格先立法，程式由建構 PR 配合（D-082 第 9 點）；D-081 的範例改用 reviewerId、移除 needs，一併在這裡 ----
+# 改派的輸入名稱是 newReviewerId、改派複審醫師收 command、沒有輸入檢查、狀態錯誤代碼不同、未指派也能改派、事件沒有屬性
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/previous_rereviewer_cannot_start_after_reassign
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/previous_reviewer_cannot_start_after_reassign
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/reassigns_the_initial_reviewer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/reassigns_the_rereviewer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/reassigns_to_the_same_rereviewer_to_change_the_due_date
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/reassigns_to_the_same_reviewer_to_change_the_due_date
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_blank_rereviewer_on_reassign
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_blank_reviewer_on_reassign
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_reassign_before_a_rereviewer_is_assigned
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_reassign_by_a_reviewer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_reassign_when_not_pending_initial_review.INITIAL_REVIEW_IN_PROGRESS
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_reassign_when_not_pending_initial_review.SELECTED_PENDING_ASSIGNMENT
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_reassign_without_a_due_date
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_reassigning_the_initial_reviewer_as_rereviewer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereviewer_reassign_when_not_pending_rereview.PENDING_INITIAL_REVIEW
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereviewer_reassign_when_not_pending_rereview.REREVIEW_IN_PROGRESS
 com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/restarts_with_a_new_draft_after_reopen_and_reassign

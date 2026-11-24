@@ -1088,6 +1088,12 @@ Accept: application/json
 
 不包含 `reason` 欄位。若後續需要 change reason，必須先由 authority 文件定稿。
 
+#### 限制（D-082）
+
+* `reviewerId`、`dueAt` 必填（空白也算沒給），否則 `400 VALIDATION_ERROR`；在狀態檢查之前
+* 案件須為 `PENDING_INITIAL_REVIEW`，否則 `422 CASE_NOT_ASSIGNABLE`
+* 可改派給原本的醫師（只改期限）；改派後原本的醫師不能開始初審
+
 ---
 
 ## 10.5 指派複審醫師
@@ -1133,6 +1139,17 @@ Accept: application/json
 不包含 `reason` 欄位。若需改派原因，應先更新 accepted decision / UI page spec / API contract。
 
 對象曾讀過本案完整初審內容時回 `422 REREVIEWER_HAS_READ_INITIAL`（D-055 第 5 點，D-033 永久盲審）。
+
+#### 限制（D-082）
+
+依序檢查：
+
+* `rereviewerId`、`dueAt` 必填（空白也算沒給），否則 `400 VALIDATION_ERROR`
+* 案件須為 `PENDING_REREVIEW`（複審中不得改派，D-055），否則 `422 CASE_NOT_ASSIGNABLE`
+* 須已指派複審醫師，否則 `422 NO_REREVIEWER_ASSIGNED`
+* 不得是本案的初審醫師，否則 `422 REREVIEWER_SAME_AS_REVIEWER`
+* 不得讀過本案完整初審，否則 `422 REREVIEWER_HAS_READ_INITIAL`
+* 可改派給原本的複審醫師（只改期限）；改派後原本的複審醫師不能開始複審
 
 ---
 

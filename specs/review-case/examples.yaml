@@ -1195,8 +1195,6 @@ examples:
 
   - name: restarts_with_a_new_draft_after_reopen_and_reassign
     basis: [RC-STI-S5]
-    # 改派還沒立法（切片 A）；立法前這個範例不執行、算未通過（D-081 第 4 點）
-    needs: [ReassignReviewCase]
     given:
       - use: answered_case
       - run: ReturnInitialReview
@@ -1207,7 +1205,7 @@ examples:
         input: { caseId: "${c}" }
       - run: ReassignReviewCase
         as: manager_h1
-        input: { caseId: "${c}", newReviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" }
+        input: { caseId: "${c}", reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" }
       - run: StartInitialReview
         as: reviewer2_h1
         input: { caseId: "${c}" }
@@ -1229,6 +1227,132 @@ examples:
           output:
             "entries[submissionId=${s1}]": { reviewerId: u-r1, status: DRAFT, comment: "初審評語" }
             "entries[submissionId=${s2}]": { reviewerId: u-r2, status: DRAFT, revisionNo: 1, comment: "改派後評語" }
+
+  # ---------- 改派（D-082） ----------
+
+  - name: reassigns_the_initial_reviewer
+    basis: [RC-T-20, RC-RAS-S1, RC-RAS-S3]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: ReassignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseReassigned, with: { caseId: "${c}", previousReviewerId: u-r1, newReviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: PENDING_INITIAL_REVIEW, reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" } } }
+      - run: ListAuditTrails
+        as: manager_h1
+        input: { aggregateType: ReviewCase, aggregateId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            "content[action=REASSIGNED]": { detail: '{"previousReviewerId":"u-r1","newReviewerId":"u-r2","dueAt":"2026-11-28T23:59:59Z"}' }
+
+  - name: previous_reviewer_cannot_start_after_reassign
+    basis: [RC-RAS-S1]
+    given:
+      - use: case_in_PENDING_INITIAL_REVIEW
+      - { run: ReassignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" } }
+    when: { run: StartInitialReview, as: reviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: NOT_ASSIGNED_REVIEWER }
+
+  - name: reassigns_to_the_same_reviewer_to_change_the_due_date
+    basis: [RC-RAS-S2]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: ReassignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-28T23:59:59Z" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewCaseReassigned, with: { caseId: "${c}", previousReviewerId: u-r1, newReviewerId: u-r1, dueAt: "2026-11-28T23:59:59Z" } }
+
+  - name: rejects_reassign_when_not_pending_initial_review
+    basis: [RC-RAS-02]
+    matrix:
+      columns: [state]
+      key: [state]
+      rows:
+        - [SELECTED_PENDING_ASSIGNMENT]
+        - [INITIAL_REVIEW_IN_PROGRESS]
+    given: [{ use: "case_in_${state}" }]
+    when: { run: ReassignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" } }
+    then: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+
+  - name: rejects_a_blank_reviewer_on_reassign
+    basis: [RC-RAS-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: ReassignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: "  ", dueAt: "2026-11-28T23:59:59Z" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_reassign_without_a_due_date
+    basis: [RC-RAS-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: ReassignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r2 } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_reassign_by_a_reviewer
+    basis: [RC-G-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: ReassignReviewCase, as: reviewer_h1, input: { caseId: "${c}", reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: reassigns_the_rereviewer
+    basis: [RC-T-21, RC-RRR-S1, RC-RRR-S3]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr2, dueAt: "2026-12-05T23:59:59Z" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: RereviewerAssigned, with: { caseId: "${c}", rereviewerId: u-rr2, dueAt: "2026-12-05T23:59:59Z", reassignment: true } }
+
+  - name: previous_rereviewer_cannot_start_after_reassign
+    basis: [RC-RRR-S1]
+    given:
+      - use: rereviewer_assigned
+      - { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr2, dueAt: "2026-12-05T23:59:59Z" } }
+    when: { run: StartRereview, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: NOT_ASSIGNED_REREVIEWER }
+
+  - name: reassigns_to_the_same_rereviewer_to_change_the_due_date
+    basis: [RC-RRR-S2]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-05T23:59:59Z" } }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: RereviewerAssigned, with: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-05T23:59:59Z", reassignment: true } }
+
+  - name: rejects_reassign_before_a_rereviewer_is_assigned
+    basis: [RC-RRR-03]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr2, dueAt: "2026-12-05T23:59:59Z" } }
+    then: { result: REJECTED, code: NO_REREVIEWER_ASSIGNED }
+
+  - name: rejects_rereviewer_reassign_when_not_pending_rereview
+    basis: [RC-RRR-02]
+    matrix:
+      columns: [state]
+      key: [state]
+      rows:
+        - [PENDING_INITIAL_REVIEW]
+        - [REREVIEW_IN_PROGRESS]
+    given: [{ use: "case_in_${state}" }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr2, dueAt: "2026-12-05T23:59:59Z" } }
+    then: { result: REJECTED, code: CASE_NOT_ASSIGNABLE }
+
+  - name: rejects_reassigning_the_initial_reviewer_as_rereviewer
+    basis: [RC-RRR-04]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-r1, dueAt: "2026-12-05T23:59:59Z" } }
+    then: { result: REJECTED, code: REREVIEWER_SAME_AS_REVIEWER }
+
+  - name: rejects_a_blank_rereviewer_on_reassign
+    basis: [RC-RRR-01]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: "  ", dueAt: "2026-12-05T23:59:59Z" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
 
   - name: cancels_any_case_that_is_not_terminal
     basis: [RC-T-13, RC-T-14, RC-T-15, RC-T-16, RC-T-17, RC-T-18, RC-T-19, RC-CAN-S1, RC-CAN-S2]

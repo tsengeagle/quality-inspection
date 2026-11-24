@@ -20,6 +20,7 @@ sources:
   - { decision: D-066 }
   - { decision: D-069 }
   - { decision: D-080 }
+  - { decision: D-082 }
   - { doc: docs/02-ddd/state-machine.md, section: "§3" }
   - { doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1、§6" }
 
@@ -68,6 +69,8 @@ transitions:
   - { id: RC-T-17, from: INITIAL_REVIEW_COMPLETED,    to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ decision: D-080 }] }
   - { id: RC-T-18, from: PENDING_REREVIEW,            to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-080 }] }
   - { id: RC-T-19, from: REREVIEW_IN_PROGRESS,        to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ decision: D-080 }] }
+  - { id: RC-T-20, from: PENDING_INITIAL_REVIEW,      to: PENDING_INITIAL_REVIEW,     by: ReassignReviewCase,   status: decided, source: [{ decision: D-082 }] }
+  - { id: RC-T-21, from: PENDING_REREVIEW,            to: PENDING_REREVIEW,           by: ReassignRereviewer,   when: 已指派複審醫師, status: decided, source: [{ decision: D-055 }, { decision: D-082 }] }
 
 
 terminal_states: [CLOSED, CANCELLED]
@@ -83,4 +86,4 @@ deferred_behaviors:
   - updatedAt（D-037）：本次範圍內沒有輸出它的查詢
   - 讀過完整初審的人不得被指派為複審醫師（D-055 第 5 點）：讀取紀錄由完整初審的讀取產生，本次範圍內的範例做不出「讀過、之後才受派」的狀態，等讀取遮罩立法（D-069）
   - 品質線與權重取自專案目前的版本，不是案件建立時的版本：與 D-068 第 4 點同一題，等專案版本管理立法（D-069）
-  - 案件詳情與提交明細的讀取遮罩；修正已提交的初審與複審；改派複審醫師；不經複審結案
+  - 案件詳情與提交明細的讀取遮罩；修正已提交的初審與複審

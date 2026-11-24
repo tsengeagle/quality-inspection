@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-24-d082-reassign",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:bed47619fbb2731233c8e10e52e63187fb5caf28ddc898da8d81adb46c488f5a",
+  "reviewed_commit": "44906e9718c443c924b5a73b42b56d4023a451d4",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAED6vjBouyMQNy0Yfq/txoFzpRc4OyAvdItZdIM7EXjBVNA/ZFDloXOM\nm3EkZs4Ps0oT7tgASzqbaYYeSM8eaU0GAQAAAHw=\n-----END SSH SIGNATURE-----\n"
+}

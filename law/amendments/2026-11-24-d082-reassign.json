@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-24-d082-reassign",
+  "decision": "D-082",
+  "reason": "D-082：ReviewCase 切片 A（改派初審醫師、改派複審醫師）。負責人對 docs/harness/33 的 Z-1～Z-7 全部照建議裁決，日後有必要再調整。規格：usecases.yaml 新增 ReassignReviewCase、ReassignRereviewer（輸入檢查在狀態之前、狀態錯誤一律 CASE_NOT_ASSIGNABLE、未指派複審醫師回 NO_REREVIEWER_ASSIGNED、可改派給同一人）；model.yaml 新增 RC-T-20、RC-T-21，deferred_behaviors 移除改派與不經複審結案；examples.yaml 新增改派範例，D-081 的範例改用 reviewerId、移除 needs。一開始是紅的 17 個範例（含矩陣列與 D-081 的範例）列在 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。law/coverage.txt 登記兩個 use case、ReassignRereviewerCommand、ReviewCaseReassignedEvent 為已立法。文件：state-machine §3.2、domain-events §6.6 與新增 §6.15、permission-matrix 第 9 節、api-spec §10.4／§10.6、草稿 33、題目清單（D-081 移到已完成）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/model.yaml",
+    "specs/review-case/examples.yaml",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

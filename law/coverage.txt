@@ -84,7 +84,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/InitialReviewCompletedEvent.java             legislated  specs/review-case/
 
 # ---- 已立法：初審固定到複審結案的複審切片（D-069 第 1 點）。寫在目錄那幾列之後，以最後一行為準 ----
-# 只列範例直接執行的 use case 與事件類別；改派、修正、讀取仍是暫准（不經複審結案、取消、退回、重開見 D-080）。
+# 只列範例直接執行的 use case 與事件類別；修正、讀取仍是暫准（不經複審結案、取消、退回、重開見 D-080；改派見 D-082）。
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/FixInitialReviewUseCase.java                       legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SendToRereviewUseCase.java                         legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/AssignRereviewerUseCase.java                       legislated  specs/review-case/
@@ -111,3 +111,9 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseCancelledEvent.java            legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/CaseClosedWithoutRereviewEvent.java      legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseReopenedEvent.java             legislated  specs/review-case/
+
+# ---- 已立法：改派初審醫師、改派複審醫師（D-082）。寫在目錄那幾列之後，以最後一行為準 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReassignReviewCaseUseCase.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReassignRereviewerUseCase.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/command/ReassignRereviewerCommand.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseReassignedEvent.java  legislated  specs/review-case/
