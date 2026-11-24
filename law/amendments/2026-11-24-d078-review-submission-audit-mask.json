@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-24-d078-review-submission-audit-mask",
+  "decision": "D-078",
+  "reason": "D-078：ReviewSubmission 稽核紀錄的遮罩（D-076 第 3 點另開的一題）。負責人對 docs/harness/29-review-submission-audit-mask-draft.md 的 V-1～V-5 全部照建議裁決（V-2 選 A）。decision-log 新增 D-078：ReviewSubmission 的 DRAFT_SAVED、SUBMITTED 加進 D-071 第 1 點的帶分數清單；由提交編號查所屬案件，查不到就遮罩；遮罩條件與 RC-LCY-02 相同；GetCaseLifecycle 維持只回傳 ReviewCase 的紀錄；其他 entityType 立法前已掃過，不帶分數。規格：specs/review-case/usecases.yaml 改寫 RC-AUD-02 的條件；examples.yaml 新增 3 個範例，其中 2 個一開始是紅的，加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。文件：docs/harness/29 標為已裁決，更新題目清單與 README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/examples.yaml",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

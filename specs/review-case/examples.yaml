@@ -1041,6 +1041,32 @@ examples:
       result: SUCCESS
       absent: ["content[*].detail"]
 
+  # D-078：ReviewSubmission 的 DRAFT_SAVED、SUBMITTED 以所屬案件判斷。
+  - name: audit_trails_mask_submission_rows_before_rereview_for_an_auditor
+    basis: [RC-AUD-02]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: ListAuditTrails, as: auditor_h1, input: { aggregateType: ReviewSubmission, aggregateId: "${s1}" } }
+    then:
+      result: SUCCESS
+      absent: ["content[action=DRAFT_SAVED].detail", "content[action=SUBMITTED].detail"]
+
+  - name: audit_trails_mask_submission_rows_before_rereview_for_a_manager
+    basis: [RC-AUD-02]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewSubmission, aggregateId: "${s1}" } }
+    then:
+      result: SUCCESS
+      absent: ["content[action=DRAFT_SAVED].detail", "content[action=SUBMITTED].detail"]
+
+  - name: audit_trails_show_submission_rows_after_close
+    basis: [RC-AUD-02]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: ReviewSubmission, aggregateId: "${s1}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[action=SUBMITTED]": { detail: '{"caseId":"${c}","totalScore":20,"reviewerId":"u-r1"}' }
+
   # ---------- 請求端（D-073、D-074；格式 v2.1） ----------
   # 這些拒絕發生在讀取請求本文時、進入 use case 之前，所以案件只需要存在。
 

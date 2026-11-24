@@ -3180,3 +3180,38 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/05-ui/ui-page-spec-ui017報表匯出頁.md` §4、§5 檔名、§8 第 1 項；`docs/05-ui/ui-page-spec-ui015儀表板頁.md` §4、§8 第 1 項
 - `docs/harness/25-topic-backlog.md`（本題移到進行中；D-075 修法 PR 二補上 #142；D-076 移到已完成）
 - 後續：建構 PR（`export-date-range.ts` 與其單元測試、Karma 與 Playwright 的時區設定、`report-export.service.ts` 的註解）
+
+## D-078 — `ReviewSubmission` 稽核紀錄的遮罩
+
+### Status
+
+`accepted`（2026-11-24，負責人對 `docs/harness/29-review-submission-audit-mask-draft.md` 的 V-1～V-5 全部照建議裁決；V-2 選 A；並要求立法前掃過其他種類的 `detail`）
+
+### Decision
+
+1. **範圍（V-1）**：`ReviewSubmission` 的 `DRAFT_SAVED`、`SUBMITTED` 列為帶分數的紀錄，加進 D-071 第 1 點的清單；初審與複審一律套用（複審的 `DRAFT_SAVED` 是 `null`，一併套用）。`REVISED` 不帶分數，不列。
+2. **找到所屬案件（V-2 選 A）**：由提交編號查案件編號，一次查一頁；查不到就遮罩（D-035 fail-closed）。不解析 `detail` 的字串。
+3. **遮罩條件（V-3）**：與 RC-LCY-02 相同，以所屬案件判斷；初審與複審的分數都照這個條件。遮罩的方式與 D-071 相同：整個 `detail` 變成 `null`，其他欄位照常。
+4. **生命週期（V-4）**：`GetCaseLifecycle` 維持只回傳 `ReviewCase` 的紀錄。本裁決只影響 `ListAuditTrails`。
+5. **不在本裁決（V-5）**：
+   - `AuditController` 的立法（`grandfathered`）；HTTP 介面不變。
+   - 稽核的其他 `entityType`：立法前已掃過全部事件類別，不帶分數（草稿 29 第七節的表）。`CANCELLED`、`RETURNED` 的 `reason` 是自由文字，不屬於遮罩的範圍。
+   - 已寫入的紀錄不改；遮罩在讀取時套用。正式資料庫還沒有資料（D-045）。
+6. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+7. **順序**：本裁決、規格、`known-test-failures.txt` 在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-076 第 3 點另開的一題。
+- **草案與查證**：`docs/harness/29-review-submission-audit-mask-draft.md`（main = `2fd49e6`）。
+  - `GetCaseLifecycle` 只查 `entityType = ReviewCase`，不會回傳提交紀錄；`ListAuditTrails` 會回傳，`ScoredDetailMask` 只看 `ReviewCase`。
+  - 2026-11-24 以暫時的單元測試實測：`AUDITOR`、`HOSPITAL_MANAGER` 讀到 `SUBMITTED`、`DRAFT_SAVED` 的 `totalScore` 沒有遮罩（同一頁的 `ReviewCase` 帶分數紀錄有遮罩）。
+  - D-071 判斷是漏掉：草稿 21 只列了專案與評分表不帶分數。
+- **與既有裁決的關係**：擴大 D-071 第 1 點的清單，D-071 其他條文不改；遮罩條件沿用 D-055 第 6 點、D-071 第 2 點。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（RC-AUD-02 的條件）、`specs/review-case/examples.yaml`（3 個新範例）
+- `services/quality-inspection-service/known-test-failures.txt`（2 個）
+- `docs/harness/25-topic-backlog.md`（本題移到進行中；D-077 移到已完成）
+- 後續：建構 PR（`ScoredDetailMask`、提交編號 → 案件編號的查詢）
