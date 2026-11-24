@@ -4,12 +4,12 @@
 
 ## 進行中
 
-1. **`ReviewSubmission` 稽核紀錄的遮罩**（D-078）。修法 PR 之後是建構 PR。
+1. **初審 `DRAFT_SAVED` 的稽核紀錄沒有院區**（D-079）。修法 PR 之後是建構 PR。
 
 ## 待辦（依序）
 
 1. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）：改派、修正、不經複審結案、取消、退回。
-2. **初審 `DRAFT_SAVED` 的稽核紀錄沒有院區**：`SaveInitialReviewDraftUseCase` 傳空字串，院區人員在稽核軌跡看不到這類紀錄（D-078 建構時發現；草稿 29 的更正）。要補上院區，以及已寫入的紀錄怎麼處理，需要裁決。
+2. **後端 JDK 定為 17**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗。負責人已決定與 CI 一致，定為 17（含 CLAUDE.md、`.github/copilot-instructions.md` 等文件）。
 
 ## 已完成
 
@@ -24,5 +24,6 @@
 | 違憲清單第 5 項：`local_time_zone` 只用於範例時鐘，執行器不再解讀不帶時區的時間 | D-075 第 7 點 | #142 |
 | D-069 留下的兩件：複審的提交事件與必答題檢查 | D-076 | #143、#144 |
 | 報表的日期篩選固定以台北解讀 | D-077 | #145、#146 |
+| `ReviewSubmission` 稽核紀錄的遮罩 | D-078 | #147、#148、#149 |
 
 D-072 第 4 點的違憲清單到此全部修正完成（D-075 第 12 點）。
