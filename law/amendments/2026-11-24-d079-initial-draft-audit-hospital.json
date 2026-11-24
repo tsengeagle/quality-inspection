@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-24-d079-initial-draft-audit-hospital",
+  "decision": "D-079",
+  "reason": "D-079：初審草稿的稽核紀錄帶院區（D-078 建構時發現，草稿 29 的更正）。負責人表示補院區、已寫入的紀錄不回填（正式資料庫沒有資料），並指示範圍不大就直接開修法 PR；docs/harness/30 的 W-1～W-3 照建議，W-3 選 A（稽核紀錄的院區不得是空字串或 null）。規格：D-078 的兩個範例恢復檢查 DRAFT_SAVED，一開始是紅的，加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。文件：domain-events.md 7.1 補 hospitalId；草稿 30、題目清單（含 JDK 17 待辦、D-078 移到已完成）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/examples.yaml",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

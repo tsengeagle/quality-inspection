@@ -53,6 +53,7 @@
 | `27-rereview-submission-events-draft.md` | D-069 留下的兩件：複審的提交事件與必答題檢查（V-1～V-5，已由 D-076 裁決）；附 `ReviewSubmission` 稽核紀錄沒有遮罩的發現 |
 | `28-report-date-filter-taipei-draft.md` | 報表的日期篩選固定以台北解讀（V-1～V-5，已由 D-077 裁決）：送出轉換、預設區間、範圍、測試的時區 |
 | `29-review-submission-audit-mask-draft.md` | `ReviewSubmission` 稽核紀錄的遮罩（V-1～V-5，已由 D-078 裁決）：兩個出口的查證、範圍、找到所屬案件、遮罩條件；附其他種類 `detail` 的掃描 |
+| `30-initial-draft-audit-hospital-draft.md` | 初審草稿的稽核紀錄沒有院區（W-1～W-3，已由 D-079 裁決）：查證、補院區、已寫入的紀錄、要不要立一般規則 |
 | `26-datetime-instant-draft.md` | 違憲清單第 3～6 項：時間改成 `Instant`（N-1～N-8，已由 D-075 裁決）：順序、`ReviewSubmission` 的時間、既有資料與時鐘、前端顯示、匯出、`local_time_zone`、文件範例、未立法範圍 |
 | `samples/card-v2-trial/` | 格式樣本（不是律法）：白板 V10 照格式 v2 草案的試寫、暫時的檢查 `v2check.py`；v2.1 的回歸樣本 |
 | `samples/reviewcase-v2-trial/` | 格式樣本（不是律法）：ReviewCase 照格式 v2 草案 B 組的試寫。`round-1/` 是薄切片與 12 個缺口；`round-2/` 是直向切片，用草案第十三節 Q-10～Q-20 建議的寫法重寫 |

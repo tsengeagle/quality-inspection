@@ -718,11 +718,12 @@
   "eventName": "ReviewDraftSaved",
   "submissionId": "SUB-INIT-001",
   "caseId": "RC-001",
+  "hospitalId": "H-01",
   "occurredAt": "2026-04-01T18:10:00Z"
 }
 ```
 
-草稿分數不列為必要欄位（D-067 第 6 點）。
+草稿分數不列為必要欄位（D-067 第 6 點）。`hospitalId` 是所屬案件的院區，初審與複審都帶（D-079）。
 
 ---
 

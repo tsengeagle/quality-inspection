@@ -3215,3 +3215,30 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`（2 個）
 - `docs/harness/25-topic-backlog.md`（本題移到進行中；D-077 移到已完成）
 - 後續：建構 PR（`ScoredDetailMask`、提交編號 → 案件編號的查詢）
+
+## D-079 — 初審草稿的稽核紀錄帶院區
+
+### Status
+
+`accepted`（2026-11-24，負責人表示補院區、已寫入的紀錄不回填，並指示範圍不大就直接開修法 PR；`docs/harness/30-initial-draft-audit-hospital-draft.md` 的 W-1～W-3 照建議，W-3 選 A）
+
+### Decision
+
+1. **補院區（W-1）**：初審保存草稿的 `ReviewDraftSaved` 帶所屬案件的院區，與複審草稿相同。院區人員以 `ListAuditTrails` 讀得到這類紀錄；`detail` 的分數照 D-078 遮罩。
+2. **一般規則（W-3 選 A）**：稽核紀錄的院區一律是所屬案件（或專案、批次）的院區，不得是空字串或 `null`；之後新增的事件也適用。本裁決時只有初審草稿不符合（草稿 30 的掃描）。
+3. **已寫入的紀錄（W-2）**：不回填。正式資料庫沒有資料（D-045，負責人確認）。
+4. **規格**：D-078 的兩個範例（`audit_trails_mask_submission_rows_before_rereview_for_an_auditor`／`_for_a_manager`）恢復檢查 `DRAFT_SAVED`。它們一開始是紅的，照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+5. **順序**：本裁決、規格、`known-test-failures.txt`、`domain-events.md` 在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：D-078 建構時發現（草稿 29 的更正、#148）。
+- **查證**：`docs/harness/30-initial-draft-audit-hospital-draft.md`（main = `2eb643d`）。`SaveInitialReviewDraftUseCase` 兩處傳 `""`；`src/main/java` 其他 `publish(new …)` 都有院區。
+- **與既有裁決的關係**：補足 D-078 第 1 點在初審草稿上的實際效果；D-078 條文不改。
+
+### Mapping
+
+- `specs/review-case/examples.yaml`（2 個範例恢復檢查 `DRAFT_SAVED`）
+- `services/quality-inspection-service/known-test-failures.txt`（2 個）
+- `docs/02-ddd/domain-events.md`（7.1 的最低必要欄位）
+- 後續：建構 PR（`SaveInitialReviewDraftUseCase` 改傳 `reviewCase.getHospitalId()`）
