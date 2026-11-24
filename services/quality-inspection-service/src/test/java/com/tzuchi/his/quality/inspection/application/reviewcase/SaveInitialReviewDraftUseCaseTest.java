@@ -131,6 +131,8 @@ class SaveInitialReviewDraftUseCaseTest {
 
         assertEquals(1, eventPublisher.events.size());
         assertInstanceOf(ReviewDraftSavedEvent.class, eventPublisher.events.get(0));
+        // D-079：稽核紀錄帶所屬案件的院區
+        assertEquals(HOSPITAL_ID, ((ReviewDraftSavedEvent) eventPublisher.events.get(0)).getHospitalId());
     }
 
     @Test
@@ -190,6 +192,8 @@ class SaveInitialReviewDraftUseCaseTest {
         assertEquals(BigDecimal.ZERO, result.getTotalScore());
         assertEquals("DRAFT", result.getStatus());
         assertEquals("INITIAL", result.getStage());
+        // D-079：沒有作答的分支也帶院區
+        assertEquals(HOSPITAL_ID, ((ReviewDraftSavedEvent) eventPublisher.events.get(0)).getHospitalId());
     }
 
     @Test

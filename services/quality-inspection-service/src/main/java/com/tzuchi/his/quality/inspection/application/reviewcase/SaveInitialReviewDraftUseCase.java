@@ -108,7 +108,7 @@ public class SaveInitialReviewDraftUseCase {
 
             eventPublisher.publish(new ReviewDraftSavedEvent(
                     this, actor.getUserId(), actor.getUserName(),
-                    "", caseId, submission.getSubmissionId(), BigDecimal.ZERO));
+                    reviewCase.getHospitalId(), caseId, submission.getSubmissionId(), BigDecimal.ZERO));
 
             return new SaveDraftResult(
                     submission.getSubmissionId(),
@@ -142,7 +142,7 @@ public class SaveInitialReviewDraftUseCase {
         // Publish event
         eventPublisher.publish(new ReviewDraftSavedEvent(
                 this, actor.getUserId(), actor.getUserName(),
-                "", caseId, submission.getSubmissionId(), result.getTotalScore()));
+                reviewCase.getHospitalId(), caseId, submission.getSubmissionId(), result.getTotalScore()));
 
         return new SaveDraftResult(
                 submission.getSubmissionId(),
