@@ -4,7 +4,7 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
+import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
@@ -98,7 +98,7 @@ class ReassignReviewCaseUseCaseTest {
         ReviewCase rc = ReviewCase.createFromSampling("c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT);
         repository.save(rc); // SELECTED_PENDING_ASSIGNMENT
 
-        assertThrows(DomainStateConflictException.class,
+        assertThrows(DomainRuleViolationException.class,
                 () -> useCase.execute(hospitalManager(), "c1", "reviewer-2", DUE));
     }
 }

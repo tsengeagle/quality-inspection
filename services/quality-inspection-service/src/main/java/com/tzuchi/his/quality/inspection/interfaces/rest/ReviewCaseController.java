@@ -329,11 +329,7 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @RequestBody @Valid ReassignRereviewerRequest request) {
-        ReassignRereviewerCommand cmd = new ReassignRereviewerCommand();
-        cmd.setCaseId(caseId);
-        cmd.setRereviewerId(request.getRereviewerId());
-        cmd.setDueAt(toInstant(request.getDueAt()));
-        reassignRereviewerUseCase.execute(actor, cmd);
+        reassignRereviewerUseCase.execute(actor, caseId, request.getRereviewerId(), toInstant(request.getDueAt()));
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 

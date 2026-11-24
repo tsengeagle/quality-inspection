@@ -12,6 +12,7 @@ public class RereviewerAssignedEvent extends DomainEvent {
 
     private final String rereviewerId;
     private final Instant dueAt;
+    private final boolean reassignment;
 
     public RereviewerAssignedEvent(Object source,
                                    String actorUserId,
@@ -27,9 +28,12 @@ public class RereviewerAssignedEvent extends DomainEvent {
                         : String.format("{\"rereviewerId\":\"%s\"}", rereviewerId));
         this.rereviewerId = rereviewerId;
         this.dueAt = dueAt;
+        this.reassignment = reassignment;
     }
 
     public String getCaseId() { return getEntityId(); }
     public String getRereviewerId() { return rereviewerId; }
     public Instant getDueAt() { return dueAt; }
+    /** 改派為 true，指派為 false（D-082 第 5 點）。 */
+    public boolean isReassignment() { return reassignment; }
 }

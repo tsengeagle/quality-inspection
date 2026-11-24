@@ -29,7 +29,7 @@ public class ReassignReviewCaseUseCase {
         this.clock = clock;
     }
 
-    public void execute(ActorContext actor, String caseId, String newReviewerId, Instant dueAt) {
+    public void execute(ActorContext actor, String caseId, String reviewerId, Instant dueAt) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
 
         ReviewCase reviewCase = repository.findById(caseId)
@@ -41,12 +41,12 @@ public class ReassignReviewCaseUseCase {
         String previousReviewerId = reviewCase.getReviewerAssignment() != null
                 ? reviewCase.getReviewerAssignment().getReviewerId() : null;
 
-        reviewCase.reassignReviewer(newReviewerId, dueAt, Instant.now(clock));
+        reviewCase.reassignReviewer(reviewerId, dueAt, Instant.now(clock));
         repository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseReassignedEvent(
                 this, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
-                previousReviewerId, newReviewerId, dueAt));
+                previousReviewerId, reviewerId, dueAt));
     }
 }

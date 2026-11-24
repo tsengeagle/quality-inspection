@@ -280,9 +280,7 @@ class PermanentBlindReviewReadApiTest {
         ReviewCaseEntity unassigned = cases.findById("c1").orElseThrow();
         unassigned.setRereviewerId(null); unassigned.setRereviewerAssignedAt(null); cases.save(unassigned);
         assign.execute(manager, "c1", "A", Instant.parse("2026-12-31T23:59:00Z"));
-        ReassignRereviewerCommand next = new ReassignRereviewerCommand();
-        next.setCaseId("c1"); next.setRereviewerId("B");
-        reassign.execute(manager, next);
+        reassign.execute(manager, "c1", "B", Instant.parse("2026-12-31T23:59:00Z"));
         assertEquals("B", cases.findById("c1").orElseThrow().getRereviewerId());
         assertTrue(submissions.findByCaseIdAndStage("c1", ReviewStage.REREVIEW).isEmpty());
         Set<String> recordedAssignees = new HashSet<>();
@@ -438,8 +436,7 @@ class PermanentBlindReviewReadApiTest {
         unassigned.setRereviewerId(null); unassigned.setRereviewerAssignedAt(null); cases.save(unassigned);
         ActorContext manager = new ActorContext("manager", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         assign.execute(manager, "c1", "A", Instant.parse("2026-12-31T23:59:00Z"));
-        ReassignRereviewerCommand next = new ReassignRereviewerCommand(); next.setCaseId("c1"); next.setRereviewerId("B");
-        reassign.execute(manager, next);
+        reassign.execute(manager, "c1", "B", Instant.parse("2026-12-31T23:59:00Z"));
         assertTrue(submissions.findByCaseIdAndStage("c1", ReviewStage.REREVIEW).isEmpty());
         // Simulate missing/damaged legacy evidence only inside this isolated embedded test database.
         // This fixture manipulation is not a repair or modification of production Audit data.

@@ -162,11 +162,17 @@ public class ReviewCase {
     }
 
     public void reassignReviewer(String newReviewerId, Instant dueAt, Instant assignedAt) {
+        // D-082 第 1、2 點：輸入檢查在狀態檢查之前；狀態不對與指派一致（422）
+        if (newReviewerId == null || newReviewerId.isBlank()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "reviewerId must not be blank");
+        }
+        if (dueAt == null) {
+            throw new DomainValidationException("VALIDATION_ERROR", "dueAt must not be null");
+        }
         if (this.status != CaseStatus.PENDING_INITIAL_REVIEW) {
-            throw new DomainStateConflictException("CASE_NOT_PENDING_INITIAL_REVIEW",
+            throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
                     "Cannot reassign reviewer: case status is " + this.status);
         }
-        Objects.requireNonNull(newReviewerId, "newReviewerId must not be null");
         Objects.requireNonNull(assignedAt, "assignedAt must not be null");
         this.reviewerAssignment = new ReviewerAssignment(newReviewerId, assignedAt);
         this.dueAt = dueAt;
@@ -303,45 +309,68 @@ public class ReviewCase {
         this.status = CaseStatus.PENDING_REREVIEW;
     }
 
+    /**
+     * 指派複審醫師前的檢查，不改變案件（D-082 第 7 點）。
+     * 順序：輸入 → 狀態 → 與初審醫師相同；讀過初審由呼叫端在這之後檢查（D-055 第 5 點）。
+     */
+    public void checkRereviewerAssignable(String rereviewerId, Instant dueAt) {
+        checkRereviewerInput(rereviewerId, dueAt);
+        requirePendingRereview("assign");
+        requireNotInitialReviewer(rereviewerId);
+    }
+
+    /**
+     * 改派複審醫師前的檢查，不改變案件（D-082 第 4、7 點）。
+     * 順序：輸入 → 狀態 → 尚未指派 → 與初審醫師相同；讀過初審由呼叫端在這之後檢查。
+     */
+    public void checkRereviewerReassignable(String rereviewerId, Instant dueAt) {
+        checkRereviewerInput(rereviewerId, dueAt);
+        requirePendingRereview("reassign");
+        if (this.rereviewerAssignment == null) {
+            throw new DomainRuleViolationException("NO_REREVIEWER_ASSIGNED",
+                    "Cannot reassign rereviewer: no rereviewer has been assigned");
+        }
+        requireNotInitialReviewer(rereviewerId);
+    }
+
     public void assignRereviewer(String rereviewerId, Instant dueAt, Instant assignedAt) {
-        // D-069 第 2 點：與指派初審醫師相同，輸入檢查在狀態檢查之前
-        if (rereviewerId == null || rereviewerId.isBlank()) {
-            throw new DomainValidationException("VALIDATION_ERROR", "rereviewerId must not be blank");
-        }
-        if (dueAt == null) {
-            throw new DomainValidationException("VALIDATION_ERROR", "dueAt must not be null");
-        }
-        if (this.status != CaseStatus.PENDING_REREVIEW) {
-            // D-069 第 2 點：與初審的對應操作一致（422）
-            throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
-                    "Can only assign rereviewer in PENDING_REREVIEW. Current: " + this.status);
-        }
-        Objects.requireNonNull(rereviewerId, "rereviewerId must not be null");
-        if (this.reviewerAssignment != null
-                && rereviewerId.equals(this.reviewerAssignment.getReviewerId())) {
-            throw new DomainRuleViolationException("REREVIEWER_SAME_AS_REVIEWER",
-                    "Re-reviewer must not be the same person as the initial reviewer (D-017)");
-        }
+        checkRereviewerAssignable(rereviewerId, dueAt);
         Objects.requireNonNull(assignedAt, "assignedAt must not be null");
         this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, assignedAt);
         this.rereviewerDueAt = dueAt;
     }
 
     public void reassignRereviewer(String rereviewerId, Instant dueAt, Instant assignedAt) {
-        if (this.status != CaseStatus.PENDING_REREVIEW) {
-            // D-069 第 2 點：與初審的對應操作一致（422）
-            throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
-                    "Can only reassign rereviewer in PENDING_REREVIEW. Current: " + this.status);
+        checkRereviewerReassignable(rereviewerId, dueAt);
+        Objects.requireNonNull(assignedAt, "assignedAt must not be null");
+        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, assignedAt);
+        this.rereviewerDueAt = dueAt;
+    }
+
+    private static void checkRereviewerInput(String rereviewerId, Instant dueAt) {
+        // D-069 第 2 點、D-082 第 2 點：與指派初審醫師相同，輸入檢查在狀態檢查之前
+        if (rereviewerId == null || rereviewerId.isBlank()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "rereviewerId must not be blank");
         }
-        Objects.requireNonNull(rereviewerId, "rereviewerId must not be null");
+        if (dueAt == null) {
+            throw new DomainValidationException("VALIDATION_ERROR", "dueAt must not be null");
+        }
+    }
+
+    private void requirePendingRereview(String operation) {
+        if (this.status != CaseStatus.PENDING_REREVIEW) {
+            // D-069 第 2 點：與初審的對應操作一致（422）；複審中不得改派（D-055）
+            throw new DomainRuleViolationException("CASE_NOT_ASSIGNABLE",
+                    "Can only " + operation + " rereviewer in PENDING_REREVIEW. Current: " + this.status);
+        }
+    }
+
+    private void requireNotInitialReviewer(String rereviewerId) {
         if (this.reviewerAssignment != null
                 && rereviewerId.equals(this.reviewerAssignment.getReviewerId())) {
             throw new DomainRuleViolationException("REREVIEWER_SAME_AS_REVIEWER",
                     "Re-reviewer must not be the same person as the initial reviewer (D-017)");
         }
-        Objects.requireNonNull(assignedAt, "assignedAt must not be null");
-        this.rereviewerAssignment = new ReviewerAssignment(rereviewerId, assignedAt);
-        this.rereviewerDueAt = dueAt;
     }
 
     public void startRereview(String actorId) {

@@ -41,7 +41,9 @@ public class AssignRereviewerUseCase {
         ReviewCase reviewCase = caseRepository.findById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
         actor.requireHospitalScope(reviewCase.getHospitalId());
-        // D-055 第 5 點：讀過本案完整初審的人不得受派（在變更案件之前檢查，拒絕時案件不變）。
+        // D-082 第 7 點：輸入、狀態、與初審醫師相同先檢查，讀過初審最後（D-055 第 5 點）；
+        // 都在變更案件之前，拒絕時案件不變。
+        reviewCase.checkRereviewerAssignable(rereviewerId, dueAt);
         if (readerPort.hasRead(reviewCase.getCaseId(), rereviewerId)) {
             throw new DomainRuleViolationException("REREVIEWER_HAS_READ_INITIAL",
                     "The rereviewer has already read this case's full initial review (D-055)");
