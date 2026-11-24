@@ -82,7 +82,7 @@ describe('ReportExportPageComponent (UI-017)', () => {
 
   beforeEach(async () => {
     jasmine.clock().install();
-    jasmine.clock().mockDate(new Date(2026, 10, 17, 9, 0));
+    jasmine.clock().mockDate(new Date('2026-11-17T09:00:00+08:00'));
     exportService = jasmine.createSpyObj<ReportExportService>('ReportExportService', ['fetchPage', 'fetchAllRows']);
     exportService.fetchPage.and.returnValue(of(pageResult()));
     saver = jasmine.createSpyObj<CsvFileSaver>('CsvFileSaver', ['save']);

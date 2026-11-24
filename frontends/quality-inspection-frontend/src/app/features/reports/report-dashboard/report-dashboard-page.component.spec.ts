@@ -64,7 +64,7 @@ describe('ReportDashboardPageComponent (UI-015)', () => {
 
   beforeEach(async () => {
     jasmine.clock().install();
-    jasmine.clock().mockDate(new Date(2026, 10, 17, 9, 0));
+    jasmine.clock().mockDate(new Date('2026-11-17T09:00:00+08:00'));
     dashboardService = jasmine.createSpyObj<ReportDashboardService>('ReportDashboardService', ['fetchSummary']);
     dashboardService.fetchSummary.and.returnValue(of(summary()));
     actor = new ActorContextServiceStub();

@@ -64,7 +64,7 @@ export interface ExportRowView {
   finalScore: number | null;
   /** UTC 時間點（後端 Instant），原樣保留 API 字串。 */
   createdAt: string | null;
-  /** 不帶時區的伺服器本地時間（後端 LocalDateTime），原樣保留，不得換算。 */
+  /** UTC 時間點（後端 Instant，D-075 第 6 點），原樣保留 API 字串。 */
   closedAt: string | null;
   /** 後端遮罩為 null 的欄位名稱；前端只依此判斷，不自行推論（UI-017 §2）。 */
   maskedFields: string[];

@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 // UI-015 Dashboard 頁：docs/05-ui/ui-page-spec-ui015儀表板頁.md
-// 以 Asia/Taipei 時區執行，驗證 §4 的日期轉換（與 UI-017 §4 相同）。
-test.use({ timezoneId: 'Asia/Taipei' });
+// 瀏覽器以 UTC 時區執行：§4 的日期是台北日期（與 UI-017 §4 相同），結果不依瀏覽器的時區（D-077 第 4 點）。
+test.use({ timezoneId: 'UTC' });
 
 const SUMMARY_URL = '**/api/quality-inspection/reports/dashboard-summary**';
 
