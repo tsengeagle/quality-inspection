@@ -62,13 +62,16 @@ ReviewCaseStatus:
 | INITIAL_REVIEW_IN_PROGRESS | submitInitialReview | INITIAL_REVIEW_COMPLETED | 先形成 submitted 初審版本 |
 | INITIAL_REVIEW_IN_PROGRESS | returnInitialReview | RETURNED | 需有退回原因 |
 | INITIAL_REVIEW_IN_PROGRESS | cancel | CANCELLED | 未結案 |
-| RETURNED | reopenInitialReview | PENDING_INITIAL_REVIEW | 回到待初審 |
+| RETURNED | reopenInitialReview | PENDING_INITIAL_REVIEW | 回到待初審；沿用原本的初審醫師與期限，不要求先改派（D-080） |
+| RETURNED | cancel | CANCELLED | D-080：未結案 |
 | INITIAL_REVIEW_COMPLETED | fixInitialReview（score ≤ threshold 或 threshold 為 null） | INITIAL_REVIEW_COMPLETED | D-054：狀態不變，記下 `initialFixedAt`／`initialFixedBy`／`initialFixedSubmissionId`；等 manager 派複審或結案 |
 | INITIAL_REVIEW_COMPLETED | fixInitialReview（score > threshold） | PENDING_REREVIEW | D-031／D-054：以固定結果自動進複審；提交時不執行此轉移 |
 | INITIAL_REVIEW_COMPLETED | managerAssignRereviewer | PENDING_REREVIEW | D-031：初審已固定，manager 手工派複審 |
 | INITIAL_REVIEW_COMPLETED | managerCloseCase | CLOSED | D-031：初審已固定且不需複審，manager 手工結案 |
+| INITIAL_REVIEW_COMPLETED | cancel | CANCELLED | D-080：未結案 |
 | PENDING_REREVIEW | startRereview | REREVIEW_IN_PROGRESS | 僅 assigned rereviewer |
 | PENDING_REREVIEW | cancel | CANCELLED | 未結案 |
+| REREVIEW_IN_PROGRESS | cancel | CANCELLED | D-080：未結案 |
 | REREVIEW_IN_PROGRESS | submitRereview | REREVIEW_IN_PROGRESS（最新複審提交為 SUBMITTED） | D-032：合法提交且無其他既有阻擋條件即具資格；不自動固定／結案；不新增 enum（D-053） |
 | REREVIEW_IN_PROGRESS（最新複審提交為 SUBMITTED） | 合法有效複審結果提交醫師另行 Close Command | CLOSED | D-032／034：執行時重驗資格與有效版本，同時固定尚未固定的複審結果；CLOSED 即代表已固定（D-053） |
 
@@ -114,15 +117,18 @@ stateDiagram-v2
   INITIAL_REVIEW_IN_PROGRESS --> CANCELLED: cancel
 
   RETURNED --> PENDING_INITIAL_REVIEW: reopenInitialReview
+  RETURNED --> CANCELLED: cancel
 
   INITIAL_REVIEW_COMPLETED --> PENDING_REREVIEW: 初審已固定且需複審 / manager派複審
   INITIAL_REVIEW_COMPLETED --> CLOSED: 初審已固定且不需複審 / managerCloseCase
+  INITIAL_REVIEW_COMPLETED --> CANCELLED: cancel
 
   PENDING_REREVIEW --> REREVIEW_IN_PROGRESS: startRereview
   PENDING_REREVIEW --> CANCELLED: cancel
 
   REREVIEW_IN_PROGRESS --> REREVIEW_IN_PROGRESS: submitRereview（不自動結案，D-053）
   REREVIEW_IN_PROGRESS --> CLOSED: 有效複審結果的提交醫師 Close Command（D-034／D-053）
+  REREVIEW_IN_PROGRESS --> CANCELLED: cancel
 
   CLOSED --> [*]
   CANCELLED --> [*]
@@ -245,7 +251,7 @@ stateDiagram-v2
 ## 7) Pending Confirmation
 
 1. [Resolved D-031] 不需複審時僅 manager 在初審固定後手工結案；DD-03 已確認固定僅限目前有效初審結果的合法提交醫師。
-2. `RETURNED` 後是否必須 reassign reviewer 才能 reopen（目前僅記為 guard note）。
+2. [Resolved D-080] `RETURNED` 後不必先 reassign reviewer 即可 reopen；要換人或改期限，reopen 後以改派處理。
 3. sampling retry 的完整 state / error taxonomy 尚未在 DDD 層完整定稿（本版僅最小必要）。
 4. [Superseded D-032] CLOSED 複審 revision 例外撤銷。[Resolved D-053] 複審已提交未結案時，案件維持 `REREVIEW_IN_PROGRESS`、最新複審提交為 `SUBMITTED`；不新增 enum。
 

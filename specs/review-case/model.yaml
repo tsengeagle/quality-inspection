@@ -1,5 +1,6 @@
 # 格式說明見 ../README.md（規格格式 v2.0，第十節）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-# 範圍：從抽選到初審提交的直向切片（D-066），加上初審固定到複審結案的複審切片（D-069）。
+# 範圍：從抽選到初審提交的直向切片（D-066），加上初審固定到複審結案的複審切片（D-069），
+# 以及退回、重開、取消、不經複審結案（D-080）。
 # 來源：docs/harness/samples/reviewcase-v2-trial/round-2/review-case/（第二輪試寫）。
 spec_version: 2
 kind: aggregate
@@ -18,6 +19,7 @@ sources:
   - { decision: D-053 }
   - { decision: D-066 }
   - { decision: D-069 }
+  - { decision: D-080 }
   - { doc: docs/02-ddd/state-machine.md, section: "§3" }
   - { doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1、§6" }
 
@@ -56,16 +58,17 @@ transitions:
   - { id: RC-T-07, from: PENDING_REREVIEW,            to: REREVIEW_IN_PROGRESS,       by: StartRereview,       status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
   - { id: RC-T-08, from: REREVIEW_IN_PROGRESS,        to: REREVIEW_IN_PROGRESS,       by: SubmitRereview,      status: decided, source: [{ decision: D-032 }, { decision: D-053 }] }
   - { id: RC-T-09, from: REREVIEW_IN_PROGRESS,        to: CLOSED,                     by: CloseRereview,       status: decided, source: [{ decision: D-034 }, { decision: D-053 }] }
+  - { id: RC-T-10, from: INITIAL_REVIEW_IN_PROGRESS,  to: RETURNED,                   by: ReturnInitialReview,  status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-080 }] }
+  - { id: RC-T-11, from: RETURNED,                    to: PENDING_INITIAL_REVIEW,     by: ReopenInitialReview,  status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-080 }] }
+  - { id: RC-T-12, from: INITIAL_REVIEW_COMPLETED,    to: CLOSED,                     by: CloseWithoutRereview, when: 初審已固定, status: decided, source: [{ decision: D-031 }, { decision: D-080 }] }
+  - { id: RC-T-13, from: SELECTED_PENDING_ASSIGNMENT, to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-080 }] }
+  - { id: RC-T-14, from: PENDING_INITIAL_REVIEW,      to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-080 }] }
+  - { id: RC-T-15, from: INITIAL_REVIEW_IN_PROGRESS,  to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-080 }] }
+  - { id: RC-T-16, from: RETURNED,                    to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ decision: D-080 }] }
+  - { id: RC-T-17, from: INITIAL_REVIEW_COMPLETED,    to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ decision: D-080 }] }
+  - { id: RC-T-18, from: PENDING_REREVIEW,            to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { decision: D-080 }] }
+  - { id: RC-T-19, from: REREVIEW_IN_PROGRESS,        to: CANCELLED,                  by: CancelReviewCase,     status: decided, source: [{ decision: D-080 }] }
 
-# state-machine §3.2 其餘 7 列：規格裡看得到完整的狀態機，也看得到哪些還沒立法。
-deferred_transitions:
-  - { from: SELECTED_PENDING_ASSIGNMENT, to: CANCELLED,                  by: CancelReviewCase }
-  - { from: PENDING_INITIAL_REVIEW,      to: CANCELLED,                  by: CancelReviewCase }
-  - { from: INITIAL_REVIEW_IN_PROGRESS,  to: CANCELLED,                  by: CancelReviewCase }
-  - { from: PENDING_REREVIEW,            to: CANCELLED,                  by: CancelReviewCase }
-  - { from: INITIAL_REVIEW_IN_PROGRESS,  to: RETURNED,                   by: ReturnInitialReview }
-  - { from: RETURNED,                    to: PENDING_INITIAL_REVIEW,     by: ReopenInitialReview }
-  - { from: INITIAL_REVIEW_COMPLETED,    to: CLOSED,                     by: CloseWithoutRereview, note: 初審已固定 }
 
 terminal_states: [CLOSED, CANCELLED]
 

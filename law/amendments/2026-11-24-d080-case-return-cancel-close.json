@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-24-d080-case-return-cancel-close",
+  "decision": "D-080",
+  "reason": "D-080：ReviewCase 切片（退回、重開、取消、不經複審結案）。負責人同意 ReviewCase 未立法範圍切成五個切片，本切片是 C＋B；對 docs/harness/31 的 X-1～X-8 全部照建議裁決。規格：usecases.yaml 新增 ReturnInitialReview、ReopenInitialReview、CancelReviewCase、CloseWithoutRereview 與錯誤代碼 CASE_NOT_IN_PROGRESS、CASE_NOT_RETURNED，StartInitialReview 新增 RC-STI-S4（退回後重開沿用原本的草稿）；model.yaml 的 deferred_transitions 改為 RC-T-10～RC-T-19（取消擴及 RETURNED、INITIAL_REVIEW_COMPLETED、REREVIEW_IN_PROGRESS）；examples.yaml 新增 case_in_RETURNED、case_in_CANCELLED 與 16 個範例。一開始是紅的 18 個範例（含矩陣列）加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。law/coverage.txt 登記四個 use case、CloseWithoutRereviewCommand、ReviewCaseReturned／Cancelled／Reopened、CaseClosedWithoutRereview 為已立法。文件：state-machine、domain-events、permission-matrix、api-spec、草稿 31、題目清單、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/model.yaml",
+    "specs/review-case/examples.yaml",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

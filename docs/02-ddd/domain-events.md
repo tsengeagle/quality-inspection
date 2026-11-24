@@ -589,7 +589,6 @@
 
 ### 發布條件
 
-* 無需複審時，初審已固定，由院方管理者正式結案；或
 * 複審合法提交且無既有阻擋條件，由目前有效合法複審結果的提交醫師另行執行 Close Command，同時固定尚未固定的複審結果（D-032／034）
 * `completeRereview(...)` 本身不再觸發結案事件
 * 狀態轉為 `CLOSED`
@@ -606,7 +605,7 @@
 ```
 
 * `submissionId` 是結案時固定的那份複審提交（D-053 第 3 點）
-* 不經複審結案的欄位、要不要帶結案路徑，等不經複審結案立法時決定
+* 不經複審結案不發本事件，改發 `CaseClosedWithoutRereview`（§6.14，D-080 第 7 點）
 
 ### 補充
 
@@ -631,6 +630,20 @@
 * `returnToInitialReview(reason)` 成功
 * 狀態轉為 `RETURNED`
 
+### 最低必要欄位（D-080）
+
+```json
+{
+  "eventName": "ReviewCaseReturned",
+  "caseId": "RC-001",
+  "reason": "需補充病歷資料",
+  "occurredAt": "2026-04-01T18:10:00Z"
+}
+```
+
+* 稽核 action 是 `RETURNED`，`detail` 是以 JSON 序列化產生的 `{"reason":"…"}`（D-080 第 5 點）
+* 進行中的初審提交維持 `DRAFT`；重開後開始初審沿用它（D-080 第 3 點）
+
 ---
 
 ## 6.11 `ReviewCaseCancelled`
@@ -652,6 +665,19 @@
 
 * `CANCELLED` 後不得再審
 * `CANCELLED` 後不得 revision
+* 除了 `CLOSED`、`CANCELLED` 以外的狀態都可以取消（D-080 第 1 點）
+* 稽核 action 是 `CANCELLED`，`detail` 是以 JSON 序列化產生的 `{"reason":"…"}`（D-080 第 5 點）
+
+### 最低必要欄位（D-080）
+
+```json
+{
+  "eventName": "ReviewCaseCancelled",
+  "caseId": "RC-001",
+  "reason": "病歷資料有誤",
+  "occurredAt": "2026-04-01T18:10:00Z"
+}
+```
 
 ---
 
@@ -684,6 +710,69 @@
 ### 補充
 
 * 不帶分數（D-054 第 8 點）
+
+---
+
+## 6.13 `ReviewCaseReopened`
+
+### Emitted By
+
+* `ReviewCase`
+
+### 業務意義
+
+退回的案件重新開放初審（D-080 第 2 點）。
+
+### 發布條件
+
+* `reopenInitialReview()` 成功
+* 狀態由 `RETURNED` 轉為 `PENDING_INITIAL_REVIEW`
+
+### 最低必要欄位（D-080）
+
+```json
+{
+  "eventName": "ReviewCaseReopened",
+  "caseId": "RC-001",
+  "reviewerId": "U-R1",
+  "dueAt": "2026-04-03T15:59:59Z",
+  "occurredAt": "2026-04-02T02:00:00Z"
+}
+```
+
+* 稽核 action 是 `REOPENED`，`detail` 是 `{"reviewerId":"…","dueAt":"…"}`
+* 不發 `ReviewCaseAssigned`；初審醫師與期限沿用原本的指派
+* 不帶分數，不列入遮罩清單（D-071）
+
+---
+
+## 6.14 `CaseClosedWithoutRereview`
+
+### Emitted By
+
+* `ReviewCase`
+
+### 業務意義
+
+初審已固定、不需複審的案件，由院方管理者正式結案（D-031、D-080 第 7 點）。
+
+### 發布條件
+
+* `closeWithoutRereview()` 成功
+* 狀態由 `INITIAL_REVIEW_COMPLETED` 轉為 `CLOSED`，`finalScore` 是初審分數
+
+### 最低必要欄位（D-080）
+
+```json
+{
+  "eventName": "CaseClosedWithoutRereview",
+  "caseId": "RC-001",
+  "occurredAt": "2026-04-02T02:00:00Z"
+}
+```
+
+* 稽核 action 是 `CASE_CLOSED_WITHOUT_REREVIEW`，`detail` 是 `{"finalScore":…}`，依 D-071 遮罩
+* 與複審路徑的 `ReviewCaseClosed`（§6.9）以事件區分結案路徑
 
 ---
 

@@ -27,8 +27,9 @@ sources:
   - { decision: D-071 }
   - { decision: D-073 }
   - { decision: D-076 }
-  - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.9、§6.12、§7.1、§7.2" }
-  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.10、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
+  - { decision: D-080 }
+  - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.12、§7.1、§7.2" }
+  - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3、§10.5、§10.7–§10.11、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
 
 error_codes:
   - { code: ROLE_DENIED,                      category: denied,         status: decided,  source: [{ decision: D-023 }] }
@@ -54,6 +55,8 @@ error_codes:
   - { code: NOT_ASSIGNED_REREVIEWER,           category: denied,         status: decided,  source: [{ decision: D-068 }] }
   - { code: NO_REREVIEWER_ASSIGNED,            category: rule_violation, status: decided,  source: [{ decision: D-069 }] }
   - { code: REREVIEWER_SAME_AS_REVIEWER,       category: rule_violation, status: decided,  source: [{ decision: D-017 }, { decision: D-069 }] }
+  - { code: CASE_NOT_IN_PROGRESS,              category: conflict,       status: decided,  source: [{ decision: D-080 }] }
+  - { code: CASE_NOT_RETURNED,                 category: conflict,       status: decided,  source: [{ decision: D-080 }, { doc: docs/03-contracts/api-spec.md, section: "§10.11" }] }
 
 # 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
 guards:
@@ -201,7 +204,8 @@ usecases:
     success:
       state:
         - { id: RC-STI-S1, text: status = INITIAL_REVIEW_IN_PROGRESS,                          status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
-        - { id: RC-STI-S2, text: 建立一份初審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+        - { id: RC-STI-S2, text: 案件還沒有初審提交時，建立一份初審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
+        - { id: RC-STI-S4, text: 案件已有初審提交且它是 DRAFT（退回後重開）時，沿用這份提交，不建立新的；輸出的 submissionId 是原本的提交，作答與評語保留, status: decided, source: [{ decision: D-080 }] }
         - { id: RC-STI-S3, text: InitialReviewStarted 帶有 caseId、submissionId 與 reviewerId, status: decided, source: [{ decision: D-067 }, { doc: docs/02-ddd/domain-events.md, section: "§6.3" }] }
       emits:
         - { event: InitialReviewStarted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.3" }] }
@@ -627,6 +631,107 @@ usecases:
         - { name: caseId,       type: id }
         - { name: caseStatus,   type: enum CaseStatus }
         - { name: submissionId, type: id }
+
+  # ---------- 退回、重開、取消、不經複審結案（D-080） ----------
+
+  - name: ReturnInitialReview
+    kind: command
+    summary: 管理者把初審中的案件退回
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId, type: id,   required: true }
+      - { name: reason, type: text, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-RET-01
+        when: 案件的 status 不是 INITIAL_REVIEW_IN_PROGRESS
+        outcome: { result: REJECTED, code: CASE_NOT_IN_PROGRESS }
+        status: decided
+        source: [{ decision: D-080 }, { doc: docs/02-ddd/state-machine.md, section: "§3.2" }]
+      - id: RC-RET-02
+        when: reason 是空白
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-080 }]
+    success:
+      state:
+        - { id: RC-RET-S1, text: status = RETURNED；進行中的初審提交維持 DRAFT, status: decided, source: [{ decision: D-080 }, { doc: docs/02-ddd/state-machine.md, section: "§3.2" }] }
+        - { id: RC-RET-S2, text: ReviewCaseReturned 帶有 caseId 與 reason, status: decided, source: [{ decision: D-080 }, { doc: docs/02-ddd/domain-events.md, section: "§6.10" }] }
+        - { id: RC-RET-S3, text: "稽核紀錄的 detail 是合法的 JSON {\"reason\":…}，reason 含引號、反斜線、換行時照樣跳脫", status: decided, source: [{ decision: D-080 }] }
+      emits:
+        - { event: ReviewCaseReturned, status: decided, source: [{ decision: D-080 }, { doc: docs/02-ddd/domain-events.md, section: "§6.10" }] }
+
+  - name: ReopenInitialReview
+    kind: command
+    summary: 管理者把退回的案件重新開放初審
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-REO-01
+        when: 案件的 status 不是 RETURNED
+        outcome: { result: REJECTED, code: CASE_NOT_RETURNED }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.11" }]
+    success:
+      state:
+        - { id: RC-REO-S1, text: status = PENDING_INITIAL_REVIEW；初審醫師與期限不變（要換人或改期限，重開後改派）, status: decided, source: [{ decision: D-080 }, { doc: docs/03-contracts/api-spec.md, section: "§10.11" }] }
+        - { id: RC-REO-S2, text: 發出 ReviewCaseReopened，帶有 caseId、reviewerId 與 dueAt；不發 ReviewCaseAssigned, status: decided, source: [{ decision: D-080 }] }
+      emits:
+        - { event: ReviewCaseReopened, status: decided, source: [{ decision: D-080 }] }
+
+  - name: CancelReviewCase
+    kind: command
+    summary: 管理者取消還沒終止的案件
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId, type: id,   required: true }
+      - { name: reason, type: text, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-CAN-01
+        when: 案件的 status 是 CLOSED 或 CANCELLED
+        outcome: { result: REJECTED, code: CASE_TERMINAL }
+        status: decided
+        source: [{ decision: D-006 }, { decision: D-080 }]
+      - id: RC-CAN-02
+        when: reason 是空白
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-080 }]
+    success:
+      state:
+        - { id: RC-CAN-S1, text: 從任何還沒終止的狀態都可以取消，status = CANCELLED, status: decided, source: [{ decision: D-080 }, { decision: D-006 }] }
+        - { id: RC-CAN-S2, text: ReviewCaseCancelled 帶有 caseId 與 reason, status: decided, source: [{ decision: D-080 }, { doc: docs/02-ddd/domain-events.md, section: "§6.11" }] }
+        - { id: RC-CAN-S3, text: "稽核紀錄的 detail 是合法的 JSON {\"reason\":…}，reason 含引號、反斜線、換行時照樣跳脫", status: decided, source: [{ decision: D-080 }] }
+      emits:
+        - { event: ReviewCaseCancelled, status: decided, source: [{ decision: D-080 }, { doc: docs/02-ddd/domain-events.md, section: "§6.11" }] }
+
+  - name: CloseWithoutRereview
+    kind: command
+    summary: 管理者把初審已固定、不需複審的案件直接結案
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-CWR-01
+        when: 案件的 status 不是 INITIAL_REVIEW_COMPLETED
+        outcome: { result: REJECTED, code: CASE_NOT_INITIAL_REVIEW_COMPLETED }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.9" }]
+      - id: RC-CWR-02
+        when: 案件的初審還沒有固定
+        outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+        status: decided
+        source: [{ decision: D-031 }, { decision: D-054 }]
+    success:
+      state:
+        - { id: RC-CWR-S1, text: status = CLOSED；finalScore 是初審分數, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.9" }] }
+        - { id: RC-CWR-S2, text: 發出 CaseClosedWithoutRereview（稽核 action CASE_CLOSED_WITHOUT_REREVIEW），帶有 caseId；不發 ReviewCaseClosed, status: decided, source: [{ decision: D-080 }] }
+      emits:
+        - { event: CaseClosedWithoutRereview, status: decided, source: [{ decision: D-080 }] }
 
   # ---------- revision 歷程 ----------
 

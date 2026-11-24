@@ -1086,7 +1086,7 @@ decision_dependencies:
 
 以下議題目前未列入已接受決策，若後續需要，應新增 decision：
 
-* 退回初審的最終授權角色
+* ~~退回初審的最終授權角色~~（D-080 第 6 點：`HOSPITAL_MANAGER`，本院）
 * 是否需要 administrative correction workflow
 * attachment upload / storage 最終策略
 * optimistic locking / idempotency 設計
@@ -3242,3 +3242,37 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`（2 個）
 - `docs/02-ddd/domain-events.md`（7.1 的最低必要欄位）
 - 後續：建構 PR（`SaveInitialReviewDraftUseCase` 改傳 `reviewCase.getHospitalId()`）
+
+## D-080 — ReviewCase 切片：退回、重開、取消、不經複審結案
+
+### Status
+
+`accepted`（2026-11-24，負責人對 `docs/harness/31-case-return-cancel-close-draft.md` 的 X-1～X-8 全部照建議裁決）
+
+### Decision
+
+1. **可取消的狀態（X-1 選 A）**：除了 `CLOSED`、`CANCELLED` 以外的狀態都可以取消，包括 `RETURNED`、`INITIAL_REVIEW_COMPLETED`、`REREVIEW_IN_PROGRESS`。取消已終止的案件回 409 `CASE_TERMINAL`。取消不處理進行中的提交；案件終止後不得再審、不得 revision（D-006）。
+2. **重開的事件（X-2 選 A）**：重開發 `ReviewCaseReopened`（稽核 action `REOPENED`），帶 `caseId`、`reviewerId`、`dueAt`；不再發 `ReviewCaseAssigned`。不帶分數，不列入 D-071 的遮罩清單。
+3. **退回後的草稿（X-3 選 A）**：退回時進行中的初審提交維持 `DRAFT`。重開後開始初審，案件已有初審提交且它是 `DRAFT` 時沿用這份提交，不建立新的；作答與評語保留，`InitialReviewStarted` 帶的是原本的 `submissionId`。這一點修改已立法的 `StartInitialReview`（RC-STI-S2 限定為還沒有初審提交時，新增 RC-STI-S4）。
+4. **重開前不要求改派（X-4 選 A）**：重開沿用原本的初審醫師與期限；要換人或改期限，重開後以改派處理。`state-machine.md` 第 7 節待確認第 2 點以此結案。
+5. **理由（X-5）**：退回與取消的稽核 `detail` 以 JSON 序列化產生，格式維持 `{"reason":"…"}`，理由含引號、反斜線、換行時仍是合法 JSON。use case 拒絕空白的理由（400 `VALIDATION_ERROR`），與 HTTP 的 `@NotBlank` 一致。
+6. **授權（X-6）**：退回、重開、取消、不經複審結案都限 `HOSPITAL_MANAGER`，且案件為本院。`decision-log.md` 第 7 節「退回初審的最終授權角色」以此結案。
+7. **不經複審結案的事件（X-7 選 A）**：維持獨立的事件 `CaseClosedWithoutRereview`（稽核 action `CASE_CLOSED_WITHOUT_REREVIEW`，`detail` 是 `{"finalScore":…}`，D-071 遮罩），以 action 區分結案路徑；不發 `ReviewCaseClosed`。
+8. **錯誤代碼（X-8）**：退回時不是初審中回 409 `CASE_NOT_IN_PROGRESS`；重開時不是 `RETURNED` 回 409 `CASE_NOT_RETURNED`；不經複審結案沿用 `CASE_NOT_INITIAL_REVIEW_COMPLETED`、`INVALID_STATE_TRANSITION`。D-068 第 1 點留給退回立法的 `CASE_NOT_IN_PROGRESS` 以此結案（維持 409）。
+9. **事件欄位**：`ReviewCaseReturned`、`ReviewCaseCancelled` 帶 `caseId`、`reason`；`CaseClosedWithoutRereview` 帶 `caseId`。
+10. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+11. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：題目清單「還沒立法的 ReviewCase 範圍」。負責人 2026-11-24 同意切成五個切片（C → B → A → D → E，C 與 B 合併為本切片）；共用元件跟著第一個用到它的切片，`ReviewCase.java`、`ReviewSubmission.java` 最後處理。
+- **草案與查證**：`docs/harness/31-case-return-cancel-close-draft.md`（main = `4b768bd`）。2026-11-24 以暫時的規格範例實測：重開記成 `ASSIGNED`、理由 `a"b` 寫成 `{"reason":"a"b"}`、退回後重開再開始初審留下兩筆 `DRAFT`（都是 `revisionNo = 1`）。
+- **與既有裁決的關係**：沿用 D-006（`CANCELLED` 終止）、D-031／D-054（不經複審結案須初審已固定）、D-071（`CASE_CLOSED_WITHOUT_REREVIEW` 的遮罩）。修改已立法的 `StartInitialReview`（第 3 點）。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（四個 use case、`RC-STI-S4`、兩個錯誤代碼）、`model.yaml`（`RC-T-10`～`RC-T-19`，原本的 `deferred_transitions` 移除）、`examples.yaml`（兩個 fixture、16 個範例）
+- `law/coverage.txt`（四個 use case、`CloseWithoutRereviewCommand`、三個既有事件；`ReviewCaseReopenedEvent` 由建構 PR 新增，修法 PR 先登記路徑）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/02-ddd/state-machine.md`（§3.2、§3.5、第 7 節）、`docs/02-ddd/domain-events.md`（§6.9～§6.11、新增 §6.13、§6.14）、`docs/02-ddd/permission-matrix.md`（§6）、`docs/03-contracts/api-spec.md`（§10.7、§10.8、§10.11）
+- 後續：建構 PR。除了第 2、3、5、9 點，`CloseWithoutRereviewUseCase.execute` 改收 `caseId`（規格範例以參數名稱呼叫 use case），`CloseWithoutRereviewCommand` 隨之移除
