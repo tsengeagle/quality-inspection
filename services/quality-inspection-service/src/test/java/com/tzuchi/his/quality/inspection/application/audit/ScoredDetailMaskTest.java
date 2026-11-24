@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** D-071 第 1～3 點。 */
+/** D-071 第 1～3 點；D-078。 */
 class ScoredDetailMaskTest {
 
     private static final ActorContext MANAGER =
@@ -25,6 +25,13 @@ class ScoredDetailMaskTest {
 
     static ScoredDetailMask maskWith(Map<String, AuditCaseStateQuery.CaseState> states,
                                      Map<String, Set<String>> historyByCase, Set<String> incomplete) {
+        return maskWith(states, historyByCase, incomplete, Map.of());
+    }
+
+    /** submissionToCase：提交編號 → 案件編號；表裡沒有的提交視為找不到所屬案件。 */
+    static ScoredDetailMask maskWith(Map<String, AuditCaseStateQuery.CaseState> states,
+                                     Map<String, Set<String>> historyByCase, Set<String> incomplete,
+                                     Map<String, String> submissionToCase) {
         AuditCaseStateQuery caseStates = ids -> states.entrySet().stream()
                 .filter(e -> ids.contains(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -41,7 +48,10 @@ class ScoredDetailMaskTest {
                 return caseIds.stream().filter(incomplete::contains).collect(Collectors.toSet());
             }
         };
-        return new ScoredDetailMask(caseStates, history);
+        SubmissionCaseQuery submissionCases = ids -> submissionToCase.entrySet().stream()
+                .filter(e -> ids.contains(e.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return new ScoredDetailMask(caseStates, history, submissionCases);
     }
 
     private static AuditTrailEntry entry(String caseId, String action) {
@@ -115,5 +125,55 @@ class ScoredDetailMaskTest {
         assertNull(result.get(0).getDetail());
         assertEquals("{\"x\":1}", result.get(1).getDetail());
         assertEquals("{\"y\":2}", result.get(2).getDetail());
+    }
+
+    private static AuditTrailEntry submission(String submissionId, String action) {
+        return new AuditTrailEntry("s-" + action, "ReviewSubmission", submissionId, action, "u1", "U", "H001",
+                Instant.parse("2026-11-22T00:00:00Z"), "{\"totalScore\":20}");
+    }
+
+    @Test
+    void scoredSubmissionActionsAreTheTwoListedInD078() {
+        assertEquals(Set.of("DRAFT_SAVED", "SUBMITTED"), ScoredDetailMask.SCORED_SUBMISSION_ACTIONS);
+    }
+
+    @Test
+    void masksScoredSubmissionRowsByTheirCase() {
+        ScoredDetailMask mask = maskWith(Map.of(
+                "open", new AuditCaseStateQuery.CaseState(CaseStatus.INITIAL_REVIEW_COMPLETED, null),
+                "done", new AuditCaseStateQuery.CaseState(CaseStatus.CLOSED, null)),
+                Map.of(), Set.of(), Map.of("s-open", "open", "s-done", "done"));
+        List<AuditTrailEntry> result = mask.apply(MANAGER, List.of(
+                submission("s-open", "SUBMITTED"), submission("s-open", "DRAFT_SAVED"),
+                submission("s-done", "SUBMITTED"), submission("s-open", "REVISED")));
+        assertNull(result.get(0).getDetail());
+        assertNull(result.get(1).getDetail());
+        assertEquals("{\"totalScore\":20}", result.get(2).getDetail());
+        assertEquals("{\"totalScore\":20}", result.get(3).getDetail());
+    }
+
+    @Test
+    void masksSubmissionRowsForAHistoricalRereviewerOfTheCase() {
+        ScoredDetailMask mask = maskWith(Map.of("c1", new AuditCaseStateQuery.CaseState(CaseStatus.CLOSED, "u-rr2")),
+                Map.of("c1", Set.of("u-m1")), Set.of(), Map.of("s1", "c1"));
+        assertNull(only(mask.apply(MANAGER, List.of(submission("s1", "SUBMITTED")))).getDetail());
+    }
+
+    /** D-078 第 2 點：找不到所屬案件也遮罩（規格範例造不出這種資料，由這裡固定）。 */
+    @Test
+    void masksSubmissionRowsWhoseCaseCannotBeFound() {
+        assertNull(only(maskWith(Map.of()).apply(MANAGER, List.of(submission("gone", "SUBMITTED")))).getDetail());
+        ScoredDetailMask mask = maskWith(Map.of("done", new AuditCaseStateQuery.CaseState(CaseStatus.CLOSED, null)),
+                Map.of(), Set.of(), Map.of());
+        List<AuditTrailEntry> result = mask.apply(MANAGER,
+                List.of(submission("gone", "DRAFT_SAVED"), entry("done", "INITIAL_REVIEW_COMPLETED")));
+        assertNull(result.get(0).getDetail());
+        assertEquals("{\"x\":1}", result.get(1).getDetail());
+    }
+
+    @Test
+    void masksSubmissionRowsWhenTheSubmissionPointsToAMissingCase() {
+        ScoredDetailMask mask = maskWith(Map.of(), Map.of(), Set.of(), Map.of("s1", "gone"));
+        assertNull(only(mask.apply(MANAGER, List.of(submission("s1", "SUBMITTED")))).getDetail());
     }
 }
