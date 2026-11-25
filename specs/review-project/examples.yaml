@@ -760,6 +760,20 @@ examples:
       input: { projectId: NO-SUCH-PROJECT }
     then: { result: REJECTED, code: PROJECT_NOT_FOUND }
 
+  # ---------- 必填的輸入（D-088 第 11 點，H-6） ----------
+  # 請求 dto 的必填檢查交給 use case：這些範例直接呼叫 use case，確認沒有 dto 也會拒絕。
+
+  - name: rejects_binding_without_a_score_sheet_version
+    basis: [RP-BND-04]
+    given: [{ use: published_score_sheet }]
+    when: { run: BindScoreSheetToProject, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_creating_a_project_without_a_name
+    basis: [RP-CRT-01]
+    when: { run: CreateReviewProject, as: manager_h1, input: { description: "2026 年度", medicalRecordTypes: [OUTPATIENT] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
 not_covered:
   - rules: [emits]
     reason: >

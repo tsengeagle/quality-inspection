@@ -2394,6 +2394,326 @@ examples:
       as: admin
     then: { result: SUCCESS, output: { "rows[caseId=${c}]": { maskedFields: [initialScore, finalScore] } } }
 
+  # ---------- 必填的輸入（D-088 第 11 點，H-6） ----------
+  # 請求 dto 的必填檢查交給 use case：這些範例直接呼叫 use case，確認沒有 dto 也會拒絕。
+
+  - name: rejects_reassign_without_a_reviewer
+    basis: [RC-RAS-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: ReassignReviewCase, as: manager_h1, input: { caseId: "${c}", dueAt: "2026-11-28T23:59:59Z" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_rereviewer_assignment_without_a_rereviewer
+    basis: [RC-ARR-02]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: AssignRereviewer, as: manager_h1, input: { caseId: "${c}", dueAt: "2026-12-03T23:59:59Z" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_rereviewer_reassignment_without_a_rereviewer
+    basis: [RC-RRR-01]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", dueAt: "2026-12-05T23:59:59Z" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_rereviewer_reassignment_without_a_due_date
+    basis: [RC-RRR-01]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: ReassignRereviewer, as: manager_h1, input: { caseId: "${c}", rereviewerId: u-rr2 } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_draft_without_answers
+    basis: [RC-DRF-04]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: SaveInitialReviewDraft, as: reviewer_h1, input: { caseId: "${c}", comment: "初審評語" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_draft_answer_without_an_item
+    basis: [RC-DRF-04, RC-INV-07]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: SaveInitialReviewDraft, as: reviewer_h1, input: { caseId: "${c}", answers: [{ answerValue: "20" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_draft_answer_without_a_value
+    basis: [RC-DRF-04, RC-INV-07]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: SaveInitialReviewDraft, as: reviewer_h1, input: { caseId: "${c}", answers: [{ itemId: I1 }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_an_initial_revision_without_answers
+    basis: [RC-RVI-10]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", comment: "修正初審" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_rereview_draft_without_a_submission
+    basis: [RC-RDR-10]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when: { run: SaveRereviewDraft, as: rereviewer_h1, input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "10" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_rereview_draft_without_answers
+    basis: [RC-RDR-10]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when: { run: SaveRereviewDraft, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_rereview_submission_without_a_submission
+    basis: [RC-SRR-11]
+    given: [{ use: rereview_answered }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", comment: "複審評語" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_a_return_without_a_reason
+    basis: [RC-RET-02]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: ReturnInitialReview, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_an_export_without_a_report_type
+    basis: [RC-RPT-01]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: ExportReport, as: manager_h1, input: { from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  # ---------- 請求端：查詢參數與請求的欄位（D-088 第 11 點；H-5、H-7、H-8、H-9） ----------
+  # H-5：查詢參數的列舉由 use case 檢查，角色在前（D-024）。H-7：讀不進來的查詢參數回 BAD_REQUEST，有外殼。
+  # H-8：經過 HTTP 的成功範例，確認請求的欄位名稱有傳到 use case。業務規則仍由上面的 use case 範例驗證。
+
+  - name: rejects_an_unknown_case_status_in_the_query
+    basis: [RC-LST-02]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: GET
+        path: "/review-cases"
+        query: { status: NOT_A_STATUS }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: checks_the_role_before_the_candidate_role
+    basis: [RC-G-01, RC-ACD-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: GET
+        path: "/review-cases/${c}/assignment-candidates"
+        query: { role: NOT_A_ROLE }
+      as: reviewer_h1
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_an_unknown_candidate_role
+    basis: [RC-ACD-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: GET
+        path: "/review-cases/${c}/assignment-candidates"
+        query: { role: NOT_A_ROLE }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: rejects_an_anonymous_request
+    basis: [RC-G-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: GET
+        path: "/review-cases"
+      as: anonymous
+    then: { result: REJECTED, code: UNAUTHORIZED }
+
+  - name: assigns_a_reviewer_over_http
+    basis: [RC-ASG-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/assign-reviewer"
+        body: { reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output: { "content[caseId=${c}]": { status: PENDING_INITIAL_REVIEW, reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+
+  - name: reassigns_the_reviewer_over_http
+    basis: [RC-RAS-02]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/reassign-reviewer"
+        body: { reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output: { "content[caseId=${c}]": { reviewerId: u-r2, dueAt: "2026-11-28T23:59:59Z" } }
+
+  - name: cancels_a_case_over_http
+    basis: [RC-CAN-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/cancel"
+        body: { reason: "病歷資料有誤" }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output: { "content[caseId=${c}]": { status: CANCELLED } }
+
+  - name: returns_the_initial_review_over_http
+    basis: [RC-RET-01]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/initial-review/return"
+        body: { reason: "需補充病歷資料" }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output: { "content[caseId=${c}]": { status: RETURNED } }
+
+  - name: saves_the_initial_draft_over_http
+    basis: [RC-DRF-01]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/initial-review/draft"
+        body: { answers: [{ itemId: I1, answerValue: "20" }], comment: "初審評語" }
+      as: reviewer_h1
+    then: { result: SUCCESS, output: { submissionId: "${s1}", status: DRAFT } }
+    observe:
+      - run: GetSubmissionDetail
+        as: reviewer_h1
+        input: { submissionId: "${s1}" }
+        expect:
+          result: SUCCESS
+          output: { comment: "初審評語", "answers[itemId=I1]": { answerValue: "20" } }
+
+  - name: revises_the_initial_review_over_http
+    basis: [RC-RVI-01]
+    given: [{ use: low_score_completed_case }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/initial-review/submissions/${s1}/revise"
+        body: { answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" }
+      as: reviewer_h1
+    then: { result: SUCCESS, output: { oldSubmissionId: "${s1}", revisionNo: 2, totalScore: "3" } }
+
+  - name: assigns_a_rereviewer_over_http
+    basis: [RC-ARR-01]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/assign-rereviewer"
+        body: { rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output: { "content[caseId=${c}]": { rereviewerId: u-rr1 } }
+
+  - name: reassigns_the_rereviewer_over_http
+    basis: [RC-RRR-03]
+    given: [{ use: rereviewer_assigned }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/reassign-rereviewer"
+        body: { rereviewerId: u-rr2, dueAt: "2026-12-05T23:59:59Z" }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output: { "content[caseId=${c}]": { rereviewerId: u-rr2 } }
+
+  - name: saves_the_rereview_draft_over_http
+    basis: [RC-RDR-02]
+    given: [{ use: case_in_REREVIEW_IN_PROGRESS }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/rereview/draft"
+        body: { submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "10" }], comment: "複審評語" }
+      as: rereviewer_h1
+    then: { result: SUCCESS, output: { submissionId: "${s2}", status: DRAFT } }
+
+  - name: submits_the_rereview_over_http
+    basis: [RC-SRR-01]
+    given: [{ use: rereview_answered }, { advance: PT2H }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/rereview/submit"
+        body: { submissionId: "${s2}", comment: "複審評語" }
+      as: rereviewer_h1
+    then: { result: SUCCESS, output: { submissionId: "${s2}", status: SUBMITTED } }
+
+  - name: revises_the_rereview_over_http
+    basis: [RC-RVR-01]
+    given: [{ use: weighted_rereview_answered }, { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" } }]
+    when:
+      http:
+        method: POST
+        path: "/review-cases/${c}/rereview/submissions/${s2}/revise"
+        body: { answers: [{ itemId: I1, answerValue: "5" }], comment: "修正複審" }
+      as: rereviewer_h1
+    then: { result: SUCCESS, output: { oldSubmissionId: "${s2}", revisionNo: 2, totalScore: "5" } }
+
+  - name: lists_audit_trails_over_http
+    basis: [RC-AUD-01]
+    given: [{ use: low_score_completed_case }]
+    when:
+      http:
+        method: GET
+        path: "/audit-trails"
+        query: { aggregateType: ReviewCase, aggregateId: "${c}" }
+      as: manager_h1
+    then: { result: SUCCESS, output: { "content[action=ASSIGNED]": { detail: '{"reviewerId":"u-r1","dueAt":"2026-11-26T23:59:59Z"}' } } }
+
+  - name: reads_the_dashboard_over_http
+    basis: [RC-DSH-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when:
+      http:
+        method: GET
+        path: "/reports/dashboard-summary"
+        query: { projectId: "${p}", from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" }
+      as: manager_h1
+    then: { result: SUCCESS, output: { totalCases: 1, closedCases: 0 } }
+
 not_covered:
   - item: 修正時提交不存在、不是目前有效的結果、操作者不是受指派的複審醫師或不是提交者（RC-RVI-02、RC-RVI-06、RC-RVR-02、RC-RVR-03、RC-RVR-05、RC-RVR-07）
     # D-085：修正過之後，舊的提交是 SUPERSEDED，先被 SUBMISSION_NOT_SUBMITTED 擋下；「已提交但不是目前有效」仍做不出來

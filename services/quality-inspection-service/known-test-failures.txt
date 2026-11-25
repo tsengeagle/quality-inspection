@@ -6,3 +6,14 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+# ---- D-088 D-2：請求端。規格先立法，程式由建構 PR 配合（D-088 第 11 點）----
+# use case 沒有檢查必填的輸入（H-6）
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_draft_without_answers
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_an_initial_revision_without_answers
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_rereview_draft_without_a_submission
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_rereview_draft_without_answers
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_rereview_submission_without_a_submission
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/rejects_binding_without_a_score_sheet_version
+# 查詢參數的列舉在 controller 轉換，比角色檢查早（H-5）
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/checks_the_role_before_the_candidate_role
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/checks_the_role_before_the_batch_status

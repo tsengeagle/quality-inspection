@@ -3618,6 +3618,12 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
     - `application/common/`、`domain/common/` 直接登記，不新增規則（H-10）。
     - 每批的修法 PR 把該批的檔案改成已立法；E 做完後沒有 `grandfathered` 的列（H-12）。
 12. **題目清單**：D-087 移到已完成；D、E 標為進行中；第 2 點的落差記為待辦。
+13. **D-2 的實測與範圍（2026-11-25 追記，負責人選 A）**：
+    - **必填的輸入（H-6）**：dto 的 20 個必填欄位逐一以 use case 範例確認。use case 已經會拒絕的 9 個，範例直接是綠的；6 個 use case 沒有檢查：初審草稿、修正初審沒給 `answers`，複審草稿沒給 `submissionId`、`answers`，提交複審沒給 `submissionId`，綁定評分表沒給 `scoreSheetVersionId`。新增規則 RC-RDR-10、RC-SRR-11、RP-BND-04，都在狀態檢查之前。`ExportReport` 沒給 `reportType` 時依 RC-RPT-01 回 `BAD_REQUEST`（原本由 dto 回 `VALIDATION_ERROR`）。
+    - **查詢參數的列舉（H-5）**：新增 RC-LST-02、RC-ACD-05、SB-LST-05，不認得的值回 `BAD_REQUEST`，在角色檢查之後；sampling-batch 的錯誤代碼新增 `BAD_REQUEST`。規格的輸入型別不改，行為以 `http` 步驟的範例表達。
+    - **讀不進來的查詢參數（H-7）**：實測是 500 `INTERNAL_ERROR`（草稿事實 8 推測是沒有外殼的 400，更正）。少了必填的 `role` 是沒有外殼的 400。這三個範例產生的回應會被 `specs/` 的 HTTP 契約擋下，所以照第 10 點的作法：建構 PR 修好之後，由 D-2 的修法 PR 二加入，連同第 11 點的登記。
+    - **review-project、score-sheet 的請求端**：這兩個目錄的範例是格式 v1，不能寫 `http` 步驟。D-2 只做 review-case、sampling-batch；`ReviewProjectController`、`ScoreSheetController` 與它們的請求 dto 維持暫准，「這兩個目錄的範例升級到格式 v2」另立題目，排在 E 之後。第 11 點 H-12「E 做完後沒有暫准的列」改為：除了這兩個 controller 與它們的請求 dto。
+    - 紅的範例 8 個加進 `known-test-failures.txt`，由建構 PR 移除。
 
 ### Relationship / Evidence
 

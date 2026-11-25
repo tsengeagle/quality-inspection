@@ -153,6 +153,11 @@ usecases:
     guards: [RP-G-01, RP-G-02, RP-G-03]
     # 檢查順序依 D-050 第 8 點
     rules:
+      - id: RP-BND-04
+        when: scoreSheetVersionId 沒有給，在狀態檢查之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        source: [{ decision: D-088 }]
+        status: decided
       - id: RP-BND-01
         when: currentVersion.published = true
         outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }

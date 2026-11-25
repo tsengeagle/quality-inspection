@@ -1,0 +1,17 @@
+{
+  "id": "2026-11-25-d088-request-side",
+  "decision": "D-088",
+  "reason": "D-088 第 11、13 點：切片 D、E 第二批 D-2（請求端）的修法 PR 一。規格：review-case 新增 RC-LST-02、RC-ACD-05、RC-RDR-10、RC-SRR-11；sampling-batch 新增 SB-LST-05 與錯誤代碼 BAD_REQUEST；review-project 新增 RP-BND-04。範例：必填輸入的 use case 範例 15 個（review-case 13、review-project 2）；查詢參數列舉的 http 範例 review-case 3 個、sampling-batch 3 個；經過 HTTP 的成功範例 review-case 12 個、sampling-batch 1 個；as: anonymous 1 個。紅的 8 個加進 known-test-failures.txt，由建構 PR 移除。讀不進來的查詢參數的 3 個範例與登記留給 D-2 的修法 PR 二。文件：D-088 第 13 點、草稿 39 第十節、題目清單。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/examples.yaml",
+    "specs/sampling-batch/usecases.yaml",
+    "specs/sampling-batch/examples.yaml",
+    "specs/review-project/usecases.yaml",
+    "specs/review-project/examples.yaml",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}
