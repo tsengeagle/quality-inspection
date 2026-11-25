@@ -38,7 +38,9 @@ public final class HttpContractEvaluator {
         this.contract = contract;
         for (HttpContract.Endpoint e : contract.endpoints()) {
             counts.put(e.key(), new int[2]);
-            seen.put(e.key(), new JsonShape.Seen());
+            for (HttpContract.Variant v : e.variants()) {
+                seen.put(seenKey(e, v), new JsonShape.Seen());
+            }
         }
     }
 
@@ -67,7 +69,7 @@ public final class HttpContractEvaluator {
             if (o.status() != e.successStatus()) {
                 out.add("成功狀態碼應為 " + e.successStatus() + "，實際 " + o.status());
             }
-            JsonShape.check(contract.successEnvelope(), body, "$", e.dataShape(), enums, out, seen.get(e.key()));
+            checkSuccess(e, body, enums, out);
         } else {
             JsonShape.check(contract.errorEnvelope(), body, "$", null, enums, out, new JsonShape.Seen());
             JsonNode code = body.path("error").path("code");
@@ -83,6 +85,53 @@ public final class HttpContractEvaluator {
             }
         }
         for (String p : out) add(where + " " + p);
+    }
+
+    /**
+     * 成功回應：只有一種形狀時照常比對。有幾種形狀時（D-088），回應必須剛好符合其中一種，
+     * 觀察到的東西只算進符合的那一種；一種都不符合時，列出最接近的那一種的問題。
+     */
+    private void checkSuccess(HttpContract.Endpoint e, JsonNode body, Map<String, Set<String>> enums, List<String> out) {
+        List<HttpContract.Variant> variants = e.variants();
+        if (variants.size() == 1) {
+            JsonShape.check(contract.successEnvelope(), body, "$", variants.get(0).shape(), enums, out, seen.get(seenKey(e, variants.get(0))));
+            return;
+        }
+        List<HttpContract.Variant> matched = new ArrayList<>();
+        List<JsonShape.Seen> matchedSeen = new ArrayList<>();
+        List<String> closest = null;
+        String closestName = null;
+        for (HttpContract.Variant v : variants) {
+            List<String> vOut = new ArrayList<>();
+            JsonShape.Seen vSeen = new JsonShape.Seen();
+            JsonShape.check(contract.successEnvelope(), body, "$", v.shape(), enums, vOut, vSeen);
+            if (vOut.isEmpty()) {
+                matched.add(v);
+                matchedSeen.add(vSeen);
+            } else if (closest == null || vOut.size() < closest.size()) {
+                closest = vOut;
+                closestName = v.name();
+            }
+        }
+        if (matched.size() == 1) {
+            JsonShape.Seen target = seen.get(seenKey(e, matched.get(0)));
+            target.observed++;
+            target.arrays.addAll(matchedSeen.get(0).arrays);
+            target.nulls.addAll(matchedSeen.get(0).nulls);
+            target.values.addAll(matchedSeen.get(0).values);
+            return;
+        }
+        if (matched.size() > 1) {
+            out.add("同時符合不只一種形狀（" + matched.stream().map(HttpContract.Variant::name).collect(java.util.stream.Collectors.joining("、"))
+                    + "），無法判斷是哪一種");
+            return;
+        }
+        out.add("不符合任何一種形狀；最接近的是 " + closestName + "：");
+        out.addAll(closest);
+    }
+
+    private static String seenKey(HttpContract.Endpoint e, HttpContract.Variant v) {
+        return v.name() == null ? e.key() : e.key() + "（" + v.name() + "）";
     }
 
     /** 載入問題、觀察到的問題、涵蓋問題。空的才算通過。 */
@@ -107,18 +156,25 @@ public final class HttpContractEvaluator {
                 all.add(e.key() + "：沒有觀察到任何成功回應");
                 continue;
             }
-            JsonShape.Seen s = seen.get(e.key());
-            for (String array : e.arrays()) {
-                if (!s.arrays.contains(array)) {
-                    all.add(e.key() + "：陣列 " + array + " 從未觀察到非空，元素的形狀沒有比對過");
+            for (HttpContract.Variant v : e.variants()) {
+                String key = seenKey(e, v);
+                JsonShape.Seen s = seen.get(key);
+                if (v.name() != null && s.observed == 0) {
+                    all.add(key + "：沒有觀察到這種形狀的成功回應");
+                    continue;
                 }
-            }
-            for (String field : e.nullables()) {
-                if (!s.values.contains(field)) {
-                    all.add(e.key() + "：可為 null 的欄位 " + field + " 從未觀察到非 null 的值，值的形狀沒有比對過");
+                for (String array : v.arrays()) {
+                    if (!s.arrays.contains(array)) {
+                        all.add(key + "：陣列 " + array + " 從未觀察到非空，元素的形狀沒有比對過");
+                    }
                 }
-                if (!s.nulls.contains(field)) {
-                    all.add(e.key() + "：可為 null 的欄位 " + field + " 從未觀察到 null");
+                for (String field : v.nullables()) {
+                    if (!s.values.contains(field)) {
+                        all.add(key + "：可為 null 的欄位 " + field + " 從未觀察到非 null 的值，值的形狀沒有比對過");
+                    }
+                    if (!s.nulls.contains(field)) {
+                        all.add(key + "：可為 null 的欄位 " + field + " 從未觀察到 null");
+                    }
                 }
             }
         }

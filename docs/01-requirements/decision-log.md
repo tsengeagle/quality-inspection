@@ -3582,3 +3582,54 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/03-contracts/api-spec.md` §15、`docs/05-ui/` 的 UI-015、`docs/harness/25-topic-backlog.md`
 - 後續：建構 PR
+
+---
+
+## D-088 — 切片 D、E：HTTP 介面與共用元件（第一批 D-1：回應契約）
+
+### Status
+
+`accepted`（2026-11-25，負責人對 `docs/harness/39-http-interfaces-common-draft.md` 的 H-1～H-12 全部照建議裁決；實測後追加的三題（第 3、5、6 點）也照建議）
+
+### Decision
+
+1. **分批（H-1 選 A）**：一份裁決，分三批建構，每批一組修法 PR 與建構 PR：D-1 回應契約、D-2 請求端（controller、請求 dto、HTTP 共用）、E 共用元件（`application/common/`、`domain/common/`）。D-2、E 的內容照草稿 H-5～H-12 的建議，見第 11 點。
+2. **回應形狀照程式（H-2 選 A）**：`specs/review-case/http.yaml`（29 個端點）、`specs/sampling-batch/http.yaml`（7 個）照 2026-11-25 實測的程式現況寫。程式目前一律輸出 null 的欄位寫成字面值 `'null'`：案件詳情的 `latestRevisionSummary`（未裁決事項）、`rereviewContext.initialReviewerName`、`initialReviewContext.editableSubmission.submittedAt`（一定是草稿），抽選執行頁的 `previewStats`。與 `api-spec.md` 不同的地方（執行抽選、重跑的回應欄位，預覽、執行沒有讀取 `mode`）記在題目清單；`OPEN-QUESTIONS.md` 只收 proposed 規則指向的題目，所以不放那裡。
+3. **案件的建立時間（實測追加，負責人選 A）**：`ReviewCaseQueryAdapter` 沒有把資料表的建立時間接到案件列表與案件詳情，`createdAt` 一律是 null。建構 PR 接上。規格：`CaseSummary` 補上 `createdAt`；新增兩個範例（`lists_the_creation_time_of_a_case`、`shows_the_creation_time_in_the_case_detail`）。
+4. **涵蓋要求的缺口（H-4 選 A）**：可為 null 的欄位只觀察到 null 的，用 `http` 步驟的範例補成功的回應（review-case 7 個、sampling-batch 1 個，都直接是綠的）。例外：失敗與重跑的批次沒有任何 use case 做得出來（D-086 第 1、2 點），`failureReason`、`retryOfBatchId` 有值的回應由建構 PR 補 JUnit 的 HTTP 測試觀察。
+5. **格式：可為 null 的物件（實測追加，負責人選 A）**：修訂 D-061 第 3 點與 `specs/README.md` 第七節。對應表的鍵結尾加 `?`，表示這個欄位的值可以是 null，值可以是對應表、清單或純量；欄位名稱不含 `?`。涵蓋要求與純量的 `?` 相同（null 與非 null 都要觀察到）。不能與純量的 `?`、字面值、`$data` 一起用。
+6. **格式：一個端點有幾種形狀（實測追加，負責人選 A）**：`success` 可以用 `variants`（至少兩項，每項有 `name` 與 `data`）取代 `data`。每筆成功回應必須剛好符合其中一種；一種都不符合時列出最接近的那一種的問題，符合不只一種也算問題。每一種都至少要觀察到一次，陣列與可為 null 的欄位依形狀分開計算。用在：
+   - 案件詳情：`full`、`metadata`（`CaseDetailMetadataView`）。
+   - 提交明細：`full`（RC-SBV-03）、`masked`（RC-SBV-01）、`whitelist`（RC-SBV-02）。建構 PR 拿掉 `SubmissionDetailView` 的 `@JsonInclude(NON_NULL)`，值是 null 的欄位照常輸出；白名單另外輸出只有白名單欄位的形狀，D-084 的規則不變。
+   - 另外，比對器改為也讀得進格式 v2 的 `usecases.yaml`、`model.yaml`（原本只接受 `spec_version: 1`，review-case、sampling-batch 的錯誤代碼與列舉讀不到）；`http.yaml`、`http-common.yaml` 仍是 1。
+7. **其他讀不進來的本文（H-7 選 A，提前到 D-1）**：修訂 D-073 第 3 點。不是時間格式的問題、本文讀不進來時，回 400 `BAD_REQUEST`，有外殼（原本是框架預設的 400、沒有本文）。review-case 的契約生效時，原本的範例會被契約擋下，所以這一項提前到 D-1。範例改為 `rejects_an_unreadable_body_as_a_bad_request`。查詢參數型別不符、少了必填的查詢參數，仍在 D-2。
+8. **application 物件直接輸出（H-3 選 A）**：程式不動，由封閉的形狀保護。
+9. **`Page` 與 `{ items }` 並存（H-11 選 A）**：兩種都照現況。`Page` 的形狀在每個 `http.yaml` 各寫一次（共用層沒有共用形狀的寫法）；要不要統一另立題目。
+10. **順序（照 D-062 第 5 點）**：HTTP 契約沒有已知失敗清單，程式改好之前寫進 `specs/` 會被閘門擋下。
+    1. 修法 PR 一：本裁決、第 5、6 點的格式與比對器、範例與規格、`known-test-failures.txt`；兩份契約放在 `spec-draft/`（只列出、不擋）。
+    2. 建構 PR：第 3、6、7 點的程式，第 4 點的 JUnit 觀察；三個紅的範例轉綠並移出清單。
+    3. 修法 PR 二：兩份契約移到 `specs/`，回應 dto 依端點所在的規格目錄登記為已立法。
+11. **D-2 與 E（H-5、H-6、H-8～H-10、H-12，照建議）**：
+    - 查詢參數列舉的轉換移進 use case，順序依 D-024，代碼維持 `BAD_REQUEST`（H-5）。
+    - 請求 dto 的必填檢查逐一確認後交給 use case，use case 沒有的補上（H-6）。
+    - 查詢參數型別不符、少了必填的查詢參數，回 400 `BAD_REQUEST`，有外殼（H-7 其餘部分）。
+    - 有本文或查詢參數的端點至少一個 `http` 步驟的成功範例（H-8）。
+    - `ActorContextArgumentResolver`、`CurrentActor`、`WebMvcConfig`、`BadRequestException`、`interfaces/package-info.java` 登記到 `specs/http-common.yaml`，補一個 `as: anonymous` 的範例；controller 依端點所在的規格目錄登記（H-9）。
+    - `application/common/`、`domain/common/` 直接登記，不新增規則（H-10）。
+    - 每批的修法 PR 把該批的檔案改成已立法；E 做完後沒有 `grandfathered` 的列（H-12）。
+12. **題目清單**：D-087 移到已完成；D、E 標為進行中；第 2 點的落差記為待辦。
+
+### Relationship / Evidence
+
+- **起因**：負責人 2026-11-25 同意的問題側立法順序的第四個切片（D、E）。D-061 第 8 點要求立法時一併寫 `http.yaml`，review-case（D-066～D-084）、sampling-batch（D-086）立法時沒有寫。
+- **草案與實測**：`docs/harness/39-http-interfaces-common-draft.md`（main = `69a90a8`）。第九節是實測：本機臨時把每一筆回應記下來（用完已還原），跑完整的 `./gradlew test`。第 3、5、6 點是實測發現的。
+- **與既有裁決的關係**：修訂 D-061 第 3 點（第 5、6 點）、D-073 第 3 點（第 7 點）；延伸 D-058、D-074；D-084 的提交明細規則不變。
+
+### Mapping
+
+- `specs/README.md` 第七節；`services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/`（`JsonShape`、`HttpContract`、`HttpContractEvaluator` 與測試）
+- `spec-draft/review-case/http.yaml`、`spec-draft/sampling-batch/http.yaml`、`spec-draft/README.md`
+- `specs/review-case/usecases.yaml`（`CaseSummary.createdAt`）、`specs/review-case/examples.yaml`、`specs/sampling-batch/examples.yaml`
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/harness/25-topic-backlog.md`、`docs/harness/39-http-interfaces-common-draft.md`、`docs/harness/README.md`
+- 後續：建構 PR、修法 PR 二（契約移到 `specs/`）、D-2、E

@@ -1,0 +1,17 @@
+{
+  "id": "2026-11-25-d088-http-contracts",
+  "decision": "D-088",
+  "reason": "D-088：切片 D、E 的第一批 D-1（回應契約）修法 PR 一；docs/harness/39 的 H-1～H-12 照建議，實測後追加的三題照建議。格式：http.yaml 的鍵結尾加 ? 表示值可以是 null（物件、清單或純量）、success.variants 表示一個端點有幾種形狀，比對器也讀得進格式 v2 的 usecases.yaml、model.yaml（acceptance/http/ 的 JsonShape、HttpContract、HttpContractEvaluator 與測試；specs/README.md 第七節）。spec-draft/ 新增 review-case（29 個端點）、sampling-batch（7 個）的 http.yaml，照程式現況，只列出、不擋，建構 PR 之後由修法 PR 二移到 specs/。規格：review-case 的 CaseSummary 補上 createdAt；examples.yaml 新增兩個 createdAt 的範例、7 個 HTTP 涵蓋的範例，D-074 的「沒有外殼」範例改為回 BAD_REQUEST（修訂 D-073 第 3 點）；sampling-batch 的 examples.yaml 新增 1 個 HTTP 涵蓋的範例。三個紅的範例加進 known-test-failures.txt，由建構 PR 移除。文件：草稿 39、題目清單（D-087 移到已完成、本切片進行中、HTTP 與 api-spec 的落差）、README 索引、spec-draft/README。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/README.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/examples.yaml",
+    "specs/sampling-batch/examples.yaml",
+    "spec-draft/",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}
