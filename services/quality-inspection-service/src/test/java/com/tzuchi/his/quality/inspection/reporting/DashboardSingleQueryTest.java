@@ -27,7 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class DashboardSingleQueryTest {
 
-    @Autowired private DashboardQueryService dashboard;
+    @Autowired private GetDashboardSummaryUseCase dashboard;
     @Autowired private ReviewCaseJpaRepository cases;
     @Autowired private EntityManagerFactory emf;
 
@@ -56,7 +56,7 @@ class DashboardSingleQueryTest {
         stats.setStatisticsEnabled(true);
         stats.clear();
         try {
-            dashboard.getSummary(manager, new DashboardQueryCriteria(null, null, null, null));
+            dashboard.execute(manager, null, null, null, null);
             assertThat(stats.getPrepareStatementCount()).as("一次統計只執行一條 SQL").isEqualTo(1);
         } finally {
             stats.setStatisticsEnabled(wasEnabled);
@@ -70,22 +70,23 @@ class DashboardSingleQueryTest {
         save("closed-rereviewed", CaseStatus.CLOSED, "rr", past);     // 已結案、有複審；逾期不計（已結案）
         save("closed-plain", CaseStatus.CLOSED, null, null);           // 已結案
         save("overdue", CaseStatus.PENDING_INITIAL_REVIEW, null, past); // 逾期
-        save("cancelled-past-due", CaseStatus.CANCELLED, null, past);  // 已取消，不算逾期
+        save("cancelled-past-due", CaseStatus.CANCELLED, "rr3", past); // 已取消：不計入任何件數（D-087 第 4 點）
         save("in-progress-rereview", CaseStatus.REREVIEW_IN_PROGRESS, "rr2", future); // 有複審、未逾期
         save("no-due", CaseStatus.PENDING_INITIAL_REVIEW, null, null);  // 沒有期限，不算逾期
 
-        DashboardSummary s = dashboard.getSummary(manager, new DashboardQueryCriteria(null, null, null, null));
+        DashboardSummary s = dashboard.execute(manager, null, null, null, null);
 
-        assertThat(s.getTotalCases()).isEqualTo(6);
+        assertThat(s.getTotalCases()).as("不含已取消的案件").isEqualTo(5);
         assertThat(s.getClosedCases()).isEqualTo(2);
         assertThat(s.getRereviewedCases()).isEqualTo(2);
         assertThat(s.getOverdueCases()).isEqualTo(1);
-        assertThat(s.getCompletionRate()).isEqualTo(2.0 / 6);
+        assertThat(s.getCompletionRate()).isEqualTo(2.0 / 5);
+        assertThat(s.getRereviewRate()).isEqualTo(2.0 / 5);
     }
 
     @Test
     void noMatchingCases_allZero() {
-        DashboardSummary s = dashboard.getSummary(manager, new DashboardQueryCriteria(null, null, null, null));
+        DashboardSummary s = dashboard.execute(manager, null, null, null, null);
         assertThat(s.getTotalCases()).isZero();
         assertThat(s.getClosedCases()).isZero();
         assertThat(s.getRereviewedCases()).isZero();

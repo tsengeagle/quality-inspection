@@ -32,7 +32,7 @@ class ExportScoreMaskingIntegrationTest {
 
     private static final java.util.List<String> MASKED = java.util.List.of("initialScore", "finalScore");
 
-    @Autowired private ExportQueryService export;
+    @Autowired private ExportReportUseCase export;
     @Autowired private ReviewCaseJpaRepository cases;
     @Autowired private RereviewerAssignmentHistoryJpaRepository history;
     @Autowired private InitialReviewReaderJpaRepository readers;
@@ -64,8 +64,8 @@ class ExportScoreMaskingIntegrationTest {
         // D-057：逐案資料列分頁；逐頁取完所有列（每頁上限 1,000）
         Map<String, ExportRow> all = new java.util.LinkedHashMap<>();
         for (int page = 0; ; page++) {
-            ExportResult result = export.export(actor, new ExportCriteria("REVIEW_COMPLETION", null,
-                    java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), page, 1000));
+            ExportResult result = export.execute(actor, "REVIEW_COMPLETION", null,
+                    java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), page, 1000);
             result.getRows().forEach(r -> all.put(r.getCaseId(), r));
             if (page + 1 >= result.getTotalPages()) return all;
         }

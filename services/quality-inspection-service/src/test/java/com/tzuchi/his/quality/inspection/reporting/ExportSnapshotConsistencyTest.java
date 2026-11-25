@@ -34,7 +34,7 @@ class ExportSnapshotConsistencyTest {
     private static final Instant FROM = Instant.parse("2026-04-01T00:00:00Z");
     private static final Instant TO = Instant.parse("2026-05-01T00:00:00Z");
 
-    @Autowired private ExportQueryService export;
+    @Autowired private ExportReportUseCase export;
     @Autowired private ReviewCaseJpaRepository cases;
     @Autowired private PlatformTransactionManager transactions;
     @SpyBean private ExportCaseQuery caseQuery;
@@ -65,7 +65,7 @@ class ExportSnapshotConsistencyTest {
         }).when(caseQuery).findCases(any(), any(), any(), anyInt(), anyInt());
 
         ActorContext manager = new ActorContext("mgr", "mgr", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
-        ExportResult result = export.export(manager, new ExportCriteria("REVIEW_COMPLETION", null, FROM, TO, 0, 100));
+        ExportResult result = export.execute(manager, "REVIEW_COMPLETION", null, FROM, TO, 0, 100);
 
         assertThat(cases.count()).as("新案件確實已在兩次查詢之間提交").isEqualTo(3);
         assertThat(result.getTotalElements()).isEqualTo(2);

@@ -26,8 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 class ReportHospitalScopeIntegrationTest {
 
-    @Autowired private DashboardQueryService dashboard;
-    @Autowired private ExportQueryService export;
+    @Autowired private GetDashboardSummaryUseCase dashboard;
+    @Autowired private ExportReportUseCase export;
     @Autowired private ReviewCaseJpaRepository cases;
 
     @BeforeEach
@@ -40,32 +40,28 @@ class ReportHospitalScopeIntegrationTest {
 
     @Test
     void dashboard_managerWithoutHospitalParameter_countsOnlyOwnHospital_D042() {
-        DashboardSummary summary = dashboard.getSummary(managerOf("H001"),
-                new DashboardQueryCriteria(null, null, null, null));
+        DashboardSummary summary = dashboard.execute(managerOf("H001"), null, null, null, null);
 
         assertThat(summary.getTotalCases()).as("H001 的主管不帶院區參數時看到的案件數").isEqualTo(2);
     }
 
     @Test
     void dashboard_managerRequestingOtherHospital_stillCountsOnlyOwnHospital_D042() {
-        DashboardSummary summary = dashboard.getSummary(managerOf("H001"),
-                new DashboardQueryCriteria("H002", null, null, null));
+        DashboardSummary summary = dashboard.execute(managerOf("H001"), "H002", null, null, null);
 
         assertThat(summary.getTotalCases()).as("H001 的主管指定 H002 時看到的案件數").isEqualTo(2);
     }
 
     @Test
     void export_managerWithoutHospitalParameter_returnsOnlyOwnHospital_D042() {
-        ExportResult result = export.export(managerOf("H001"),
-                new ExportCriteria("REVIEW_COMPLETION", null, java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000));
+        ExportResult result = export.execute(managerOf("H001"), "REVIEW_COMPLETION", null, java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000);
 
         assertThat(result.getRows()).extracting(ExportRow::getHospitalId).containsOnly("H001");
     }
 
     @Test
     void export_managerRequestingOtherHospital_returnsOnlyOwnHospital_D042() {
-        ExportResult result = export.export(managerOf("H001"),
-                new ExportCriteria("REVIEW_COMPLETION", "H002", java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000));
+        ExportResult result = export.execute(managerOf("H001"), "REVIEW_COMPLETION", "H002", java.time.Instant.parse("2026-04-01T00:00:00Z"), java.time.Instant.parse("2026-05-01T00:00:00Z"), 0, 1000);
 
         assertThat(result.getRows()).extracting(ExportRow::getHospitalId).containsOnly("H001");
     }
@@ -75,7 +71,7 @@ class ReportHospitalScopeIntegrationTest {
         ActorContext admin = new ActorContext("admin", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        DashboardSummary summary = dashboard.getSummary(admin, new DashboardQueryCriteria(null, null, null, null));
+        DashboardSummary summary = dashboard.execute(admin, null, null, null, null);
 
         assertThat(summary.getTotalCases()).isEqualTo(3);
     }
