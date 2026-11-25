@@ -31,6 +31,7 @@ sources:
   - { decision: D-081 }
   - { decision: D-082 }
   - { decision: D-083 }
+  - { decision: D-087 }
   - { doc: docs/02-ddd/domain-events.md, section: "§6.2–§6.12、§7.1、§7.2" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§10.3–§10.11、§11.4、§12.4、§11.1–§11.3、§12.1–§12.3、§13.2、§14.1、§14.2、D-034 複審獨立 Close Command 對齊" }
 
@@ -61,6 +62,7 @@ error_codes:
   - { code: CASE_NOT_IN_PROGRESS,              category: conflict,       status: decided,  source: [{ decision: D-080 }] }
   - { code: CASE_NOT_RETURNED,                 category: conflict,       status: decided,  source: [{ decision: D-080 }, { doc: docs/03-contracts/api-spec.md, section: "§10.11" }] }
   - { code: REREVIEWER_HAS_READ_INITIAL,       category: rule_violation, status: decided,  source: [{ decision: D-055 }, { decision: D-084 }] }
+  - { code: BAD_REQUEST,                       category: invalid_input,  status: decided,  source: [{ decision: D-057 }, { decision: D-087 }] }
 
 # 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
 guards:
@@ -99,6 +101,26 @@ input_types:
 
 # 欄位對誰可見不寫在這裡，留在規則與範例。
 output_types:
+  DashboardSummary:
+    - { name: totalCases,      type: int }
+    - { name: closedCases,     type: int }
+    - { name: rereviewedCases, type: int }
+    - { name: overdueCases,    type: int }
+    - { name: completionRate,  type: decimal }
+    - { name: rereviewRate,    type: decimal }
+    - { name: overdueRate,     type: decimal }
+  ExportRow:
+    - { name: caseId,       type: id }
+    - { name: projectId,    type: id }
+    - { name: hospitalId,   type: id }
+    - { name: status,       type: enum CaseStatus }
+    - { name: reviewerId,   type: id }
+    - { name: rereviewerId, type: id }
+    - { name: initialScore, type: decimal(2) }
+    - { name: finalScore,   type: decimal(2) }
+    - { name: createdAt,    type: datetime }
+    - { name: closedAt,     type: datetime }
+    - { name: maskedFields, type: "list<text>" }
   CaseSummary:
     - { name: caseId,        type: id }
     - { name: batchId,       type: id }
@@ -1426,3 +1448,174 @@ usecases:
       source: [{ doc: docs/03-contracts/api-spec.md, section: "§14.2" }, { decision: D-071 }]
       fields:
         - { name: content, type: "list<AuditEntry>" }
+
+  # ---------- 報表與儀表板（D-087）。報表不是 aggregate，查的是審查案件，所以寫在這裡 ----------
+
+  - name: GetDashboardSummary
+    kind: query
+    summary: 儀表板（UI-015）的件數與比率
+    actor: { roles: [HOSPITAL_MANAGER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: hospitalId, type: id,       required: false }
+      - { name: projectId,  type: id,       required: false }
+      - { name: from,       type: datetime, required: false }
+      - { name: to,         type: datetime, required: false }
+    guards: [RC-G-01]
+    rules:
+      - id: RC-DSH-01
+        when: from、to 只給了其中一個
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }]
+      - id: RC-DSH-02
+        when: from、to 都有給，但 from 不早於 to
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }]
+      - id: RC-DSH-03
+        when: 操作者不是 SYSTEM_ADMIN
+        text: 只統計院區等於操作者院區的案件；輸入的 hospitalId 不採用
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-042 }, { decision: D-087 }]
+      - id: RC-DSH-04
+        when: 操作者是 SYSTEM_ADMIN
+        text: 統計所有院區的案件；輸入有 hospitalId 時只統計那個院區的
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-047 }, { decision: D-087 }]
+      - id: RC-DSH-05
+        when: 輸入有 projectId
+        text: 只統計那個專案的案件；不檢查專案是否存在，沒有符合的案件時件數都是 0
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-087 }]
+      - id: RC-DSH-06
+        when: from、to 都有給
+        text: 只統計建立時間在 from（含）到 to（不含）之間的案件；都沒有給時不依時間篩選
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }]
+      - id: RC-DSH-07
+        when: 任何查詢
+        text: 已取消（CANCELLED）的案件不計入任何件數。totalCases 是範圍內其餘案件的數目；closedCases 是其中 status = CLOSED 的；rereviewedCases 是其中已指派複審醫師的（不代表複審已完成）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-087 }]
+      - id: RC-DSH-08
+        when: 任何查詢
+        text: completionRate = closedCases ÷ totalCases，rereviewRate = rereviewedCases ÷ totalCases，overdueRate = overdueCases ÷ totalCases；totalCases 是 0 時都是 0。不四捨五入
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-087 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§15.1" }, { decision: D-087 }]
+      fields:
+        - { name: totalCases,      type: int }
+        - { name: closedCases,     type: int }
+        - { name: rereviewedCases, type: int }
+        - { name: overdueCases,    type: int }
+        - { name: completionRate,  type: decimal }
+        - { name: rereviewRate,    type: decimal }
+        - { name: overdueRate,     type: decimal }
+
+  - name: ExportReport
+    kind: query
+    summary: 匯出統計報表：逐案資料列（分頁）與同一個範圍的摘要
+    actor: { roles: [HOSPITAL_MANAGER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: reportType, type: text,     required: true }
+      - { name: hospitalId, type: id,       required: false }
+      - { name: from,       type: datetime, required: true }
+      - { name: to,         type: datetime, required: true }
+      - { name: page,       type: int,      required: false }
+      - { name: size,       type: int,      required: false }
+    guards: [RC-G-01]
+    rules:
+      - id: RC-RPT-01
+        when: reportType 不是 REVIEW_COMPLETION
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }]
+      - id: RC-RPT-02
+        when: from 或 to 沒有給
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }]
+      - id: RC-RPT-03
+        when: from 不早於 to
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }]
+      - id: RC-RPT-04
+        when: 操作者不是 SYSTEM_ADMIN
+        text: 只匯出院區等於操作者院區的案件；輸入的 hospitalId 不採用
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-042 }, { decision: D-056 }]
+      - id: RC-RPT-05
+        when: 操作者是 SYSTEM_ADMIN
+        text: 匯出所有院區的案件；輸入有 hospitalId 時只匯出那個院區的
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-047 }, { decision: D-056 }]
+      - id: RC-RPT-06
+        when: 任何匯出
+        text: rows 是建立時間在 from（含）到 to（不含）之間的案件，包含已取消的，依 caseId 遞增，一次一頁。size 沒有給或不是正數時是 100，最大 1000；page 從 0 開始，沒有給或是負數時是 0；輸出的 page、size 是實際使用的值。totalElements、totalPages 以整個範圍計算；超出範圍的頁，rows 是空的
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }]
+      - id: RC-RPT-07
+        when: 操作者是 SYSTEM_ADMIN
+        text: 每一列的 initialScore、finalScore 都是 null，maskedFields 列出這兩個欄位
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }, { rule: RC-INV-02 }]
+      - id: RC-RPT-08
+        when: 某一列的案件 status 不是 REREVIEW_IN_PROGRESS、CLOSED、CANCELLED（之後還可能指派或改派複審醫師）
+        text: 這一列的 initialScore、finalScore 是 null，maskedFields 列出這兩個欄位
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }]
+      - id: RC-RPT-09
+        when: 操作者是某一列案件目前的複審醫師，或出現在它的複審指派歷史裡（不論現在用哪個角色）
+        text: 這一列的 initialScore、finalScore 是 null，maskedFields 列出這兩個欄位；結案後也不解除
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-033 }, { decision: D-055 }]
+      - id: RC-RPT-10
+        when: 某一列案件的複審指派歷史不完整
+        text: 這一列的 initialScore、finalScore 是 null，maskedFields 列出這兩個欄位
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-035 }, { decision: D-055 }]
+      - id: RC-RPT-11
+        when: 某一列不符合 RC-RPT-07～10 的任何一條
+        text: initialScore、finalScore 照常輸出，maskedFields 是空的清單
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }]
+      - id: RC-RPT-12
+        when: 任何匯出
+        text: summary 是同一個院區範圍與時間區間的儀表板摘要（RC-DSH-07、RC-DSH-08），不受分頁影響。已取消的案件在 rows 與 totalElements 裡，不在 summary 的件數裡
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-057 }, { decision: D-087 }, { rule: RC-DSH-07 }]
+      - id: RC-RPT-13
+        when: 匯出成功
+        text: 不寫入初審讀取者紀錄，不遞增案件版本，不發事件
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-087 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§15.2" }, { decision: D-057 }]
+      fields:
+        - { name: reportType,    type: text }
+        - { name: rows,          type: "list<ExportRow>" }
+        - { name: summary,       type: DashboardSummary }
+        - { name: page,          type: int }
+        - { name: size,          type: int }
+        - { name: totalElements, type: int }
+        - { name: totalPages,    type: int }
