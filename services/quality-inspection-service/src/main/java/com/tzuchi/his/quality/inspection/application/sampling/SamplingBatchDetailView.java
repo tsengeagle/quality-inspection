@@ -49,6 +49,13 @@ public class SamplingBatchDetailView {
         this.selectedCases = selectedCases;
     }
 
+    /** 同一個批次的 metadata：沒有 selectedCases（SB-DET-02）。 */
+    public SamplingBatchDetailView withoutSelectedCases() {
+        return new SamplingBatchDetailView(batchId, projectId, executionMode, status, populationCount,
+                eligibleCount, excludedCount, selectedCount, retryOfBatchId, failureReason,
+                startedAt, finishedAt, ruleSnapshot, null);
+    }
+
     public String getBatchId() { return batchId; }
     public String getProjectId() { return projectId; }
     public ExecutionMode getExecutionMode() { return executionMode; }

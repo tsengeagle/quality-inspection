@@ -3,8 +3,10 @@ package com.tzuchi.his.quality.inspection.application.sampling;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
+import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProject;
 import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
@@ -17,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
@@ -36,35 +37,47 @@ public class RetrySamplingBatchUseCase {
     private final CandidateSourcePort candidateSource;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public RetrySamplingBatchUseCase(ReviewProjectRepository projectRepository,
                                      SamplingBatchRepository batchRepository,
                                      ReviewCaseRepository caseRepository,
                                      CandidateSourcePort candidateSource,
                                      DomainEventPublisher eventPublisher,
-                                     Clock clock) {
+                                     Clock clock,
+                                     IdGenerator idGenerator) {
         this.projectRepository = projectRepository;
         this.batchRepository = batchRepository;
         this.caseRepository = caseRepository;
         this.candidateSource = candidateSource;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
+        this.idGenerator = idGenerator;
     }
 
-    public String execute(ActorContext actor, String previousBatchId) {
+    /**
+     * D-086 第 3 點的檢查順序：角色 → 批次不存在 → 批次所屬專案的院區 → 批次不是 FAILED。
+     *
+     * @param batchId 要重跑的批次
+     */
+    public String execute(ActorContext actor, String batchId) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
-        String hospitalId = actor.requireHospitalId();
+        String previousBatchId = batchId;
         SamplingBatch previousBatch = batchRepository.findById(previousBatchId)
-                .orElseThrow(() -> new IllegalArgumentException("Batch not found: " + previousBatchId));
+                .orElseThrow(() -> new ResourceNotFoundException("SAMPLING_BATCH_NOT_FOUND",
+                        "SamplingBatch not found: " + previousBatchId));
+
+        String projectId = previousBatch.getProjectId();
+        ReviewProject project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
+                        "Project not found: " + projectId));
+        actor.requireHospitalScope(project.getHospitalId());
+        String hospitalId = project.getHospitalId();
 
         if (previousBatch.getStatus() != BatchStatus.FAILED) {
             throw new DomainRuleViolationException("BATCH_NOT_RETRYABLE",
                     "Only FAILED batches can be retried. Current status: " + previousBatch.getStatus());
         }
-
-        String projectId = previousBatch.getProjectId();
-        ReviewProject project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
 
         if (project.getStatus() != ProjectStatus.ACTIVE) {
             throw new DomainRuleViolationException("PROJECT_NOT_ACTIVE",
@@ -74,7 +87,7 @@ public class RetrySamplingBatchUseCase {
         // D-013: use the PREVIOUS batch's snapshot, not the current project version
         RuleSnapshot snapshot = previousBatch.getRuleSnapshot();
 
-        String newBatchId = UUID.randomUUID().toString();
+        String newBatchId = idGenerator.newId();
         SamplingBatch newBatch = SamplingBatch.start(newBatchId, projectId, ExecutionMode.RETRY, snapshot, Instant.now(clock));
         newBatch.markRetryOf(previousBatchId);
 
@@ -95,7 +108,7 @@ public class RetrySamplingBatchUseCase {
 
         List<ReviewCase> reviewCases = candidates.stream()
                 .map(ref -> ReviewCase.createFromSampling(
-                        UUID.randomUUID().toString(),
+                        idGenerator.newId(),
                         newBatchId,
                         projectId,
                         ref.getHospitalId(),

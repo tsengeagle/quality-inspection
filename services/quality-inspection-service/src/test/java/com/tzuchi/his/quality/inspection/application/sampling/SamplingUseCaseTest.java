@@ -52,8 +52,8 @@ class SamplingUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
 
         previewUseCase = new PreviewSamplingPopulationUseCase(projectRepo, candidateSource);
-        executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher, Clock.systemDefaultZone());
-        retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher, Clock.systemDefaultZone());
+        executeUseCase = new ExecuteSamplingUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
+        retryUseCase = new RetrySamplingBatchUseCase(projectRepo, batchRepo, caseRepo, candidateSource, eventPublisher, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
         executeContextUseCase = new GetSamplingExecuteContextUseCase(projectRepo, new InMemoryBatchQueryPort());
 
         hospitalManagerActor = new ActorContext("u-test", "Test", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
@@ -282,8 +282,7 @@ class SamplingUseCaseTest {
         ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(queryPort);
 
         Page<SamplingBatchSummary> result =
-                listUseCase.execute(hospitalManagerActor,
-                        new SamplingBatchQueryCriteria(null, null, null, 0, 20));
+                listUseCase.execute(hospitalManagerActor, null, null, null, null, 0, 20);
 
         assertEquals(1, result.getContent().size());
         assertEquals("b1", result.getContent().get(0).getBatchId());
@@ -297,8 +296,7 @@ class SamplingUseCaseTest {
                 EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
         assertThrows(RoleDeniedException.class,
-                () -> listUseCase.execute(reviewerActor,
-                        new SamplingBatchQueryCriteria(null, null, null, 0, 20)));
+                () -> listUseCase.execute(reviewerActor, null, null, null, null, 0, 20));
     }
 
     @ParameterizedTest
@@ -309,7 +307,7 @@ class SamplingUseCaseTest {
         ActorContext actor = new ActorContext("u1", role.name(), EnumSet.of(role), Optional.of("H001"));
 
         RoleDeniedException e = assertThrows(RoleDeniedException.class,
-                () -> listUseCase.execute(actor, new SamplingBatchQueryCriteria(null, null, null, 0, 20)));
+                () -> listUseCase.execute(actor, null, null, null, null, 0, 20));
         assertEquals("ROLE_DENIED", e.getErrorCode());
     }
 
@@ -414,10 +412,10 @@ class SamplingUseCaseTest {
         ActorContext admin = new ActorContext("u-adm", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        listUseCase.execute(hospitalManagerActor, new SamplingBatchQueryCriteria(null, null, null, 0, 20));
+        listUseCase.execute(hospitalManagerActor, null, null, null, null, 0, 20);
         assertEquals("H001", queryPort.lastCriteria.getHospitalId());
 
-        listUseCase.execute(admin, new SamplingBatchQueryCriteria(null, null, null, 0, 20));
+        listUseCase.execute(admin, null, null, null, null, 0, 20);
         assertNull(queryPort.lastCriteria.getHospitalId());
     }
 
@@ -429,14 +427,106 @@ class SamplingUseCaseTest {
         ActorContext admin = new ActorContext("u-adm", "Admin",
                 EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
 
-        listUseCase.execute(admin, new SamplingBatchQueryCriteria(null, null, null, 0, 20).withHospitalId("H002"));
+        listUseCase.execute(admin, null, null, null, "H002", 0, 20);
         assertEquals("H002", queryPort.lastCriteria.getHospitalId());
 
-        listUseCase.execute(hospitalManagerActor,
-                new SamplingBatchQueryCriteria(null, null, null, 0, 20).withHospitalId("H002"));
+        listUseCase.execute(hospitalManagerActor, null, null, null, "H002", 0, 20);
         assertEquals("H001", queryPort.lastCriteria.getHospitalId());
     }
 
+    // ---- D-086：重跑與預覽的檢查、SYSTEM_ADMIN 的詳情、列表的分頁 ----
+
+    @Test
+    void retry_unknownBatch_shouldThrowSamplingBatchNotFound() {
+        // SB-G-04（D-086 第 3 點）：原本是 IllegalArgumentException（500）
+        com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException.class,
+                () -> retryUseCase.execute(hospitalManagerActor, "nonexistent"));
+        assertEquals("SAMPLING_BATCH_NOT_FOUND", e.getErrorCode());
+    }
+
+    @Test
+    void retry_otherHospital_isDeniedBeforeTheStatusCheck() {
+        // SB-G-05（D-086 第 3 點）：院區的檢查在「不是 FAILED」之前，FAILED 的批次也一樣擋下
+        projectRepo.save(createActiveProject("p1"));
+        SamplingBatch failed = SamplingBatch.start("failed-x", "p1",
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
+        failed.fail("test failure", Instant.now());
+        batchRepo.save(failed);
+        SamplingBatch completed = SamplingBatch.start("done-x", "p1",
+                ExecutionMode.MANUAL, new RuleSnapshot("PV-p1-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
+        completed.recordCandidateCount(0, 0, 0);
+        completed.selectCases(List.of());
+        completed.complete(Instant.now());
+        batchRepo.save(completed);
+        ActorContext otherHospital = new ActorContext("u-other", "Other",
+                EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("OTHER_HOSPITAL"));
+
+        assertEquals("HOSPITAL_SCOPE_MISMATCH", assertThrows(AccessDeniedException.class,
+                () -> retryUseCase.execute(otherHospital, "failed-x")).getErrorCode());
+        assertEquals("HOSPITAL_SCOPE_MISMATCH", assertThrows(AccessDeniedException.class,
+                () -> retryUseCase.execute(otherHospital, "done-x")).getErrorCode());
+        assertEquals(2, batchRepo.store.size());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
+    @Test
+    void preview_unknownProject_shouldThrowProjectNotFound() {
+        // SB-G-02（D-086 第 9 點）：原本是 IllegalArgumentException（500）
+        com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException.class,
+                () -> previewUseCase.execute(hospitalManagerActor, "nonexistent"));
+        assertEquals("PROJECT_NOT_FOUND", e.getErrorCode());
+    }
+
+    @Test
+    void getDetail_systemAdmin_hasNoSelectedCases_othersHaveThem() {
+        // SB-DET-01、SB-DET-02（D-086 第 12 點）
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        queryPort.details.put("b1", new SamplingBatchDetailView(
+                "b1", "p1", ExecutionMode.MANUAL, BatchStatus.COMPLETED,
+                1, 1, 0, 1, null, null, Instant.now(), Instant.now(),
+                new RuleSnapshotSummary("PV-1", 1, "SS-1", "MANUAL"),
+                List.of(new SelectedCaseRefView("C1", "H001", "OUTPATIENT"))));
+        projectRepo.save(createActiveProject("p1"));
+        GetSamplingBatchDetailUseCase detailUseCase = new GetSamplingBatchDetailUseCase(queryPort, projectRepo);
+        ActorContext admin = new ActorContext("u-adm", "Admin",
+                EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.empty());
+        ActorContext auditor = new ActorContext("u-aud", "Auditor",
+                EnumSet.of(DomainRole.AUDITOR), Optional.of("H001"));
+
+        SamplingBatchDetailView forAdmin = detailUseCase.execute(admin, "b1");
+        assertNull(forAdmin.getSelectedCases());
+        assertEquals(1, forAdmin.getSelectedCount());
+        assertEquals("SS-1", forAdmin.getRuleSnapshot().getScoreSheetVersionId());
+
+        assertEquals(1, detailUseCase.execute(hospitalManagerActor, "b1").getSelectedCases().size());
+        assertEquals(1, detailUseCase.execute(auditor, "b1").getSelectedCases().size());
+    }
+
+    @Test
+    void listBatches_pagingDefaultsAndFilters() {
+        // SB-LST-03、SB-LST-04（D-086 第 11 點）：size 預設 20、上限 100；page 負數當成 0
+        InMemoryBatchQueryPort queryPort = new InMemoryBatchQueryPort();
+        ListSamplingBatchesUseCase listUseCase = new ListSamplingBatchesUseCase(queryPort);
+
+        listUseCase.execute(hospitalManagerActor, null, null, null, null, null, null);
+        assertEquals(0, queryPort.lastCriteria.getPage());
+        assertEquals(20, queryPort.lastCriteria.getSize());
+
+        listUseCase.execute(hospitalManagerActor, null, null, null, null, -3, 500);
+        assertEquals(0, queryPort.lastCriteria.getPage());
+        assertEquals(100, queryPort.lastCriteria.getSize());
+
+        listUseCase.execute(hospitalManagerActor, null, null, null, null, 2, 0);
+        assertEquals(2, queryPort.lastCriteria.getPage());
+        assertEquals(20, queryPort.lastCriteria.getSize());
+
+        listUseCase.execute(hospitalManagerActor, "p1", BatchStatus.COMPLETED, ExecutionMode.MANUAL, null, 0, 20);
+        assertEquals("p1", queryPort.lastCriteria.getProjectId());
+        assertEquals(BatchStatus.COMPLETED, queryPort.lastCriteria.getStatus());
+        assertEquals(ExecutionMode.MANUAL, queryPort.lastCriteria.getExecutionMode());
+    }
     @Test
     void execute_wrongHospital_shouldThrowAccessDenied() {
         ReviewProject project = createActiveProject("p1");
