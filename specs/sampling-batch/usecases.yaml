@@ -20,6 +20,7 @@ error_codes:
   - { code: SAMPLING_BATCH_NOT_FOUND,         category: not_found,      status: decided, source: [{ decision: D-086 }] }
   - { code: BATCH_NOT_RETRYABLE,              category: rule_violation, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
   - { code: DUPLICATE_SELECTED_CASE_IN_BATCH, category: conflict,       status: decided, source: [{ decision: D-007 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: BAD_REQUEST,                     category: invalid_input,  status: decided,  source: [{ decision: D-088 }] }
 
 guards:
   - id: SB-G-01
@@ -235,6 +236,11 @@ usecases:
       - { name: size,          type: int,                      required: false }
     guards: [SB-G-01]
     rules:
+      - id: SB-LST-05
+        when: status 或 executionMode 有給，但不是 SamplingBatchStatus、ExecutionMode 的值（在角色檢查之後）
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-088 }]
       - id: SB-LST-01
         when: 操作者不是 SYSTEM_ADMIN
         text: 只列出所屬專案的院區等於操作者院區的批次；輸入的 hospitalId 不採用

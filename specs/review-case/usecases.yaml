@@ -205,6 +205,11 @@ usecases:
         outcome: { result: SUCCESS }
         status: decided
         source: [{ decision: D-042 }]
+      - id: RC-LST-02
+        when: status 有給，但不是 CaseStatus 的值（在角色檢查之後）
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-088 }]
     output:
       status: decided
       source: [{ doc: docs/03-contracts/api-spec.md }]
@@ -525,6 +530,11 @@ usecases:
       - { name: comment,      type: text,                required: false }
     guards: [RC-G-01, RC-G-02, RC-G-03]
     rules:
+      - id: RC-RDR-10
+        when: submissionId 或 answers 沒有給，在狀態檢查之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-088 }]
       - id: RC-RDR-01
         when: 案件的 status 是 CLOSED 或 CANCELLED
         outcome: { result: REJECTED, code: CASE_TERMINAL }
@@ -588,6 +598,11 @@ usecases:
       - { name: comment,      type: text,                required: false }
     guards: [RC-G-01, RC-G-02, RC-G-03]
     rules:
+      - id: RC-SRR-11
+        when: submissionId 沒有給，在狀態檢查之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-088 }]
       - id: RC-SRR-01
         when: 案件的 status 是 CLOSED 或 CANCELLED
         outcome: { result: REJECTED, code: CASE_TERMINAL }
@@ -1337,6 +1352,11 @@ usecases:
       - { name: keyword, type: text, required: false }
     guards: [RC-G-01, RC-G-02, RC-G-03]
     rules:
+      - id: RC-ACD-05
+        when: role 沒有給，或不是 REVIEWER、REREVIEWER（在角色、載入、院區範圍的檢查之後）
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-088 }]
       - id: RC-ACD-01
         when: 候選人不是在職
         text: selectable = false，blockedReason = CANDIDATE_INACTIVE

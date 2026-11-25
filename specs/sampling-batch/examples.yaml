@@ -489,6 +489,52 @@ examples:
       as: manager_h1
     then: { result: SUCCESS, output: { projectId: "${p}", blockedReason: PROJECT_VERSION_NOT_PUBLISHED } }
 
+  # ---------- 請求端：查詢參數（D-088 第 11 點；H-5、H-8） ----------
+
+  - name: checks_the_role_before_the_batch_status
+    basis: [SB-G-01, SB-LST-05]
+    given: [{ use: completed_batch }]
+    when:
+      http:
+        method: GET
+        path: "/sampling-batches"
+        query: { status: NOT_A_STATUS }
+      as: reviewer_h1
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_an_unknown_batch_status
+    basis: [SB-LST-05]
+    given: [{ use: completed_batch }]
+    when:
+      http:
+        method: GET
+        path: "/sampling-batches"
+        query: { status: NOT_A_STATUS }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: rejects_an_unknown_execution_mode
+    basis: [SB-LST-05]
+    given: [{ use: completed_batch }]
+    when:
+      http:
+        method: GET
+        path: "/sampling-batches"
+        query: { executionMode: NOT_A_MODE }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: lists_batches_by_query_over_http
+    basis: [SB-LST-01]
+    given: [{ use: completed_batch }]
+    when:
+      http:
+        method: GET
+        path: "/sampling-batches"
+        query: { projectId: "${p}", status: COMPLETED, executionMode: MANUAL }
+      as: manager_h1
+    then: { result: SUCCESS, output: { "content[batchId=${b}]": { status: COMPLETED, executionMode: MANUAL } } }
+
 not_covered:
   - item: 專案沒有已發布的版本
     reason: 用 use case 建立不出「啟用中卻沒有已發布版本」的專案（啟用需要已發布，RP-ACT 系列）；由建構者的白箱測試負責（D-065 第 13 點）
