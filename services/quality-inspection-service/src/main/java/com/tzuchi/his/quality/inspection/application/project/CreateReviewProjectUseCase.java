@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
@@ -31,15 +32,30 @@ public class CreateReviewProjectUseCase {
     }
 
     public String execute(ActorContext actor, String name, String description,
-                          Set<MedicalRecordType> medicalRecordTypes, BigDecimal qualityThreshold,
+                          Set<String> medicalRecordTypes, BigDecimal qualityThreshold,
                           BigDecimal initialReviewWeight, BigDecimal rereviewWeight) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         String hospitalId = actor.requireHospitalId();
+        Set<MedicalRecordType> types = parseMedicalRecordTypes(medicalRecordTypes);
         String projectId = idGenerator.newId();
         ReviewProject project = ReviewProject.create(projectId, hospitalId, name,
-                description, medicalRecordTypes, qualityThreshold, initialReviewWeight, rereviewWeight);
+                description, types, qualityThreshold, initialReviewWeight, rereviewWeight);
         repository.save(project);
         eventPublisher.publish(new ReviewProjectCreatedEvent(this, actor.getUserId(), actor.getUserName(), projectId, hospitalId));
         return projectId;
+    }
+
+    /** RP-CRT-04、RP-UPD-05（D-089 第 3 點）：不是 MedicalRecordType 的值回 BAD_REQUEST。null 交給 domain（空集合的檢查）。 */
+    static Set<MedicalRecordType> parseMedicalRecordTypes(Set<String> raw) {
+        if (raw == null) return null;
+        Set<MedicalRecordType> types = new java.util.LinkedHashSet<>();
+        for (String s : raw) {
+            try {
+                types.add(MedicalRecordType.valueOf(s));
+            } catch (IllegalArgumentException | NullPointerException e) {
+                throw new DomainValidationException("BAD_REQUEST", "Invalid medicalRecordType: " + s);
+            }
+        }
+        return types;
     }
 }

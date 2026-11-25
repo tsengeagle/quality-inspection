@@ -70,15 +70,23 @@ public class UpdateDraftCommand {
         private final String itemId;
         private final String code;
         private final String title;
-        private final ScoreType scoreType;
+        private final String scoreType;      // 原始輸入（D-089）：null 回 VALIDATION_ERROR、不認得回 BAD_REQUEST，在建立題目時檢查
         private final BigDecimal maxScore;
         private final BigDecimal weight;
-        private final RequiredRule requiredRule;
+        private final String requiredRule;
         private final String conditionExpression;
 
         public AddItemCommand(String targetSectionId, String itemId, String code, String title,
                               ScoreType scoreType, BigDecimal maxScore, BigDecimal weight,
                               RequiredRule requiredRule, String conditionExpression) {
+            this(targetSectionId, itemId, code, title, scoreType == null ? null : scoreType.name(), maxScore, weight,
+                    requiredRule == null ? null : requiredRule.name(), conditionExpression, true);
+        }
+
+        /** 原始輸入的 scoreType、requiredRule（D-089 第 3 點）。最後一個參數只用來區分建構子。 */
+        public AddItemCommand(String targetSectionId, String itemId, String code, String title,
+                              String scoreType, BigDecimal maxScore, BigDecimal weight,
+                              String requiredRule, String conditionExpression, boolean rawInput) {
             this.targetSectionId = targetSectionId;
             this.itemId = itemId;
             this.code = code;
@@ -94,10 +102,10 @@ public class UpdateDraftCommand {
         public String getItemId() { return itemId; }
         public String getCode() { return code; }
         public String getTitle() { return title; }
-        public ScoreType getScoreType() { return scoreType; }
+        public String getScoreType() { return scoreType; }
         public BigDecimal getMaxScore() { return maxScore; }
         public BigDecimal getWeight() { return weight; }
-        public RequiredRule getRequiredRule() { return requiredRule; }
+        public String getRequiredRule() { return requiredRule; }
         public String getConditionExpression() { return conditionExpression; }
     }
 
@@ -105,15 +113,23 @@ public class UpdateDraftCommand {
         private final String itemId;
         private final String code;
         private final String title;
-        private final ScoreType scoreType;
+        private final String scoreType;      // 原始輸入（D-089）：null 回 VALIDATION_ERROR、不認得回 BAD_REQUEST，在建立題目時檢查
         private final BigDecimal maxScore;
         private final BigDecimal weight;
-        private final RequiredRule requiredRule;
+        private final String requiredRule;
         private final String conditionExpression;
 
         public UpdateItemCommand(String itemId, String code, String title,
                                  ScoreType scoreType, BigDecimal maxScore, BigDecimal weight,
                                  RequiredRule requiredRule, String conditionExpression) {
+            this(itemId, code, title, scoreType == null ? null : scoreType.name(), maxScore, weight,
+                    requiredRule == null ? null : requiredRule.name(), conditionExpression, true);
+        }
+
+        /** 原始輸入的 scoreType、requiredRule（D-089 第 3 點）。最後一個參數只用來區分建構子。 */
+        public UpdateItemCommand(String itemId, String code, String title,
+                                 String scoreType, BigDecimal maxScore, BigDecimal weight,
+                                 String requiredRule, String conditionExpression, boolean rawInput) {
             this.itemId = itemId;
             this.code = code;
             this.title = title;
@@ -127,10 +143,10 @@ public class UpdateDraftCommand {
         public String getItemId() { return itemId; }
         public String getCode() { return code; }
         public String getTitle() { return title; }
-        public ScoreType getScoreType() { return scoreType; }
+        public String getScoreType() { return scoreType; }
         public BigDecimal getMaxScore() { return maxScore; }
         public BigDecimal getWeight() { return weight; }
-        public RequiredRule getRequiredRule() { return requiredRule; }
+        public String getRequiredRule() { return requiredRule; }
         public String getConditionExpression() { return conditionExpression; }
     }
 }

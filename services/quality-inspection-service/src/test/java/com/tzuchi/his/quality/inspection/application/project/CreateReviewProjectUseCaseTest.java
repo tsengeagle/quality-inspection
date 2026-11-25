@@ -34,7 +34,7 @@ class CreateReviewProjectUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
         String projectId = useCase.execute(actor, "Test Project", "A desc",
-                EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null);
+                Set.of("OUTPATIENT"), null, null, null);
 
         assertNotNull(projectId);
         ReviewProject saved = repository.store.get(projectId);
@@ -50,7 +50,7 @@ class CreateReviewProjectUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
         String projectId = useCase.execute(actor, "Test", null,
-                EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null);
+                Set.of("OUTPATIENT"), null, null, null);
 
         assertEquals(1, eventPublisher.events.size());
         assertInstanceOf(ReviewProjectCreatedEvent.class, eventPublisher.events.get(0));
@@ -63,7 +63,7 @@ class CreateReviewProjectUseCaseTest {
 
         assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(actor, "Test", null,
-                        EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null));
+                        Set.of("OUTPATIENT"), null, null, null));
     }
 
     @Test
@@ -73,7 +73,7 @@ class CreateReviewProjectUseCaseTest {
 
         assertThrows(Exception.class,
                 () -> useCase.execute(actor, "Test", null,
-                        EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null));
+                        Set.of("OUTPATIENT"), null, null, null));
     }
 
 }

@@ -208,7 +208,7 @@ public class ScoreSheetDefinition {
 
     private void updateItemInSections(UpdateDraftCommand.UpdateItemCommand update) {
         // 先驗證輸入，再查找題目（D-050 第 4 點的檢查順序）
-        ScoreItem replacement = new ScoreItem(update.getItemId(), update.getCode(),
+        ScoreItem replacement = ScoreItem.fromInput(update.getItemId(), update.getCode(),
                 update.getTitle(), update.getScoreType(), update.getMaxScore(),
                 update.getWeight(), update.getRequiredRule(), update.getConditionExpression());
         for (ScoreSheetSection section : sections) {
@@ -257,7 +257,7 @@ public class ScoreSheetDefinition {
     }
 
     private ScoreItem toScoreItem(UpdateDraftCommand.AddItemCommand cmd) {
-        return new ScoreItem(cmd.getItemId(), cmd.getCode(), cmd.getTitle(),
+        return ScoreItem.fromInput(cmd.getItemId(), cmd.getCode(), cmd.getTitle(),
                 cmd.getScoreType(), cmd.getMaxScore(), cmd.getWeight(),
                 cmd.getRequiredRule(), cmd.getConditionExpression());
     }

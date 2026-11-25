@@ -57,6 +57,31 @@ public class ScoreItem {
     }
 
     /**
+     * 從原始輸入建立題目（D-089 第 3 點）：scoreType、requiredRule 在 SS-UPD-04 那一步檢查，
+     * 沒給回 VALIDATION_ERROR，不是列舉的值回 BAD_REQUEST（SS-UPD-13）。其餘同建構子。
+     */
+    public static ScoreItem fromInput(String itemId, String code, String title,
+                                      String scoreType, BigDecimal maxScore, BigDecimal weight,
+                                      String requiredRule, String conditionExpression) {
+        requireText(itemId, "itemId");
+        requireText(code, "code");
+        requireText(title, "title");
+        ScoreType type = parse(ScoreType.class, scoreType, "scoreType");
+        requireValue(maxScore, "maxScore");
+        RequiredRule rule = parse(RequiredRule.class, requiredRule, "requiredRule");
+        return new ScoreItem(itemId, code, title, type, maxScore, weight, rule, conditionExpression);
+    }
+
+    private static <E extends Enum<E>> E parse(Class<E> type, String value, String field) {
+        requireValue(value, field);
+        try {
+            return Enum.valueOf(type, value);
+        } catch (IllegalArgumentException e) {
+            throw new DomainValidationException("BAD_REQUEST", "Invalid " + field + ": " + value);
+        }
+    }
+
+    /**
      * 從已儲存的資料還原，不做新輸入的欄位驗證：舊版允許的資料（例如非 CONDITIONAL 卻有 conditionExpression）
      * 仍要能載入、查詢，並透過更新修正。FOR INFRASTRUCTURE USE ONLY。
      */

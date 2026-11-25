@@ -89,18 +89,18 @@ public class UpdateScoreSheetDraftUseCase {
         return new UpdateDraftCommand.AddSectionCommand(s.getSectionId(), s.getTitle(),
                 convert(s.getItems(), i -> new UpdateDraftCommand.AddItemCommand(null, i.getItemId(), i.getCode(),
                         i.getTitle(), i.getScoreType(), i.getMaxScore(), i.getWeight(),
-                        i.getRequiredRule(), i.getConditionExpression())));
+                        i.getRequiredRule(), i.getConditionExpression(), true)));
     }
 
     private static UpdateDraftCommand.AddItemCommand toAddItem(ItemToSectionInput i) {
         return new UpdateDraftCommand.AddItemCommand(i.getTargetSectionId(), i.getItemId(), i.getCode(),
                 i.getTitle(), i.getScoreType(), i.getMaxScore(), i.getWeight(),
-                i.getRequiredRule(), i.getConditionExpression());
+                i.getRequiredRule(), i.getConditionExpression(), true);
     }
 
     private static UpdateDraftCommand.UpdateItemCommand toUpdateItem(ItemInput i) {
         return new UpdateDraftCommand.UpdateItemCommand(i.getItemId(), i.getCode(), i.getTitle(),
                 i.getScoreType(), i.getMaxScore(), i.getWeight(),
-                i.getRequiredRule(), i.getConditionExpression());
+                i.getRequiredRule(), i.getConditionExpression(), true);
     }
 }

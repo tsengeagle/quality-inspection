@@ -47,9 +47,9 @@ class UpdateScoreSheetDraftUseCaseTest {
         item.setItemId("i1");
         item.setCode("C01");
         item.setTitle("Item1");
-        item.setScoreType(ScoreType.FIXED);
+        item.setScoreType("FIXED");
         item.setMaxScore(BigDecimal.TEN);
-        item.setRequiredRule(RequiredRule.ALWAYS_REQUIRED);
+        item.setRequiredRule("ALWAYS_REQUIRED");
         SectionInput section = new SectionInput();
         section.setSectionId("sec1");
         section.setTitle("General");

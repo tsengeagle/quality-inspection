@@ -6,7 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-# ---- D-089：review-project、score-sheet 的請求端。規格先立法，程式由建構 PR 配合（D-089 第 1、3 點）----
-# 本文的列舉在 controller 轉換，比角色檢查早
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/checks_the_role_before_the_record_type
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/checks_the_role_before_the_score_type
