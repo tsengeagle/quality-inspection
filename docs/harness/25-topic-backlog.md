@@ -4,11 +4,11 @@
 
 ## 進行中
 
-1. **ReviewCase 切片 A：改派初審醫師、改派複審醫師**（D-082）。修法 PR 之後是建構 PR。
+1. **ReviewCase 切片 D：修正已提交的初審與複審，並立法 `ReviewCase.java`**（D-083）。修法 PR 之後是建構 PR。
 
 ## 待辦（依序）
 
-1. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）。負責人 2026-11-24 同意切成五個切片，順序 C＋B（已完成）→ A 改派（進行中） → D 修正 → E 讀取；共用元件跟著第一個用到它的切片，`ReviewCase.java`、`ReviewSubmission.java` 最後處理。
+1. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）。負責人 2026-11-24 同意切成五個切片，順序 C＋B（已完成）→ A 改派（已完成）→ D 修正（進行中）→ E 讀取；共用元件跟著第一個用到它的切片，`ReviewSubmission.java` 最後處理。負責人 2026-11-24 決定 `ReviewCase.java` 提早到切片 D 立法。
 2. **後端 JDK 定為 17**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗。負責人已決定與 CI 一致，定為 17（含 CLAUDE.md、`.github/copilot-instructions.md` 等文件）。
 
 ## 已完成
@@ -28,5 +28,6 @@
 | 初審草稿的稽核紀錄帶院區 | D-079 | #150、#151 |
 | ReviewCase 切片：退回、重開、取消、不經複審結案 | D-080 | #152、#153 |
 | 重開後改派，新醫師開始初審建立新的提交 | D-081 | #154、#155 |
+| ReviewCase 切片 A：改派初審醫師、改派複審醫師 | D-082 | #156、#157 |
 
 D-072 第 4 點的違憲清單到此全部修正完成（D-075 第 12 點）。

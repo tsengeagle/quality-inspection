@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-24-d083-revise-and-reviewcase",
+  "decision": "D-083",
+  "reason": "D-083：ReviewCase 切片 D（修正已提交的初審與複審），並依負責人決定把 ReviewCase.java 提早到本切片立法；docs/harness/34 的 U-1～U-10 全部照建議裁決。規格：usecases.yaml 新增 ReviseInitialReview、ReviseRereview（必答題、NO_CHANGES、目標不對一律 CONFLICT、修正複審也發 ReviewSubmissionRevised）；model.yaml 補不變式 RC-INV-03～05，deferred_behaviors 加上沒有被寫入的三個欄位；examples.yaml 新增 14 個修正範例，not_covered 更新。一開始是紅的 10 個範例加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。law/coverage.txt 登記兩個 use case、ReviseRereviewCommand、RevisionResult、兩個事件，以及 ReviewCase.java、CaseStatus.java、ReviewerAssignment.java、ReviewCaseRepository.java 為已立法。文件：domain-events §8.1 與新增 §8.2、api-spec §11.4／§12.4、草稿 34、題目清單（D-082 移到已完成）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/model.yaml",
+    "specs/review-case/examples.yaml",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

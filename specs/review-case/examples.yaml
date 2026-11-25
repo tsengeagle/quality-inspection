@@ -1228,6 +1228,132 @@ examples:
             "entries[submissionId=${s1}]": { reviewerId: u-r1, status: DRAFT, comment: "初審評語" }
             "entries[submissionId=${s2}]": { reviewerId: u-r2, status: DRAFT, revisionNo: 1, comment: "改派後評語" }
 
+  # ---------- 修正（D-083） ----------
+
+  - name: revises_a_submitted_initial_review
+    basis: [RC-RVI-S1, RC-RVI-S2, RC-RVI-S3]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" } }
+    then:
+      result: SUCCESS
+      output: { oldSubmissionId: "${s1}", revisionNo: 2, totalScore: "3", status: SUBMITTED, stage: INITIAL, caseId: "${c}" }
+      emits:
+        - { event: ReviewSubmissionRevised, with: { caseId: "${c}", oldSubmissionId: "${s1}", stage: INITIAL, revisionNo: 2 } }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect:
+          result: SUCCESS
+          output:
+            "entries[submissionId=${s1}]": { status: SUPERSEDED, revisionNo: 1, totalScore: "5" }
+            "entries[revisionNo=2]": { status: SUBMITTED, totalScore: "3", comment: "修正初審" }
+
+  - name: rejects_revising_a_fixed_initial_review
+    basis: [RC-RVI-07, RC-INV-04]
+    given: [{ use: low_score_fixed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" } }
+    then: { result: REJECTED, code: INVALID_STATE_TRANSITION }
+
+  - name: rejects_initial_revision_by_another_reviewer
+    basis: [RC-RVI-04]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer2_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" } }
+    then: { result: REJECTED, code: NOT_SUBMISSION_OWNER }
+
+  - name: rejects_initial_revision_without_required_answers
+    basis: [RC-RVI-08]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [], comment: "修正初審" } }
+    then: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+
+  - name: rejects_initial_revision_without_changes
+    basis: [RC-RVI-09]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "5" }], comment: "初審評語" } }
+    then: { result: REJECTED, code: NO_CHANGES }
+
+  - name: rejects_revising_a_superseded_initial_submission
+    basis: [RC-RVI-05]
+    given:
+      - use: low_score_completed_case
+      - { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" } }
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "4" }], comment: "再修正" } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_SUBMITTED }
+
+  - name: rejects_initial_revision_with_a_rereview_submission
+    basis: [RC-RVI-03]
+    given: [{ use: rereview_submitted }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" } }
+    then: { result: REJECTED, code: CONFLICT }
+
+  - name: rejects_initial_revision_of_a_cancelled_case
+    basis: [RC-RVI-01, RC-INV-04]
+    given:
+      - use: low_score_completed_case
+      - { run: CancelReviewCase, as: manager_h1, input: { caseId: "${c}", reason: "病歷資料有誤" } }
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" } }
+    then: { result: REJECTED, code: CASE_TERMINAL }
+
+  - name: revises_a_submitted_rereview
+    basis: [RC-RVR-S1, RC-RVR-S2, RC-RVR-S3, RC-RVR-S4, RC-INV-03]
+    given:
+      - use: weighted_rereview_answered
+      - run: SubmitRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" }
+    when: { run: ReviseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "5" }], comment: "修正複審" } }
+    then:
+      result: SUCCESS
+      output: { oldSubmissionId: "${s2}", revisionNo: 2, totalScore: "5", status: SUBMITTED, stage: REREVIEW, caseId: "${c}" }
+      absent: [finalScore, initialReviewScore, initialScore]
+      emits:
+        - { event: ReviewSubmissionRevised, with: { caseId: "${c}", oldSubmissionId: "${s2}", stage: REREVIEW, revisionNo: 2 } }
+        - { event: RereviewRevised, with: { caseId: "${c}", oldSubmissionId: "${s2}", rereviewScore: "5", finalScore: "5.00" } }
+    observe:
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { "content[caseId=${c}]": { status: REREVIEW_IN_PROGRESS } } }
+
+  - name: rejects_rereview_revision_without_required_answers
+    basis: [RC-RVR-08]
+    given:
+      - use: weighted_rereview_answered
+      - run: SubmitRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" }
+    when: { run: ReviseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [], comment: "修正複審" } }
+    then: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
+
+  - name: rejects_rereview_revision_without_changes
+    basis: [RC-RVR-09]
+    given:
+      - use: weighted_rereview_answered
+      - run: SubmitRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", comment: "複審評語" }
+    when: { run: ReviseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "15" }], comment: "複審評語" } }
+    then: { result: REJECTED, code: NO_CHANGES }
+
+  - name: rejects_rereview_revision_with_an_initial_submission
+    basis: [RC-RVR-04]
+    given: [{ use: rereview_submitted }]
+    when: { run: ReviseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "5" }], comment: "修正複審" } }
+    then: { result: REJECTED, code: CONFLICT }
+
+  - name: rejects_rereview_revision_of_a_draft
+    basis: [RC-RVR-06]
+    given: [{ use: rereview_answered }]
+    when: { run: ReviseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "5" }], comment: "修正複審" } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_SUBMITTED }
+
+  - name: rejects_rereview_revision_after_close
+    basis: [RC-RVR-01, RC-INV-04]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ReviseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "5" }], comment: "修正複審" } }
+    then: { result: REJECTED, code: CASE_TERMINAL }
+
   # ---------- 改派（D-082） ----------
 
   - name: reassigns_the_initial_reviewer
@@ -1489,6 +1615,8 @@ examples:
     then: { status: 400, body: empty }
 
 not_covered:
+  - item: 修正時提交不存在、不是目前有效的結果、操作者不是受指派的複審醫師或不是提交者（RC-RVI-02、RC-RVI-06、RC-RVR-02、RC-RVR-03、RC-RVR-05、RC-RVR-07）
+    reason: 不存在與身分的檢查與既有的提交、固定、結案相同（RC-SRR、RC-CLR、RC-FIX 已有範例）；已被取代的提交先被 SUBMISSION_NOT_SUBMITTED 擋下，要做出「已提交但不是目前有效」的提交需要直接改資料（D-083）
   - item: 逾期
     reason: 權威文件沒有已裁決的逾期規則（api-spec §10.3：期限的檢核尚未定稿），也沒有輸出欄位表示逾期
   - item: 準備步驟的操作者讀過完整初審
@@ -1496,6 +1624,6 @@ not_covered:
   - item: 讀過完整初審的人不得被指派為複審醫師（D-055 第 5 點）
     reason: 讀取紀錄由完整初審的讀取產生；要做出「讀過、之後才受派」，需要以 REREVIEWER 以外的角色讀取、再以同一人受派，本次範圍做不出來（D-069）
   - item: 初審固定的目標不是本案目前有效的初審結果、仍是草稿（RC-FIX-04、RC-FIX-05）
-    reason: 案件在 INITIAL_REVIEW_COMPLETED 時，唯一的初審提交就是目前有效、已提交的那份；要做出別的情況需要修正已提交的初審，不在本次範圍
+    reason: 案件在 INITIAL_REVIEW_COMPLETED 時，唯一的初審提交就是目前有效、已提交的那份；要做出別的情況需要修正已提交的初審；修正已由 D-083 立法，這兩條的範例還沒補
   - item: 提交不存在（RC-RDR-04、RC-SRR-04、RC-CLR-03）與不是目前有效的複審結果（RC-RDR-08、RC-SRR-08、RC-CLR-07）
-    reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。不是目前有效的複審結果需要修正已提交的複審，不在本次範圍
+    reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。不是目前有效的複審結果需要修正已提交的複審；修正已由 D-083 立法，這幾條的範例還沒補

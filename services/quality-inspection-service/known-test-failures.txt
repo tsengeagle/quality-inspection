@@ -6,3 +6,15 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+# ---- D-083：修正已提交的初審與複審。規格先立法，程式由建構 PR 配合（D-083 第 12 點）----
+# 修正沒有檢查必答題與沒有變更、目標不對的代碼不同、修正複審收 command、事件沒有屬性、修正複審沒有發 ReviewSubmissionRevised
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_initial_revision_with_a_rereview_submission
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_initial_revision_without_changes
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_initial_revision_without_required_answers
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereview_revision_after_close
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereview_revision_of_a_draft
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereview_revision_with_an_initial_submission
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereview_revision_without_changes
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_rereview_revision_without_required_answers
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revises_a_submitted_initial_review
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/revises_a_submitted_rereview

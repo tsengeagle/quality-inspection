@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-24-d083-revise-and-reviewcase",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:7847b9b9efd22473e2fa4412e22dd60152169783919e6c4e60eaee9d9126a281",
+  "reviewed_commit": "2cc4cef8688904eff3bfe503c729dc9ab18b1705",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBdUEc9W6S+rXOY8D2BzG6y5JXhw28lTHg3b2ateLZN2yHBrTOrP/D/\nu2z/p1nU0bI3AHRKbo4myhM8LvHZTNINAQAAAII=\n-----END SSH SIGNATURE-----\n"
+}

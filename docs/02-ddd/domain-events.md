@@ -951,6 +951,38 @@
 }
 ```
 
+* 修正初審與修正複審都發出（D-083 第 3 點）；稽核 action 是 `ReviewSubmission` 的 `REVISED`，`detail` 是 `{"caseId","oldSubmissionId","stage","revisionNo"}`，不帶分數
+* 事件屬性：`caseId`、`oldSubmissionId`、`newSubmissionId`、`stage`、`revisionNo`（D-083 第 5 點）
+
+---
+
+## 8.2 `RereviewRevised`
+
+### Emitted By
+
+* `ReviewCase`
+
+### 業務意義
+
+已提交、還沒結案的複審被修正，`finalScore` 依固定的初審分數與新的複審分數重算（D-032、D-083）。
+
+### 最低必要欄位（D-083）
+
+```json
+{
+  "eventName": "RereviewRevised",
+  "caseId": "RC-001",
+  "oldSubmissionId": "SUB-RR-001",
+  "newSubmissionId": "SUB-RR-002",
+  "rereviewScore": 5,
+  "finalScore": 5.00,
+  "occurredAt": "2026-04-15T07:00:00Z"
+}
+```
+
+* 稽核 action 是 `REREVIEW_REVISED`，`detail` 是 `{"newSubmissionId","oldSubmissionId","rereviewScore","finalScore"}`，帶分數，依 D-071 遮罩
+* 同一次修正另發 `ReviewSubmissionRevised`（§8.1）
+
 ---
 
 ## 9. 事件關聯與典型流程
