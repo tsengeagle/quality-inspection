@@ -6,3 +6,20 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+# ---- D-086：SamplingBatch 其餘部分（切片 A）。規格先立法，程式由建構 PR 配合（D-086 第 17 點）----
+# 重跑與列表的輸入名稱、重跑與預覽的 404、SYSTEM_ADMIN 的詳情；同一個交易裡抽選兩次（前兩行）
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/samples_the_same_records_again_in_a_second_batch
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/lists_the_newest_batch_first
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/rejects_retry_by_a_non_manager
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/rejects_retry_of_an_unknown_batch
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/rejects_retry_across_hospitals
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/rejects_retry_of_a_completed_batch
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/rejects_preview_of_an_unknown_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/lists_batches_of_the_own_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/hides_batches_of_other_hospitals
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/auditor_lists_batches_of_the_own_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/system_admin_lists_batches_of_a_chosen_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/system_admin_narrows_to_a_hospital_without_batches
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/filters_batches_by_project
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/filters_out_batches_of_another_status
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#sampling-batch/system_admin_detail_has_no_selected_cases

@@ -3453,7 +3453,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 14. **補得出來的範例（T-13）**：補 RC-FIX-04、RC-CLR-07 的範例。實測後其餘幾條仍做不出前提：修正過的舊提交是 `SUPERSEDED`，先被 `SUBMISSION_NOT_SUBMITTED` 擋下；複審草稿只有開始複審時的那一份。RC-FIX-05、RC-RVI-06、RC-RVR-07、RC-RDR-08、RC-SRR-08 留在 `not_covered`，理由逐項更新。
 15. **登記範圍（T-14）**：`domain/reviewcase/submission/` 的六個檔案登記到 `specs/review-submission/`；`ScoreCalculationService`、`ScoreResult`、六個結果類別、`dto/AnswerInput`、`query/` 的 `ReviewCaseQueryCriteria`、`ReviewCaseSummary`、`RevisionHistoryEntry`、`RevisionHistoryView` 登記到 `specs/review-case/`。`domain/reviewcase/`、`application/reviewcase/` 的目錄列保留。
 16. **範例做不到的部分**：BOOLEAN 的作答與計分、權重不是 1 時的四捨五入、提交初審時草稿的答案不合法、複審草稿的評分表版本，列進 `not_covered`，由建構 PR 以單元測試驗證。
-17. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+17. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`（15 個），由建構 PR 移除。其中兩個（`samples_the_same_records_again_in_a_second_batch`、`lists_the_newest_batch_first`）紅的原因不是規則：範例在同一個交易裡抽選兩次，抽中病歷的資料列先以沒有批次的狀態寫入，兩個批次同樣的 `sourceCaseKey` 撞到 `(batch_id, source_case_key)` 的唯一約束。分開的交易（正式環境的每一次請求）不會遇到；兩次抽選之間有寫入資料庫時範例通過，已實測。建構 PR 修正保存的方式（資料列寫入時就帶批次），屬於 `infrastructure/`。
 18. **題目清單**：D-084 與第 20 點移到已完成；負責人 2026-11-25 同意的順序寫進待辦。
 19. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
 20. **更正 D-083 第 10 點與 D-084 第 9 點的事實描述**（題目清單的待辦，負責人 2026-11-25 同意列入）：兩者說 `rereviewRequired`、`finalConclusion`、`ruleSnapshotRef`「沒有任何行為寫入」；實際上 `rereviewRequired` 在固定初審、分數超過品質線時被 `fixInitialReview` 寫成 `true`（D-084 建構 PR #161 查到）。沒有任何地方讀它做判斷（是否進複審由狀態 `PENDING_REREVIEW` 表示），所以移除的理由應為「沒有任何行為讀取」；D-084 第 9 點的決定與結果不變。D-083、D-084 的條文不改，以本點為註記。
@@ -3472,4 +3472,67 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `law/coverage.txt`（第 15 點的檔案）
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/03-contracts/api-spec.md`（作答的錯誤）、`docs/harness/25-topic-backlog.md`
+- 後續：建構 PR
+---
+
+## D-086 — 切片 A：SamplingBatch 其餘部分（重跑、預覽、執行頁、查詢與匯出、批次本體、規則快照）
+
+### Status
+
+`accepted`（2026-11-25，負責人對 `docs/harness/37-sampling-batch-draft.md` 的 S-1～S-16 裁決：S-5 改為加大替身母體，其餘照建議）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 S-n）。
+
+**失敗與重跑**
+
+1. **失敗的批次（S-1 選 A）**：不立失敗的規則。抽選中途出錯時不留下批次。`FAILED`、`SamplingBatchFailed`、`failureReason` 列進 `deferred_behaviors`，等母體來源的介接定案時一起決定失敗怎麼記錄。
+2. **D-013 與重跑的成功路徑（S-2 選 A）**：D-013 不改。成功路徑（`FAILED` 的批次重跑出新的批次、`retryOfBatchId`、沿用原批次的快照）跟著第 1 點延後；程式保留。註記：快照目前不影響母體的查詢，「沿用快照」只影響新批次上記錄的版本。
+3. **重跑走得到的檢查（S-3 選 A）**：角色 → 批次不存在 `SAMPLING_BATCH_NOT_FOUND`（404，原本 500）→ 批次所屬專案的院區 `HOSPITAL_SCOPE_MISMATCH`（原本沒有檢查）→ 批次不是 `FAILED` `BATCH_NOT_RETRYABLE`（422）。專案不存在改為 `PROJECT_NOT_FOUND`（防線）。輸入的名稱是 `batchId`。
+
+**執行抽選的補齊**
+
+4. **母體 0 筆（S-4 選 A）**：批次 `COMPLETED`，四個計數都是 0，不建立案件，四個事件照發。
+5. **重複（S-5）**：
+   - 母體回傳同一個 `sourceCaseKey` 兩次以上：`DUPLICATE_SELECTED_CASE_IN_BATCH`（409），不留下批次與案件。
+   - 跨批次不排重（D-007 不改）：同一個專案再執行一次，母體回傳的病歷即使抽過，仍然各建立一個案件。
+   - 負責人裁決：重複抽到同樣的病歷是替身母體太小造成的，不改抽選的規則。**替身的母體來源加大**：每次回傳 20 筆，而且每次回傳的 `sourceCaseKey` 與先前回傳的不同，讓多次抽選看得出效果。替身在 `infrastructure/`，不是問題側，由建構 PR 修改。
+6. **抽樣與排除條件（S-6 選 A）**：母體來源回傳的每一筆都選中；`excludedCount = 0`，`eligibleCount`、`selectedCount` 等於 `populationCount`。抽樣比例、排除條件、分層列進 `deferred_behaviors`，等母體來源的介接與專案版本管理。
+7. **`SamplingBatch` 的不變式（S-7）**：計數不得為負、`selectedCount ≤ eligibleCount`；`COMPLETED`、`FAILED` 是終點，內容不再改變；同一批次內 `sourceCaseKey` 不重複；只有 `RETRY` 的批次有 `retryOfBatchId`。內部的三個轉移留在 `deferred_transitions`。`ExecutionMode.SCHEDULED` 保留，列進 `deferred_behaviors`。
+8. **規則快照（S-8 選 A）**：批次記下執行當時專案的版本號與評分表版本，完成後不變（D-011）。`projectVersionId` 照程式保留，是版本號的另一種寫法。`samplingPolicy`（固定 `MANUAL`）、`snapshotSummary`（固定 `null`）不移除，列進 `deferred_behaviors`。快照沒有被任何行為使用，是專案版本管理的題目。
+
+**預覽與執行頁**
+
+9. **預覽（S-9 選 A）**：角色 → `PROJECT_NOT_FOUND`（原本 500）→ 院區 → `PROJECT_NOT_ACTIVE`；回傳三個計數；不建立批次、不發事件。
+10. **執行頁（S-10 選 A）**：立法專案的摘要欄位、`blockedReason`（版本未發布 `PROJECT_VERSION_NOT_PUBLISHED`，否則專案不是 `ACTIVE` 時 `PROJECT_NOT_ACTIVE`，否則 `null`）、`executedBatchId`（開始時間最新的批次是 `COMPLETED` 時）。固定值的 `previewReady`、`previewStats`、`executing`、`executeFailed` 與顯示文字 `ruleSummary`、`postExecuteSummary` 列進 `deferred_behaviors`，程式不動。
+
+**查詢與匯出**
+
+11. **列表（S-11 選 A）**：`HOSPITAL_MANAGER`、`AUDITOR`、`SYSTEM_ADMIN`。不是 `SYSTEM_ADMIN` 只看本院，輸入的 `hospitalId` 不採用；`SYSTEM_ADMIN` 看所有院區，可用 `hospitalId` 縮小。篩選 `projectId`、`status`、`executionMode`；依開始時間由新到舊；`size` 預設 20、上限 100。`api-spec.md` §9.5 補上 `executionMode`，`startedFrom`、`startedTo` 改列為尚未實作。規格的輸入是一個一個的欄位，建構 PR 配合調整 use case 的參數。
+12. **`SYSTEM_ADMIN` 看到的內容（S-12 選 A）**：`SYSTEM_ADMIN` 的批次詳情沒有 `selectedCases`；計數、執行方式、狀態、時間、規則快照照給。
+13. **詳情（S-13）**：角色 → `SAMPLING_BATCH_NOT_FOUND` → 院區（`SYSTEM_ADMIN` 不受院區限制）。
+14. **匯出（S-14 選 A）**：只有 `HOSPITAL_MANAGER`、本院；內容與詳情相同；不發事件。檔案格式列進 `deferred_behaviors`。
+
+**登記與其他**
+
+15. **架構基線（S-15）**：建構 PR 把抽選與重跑的 ID 改由 `IdGenerator` 產生，`IllegalArgumentException` 改成對應的例外；ARCH-02、ARCH-03 的基線縮短。
+16. **登記範圍（S-16）**：`domain/sampling/` 與 `application/sampling/` 的檔案全部登記到 `specs/sampling-batch/`，包含 `SamplingBatchFailedEvent`（條文在 `deferred_behaviors`）。兩個目錄列保留。
+17. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`（15 個），由建構 PR 移除。其中兩個（`samples_the_same_records_again_in_a_second_batch`、`lists_the_newest_batch_first`）紅的原因不是規則：範例在同一個交易裡抽選兩次，抽中病歷的資料列先以沒有批次的狀態寫入，兩個批次同樣的 `sourceCaseKey` 撞到 `(batch_id, source_case_key)` 的唯一約束。分開的交易（正式環境的每一次請求）不會遇到；兩次抽選之間有寫入資料庫時範例通過，已實測。建構 PR 修正保存的方式（資料列寫入時就帶批次），屬於 `infrastructure/`。
+18. **題目清單**：D-085 移到已完成；本切片標為進行中；新增延後的題目「母體來源的介接」（第 1、2、6 點）。
+19. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+20. **不在本裁決**：`SamplingController` 與 HTTP 的請求、回應格式（D、E 切片）。查到的落差記在草稿第七節。
+
+### Relationship / Evidence
+
+- **起因**：負責人 2026-11-25 同意的問題側立法順序的第二個切片（A）。
+- **草案與查證**：`docs/harness/37-sampling-batch-draft.md`（main = `42fa5fe`）。事實是讀程式與既有測試確認的，沒有實測：沒有任何程式會產生 `FAILED` 的批次；重跑沒有院區檢查、批次不存在回 500；預覽的專案不存在回 500；母體回傳的每一筆都選中；`SYSTEM_ADMIN` 的詳情與其他角色相同；快照沒有被任何行為使用。
+- **與既有裁決的關係**：沿用 D-007、D-011、D-013、D-024、D-042、D-047、D-051、D-066、D-067、D-068。第 3、9、12 點是行為變更。
+
+### Mapping
+
+- `specs/sampling-batch/model.yaml`（`ExecutionMode`、`terminal_states`、SB-INV-01～05、`deferred_behaviors`）、`usecases.yaml`（SB-G-04、SB-G-05、SB-EXE-02、SB-EXE-S6～S9、`RetrySamplingBatch`、`PreviewSamplingPopulation`、`GetSamplingExecuteContext`、`ListSamplingBatches`、`GetSamplingBatchDetail`、`ExportSamplingBatchResult`）、`examples.yaml`
+- `law/coverage.txt`（第 16 點的檔案）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/03-contracts/api-spec.md` §9、`docs/harness/25-topic-backlog.md`
 - 後續：建構 PR

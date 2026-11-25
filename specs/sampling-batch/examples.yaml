@@ -11,6 +11,8 @@ actors:
   manager_h1:  { user: u-m1, roles: [HOSPITAL_MANAGER], hospital: H-01 }
   manager_h2:  { user: u-m2, roles: [HOSPITAL_MANAGER], hospital: H-02 }
   reviewer_h1: { user: u-r1, roles: [REVIEWER],         hospital: H-01 }
+  auditor_h1:  { user: u-au1, roles: [AUDITOR],         hospital: H-01 }
+  admin:       { user: u-a1, roles: [SYSTEM_ADMIN],     hospital: H-09 }
 
 fixtures:
   two_candidates:
@@ -19,6 +21,21 @@ fixtures:
         returns:
           - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
           - { sourceCaseKey: MR-002, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+
+  no_candidates:
+    steps:
+      - port: CandidateSource.queryCandidates
+        returns: []
+
+  # 啟用中的專案 ${p}，抽選過一次：批次 ${b}，兩筆都抽中。
+  completed_batch:
+    steps:
+      - use: review-project.active_project
+      - use: two_candidates
+      - run: ExecuteSampling
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { b: batchId }
 
 examples:
   - name: creates_one_case_per_candidate
@@ -107,8 +124,366 @@ examples:
     when: { run: ExecuteSampling, as: manager_h1, input: { projectId: "${p}" } }
     then: { result: REJECTED, code: PROJECT_NOT_ACTIVE }    # 被拒絕時執行器一律確認沒有事件
 
+  # ---------- 執行抽選的補齊（D-086 第 4～8 點） ----------
+
+  - name: zero_candidates_complete_an_empty_batch
+    basis: [SB-EXE-S6, SB-EXE-S8]
+    given:
+      - use: review-project.active_project
+      - use: no_candidates
+    when:
+      run: ExecuteSampling
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { b: batchId }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: SamplingBatchStarted,       with: { batchId: "${b}" } }
+        - { event: SamplingCandidatesPrepared, with: { batchId: "${b}", populationCount: 0, eligibleCount: 0, excludedCount: 0 } }
+        - { event: ReviewCasesSelected,        with: { batchId: "${b}", selectedCount: 0 } }
+        - { event: SamplingBatchCompleted,     with: { batchId: "${b}", populationCount: 0, eligibleCount: 0, excludedCount: 0, selectedCount: 0 } }
+    observe:
+      - run: review-case.ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { content: [] } }
+      - run: GetSamplingBatchDetail
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect: { result: SUCCESS, output: { status: COMPLETED, populationCount: 0, selectedCount: 0, selectedCases: [] } }
+
+  - name: rejects_duplicate_candidates_in_one_batch
+    basis: [SB-EXE-02, SB-INV-03]
+    given:
+      - use: review-project.active_project
+      - port: CandidateSource.queryCandidates
+        returns:
+          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+    when: { run: ExecuteSampling, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: DUPLICATE_SELECTED_CASE_IN_BATCH }
+    observe:
+      - run: review-case.ListReviewCases
+        as: manager_h1
+        expect: { result: SUCCESS, output: { content: [] } }
+
+  # D-007：不做跨批次排重。第二次抽選，同樣的兩筆病歷再各建立一個案件。
+  - name: samples_the_same_records_again_in_a_second_batch
+    basis: [SB-EXE-S7, SB-INV-03]
+    given:
+      - use: completed_batch
+    when:
+      run: ExecuteSampling
+      as: manager_h1
+      input: { projectId: "${p}" }
+      save: { b2: batchId }
+    then: { result: SUCCESS }
+    observe:
+      - run: review-case.ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b2}" }
+        expect:
+          result: SUCCESS
+          output:
+            content:
+              - { sourceCaseKey: MR-001, status: SELECTED_PENDING_ASSIGNMENT }
+              - { sourceCaseKey: MR-002, status: SELECTED_PENDING_ASSIGNMENT }
+      - run: review-case.ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        expect:
+          result: SUCCESS
+          output:
+            content:
+              - { sourceCaseKey: MR-001 }
+              - { sourceCaseKey: MR-002 }
+
+  # ---------- 重跑（D-086 第 3 點） ----------
+
+  - name: rejects_retry_by_a_non_manager
+    basis: [SB-G-01]
+    given: [{ use: completed_batch }]
+    when: { run: RetrySamplingBatch, as: reviewer_h1, input: { batchId: "${b}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_retry_of_an_unknown_batch
+    basis: [SB-G-04]
+    when: { run: RetrySamplingBatch, as: manager_h1, input: { batchId: no-such-batch } }
+    then: { result: REJECTED, code: SAMPLING_BATCH_NOT_FOUND }
+
+  - name: rejects_retry_across_hospitals
+    basis: [SB-G-05]
+    given: [{ use: completed_batch }]
+    when: { run: RetrySamplingBatch, as: manager_h2, input: { batchId: "${b}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_retry_of_a_completed_batch
+    basis: [SB-RTY-01]
+    given: [{ use: completed_batch }]
+    when: { run: RetrySamplingBatch, as: manager_h1, input: { batchId: "${b}" } }
+    then: { result: REJECTED, code: BATCH_NOT_RETRYABLE }
+
+  # ---------- 預覽（D-086 第 9 點） ----------
+
+  - name: previews_the_population_without_creating_a_batch
+    basis: [SB-PRV-02]
+    given:
+      - use: review-project.active_project
+      - use: two_candidates
+    when: { run: PreviewSamplingPopulation, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { populationCount: 2, eligibleCount: 2, excludedCount: 0 } }
+    observe:
+      - run: GetSamplingExecuteContext
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, absent: [executedBatchId] }
+      - run: review-case.ListReviewCases
+        as: manager_h1
+        expect: { result: SUCCESS, output: { content: [] } }
+
+  - name: rejects_preview_by_a_non_manager
+    basis: [SB-G-01]
+    given: [{ use: review-project.active_project }]
+    when: { run: PreviewSamplingPopulation, as: reviewer_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_preview_of_an_unknown_project
+    basis: [SB-G-02]
+    when: { run: PreviewSamplingPopulation, as: manager_h1, input: { projectId: no-such-project } }
+    then: { result: REJECTED, code: PROJECT_NOT_FOUND }
+
+  - name: rejects_preview_across_hospitals
+    basis: [SB-G-03]
+    given: [{ use: review-project.active_project }]
+    when: { run: PreviewSamplingPopulation, as: manager_h2, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_preview_of_a_project_not_activated
+    basis: [SB-PRV-01]
+    given:
+      - use: review-project.published_project
+      - use: two_candidates
+    when: { run: PreviewSamplingPopulation, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: PROJECT_NOT_ACTIVE }
+
+  # ---------- 執行頁（D-086 第 10 點） ----------
+
+  - name: context_of_an_active_project_without_batches
+    basis: [SB-CTX-03, SB-CTX-04]
+    given: [{ use: review-project.active_project }]
+    when: { run: GetSamplingExecuteContext, as: manager_h1, input: { projectId: "${p}" } }
+    then:
+      result: SUCCESS
+      output: { projectId: "${p}", hospitalId: H-01, projectStatus: ACTIVE, scoreSheetId: "${sv}" }
+      absent: [blockedReason, executedBatchId]
+
+  - name: context_shows_the_latest_completed_batch
+    basis: [SB-CTX-04]
+    given: [{ use: completed_batch }]
+    when: { run: GetSamplingExecuteContext, as: manager_h1, input: { projectId: "${p}" } }
+    then:
+      result: SUCCESS
+      output: { executedBatchId: "${b}" }
+      absent: [blockedReason]
+
+  - name: context_of_a_project_not_activated
+    basis: [SB-CTX-02]
+    given: [{ use: review-project.published_project }]
+    when: { run: GetSamplingExecuteContext, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { blockedReason: PROJECT_NOT_ACTIVE } }
+
+  - name: context_of_an_unpublished_project
+    basis: [SB-CTX-01]
+    given: [{ use: review-project.draft_project }]
+    when: { run: GetSamplingExecuteContext, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { blockedReason: PROJECT_VERSION_NOT_PUBLISHED } }
+
+  - name: rejects_context_by_a_non_manager
+    basis: [SB-G-01]
+    given: [{ use: review-project.active_project }]
+    when: { run: GetSamplingExecuteContext, as: auditor_h1, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_context_of_an_unknown_project
+    basis: [SB-G-02]
+    when: { run: GetSamplingExecuteContext, as: manager_h1, input: { projectId: no-such-project } }
+    then: { result: REJECTED, code: PROJECT_NOT_FOUND }
+
+  - name: rejects_context_across_hospitals
+    basis: [SB-G-03]
+    given: [{ use: review-project.active_project }]
+    when: { run: GetSamplingExecuteContext, as: manager_h2, input: { projectId: "${p}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  # ---------- 批次列表（D-086 第 11 點） ----------
+
+  - name: lists_batches_of_the_own_hospital
+    basis: [SB-LST-01]
+    given: [{ use: completed_batch }]
+    when: { run: ListSamplingBatches, as: manager_h1 }
+    then:
+      result: SUCCESS
+      output:
+        content:
+          - { batchId: "${b}", projectId: "${p}", status: COMPLETED, executionMode: MANUAL, populationCount: 2, selectedCount: 2 }
+
+  # 輸入的 hospitalId 不採用：別院的管理員指定 H-01 也看不到。
+  - name: hides_batches_of_other_hospitals
+    basis: [SB-LST-01]
+    given: [{ use: completed_batch }]
+    when: { run: ListSamplingBatches, as: manager_h2, input: { hospitalId: H-01 } }
+    then: { result: SUCCESS, output: { content: [] } }
+
+  - name: auditor_lists_batches_of_the_own_hospital
+    basis: [SB-LST-01]
+    given: [{ use: completed_batch }]
+    when: { run: ListSamplingBatches, as: auditor_h1 }
+    then: { result: SUCCESS, output: { content: [{ batchId: "${b}" }] } }
+
+  - name: system_admin_lists_batches_of_a_chosen_hospital
+    basis: [SB-LST-02]
+    given: [{ use: completed_batch }]
+    when: { run: ListSamplingBatches, as: admin, input: { hospitalId: H-01 } }
+    then: { result: SUCCESS, output: { content: [{ batchId: "${b}" }] } }
+
+  - name: system_admin_narrows_to_a_hospital_without_batches
+    basis: [SB-LST-02]
+    given: [{ use: completed_batch }]
+    when: { run: ListSamplingBatches, as: admin, input: { hospitalId: H-02 } }
+    then: { result: SUCCESS, output: { content: [] } }
+
+  - name: filters_batches_by_project
+    basis: [SB-LST-03]
+    given: [{ use: completed_batch }]
+    when: { run: ListSamplingBatches, as: manager_h1, input: { projectId: "${p}", status: COMPLETED, executionMode: MANUAL } }
+    then: { result: SUCCESS, output: { content: [{ batchId: "${b}" }] } }
+
+  - name: filters_out_batches_of_another_status
+    basis: [SB-LST-03]
+    given: [{ use: completed_batch }]
+    when: { run: ListSamplingBatches, as: manager_h1, input: { status: FAILED } }
+    then: { result: SUCCESS, output: { content: [] } }
+
+  # 兩個批次相隔一小時，一頁一筆：拿到的是後面那一個。
+  - name: lists_the_newest_batch_first
+    basis: [SB-LST-04]
+    given:
+      - use: completed_batch
+      - advance: PT1H
+      - run: ExecuteSampling
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { b2: batchId }
+    when: { run: ListSamplingBatches, as: manager_h1, input: { size: 1 } }
+    then: { result: SUCCESS, output: { content: [{ batchId: "${b2}" }] } }
+
+  - name: rejects_listing_by_a_reviewer
+    basis: [SB-G-01]
+    when: { run: ListSamplingBatches, as: reviewer_h1 }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  # ---------- 批次詳情（D-086 第 8、12、13 點） ----------
+
+  - name: manager_reads_the_full_detail
+    basis: [SB-DET-01, SB-DET-03, SB-EXE-S9, SB-INV-04]
+    given: [{ use: completed_batch }]
+    when: { run: GetSamplingBatchDetail, as: manager_h1, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output:
+        batchId: "${b}"
+        projectId: "${p}"
+        executionMode: MANUAL
+        status: COMPLETED
+        populationCount: 2
+        eligibleCount: 2
+        excludedCount: 0
+        selectedCount: 2
+        ruleSnapshot.scoreSheetVersionId: "${sv}"
+        ruleSnapshot.projectVersionNumber: 1
+        selectedCases:
+          - { sourceCaseKey: MR-001, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+          - { sourceCaseKey: MR-002, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+      absent: [retryOfBatchId, failureReason]
+
+  - name: auditor_reads_the_full_detail
+    basis: [SB-DET-01]
+    given: [{ use: completed_batch }]
+    when: { run: GetSamplingBatchDetail, as: auditor_h1, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output:
+        selectedCases:
+          - { sourceCaseKey: MR-001 }
+          - { sourceCaseKey: MR-002 }
+
+  # SYSTEM_ADMIN 的院區是 H-09，批次屬於 H-01：讀取不受院區限制，但只有 metadata。
+  - name: system_admin_detail_has_no_selected_cases
+    basis: [SB-DET-02]
+    given: [{ use: completed_batch }]
+    when: { run: GetSamplingBatchDetail, as: admin, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output: { batchId: "${b}", status: COMPLETED, selectedCount: 2, ruleSnapshot.scoreSheetVersionId: "${sv}" }
+      absent: [selectedCases]
+
+  - name: rejects_detail_by_a_reviewer
+    basis: [SB-G-01]
+    given: [{ use: completed_batch }]
+    when: { run: GetSamplingBatchDetail, as: reviewer_h1, input: { batchId: "${b}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_detail_of_an_unknown_batch
+    basis: [SB-G-04]
+    when: { run: GetSamplingBatchDetail, as: manager_h1, input: { batchId: no-such-batch } }
+    then: { result: REJECTED, code: SAMPLING_BATCH_NOT_FOUND }
+
+  - name: rejects_detail_across_hospitals
+    basis: [SB-G-05]
+    given: [{ use: completed_batch }]
+    when: { run: GetSamplingBatchDetail, as: manager_h2, input: { batchId: "${b}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  # ---------- 匯出（D-086 第 14 點） ----------
+
+  - name: exports_the_batch_detail
+    basis: [SB-EXP-01]
+    given: [{ use: completed_batch }]
+    when: { run: ExportSamplingBatchResult, as: manager_h1, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output:
+        detail.batchId: "${b}"
+        detail.status: COMPLETED
+        detail.selectedCount: 2
+        detail.selectedCases:
+          - { sourceCaseKey: MR-001 }
+          - { sourceCaseKey: MR-002 }
+
+  - name: rejects_export_by_an_auditor
+    basis: [SB-G-01]
+    given: [{ use: completed_batch }]
+    when: { run: ExportSamplingBatchResult, as: auditor_h1, input: { batchId: "${b}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_export_of_an_unknown_batch
+    basis: [SB-G-04]
+    when: { run: ExportSamplingBatchResult, as: manager_h1, input: { batchId: no-such-batch } }
+    then: { result: REJECTED, code: SAMPLING_BATCH_NOT_FOUND }
+
+  - name: rejects_export_across_hospitals
+    basis: [SB-G-05]
+    given: [{ use: completed_batch }]
+    when: { run: ExportSamplingBatchResult, as: manager_h2, input: { batchId: "${b}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
 not_covered:
-  - item: 抽選母體回傳 0 筆
-    reason: 權威文件沒有寫 0 筆時批次是 COMPLETED 還是 FAILED；等抽選失敗與重跑立法時裁決
   - item: 專案沒有已發布的版本
     reason: 用 use case 建立不出「啟用中卻沒有已發布版本」的專案（啟用需要已發布，RP-ACT 系列）；由建構者的白箱測試負責（D-065 第 13 點）
+  - rules: [SB-INV-01, SB-INV-02, SB-INV-05]
+    reason: 計數為負、選中多於合格、修改已完成的批次、重跑以外的批次帶 retryOfBatchId，從 use case 做不出來（抽選一次完成，計數由母體的筆數算出）；由單元測試驗證（D-086 第 7 點）
+  - item: 重跑的成功路徑與失敗的批次
+    reason: 沒有任何行為會產生 FAILED 的批次（D-086 第 1、2 點），列在 model.yaml 的 deferred_behaviors
+  - item: 列表的 size 預設 20、上限 100，page 是負數（SB-LST-04 的後半）
+    reason: 要建立超過 100 個批次才分辨得出來；由單元測試驗證（D-086 第 11 點）
