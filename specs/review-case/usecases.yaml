@@ -60,6 +60,7 @@ error_codes:
   - { code: REREVIEWER_SAME_AS_REVIEWER,       category: rule_violation, status: decided,  source: [{ decision: D-017 }, { decision: D-069 }] }
   - { code: CASE_NOT_IN_PROGRESS,              category: conflict,       status: decided,  source: [{ decision: D-080 }] }
   - { code: CASE_NOT_RETURNED,                 category: conflict,       status: decided,  source: [{ decision: D-080 }, { doc: docs/03-contracts/api-spec.md, section: "§10.11" }] }
+  - { code: REREVIEWER_HAS_READ_INITIAL,       category: rule_violation, status: decided,  source: [{ decision: D-055 }, { decision: D-084 }] }
 
 # 順序依 D-024：角色 → 載入 → 院區範圍 → 領域規則。
 guards:
@@ -118,6 +119,39 @@ output_types:
     - { name: totalScore,   type: decimal(2) }
     - { name: comment,      type: text }
     - { name: supersededBySubmissionId, type: id }
+
+  SubmissionSummary:
+    - { name: submissionId, type: id }
+    - { name: stage,        type: enum ReviewStage }
+    - { name: reviewerId,   type: id }
+    - { name: revisionNo,   type: int }
+    - { name: status,       type: enum SubmissionStatus }
+    - { name: totalScore,   type: decimal(2) }
+    - { name: submittedAt,  type: datetime }
+  ReviewPageContext:
+    - { name: pageMode,       type: text }
+    - { name: blocked,        type: bool }
+    - { name: blockedReason,  type: text }
+    - { name: allowedActions, type: "list<text>" }
+    - { name: currentSubmission,   type: SubmissionRef }
+    - { name: editableSubmission,  type: SubmissionRef }
+    - { name: basedOnVersion,      type: SubmissionRef }
+    - { name: initialReviewerId,   type: id }
+    - { name: initialTotalScore,   type: decimal(2) }
+    - { name: finalScore,          type: decimal(2) }
+  AssigneeSummary:
+    - { name: userId,       type: id }
+    - { name: displayName,  type: text }
+    - { name: displayLabel, type: text }
+    - { name: assignedAt,   type: datetime }
+  AssignmentCandidate:
+    - { name: userId,        type: id }
+    - { name: displayName,   type: text }
+    - { name: displayLabel,  type: text }
+    - { name: role,          type: text }
+    - { name: active,        type: bool }
+    - { name: selectable,    type: bool }
+    - { name: blockedReason, type: text }
 
   AuditEntry:
     - { name: id,            type: id }
@@ -400,6 +434,11 @@ usecases:
         outcome: { result: REJECTED, code: REREVIEWER_SAME_AS_REVIEWER }
         status: decided
         source: [{ decision: D-017 }]
+      - id: RC-ARR-04
+        when: rereviewerId 讀過本案的完整初審（案件詳情、提交明細或修正歷史留下的讀取者紀錄），在前面的檢查都通過之後
+        outcome: { result: REJECTED, code: REREVIEWER_HAS_READ_INITIAL }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-082 }, { decision: D-084 }]
     success:
       state:
         - { id: RC-ARR-S1, text: rereviewerId 等於輸入，status 維持 PENDING_REREVIEW, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.5" }, { scenario: TS-RR-001 }] }
@@ -844,6 +883,11 @@ usecases:
         outcome: { result: REJECTED, code: REREVIEWER_SAME_AS_REVIEWER }
         status: decided
         source: [{ decision: D-017 }]
+      - id: RC-RRR-05
+        when: rereviewerId 讀過本案的完整初審（案件詳情、提交明細或修正歷史留下的讀取者紀錄），在前面的檢查都通過之後
+        outcome: { result: REJECTED, code: REREVIEWER_HAS_READ_INITIAL }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-082 }, { decision: D-084 }]
     success:
       state:
         - { id: RC-RRR-S1, text: status 維持 PENDING_REREVIEW；rereviewerId、dueAt 等於輸入；原本的複審醫師不能再開始複審, status: decided, source: [{ decision: D-082 }] }
@@ -964,10 +1008,10 @@ usecases:
       - { guard: RC-G-03, text: SYSTEM_ADMIN 的讀取不受院區限制, status: decided, source: [{ decision: D-047 }] }
     rules:
       - id: RC-RVH-01
-        when: 操作者同時具備兩個以上的角色
+        when: 操作者同時具備兩個以上的角色（院區範圍 RC-G-03 先檢查，D-084 第 1 點）
         outcome: { result: REJECTED, code: ACCESS_DENIED }
         status: decided
-        source: [{ decision: D-035 }, { decision: D-055 }]
+        source: [{ decision: D-035 }, { decision: D-055 }, { decision: D-084 }]
       - id: RC-RVH-02
         when: 操作者是 REVIEWER 或 REREVIEWER，但不是這個案件該階段受指派的醫師，也沒有在該階段提交過
         outcome: { result: REJECTED, code: ACCESS_DENIED }
@@ -997,6 +1041,270 @@ usecases:
       fields:
         - { name: caseId,  type: id }
         - { name: entries, type: "list<RevisionEntry>" }
+
+  # ---------- 讀取：案件詳情、提交明細（D-084） ----------
+  # 完整讀取的授權（ReviewReadAccessPolicy）三個查詢共用：GetRevisionHistory、GetReviewCaseDetail、GetSubmissionDetail。
+  # 准許 HOSPITAL_MANAGER、AUDITOR、REVIEWER 的完整讀取時寫入讀取者紀錄（D-055 第 5 點），所以這兩個查詢會產生寫入。
+
+  - name: GetReviewCaseDetail
+    kind: query
+    summary: 查詢一個案件的詳情；內容依角色投影（完整、複審盲審、metadata）
+    actor: { roles: [HOSPITAL_MANAGER, REVIEWER, REREVIEWER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    guard_exceptions:
+      - { guard: RC-G-03, text: SYSTEM_ADMIN 的讀取不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    rules:
+      - id: RC-DET-01
+        when: 操作者同時具備兩個以上的角色（院區範圍先檢查）
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-035 }, { decision: D-055 }, { decision: D-084 }]
+      - id: RC-DET-02
+        when: 操作者是 REVIEWER，但不是本案的初審醫師，也沒有提交過本案的初審；或是 REREVIEWER，但不是本案目前的複審醫師，也沒有提交過本案的複審
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5" }, { decision: D-084 }]
+      - id: RC-DET-03
+        when: 操作者是 HOSPITAL_MANAGER、AUDITOR 或 REVIEWER，而且是本案目前或曾經的複審醫師，或本案的複審指派歷史不完整
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-035 }, { decision: D-055 }]
+      - id: RC-DTV-01
+        when: 操作者是 HOSPITAL_MANAGER、AUDITOR 或 REVIEWER，通過前面的檢查
+        text: 完整投影：projectionType = FULL，有 initialReviewScore、finalScore，每一筆提交都有 totalScore；寫入讀取者紀錄（同一人同一案一筆）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-084 }]
+      - id: RC-DTV-02
+        when: 操作者是 REVIEWER
+        text: 看得到複審的分數與 finalScore（D-033 只保護複審醫師）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5" }, { decision: D-084 }]
+      - id: RC-DTV-03
+        when: 操作者是 REREVIEWER
+        text: 盲審投影：沒有 initialReviewScore、finalScore；初審提交的 totalScore 是 null；rereviewContext 沒有 initialTotalScore、finalScore。初審醫師的身分（reviewerId、rereviewContext.initialReviewerId）與初審提交的 ID、版本、提交時間可見。不寫入讀取者紀錄
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-033 }, { decision: D-084 }]
+      - id: RC-DTV-04
+        when: 操作者是 SYSTEM_ADMIN
+        text: 只有 metadata 白名單：caseId、caseStatus、projectName、hospitalId、reviewerId、rereviewerId、updatedAt、latestRevisionSummary（目前固定 null）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { decision: D-037 }, { rule: RC-INV-02 }]
+      - id: RC-DTC-01
+        when: 操作者是本案的初審醫師
+        text: initialReviewContext 的 pageMode、allowedActions：有自己的草稿是 EDIT_DRAFT（SAVE_INITIAL_REVIEW_DRAFT、SUBMIT_INITIAL_REVIEW）；有已提交的是 REVISION（REVISE_INITIAL_REVIEW，案件是 INITIAL_REVIEW_COMPLETED、未固定且是目前有效的提交時另有 FIX_INITIAL_REVIEW）；都沒有是 NEW_INITIAL_REVIEW（START_INITIAL_REVIEW）。結案、取消、固定後是 READONLY_BLOCKED（CASE_ALREADY_CLOSED、CASE_ALREADY_CANCELLED、INITIAL_REVIEW_FIXED）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-032 }, { decision: D-054 }, { decision: D-084 }]
+      - id: RC-DTC-02
+        when: 操作者是本案目前的複審醫師
+        text: rereviewContext 的 pageMode、allowedActions：有自己的草稿是 EDIT_DRAFT（SAVE_REREVIEW_DRAFT、SUBMIT_REREVIEW）；有已提交的是 REVISION（REVISE_REREVIEW、CLOSE_REREVIEW）；都沒有是 NEW_REREVIEW（START_REREVIEW）。結案、取消後是 READONLY_BLOCKED（CASE_ALREADY_CLOSED、CASE_ALREADY_CANCELLED）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-032 }, { decision: D-034 }, { decision: D-053 }, { decision: D-084 }]
+      - id: RC-DTC-03
+        when: 操作者不是該頁的角色（例如管理者讀初審頁）
+        text: 該頁的 context 是 READONLY_BLOCKED、blockedReason = ROLE_DENIED、allowedActions 是空的
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-084 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.2" }, { decision: D-084 }]
+      fields:
+        - { name: caseId,                     type: id }
+        - { name: projectId,                  type: id }
+        - { name: batchId,                    type: id }
+        - { name: hospitalId,                 type: id }
+        - { name: status,                     type: enum CaseStatus }
+        - { name: reviewerId,                 type: id }
+        - { name: rereviewerId,               type: id }
+        - { name: medicalRecordType,          type: text }
+        - { name: sourceCaseKey,              type: text }
+        - { name: initialReviewScore,         type: decimal(2) }
+        - { name: finalScore,                 type: decimal(2) }
+        - { name: createdAt,                  type: datetime }
+        - { name: assignedAt,                 type: datetime }
+        - { name: dueAt,                      type: datetime }
+        - { name: closedAt,                   type: datetime }
+        - { name: cancelledAt,                type: datetime }
+        - { name: latestInitialSubmissionId,  type: id }
+        - { name: latestRereviewSubmissionId, type: id }
+        - { name: scoreSheetVersionRef,       type: text }
+        - { name: submissions,                type: "list<SubmissionSummary>" }
+        - { name: projectionType,             type: text }
+        - { name: actorRole,                  type: text }
+        - { name: initialReviewContext,       type: ReviewPageContext }
+        - { name: rereviewContext,            type: ReviewPageContext }
+
+  - name: GetSubmissionDetail
+    kind: query
+    summary: 查詢一份提交的明細；內容依角色遮罩
+    actor: { roles: [HOSPITAL_MANAGER, REVIEWER, REREVIEWER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: submissionId, type: id, required: true }
+    guards: [RC-G-01, RC-G-04, RC-G-03]
+    guard_exceptions:
+      - { guard: RC-G-03, text: 院區是提交所屬案件的院區；SYSTEM_ADMIN 的讀取不受院區限制, status: decided, source: [{ decision: D-047 }, { decision: D-058 }] }
+    rules:
+      - id: RC-SBD-01
+        when: 案件詳情的授權不通過（RC-DET-01～03，以提交所屬的案件判斷）
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-035 }, { decision: D-055 }, { decision: D-084 }]
+      - id: RC-SBD-02
+        when: 操作者是 REREVIEWER，提交是複審，但不是他的
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-033 }]
+      - id: RC-SBV-01
+        when: 操作者是 REREVIEWER，提交是初審；或操作者是 SYSTEM_ADMIN
+        text: answers、comment、totalScore、attachmentRefsJson 是 null，maskedFields 依序列出這四個
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-010 }, { decision: D-033 }, { doc: docs/03-contracts/api-spec.md, section: "§13.1" }]
+      - id: RC-SBV-02
+        when: 操作者是 SYSTEM_ADMIN
+        text: 只輸出白名單裡有的欄位：submissionId、caseId、stage、revisionNo、status、reviewerId（submittedBy）、submittedAt，以及 maskedFields；沒有 createdAt
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { decision: D-084 }]
+      - id: RC-SBV-03
+        when: 其他通過授權的情況（HOSPITAL_MANAGER、AUDITOR、REVIEWER，或 REREVIEWER 讀自己的複審）
+        text: 完整內容，沒有 maskedFields；HOSPITAL_MANAGER、AUDITOR、REVIEWER 寫入讀取者紀錄。初審醫師也看得到複審的分數與評語（D-084 第 2 點）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-084 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§13.1" }, { decision: D-084 }]
+      fields:
+        - { name: submissionId,       type: id }
+        - { name: caseId,             type: id }
+        - { name: stage,              type: enum ReviewStage }
+        - { name: revisionNo,         type: int }
+        - { name: status,             type: enum SubmissionStatus }
+        - { name: reviewerId,         type: id }
+        - { name: answers,            type: "list<AnswerDetail>" }
+        - { name: comment,            type: text }
+        - { name: attachmentRefsJson, type: text }
+        - { name: totalScore,         type: decimal(2) }
+        - { name: createdAt,          type: datetime }
+        - { name: submittedAt,        type: datetime }
+        - { name: maskedFields,       type: "list<text>" }
+
+  # ---------- 讀取：分派頁（D-084） ----------
+
+  - name: GetCaseAssignmentContext
+    kind: query
+    summary: 分派頁（UI-011）的狀態、可執行動作與目前的醫師與期限
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-ACX-01
+        when: 案件是 SELECTED_PENDING_ASSIGNMENT
+        text: pageMode = ASSIGN_INITIAL，allowedActions = [ASSIGN_REVIEWER]
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.3" }]
+      - id: RC-ACX-02
+        when: 案件是 PENDING_INITIAL_REVIEW
+        text: pageMode = REASSIGN_INITIAL，allowedActions = [REASSIGN_REVIEWER]
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-082 }]
+      - id: RC-ACX-03
+        when: 案件是 PENDING_REREVIEW
+        text: pageMode = MIXED_ASSIGNMENT；還沒指派複審醫師是 [ASSIGN_REREVIEWER]，已指派是 [REASSIGN_REREVIEWER]；effectiveDueAt 是複審期限
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-069 }, { decision: D-082 }]
+      - id: RC-ACX-04
+        when: 案件是 RETURNED、INITIAL_REVIEW_IN_PROGRESS、INITIAL_REVIEW_COMPLETED 或 REREVIEW_IN_PROGRESS
+        text: pageMode = READONLY_BLOCKED，blockedReason = CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS，allowedActions 是空的（RETURNED 要先重開，D-080、D-082）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-080 }, { decision: D-082 }, { decision: D-084 }]
+      - id: RC-ACX-05
+        when: 案件是 CLOSED 或 CANCELLED
+        text: pageMode = READONLY_BLOCKED，blockedReason 是 CASE_ALREADY_CLOSED 或 CASE_ALREADY_CANCELLED，allowedActions 是空的
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-084 }]
+      - id: RC-ACX-06
+        when: 任何狀態
+        text: currentReviewer、currentRereviewer 是目前的醫師（userId、displayName、displayLabel、assignedAt），沒有指派時是 null；人員目錄找不到時 displayName、displayLabel 用 userId。effectiveDueAt 在 PENDING_REREVIEW 是複審期限，其他狀態是初審期限
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.3" }, { decision: D-084 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.3" }]
+      fields:
+        - { name: caseId,            type: id }
+        - { name: projectId,         type: id }
+        - { name: projectName,       type: text }
+        - { name: batchId,           type: id }
+        - { name: hospitalId,        type: id }
+        - { name: sourceCaseKey,     type: text }
+        - { name: medicalRecordType, type: text }
+        - { name: status,            type: enum CaseStatus }
+        - { name: pageMode,          type: text }
+        - { name: blocked,           type: bool }
+        - { name: blockedReason,     type: text }
+        - { name: allowedActions,    type: "list<text>" }
+        - { name: currentReviewer,   type: AssigneeSummary }
+        - { name: currentRereviewer, type: AssigneeSummary }
+        - { name: reviewerDueAt,     type: datetime }
+        - { name: rereviewerDueAt,   type: datetime }
+        - { name: effectiveDueAt,    type: datetime }
+
+  - name: ListCaseAssignmentCandidates
+    kind: query
+    summary: 分派頁的初審或複審醫師候選人
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: caseId,  type: id,   required: true }
+      - { name: role,    type: "enum REVIEWER|REREVIEWER", required: true }
+      - { name: keyword, type: text, required: false }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-ACD-01
+        when: 候選人不是在職
+        text: selectable = false，blockedReason = CANDIDATE_INACTIVE
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.3" }]
+      - id: RC-ACD-02
+        when: 這個角色的指派或改派不在分派頁的 allowedActions 裡（與 GetCaseAssignmentContext 同一份判斷，RETURNED 也一樣）
+        text: selectable = false，blockedReason = INITIAL_ASSIGNMENT_NOT_ALLOWED 或 REREVIEW_ASSIGNMENT_NOT_ALLOWED
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-084 }]
+      - id: RC-ACD-03
+        when: 複審候選人是本案的初審醫師
+        text: selectable = false，blockedReason = REREVIEWER_SAME_AS_REVIEWER
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-017 }]
+      - id: RC-ACD-04
+        when: 複審候選人讀過本案的完整初審
+        text: selectable = false，blockedReason = REREVIEWER_HAS_READ_INITIAL（與 RC-ARR-04、RC-RRR-05 一致；查詢只讀，不寫入紀錄）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-055 }, { decision: D-084 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§10.3" }]
+      fields:
+        - { name: candidates, type: "list<AssignmentCandidate>" }
 
   # ---------- 稽核：生命週期與稽核軌跡（D-071） ----------
   # 帶分數的 action（D-071 第 1 點）：INITIAL_REVIEW_COMPLETED、CASE_ESCALATED_TO_REREVIEW（帶 score 時）、

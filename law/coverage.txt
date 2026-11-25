@@ -84,7 +84,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/InitialReviewCompletedEvent.java             legislated  specs/review-case/
 
 # ---- 已立法：初審固定到複審結案的複審切片（D-069 第 1 點）。寫在目錄那幾列之後，以最後一行為準 ----
-# 只列範例直接執行的 use case 與事件類別；讀取仍是暫准（不經複審結案、取消、退回、重開見 D-080；改派見 D-082；修正與 ReviewCase 本體見 D-083）。
+# 只列範例直接執行的 use case 與事件類別；不經複審結案、取消、退回、重開見 D-080；改派見 D-082；修正與 ReviewCase 本體見 D-083；讀取見 D-084。
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/FixInitialReviewUseCase.java                       legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/SendToRereviewUseCase.java                         legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/AssignRereviewerUseCase.java                       legislated  specs/review-case/
@@ -129,3 +129,33 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/CaseStatus.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/ReviewerAssignment.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/ReviewCaseRepository.java  legislated  specs/review-case/
+
+# ---- 已立法：讀取（D-084 第 10、11 點）。寫在目錄那幾列之後，以最後一行為準 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/GetReviewCaseDetailUseCase.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/GetSubmissionDetailUseCase.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/GetCaseAssignmentContextUseCase.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ListCaseAssignmentCandidatesUseCase.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReviewReadAccessPolicy.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/CaseDetailMetadataMapper.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/InitialReviewReaderPort.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/RereviewerAssignmentHistoryPort.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/RereviewerAssignmentRecord.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/RevisionChecks.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AnswerDetail.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AssignmentAssigneeSummaryView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AssignmentBootstrapView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AssignmentCandidateDirectoryEntry.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AssignmentCandidateDirectoryPort.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AssignmentCandidateRole.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AssignmentCandidateView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/AssignmentCaseSnapshotView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/CaseDetailMetadataView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/InitialReviewBootstrapView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/RereviewBootstrapView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseAssignmentQueryPort.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseDetailView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseQueryPort.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewSubmissionRefView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/SubmissionDetailView.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/SubmissionQueryPort.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/SubmissionSummaryItem.java  legislated  specs/review-case/

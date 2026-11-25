@@ -58,6 +58,7 @@
 | `32-restart-draft-owner-draft.md` | 重開後改派，新醫師開始初審拿到原醫師的草稿而卡住（Y-1，已由 D-081 裁決）：實測、原因、修法 |
 | `33-reassign-draft.md` | ReviewCase 切片 A：改派初審醫師、改派複審醫師（Z-1～Z-7，已由 D-082 裁決）：實測、狀態錯誤、輸入檢查、改派給同一人、未指派就改派、事件、檢查順序 |
 | `34-revise-and-reviewcase-draft.md` | ReviewCase 切片 D：修正已提交的初審與複審，並立法 `ReviewCase.java`（U-1～U-10，已由 D-083 裁決）：實測、必答題、沒有變更、稽核紀錄、錯誤代碼、事件、不變式、沒有被寫入的欄位 |
+| `35-read-draft.md` | ReviewCase 切片 E：讀取（V-1～V-11，已由 D-084 裁決）：實測、多角色與院區的順序、初審醫師看複審、複審醫師看初審醫師身分、SYSTEM_ADMIN 白名單、退回案件的分派頁、讀過初審的候選人、讀取者紀錄的範例、輸出欄位、沒有被寫入的欄位、登記範圍 |
 | `26-datetime-instant-draft.md` | 違憲清單第 3～6 項：時間改成 `Instant`（N-1～N-8，已由 D-075 裁決）：順序、`ReviewSubmission` 的時間、既有資料與時鐘、前端顯示、匯出、`local_time_zone`、文件範例、未立法範圍 |
 | `samples/card-v2-trial/` | 格式樣本（不是律法）：白板 V10 照格式 v2 草案的試寫、暫時的檢查 `v2check.py`；v2.1 的回歸樣本 |
 | `samples/reviewcase-v2-trial/` | 格式樣本（不是律法）：ReviewCase 照格式 v2 草案 B 組的試寫。`round-1/` 是薄切片與 12 個缺口；`round-2/` 是直向切片，用草案第十三節 Q-10～Q-20 建議的寫法重寫 |

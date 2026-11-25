@@ -3379,3 +3379,44 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/02-ddd/domain-events.md`（§8.1、新增 §8.2）、`docs/03-contracts/api-spec.md`（§11.4、§12.4）
 - 後續：建構 PR
+
+## D-084 — ReviewCase 切片 E：讀取（案件詳情、提交明細、讀取授權、分派頁查詢）
+
+### Status
+
+`accepted`（2026-11-25，負責人對 `docs/harness/35-read-draft.md` 的 V-1～V-11 全部照建議裁決）
+
+### Decision
+
+1. **多角色與院區的順序（V-1 選 A）**：照 D-024 的順序（角色 → 載入 → 院區 → 規則），院區先於多角色。別院的雙角色使用者回 `HOSPITAL_SCOPE_MISMATCH`。案件詳情、提交明細與已立法的修正歷史（RC-RVH-01）共用這個順序；修正歷史的程式由建構 PR 改成符合它的規格。
+2. **初審醫師看得到複審的內容（V-2 選 A）**：照程式。初審醫師在案件詳情看得到複審分數與 `finalScore`，也能讀複審提交的分數與評語。D-033 只保護複審醫師。
+3. **複審醫師看得到初審醫師是誰（V-3 選 A）**：照程式。複審醫師的案件詳情有 `reviewerId`、`rereviewContext.initialReviewerId`，以及初審提交的 ID、版本、提交時間；沒有初審的答案、分數、評語，也沒有 `finalScore`（D-033）。
+4. **SYSTEM_ADMIN 的提交明細（V-4 選 A）**：只輸出 permission-matrix §5.1 白名單裡有的欄位：`submissionId`、`caseId`、`stage`、`revisionNo`、`status`、`reviewerId`（`submittedBy`）、`submittedAt`，以及 `maskedFields`；拿掉 `createdAt`。
+5. **退回的案件（V-5）**：分派頁在 `RETURNED` 是 `READONLY_BLOCKED`、`blockedReason = CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS`、`allowedActions` 是空的；候選人清單相同（`INITIAL_ASSIGNMENT_NOT_ALLOWED`）。退回的案件要先重開（D-080），才能改派（D-082）。候選人與分派頁共用同一份可執行動作的判斷。
+6. **讀過完整初審的候選人（V-6 選 A）**：複審醫師的候選人若在本案的初審讀取者紀錄中，`selectable = false`、`blockedReason = REREVIEWER_HAS_READ_INITIAL`，與指派的 422 一致。候選人查詢只讀，不寫入紀錄。
+7. **讀過完整初審就不得受派（V-7）**：`AssignRereviewer`、`ReassignRereviewer` 立法 `REREVIEWER_HAS_READ_INITIAL`（422，D-055 第 5 點），在其他檢查都通過之後（D-082 第 7 點）。以另一個角色登入的同一個使用者先讀、後受派，做為範例；案件詳情、提交明細、修正歷史的讀取都會留下紀錄。
+8. **輸出欄位（V-8）**：
+   - 案件詳情：完整投影（HOSPITAL_MANAGER、AUDITOR、REVIEWER）照程式的欄位；複審醫師的盲審投影沒有 `initialReviewScore`、`finalScore`、初審提交的 `totalScore`、`rereviewContext.initialTotalScore`、`rereviewContext.finalScore`；SYSTEM_ADMIN 只有 metadata 白名單（`caseId`、`caseStatus`、`projectName`、`hospitalId`、`reviewerId`、`rereviewerId`、`updatedAt`、`latestRevisionSummary`）。
+   - 兩個 context（`initialReviewContext`、`rereviewContext`）的 `pageMode`、`blockedReason`、`allowedActions` 照程式立法（D-054 第 9 點的 `FIX_INITIAL_REVIEW`、D-032 結案後唯讀）。
+   - 提交明細：遮罩時 `answers`、`comment`、`totalScore`、`attachmentRefsJson` 是 `null`，`maskedFields` 依序列出這四個。
+   - `updatedAt`（D-037）：只有 SYSTEM_ADMIN 的案件詳情輸出它；其他角色不輸出。
+9. **沒有被寫入的欄位（V-9 選 A，接 D-083 第 10 點）**：移除 `rereviewRequired`、`finalConclusion`、`ruleSnapshotRef`：domain、讀取模型、HTTP 回應（提交初審的回應、案件詳情、複審頁 bootstrap），並以新的 Flyway migration 刪除三個欄位（D-045：正式環境還沒上線）。前端型別與案件詳情頁的 `finalConclusion` 顯示另開前端題目處理。
+10. **登記範圍（V-10）**：`GetReviewCaseDetailUseCase`、`GetSubmissionDetailUseCase`、`GetCaseAssignmentContextUseCase`、`ListCaseAssignmentCandidatesUseCase`、`ReviewReadAccessPolicy`、`CaseDetailMetadataMapper`、`InitialReviewReaderPort`、`RereviewerAssignmentHistoryPort`、`RereviewerAssignmentRecord`，以及 `query/` 裡這四個查詢用到的 view 與 port，登記為已立法（`specs/review-case/`）。`ReviewCaseController.java` 仍是 grandfathered（留給 HTTP 介面的切片）。
+11. **`RevisionChecks.java`（V-11）**：D-083 建構 PR（#159）新增的共用檢查（RC-RVI-08/09、RC-RVR-08/09），登記為已立法。
+12. **範例做不到的部分**：候選人清單（人員目錄的埠無法在範例裡替換，輸出是最外層的清單）、複審醫師讀別人的複審提交（做不出前提）、三個欄位的移除（執行器把 `null` 與沒有欄位視為相同），列進 `not_covered`，由建構 PR 以單元測試驗證。
+13. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+14. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：題目清單「還沒立法的 ReviewCase 範圍」的最後一個切片 E。
+- **草案與查證**：`docs/harness/35-read-draft.md`（main = `5cbc209`）。以暫時的規格範例走真實寫入與查詢路徑實測：退回的案件分派頁可改派而改派本身拒絕、讀過初審的候選人仍可選、「先讀、後受派」做得出範例、別院的雙角色使用者拿到 `ACCESS_DENIED`、SYSTEM_ADMIN 的提交明細多出 `createdAt`。
+- **與既有裁決的關係**：沿用 D-010、D-017、D-024、D-032、D-033、D-035、D-037、D-045、D-047、D-054、D-055、D-058、D-080、D-082、D-083。第 9 點完成 D-083 第 10 點留下的題目。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（`GetReviewCaseDetail`、`GetSubmissionDetail`、`GetCaseAssignmentContext`、`ListCaseAssignmentCandidates`；RC-ARR-04、RC-RRR-05；RC-RVH-01 的順序；錯誤代碼 `REREVIEWER_HAS_READ_INITIAL`）、`model.yaml`（RC-INV-06、`deferred_behaviors`）、`examples.yaml`（讀取的範例、兩個 actor；`not_covered` 更新）
+- `law/coverage.txt`（第 10、11 點的檔案）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/03-contracts/api-spec.md`（§10.2、§10.3、§13.1）、`docs/02-ddd/domain-model.md`（ReviewCase 的欄位）
+- 後續：建構 PR；前端移除 `finalConclusion`、`rereviewRequired` 的型別與顯示另列題目

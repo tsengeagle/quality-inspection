@@ -89,15 +89,16 @@ invariants:
     text: 案件的初審醫師與複審醫師不是同一人
     status: decided
     source: [{ decision: D-017 }, { decision: D-083 }]
+  - id: RC-INV-06
+    text: 案件沒有 rereviewRequired、finalConclusion、ruleSnapshotRef（沒有任何行為寫入，D-084 第 9 點移除）
+    status: decided
+    source: [{ decision: D-083 }, { decision: D-084 }]
   - id: RC-INV-02
     text: SYSTEM_ADMIN 只取得 metadata，取不到任何階段的答案、分數、評語
     status: decided
     source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1" }]
 
 deferred_behaviors:
-  - 永久盲審的讀取遮罩（D-033）：複審醫師讀取案件詳情、提交明細、revision 歷程時的遮罩，等讀取遮罩立法。複審醫師執行的命令不回傳初審分數與 finalScore，已立法（RC-SRR-S4、RC-CLR-S3）
-  - updatedAt（D-037）：本次範圍內沒有輸出它的查詢
-  - 讀過完整初審的人不得被指派為複審醫師（D-055 第 5 點）：讀取紀錄由完整初審的讀取產生，本次範圍內的範例做不出「讀過、之後才受派」的狀態，等讀取遮罩立法（D-069）
+  - 永久盲審的讀取遮罩（D-033）：案件詳情與提交明細已立法（RC-DTV-03、RC-SBV-01，D-084）；revision 歷程對複審醫師的遮罩還沒有規則。複審醫師執行的命令不回傳初審分數與 finalScore，已立法（RC-SRR-S4、RC-CLR-S3）
+  - updatedAt（D-037）：只有 SYSTEM_ADMIN 的案件詳情輸出它（RC-DTV-04）；其他查詢不輸出（D-084）
   - 品質線與權重取自專案目前的版本，不是案件建立時的版本：與 D-068 第 4 點同一題，等專案版本管理立法（D-069）
-  - 案件詳情與提交明細的讀取遮罩（切片 E）
-  - 案件的 rereviewRequired、finalConclusion、ruleSnapshotRef 沒有任何行為寫入，等讀取（切片 E）決定是否移除（D-083 第 10 點）
