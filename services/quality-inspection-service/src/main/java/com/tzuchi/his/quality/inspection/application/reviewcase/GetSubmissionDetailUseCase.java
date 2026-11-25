@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionDetailView;
+import com.tzuchi.his.quality.inspection.application.reviewcase.query.WhitelistedSubmissionDetailView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.SubmissionQueryPort;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseQueryPort;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
@@ -50,6 +51,12 @@ public class GetSubmissionDetailUseCase {
             return view;
         }
 
+        List<String> maskedFields = List.of("answers", "comment", "totalScore", "attachmentRefsJson");
+        // D-084 第 4 點：SYSTEM_ADMIN 只取得白名單欄位（permission-matrix §5.1），沒有 createdAt
+        if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) {
+            return new WhitelistedSubmissionDetailView(view.getSubmissionId(), view.getCaseId(), view.getStage(),
+                    view.getRevisionNo(), view.getStatus(), view.getReviewerId(), view.getSubmittedAt(), maskedFields);
+        }
         return new SubmissionDetailView(
                 view.getSubmissionId(),
                 view.getCaseId(),
@@ -61,9 +68,8 @@ public class GetSubmissionDetailUseCase {
                 null,
                 null,
                 null,
-                // D-084 第 4 點：SYSTEM_ADMIN 只取得白名單欄位（permission-matrix §5.1），沒有 createdAt
-                actor.hasRole(DomainRole.SYSTEM_ADMIN) ? null : view.getCreatedAt(),
+                view.getCreatedAt(),
                 view.getSubmittedAt(),
-                List.of("answers", "comment", "totalScore", "attachmentRefsJson"));
+                maskedFields);
     }
 }
