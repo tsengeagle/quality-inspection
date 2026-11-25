@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-25-d088-common",
+  "decision": "D-088",
+  "reason": "D-088 第 11 點（H-10）：切片 E，共用元件直接登記為已立法，不新增規則。application/common/ 的 AccessDeniedException、ActorContext、DomainEventPublisher、DomainRole、IdGenerator、Page、RoleDeniedException，domain/common/ 的 DomainEvent 與四個例外，兩個 package-info.java，指向 specs/http-common.yaml；MedicalRecordType 指向 specs/review-project/；HospitalIdResolver 指向 specs/score-sheet/（唯一使用者）。之後問題側暫准的只剩 ReviewProjectController、ScoreSheetController 與它們的 5 個請求 dto（第 13 點），以及沒有使用的 CloseWithoutRereviewRequest、SendToRereviewRequest。文件：題目清單。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "law/coverage.txt",
+    "law/amendments/"
+  ]
+}

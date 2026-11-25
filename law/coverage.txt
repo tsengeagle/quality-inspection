@@ -257,3 +257,22 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/BadRequestException.java  legislated  specs/http-common.yaml
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/package-info.java  legislated  specs/http-common.yaml
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/config/  legislated  specs/http-common.yaml
+
+# ---- 已立法：共用元件（D-088 第 11 點，H-10）。寫在目錄那幾列之後，以最後一行為準 ----
+# 行為已寫在各規格的 guards、error_codes 與 http-common.yaml 的 status_by_category，不另立規則。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/AccessDeniedException.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/ActorContext.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/DomainEventPublisher.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/DomainRole.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/IdGenerator.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/Page.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/RoleDeniedException.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/package-info.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/DomainEvent.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/DomainRuleViolationException.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/DomainStateConflictException.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/DomainValidationException.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/ResourceNotFoundException.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/package-info.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/MedicalRecordType.java  legislated  specs/review-project/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/HospitalIdResolver.java  legislated  specs/score-sheet/
