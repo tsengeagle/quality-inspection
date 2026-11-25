@@ -3,4 +3,3 @@
 # 本清單只能縮短。違規修掉後，在同一個修改裡把那一行刪掉。
 infrastructure/security/ApiKeyAuthFilter.java imports com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse
 interfaces/rest/ActorContextArgumentResolver.java imports com.tzuchi.his.quality.inspection.infrastructure.security.ApiKeyAuthFilter
-reporting/ExportQueryService.java imports com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException
