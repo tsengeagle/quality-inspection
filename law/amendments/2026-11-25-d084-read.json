@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-25-d084-read",
+  "decision": "D-084",
+  "reason": "D-084：ReviewCase 切片 E（讀取：案件詳情、提交明細、讀取授權、分派頁查詢）；docs/harness/35 的 V-1～V-11 全部照建議裁決。規格：usecases.yaml 新增 GetReviewCaseDetail、GetSubmissionDetail、GetCaseAssignmentContext、ListCaseAssignmentCandidates 與四個 output_types；AssignRereviewer、ReassignRereviewer 補上 REREVIEWER_HAS_READ_INITIAL（RC-ARR-04、RC-RRR-05）與錯誤代碼；RC-RVH-01 註明院區先於多角色。model.yaml 新增 RC-INV-06（移除三個沒有被寫入的欄位），deferred_behaviors 更新。examples.yaml 新增兩個 actor 與 35 個讀取範例，not_covered 更新（候選人、複審醫師讀別人的複審、三個欄位的移除；刪除「先讀後受派做不出來」）。一開始是紅的 4 個範例加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。law/coverage.txt 登記四個 use case、ReviewReadAccessPolicy 等讀取元件、query/ 的 view 與 port，以及 D-083 留下的 RevisionChecks.java。文件：api-spec §10.2／§10.3／§13.1、domain-model 的 ReviewCase 欄位、草稿 35、題目清單（D-083 移到已完成，新增前端題目）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/model.yaml",
+    "specs/review-case/examples.yaml",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

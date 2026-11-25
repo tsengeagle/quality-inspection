@@ -959,6 +959,16 @@ Accept: application/json
 * metadata view
 * full detail view
 
+#### 投影與授權（D-084）
+
+規格：`specs/review-case/usecases.yaml` 的 `GetReviewCaseDetail`（RC-DET、RC-DTV、RC-DTC）。
+
+* 檢查順序：角色 → 案件存在 → 院區（SYSTEM_ADMIN 不限）→ 多角色（403 `ACCESS_DENIED`）→ 指派／提交範圍 → 歷史複審身分（D-035、D-055）。別院的雙角色使用者回 `HOSPITAL_SCOPE_MISMATCH`。
+* 完整投影（HOSPITAL_MANAGER、AUDITOR、REVIEWER）：`projectionType = FULL`，有 `initialReviewScore`、`finalScore`、每一筆提交的 `totalScore`；寫入初審讀取者紀錄（D-055 第 5 點）。初審醫師也看得到複審的分數與 `finalScore`。
+* 複審醫師的盲審投影：沒有 `initialReviewScore`、`finalScore`；初審提交的 `totalScore` 是 `null`；`rereviewContext` 沒有 `initialTotalScore`、`finalScore`。初審醫師的身分與初審提交的 ID、版本、提交時間可見。
+* SYSTEM_ADMIN：只有 `caseId`、`caseStatus`、`projectName`、`hospitalId`、`reviewerId`、`rereviewerId`、`updatedAt`、`latestRevisionSummary`（目前固定 `null`）。
+* 沒有 `rereviewRequired`、`finalConclusion`（D-084 第 9 點移除）。
+
 #### 新增欄位（GAP-13）
 
 `data.latestRereviewSubmissionId` — 最新複審 submission ID，供前端導覽用；無複審時為 `null`。
@@ -990,6 +1000,16 @@ Accept: application/json
 #### 用途
 
 提供 UI-011 manager command page 的 bootstrap context。此端點回傳 assignment mode、blocked reason、allowed actions 與目前 reviewer / rereviewer / due date truth；不承擔 change reason policy。
+
+依狀態（D-084，規格 RC-ACX-01～06）：
+
+| status | pageMode | allowedActions | blockedReason |
+|---|---|---|---|
+| `SELECTED_PENDING_ASSIGNMENT` | `ASSIGN_INITIAL` | `ASSIGN_REVIEWER` | — |
+| `PENDING_INITIAL_REVIEW` | `REASSIGN_INITIAL` | `REASSIGN_REVIEWER` | — |
+| `PENDING_REREVIEW` | `MIXED_ASSIGNMENT` | 未指派 `ASSIGN_REREVIEWER`；已指派 `REASSIGN_REREVIEWER` | — |
+| `RETURNED`、`INITIAL_REVIEW_IN_PROGRESS`、`INITIAL_REVIEW_COMPLETED`、`REREVIEW_IN_PROGRESS` | `READONLY_BLOCKED` | 空 | `CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS`（`RETURNED` 要先重開） |
+| `CLOSED`、`CANCELLED` | `READONLY_BLOCKED` | 空 | `CASE_ALREADY_CLOSED`、`CASE_ALREADY_CANCELLED` |
 
 #### Response
 
@@ -1030,6 +1050,8 @@ Accept: application/json
 #### 用途
 
 提供 UI-011 reviewer / rereviewer 候選人清單。回傳的是正式候選人 contract；候選資料來源可依環境由不同 adapter 提供。
+
+`blockedReason`（D-084，規格 RC-ACD-01～04）：`CANDIDATE_INACTIVE`；這個角色的指派不在分派頁的 `allowedActions` 裡時 `INITIAL_ASSIGNMENT_NOT_ALLOWED`、`REREVIEW_ASSIGNMENT_NOT_ALLOWED`；複審候選人是初審醫師時 `REREVIEWER_SAME_AS_REVIEWER`；複審候選人讀過本案的完整初審時 `REREVIEWER_HAS_READ_INITIAL`（查詢只讀，不寫入紀錄）。
 
 #### Response
 
@@ -1566,10 +1588,13 @@ D-031：提交不等於固定；未固定不得自動／手工進複審或結案
     "answers": null,
     "comment": null,
     "totalScore": null,
-    "maskedFields": ["answers", "comment", "totalScore"]
+    "attachmentRefsJson": null,
+    "maskedFields": ["answers", "comment", "totalScore", "attachmentRefsJson"]
   }
 }
 ```
+
+SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白名單裡有的欄位：`submissionId`、`caseId`、`stage`、`revisionNo`、`status`、`reviewerId`（`submittedBy`）、`submittedAt`、`maskedFields`，沒有 `createdAt`（D-084 第 4 點）。初審醫師可讀複審提交的完整內容（D-084 第 2 點）。
 
 複審提交後及 CLOSED 後均維持遮罩，不得解除。finalScore／preview／diff 等可反推初審分數的衍生資訊亦不得提供（D-033）；此規則同樣適用 §10 案件、§13.2 歷程、§14 稽核、§15 報表及 command 回應。其他角色合法存取政策不變。
 

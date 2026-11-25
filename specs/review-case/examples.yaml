@@ -17,8 +17,11 @@ actors:
   auditor_h1:    { user: u-au1, roles: [AUDITOR],              hospital: H-01 }
   admin:         { user: u-a1,  roles: [SYSTEM_ADMIN],         hospital: H-09 }
   dual_role_h1:  { user: u-d1,  roles: [REVIEWER, REREVIEWER], hospital: H-01 }
+  dual_role_h2:  { user: u-d2,  roles: [REVIEWER, REREVIEWER], hospital: H-02 }
   # D-071：同一個使用者 u-rr1 以 AUDITOR 角色登入（當時沒有 REREVIEWER 角色）。
   rr1_as_auditor_h1: { user: u-rr1, roles: [AUDITOR],         hospital: H-01 }
+  # D-084：同一個使用者 u-rr2 以 AUDITOR 角色登入，用來做出「先讀過初審、之後才受派」。
+  rr2_as_auditor_h1: { user: u-rr2, roles: [AUDITOR],         hospital: H-01 }
 
 fixtures:
   # 矩陣的 state 欄用 case_in_<狀態> 找到準備步驟。
@@ -1614,6 +1617,312 @@ examples:
       as: manager_h1
     then: { status: 400, body: empty }
 
+  # ---------- 讀取：案件詳情（D-084） ----------
+
+  - name: manager_reads_the_full_case_detail
+    basis: [RC-DTV-01]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        projectionType: FULL
+        status: REREVIEW_IN_PROGRESS
+        initialReviewScore: "20"
+        finalScore: "20.00"
+        "submissions[stage=INITIAL]": { submissionId: "${s1}", totalScore: "20" }
+        "initialReviewContext.blockedReason": ROLE_DENIED
+        "rereviewContext.blockedReason": ROLE_DENIED
+
+  - name: reviewer_sees_the_rereview_score_in_the_case_detail
+    basis: [RC-DTV-02]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        finalScore: "20.00"
+        "submissions[stage=REREVIEW]": { submissionId: "${s2}", totalScore: "20" }
+
+  - name: rereviewer_reads_a_blind_case_detail
+    basis: [RC-DTV-03, RC-DTC-02]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        reviewerId: u-r1
+        "submissions[stage=INITIAL]": { submissionId: "${s1}", revisionNo: 1, status: SUBMITTED }
+        "rereviewContext.initialReviewerId": u-r1
+        "rereviewContext.pageMode": REVISION
+        "rereviewContext.allowedActions": [REVISE_REREVIEW, CLOSE_REREVIEW]
+      absent: [initialReviewScore, finalScore, "submissions[stage=INITIAL].totalScore", "rereviewContext.initialTotalScore", "rereviewContext.finalScore"]
+
+  - name: rereviewer_case_detail_is_read_only_after_close
+    basis: [RC-DTC-02]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: GetReviewCaseDetail, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "rereviewContext.pageMode": READONLY_BLOCKED
+        "rereviewContext.blockedReason": CASE_ALREADY_CLOSED
+        "rereviewContext.allowedActions": []
+      absent: [finalScore, "rereviewContext.finalScore"]
+
+  - name: admin_reads_case_metadata_only
+    basis: [RC-DTV-04]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: admin, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { caseId: "${c}", caseStatus: REREVIEW_IN_PROGRESS, hospitalId: H-01, reviewerId: u-r1, rereviewerId: u-rr1, updatedAt: "2026-11-19T09:00:00Z" }
+      absent: [initialReviewScore, finalScore, submissions, initialReviewContext, rereviewContext]
+
+  - name: reviewer_case_detail_offers_revise_and_fix
+    basis: [RC-DTC-01, RC-DTC-03]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: GetReviewCaseDetail, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "initialReviewContext.pageMode": REVISION
+        "initialReviewContext.allowedActions": [REVISE_INITIAL_REVIEW, FIX_INITIAL_REVIEW]
+        "rereviewContext.pageMode": READONLY_BLOCKED
+        "rereviewContext.blockedReason": ROLE_DENIED
+
+  - name: rejects_case_detail_for_a_dual_role_actor
+    basis: [RC-DET-01]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: dual_role_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  # D-084 第 1 點：院區先於多角色。
+  - name: rejects_case_detail_for_a_dual_role_actor_of_another_hospital
+    basis: [RC-G-03, RC-DET-01]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: dual_role_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_case_detail_for_an_unassigned_reviewer
+    basis: [RC-DET-02]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: reviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_case_detail_for_a_rereviewer_before_assignment
+    basis: [RC-DET-02]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetReviewCaseDetail, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_case_detail_for_a_historical_rereviewer_in_another_role
+    basis: [RC-DET-03]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: GetReviewCaseDetail, as: rr1_as_auditor_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_case_detail_of_another_hospital
+    basis: [RC-G-03]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: manager_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_case_detail_of_a_missing_case
+    basis: [RC-G-02]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetReviewCaseDetail, as: manager_h1, input: { caseId: missing-case } }
+    then: { result: REJECTED, code: CASE_NOT_FOUND }
+
+  # ---------- 讀取：提交明細（D-084） ----------
+
+  - name: rereviewer_reads_the_initial_submission_masked
+    basis: [RC-SBV-01]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: rereviewer_h1, input: { submissionId: "${s1}" } }
+    then:
+      result: SUCCESS
+      output: { submissionId: "${s1}", stage: INITIAL, maskedFields: [answers, comment, totalScore, attachmentRefsJson] }
+      absent: [answers, comment, totalScore]
+
+  - name: rereviewer_reads_the_own_rereview_submission
+    basis: [RC-SBV-03]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: rereviewer_h1, input: { submissionId: "${s2}" } }
+    then:
+      result: SUCCESS
+      output: { stage: REREVIEW, totalScore: "20", comment: "複審評語" }
+      absent: [maskedFields]
+
+  - name: reviewer_reads_the_rereview_submission
+    basis: [RC-SBV-03]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: reviewer_h1, input: { submissionId: "${s2}" } }
+    then:
+      result: SUCCESS
+      output: { stage: REREVIEW, totalScore: "20", comment: "複審評語" }
+      absent: [maskedFields]
+
+  - name: manager_reads_the_initial_submission
+    basis: [RC-SBV-03]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: manager_h1, input: { submissionId: "${s1}" } }
+    then:
+      result: SUCCESS
+      output: { stage: INITIAL, totalScore: "20" }
+      absent: [maskedFields]
+
+  # D-084 第 4 點：只輸出白名單裡有的欄位。
+  - name: admin_reads_submission_metadata_only
+    basis: [RC-SBV-01, RC-SBV-02]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: admin, input: { submissionId: "${s1}" } }
+    then:
+      result: SUCCESS
+      output: { submissionId: "${s1}", caseId: "${c}", stage: INITIAL, revisionNo: 1, status: SUBMITTED, reviewerId: u-r1, submittedAt: "2026-11-19T09:00:00Z", maskedFields: [answers, comment, totalScore, attachmentRefsJson] }
+      absent: [answers, comment, totalScore, createdAt]
+
+  - name: rejects_submission_detail_for_a_rereviewer_outside_the_case
+    basis: [RC-SBD-01]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: rereviewer2_h1, input: { submissionId: "${s2}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_submission_detail_of_a_missing_submission
+    basis: [RC-G-04]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: manager_h1, input: { submissionId: missing-submission } }
+    then: { result: REJECTED, code: SUBMISSION_NOT_FOUND }
+
+  - name: rejects_submission_detail_of_another_hospital
+    basis: [RC-G-03]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetSubmissionDetail, as: manager_h2, input: { submissionId: "${s1}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  # ---------- 讀過完整初審就不得受派（D-055 第 5 點，D-084 第 7 點） ----------
+
+  - name: rejects_assigning_a_rereviewer_who_read_the_case_detail
+    basis: [RC-ARR-04, RC-DTV-01]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetReviewCaseDetail, as: rr1_as_auditor_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS, output: { projectionType: FULL } }
+    observe:
+      - run: AssignRereviewer
+        as: manager_h1
+        input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" }
+        expect: { result: REJECTED, code: REREVIEWER_HAS_READ_INITIAL }
+
+  - name: rejects_assigning_a_rereviewer_who_read_the_revision_history
+    basis: [RC-ARR-04, RC-VIS-01]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetRevisionHistory, as: rr1_as_auditor_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS }
+    observe:
+      - run: AssignRereviewer
+        as: manager_h1
+        input: { caseId: "${c}", rereviewerId: u-rr1, dueAt: "2026-12-03T23:59:59Z" }
+        expect: { result: REJECTED, code: REREVIEWER_HAS_READ_INITIAL }
+
+  - name: rejects_reassigning_to_a_rereviewer_who_read_the_submission
+    basis: [RC-RRR-05, RC-SBV-03]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: GetSubmissionDetail, as: rr2_as_auditor_h1, input: { submissionId: "${s1}" } }
+    then: { result: SUCCESS, output: { totalScore: "20" } }
+    observe:
+      - run: ReassignRereviewer
+        as: manager_h1
+        input: { caseId: "${c}", rereviewerId: u-rr2, dueAt: "2026-12-05T23:59:59Z" }
+        expect: { result: REJECTED, code: REREVIEWER_HAS_READ_INITIAL }
+
+  # D-084 第 1 點：已立法的修正歷史也是院區先於多角色。
+  - name: rejects_revision_history_for_a_dual_role_actor_of_another_hospital
+    basis: [RC-G-03, RC-RVH-01]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetRevisionHistory, as: dual_role_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  # ---------- 讀取：分派頁（D-084） ----------
+
+  - name: assignment_context_of_a_selected_case
+    basis: [RC-ACX-01, RC-ACX-06]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { status: SELECTED_PENDING_ASSIGNMENT, pageMode: ASSIGN_INITIAL, blocked: false, allowedActions: [ASSIGN_REVIEWER] }
+      absent: [blockedReason, currentReviewer, currentRereviewer]
+
+  - name: assignment_context_of_a_case_pending_initial_review
+    basis: [RC-ACX-02, RC-ACX-06]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { pageMode: REASSIGN_INITIAL, allowedActions: [REASSIGN_REVIEWER], "currentReviewer.userId": u-r1, effectiveDueAt: "2026-11-26T23:59:59Z" }
+
+  - name: assignment_context_of_a_case_pending_rereview
+    basis: [RC-ACX-03]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { pageMode: MIXED_ASSIGNMENT, allowedActions: [ASSIGN_REREVIEWER] }
+      absent: [currentRereviewer]
+
+  - name: assignment_context_after_a_rereviewer_is_assigned
+    basis: [RC-ACX-03, RC-ACX-06]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { pageMode: MIXED_ASSIGNMENT, allowedActions: [REASSIGN_REREVIEWER], "currentRereviewer.userId": u-rr1, effectiveDueAt: "2026-12-03T23:59:59Z" }
+
+  # D-084 第 5 點：退回的案件要先重開，分派頁唯讀。
+  - name: assignment_context_of_a_returned_case_is_blocked
+    basis: [RC-ACX-04]
+    given: [{ use: case_in_RETURNED }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { pageMode: READONLY_BLOCKED, blocked: true, blockedReason: CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS, allowedActions: [] }
+
+  - name: assignment_context_of_a_case_in_initial_review_is_blocked
+    basis: [RC-ACX-04]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { pageMode: READONLY_BLOCKED, blockedReason: CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS, allowedActions: [] }
+
+  - name: assignment_context_of_a_closed_case_is_blocked
+    basis: [RC-ACX-05]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { pageMode: READONLY_BLOCKED, blockedReason: CASE_ALREADY_CLOSED, allowedActions: [] }
+
+  - name: assignment_context_of_a_cancelled_case_is_blocked
+    basis: [RC-ACX-05]
+    given: [{ use: case_in_CANCELLED }]
+    when: { run: GetCaseAssignmentContext, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output: { pageMode: READONLY_BLOCKED, blockedReason: CASE_ALREADY_CANCELLED, allowedActions: [] }
+
+  - name: rejects_assignment_context_for_an_auditor
+    basis: [RC-G-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetCaseAssignmentContext, as: auditor_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_assignment_context_of_another_hospital
+    basis: [RC-G-03]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetCaseAssignmentContext, as: manager_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
 not_covered:
   - item: 修正時提交不存在、不是目前有效的結果、操作者不是受指派的複審醫師或不是提交者（RC-RVI-02、RC-RVI-06、RC-RVR-02、RC-RVR-03、RC-RVR-05、RC-RVR-07）
     reason: 不存在與身分的檢查與既有的提交、固定、結案相同（RC-SRR、RC-CLR、RC-FIX 已有範例）；已被取代的提交先被 SUBMISSION_NOT_SUBMITTED 擋下，要做出「已提交但不是目前有效」的提交需要直接改資料（D-083）
@@ -1621,8 +1930,12 @@ not_covered:
     reason: 權威文件沒有已裁決的逾期規則（api-spec §10.3：期限的檢核尚未定稿），也沒有輸出欄位表示逾期
   - item: 準備步驟的操作者讀過完整初審
     reason: 矩陣與觀察步驟裡 manager_h1、auditor_h1、reviewer_h1 的讀取會留下讀取者紀錄（D-055 第 5 點）。受派的複審醫師只有 u-rr1，它在準備步驟裡沒有讀過初審，所以不影響結果
-  - item: 讀過完整初審的人不得被指派為複審醫師（D-055 第 5 點）
-    reason: 讀取紀錄由完整初審的讀取產生；要做出「讀過、之後才受派」，需要以 REREVIEWER 以外的角色讀取、再以同一人受派，本次範圍做不出來（D-069）
+  - item: 分派頁的候選人（RC-ACD-01～04）
+    reason: 候選人來自人員目錄的埠（AssignmentCandidateDirectoryPort），範例執行器無法把 returns 轉成它的目錄項目，查詢的輸出又是最外層的清單，路徑語法指不到。改執行器是閘門的修改，不在本次範圍；由建構 PR 以單元測試驗證（D-084）
+  - item: 複審醫師讀別人的複審提交（RC-SBD-02）
+    reason: 通過讀取範圍的複審醫師只有目前的複審醫師與提交過複審的人；改派只在複審開始前，所以目前的複審醫師不會遇到別人已提交的複審。不在範圍內的複審醫師先被 RC-SBD-01 擋下（D-084）
+  - item: 案件沒有 rereviewRequired、finalConclusion、ruleSnapshotRef（RC-INV-06）
+    reason: 執行器把 null 與沒有欄位視為相同，範例看不出欄位是否移除；由建構 PR 以單元測試與 migration 驗證（D-084 第 9 點）
   - item: 初審固定的目標不是本案目前有效的初審結果、仍是草稿（RC-FIX-04、RC-FIX-05）
     reason: 案件在 INITIAL_REVIEW_COMPLETED 時，唯一的初審提交就是目前有效、已提交的那份；要做出別的情況需要修正已提交的初審；修正已由 D-083 立法，這兩條的範例還沒補
   - item: 提交不存在（RC-RDR-04、RC-SRR-04、RC-CLR-03）與不是目前有效的複審結果（RC-RDR-08、RC-SRR-08、RC-CLR-07）

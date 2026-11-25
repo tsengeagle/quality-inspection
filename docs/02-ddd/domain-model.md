@@ -314,14 +314,13 @@ ReviewCase:
   rereviewerAssignment: ReviewerAssignment?
   status: CaseStatus
   dueAt: datetime?
-  rereviewRequired: boolean
   finalScore: decimal?
-  finalConclusion: string?
-  ruleSnapshotRef: RuleSnapshotRef
   scoreSheetVersionRef: ScoreSheetVersionRef
   latestInitialSubmissionId: SubmissionId?
   latestRereviewSubmissionId: SubmissionId?
 ```
+
+D-084 第 9 點：`rereviewRequired`、`finalConclusion`、`ruleSnapshotRef` 沒有任何行為寫入，已移除（D-083 第 10 點的後續）。是否進複審在初審固定時判斷（D-054）。
 
 ### 核心責任
 
@@ -356,7 +355,7 @@ ReviewCase:
 * `completeInitialReview(submissionId, totalScore, threshold)`
 * `assignRereviewer(...)`
 * `startRereview()`
-* `completeRereview(submissionId, finalScore, finalConclusion)`
+* `completeRereview(submissionId, finalScore)`（D-084 第 9 點移除 `finalConclusion`）
 * `returnToInitialReview(reason)`
 * `cancel(reason)`
 * `closeWithoutRereview(...)`
@@ -577,7 +576,7 @@ BatchStatus:
 
 ### 9.2 案件層
 
-`ReviewCase` 保存 `ruleSnapshotRef` 與 `scoreSheetVersionRef`，作為後續提交與稽核的基礎參照。
+`ReviewCase` 保存 `scoreSheetVersionRef`，作為後續提交與稽核的基礎參照（`ruleSnapshotRef` 沒有任何行為寫入，D-084 第 9 點移除）。
 
 ### 9.3 提交層
 
