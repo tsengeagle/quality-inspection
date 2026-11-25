@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.application.sampling;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
@@ -19,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
@@ -35,19 +35,22 @@ public class ExecuteSamplingUseCase {
     private final CandidateSourcePort candidateSource;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public ExecuteSamplingUseCase(ReviewProjectRepository projectRepository,
                                   SamplingBatchRepository batchRepository,
                                   ReviewCaseRepository caseRepository,
                                   CandidateSourcePort candidateSource,
                                   DomainEventPublisher eventPublisher,
-                                  Clock clock) {
+                                  Clock clock,
+                                  IdGenerator idGenerator) {
         this.projectRepository = projectRepository;
         this.batchRepository = batchRepository;
         this.caseRepository = caseRepository;
         this.candidateSource = candidateSource;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
+        this.idGenerator = idGenerator;
     }
 
     public String execute(ActorContext actor, String projectId) {
@@ -75,7 +78,7 @@ public class ExecuteSamplingUseCase {
                 null
         );
 
-        String batchId = UUID.randomUUID().toString();
+        String batchId = idGenerator.newId();
         SamplingBatch batch = SamplingBatch.start(batchId, projectId, ExecutionMode.MANUAL, snapshot, Instant.now(clock));
 
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
@@ -95,7 +98,7 @@ public class ExecuteSamplingUseCase {
 
         List<ReviewCase> reviewCases = candidates.stream()
                 .map(ref -> ReviewCase.createFromSampling(
-                        UUID.randomUUID().toString(),
+                        idGenerator.newId(),
                         batchId,
                         projectId,
                         ref.getHospitalId(),

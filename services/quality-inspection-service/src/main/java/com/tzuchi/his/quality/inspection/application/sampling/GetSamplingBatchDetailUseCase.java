@@ -30,6 +30,7 @@ public class GetSamplingBatchDetailUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
                         "Project not found: " + detail.getProjectId()));
         actor.requireReadScope(project.getHospitalId());
-        return detail;
+        // SB-DET-02（D-086 第 12 點）：SYSTEM_ADMIN 只有 metadata，沒有抽中的每一筆病歷
+        return actor.hasRole(DomainRole.SYSTEM_ADMIN) ? detail.withoutSelectedCases() : detail;
     }
 }

@@ -99,9 +99,8 @@ public class SamplingController {
                 throw new BadRequestException("Invalid executionMode: " + executionMode);
             }
         }
-        SamplingBatchQueryCriteria criteria = new SamplingBatchQueryCriteria(
-                projectId, batchStatus, mode, page, size).withHospitalId(hospitalId);
-        Page<SamplingBatchSummary> result = listUseCase.execute(actor, criteria);
+        Page<SamplingBatchSummary> result = listUseCase.execute(
+                actor, projectId, batchStatus, mode, hospitalId, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

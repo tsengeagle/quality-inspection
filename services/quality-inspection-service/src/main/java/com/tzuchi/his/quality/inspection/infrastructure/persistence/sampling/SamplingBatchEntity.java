@@ -67,7 +67,7 @@ public class SamplingBatchEntity {
     private String failureReason;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @JoinColumn(name = "batch_id")
+    @JoinColumn(name = "batch_id", nullable = false) // 資料列寫入時就帶 batch_id（D-086 第 17 點）
     private List<SelectedCaseRefEntity> selectedCases = new ArrayList<>();
 
     protected SamplingBatchEntity() {}
