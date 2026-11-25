@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
@@ -71,6 +72,10 @@ public class SubmitRereviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
+        // RC-SRR-11（D-088 第 13 點）：在狀態檢查之前
+        if (submissionId == null || submissionId.isBlank()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "submissionId is required");
+        }
         reviewCase.requireNotTerminal();
         if (reviewCase.getStatus() != CaseStatus.REREVIEW_IN_PROGRESS) {
             // D-069 第 3 點：複審的狀態錯誤共用一個代碼（422）

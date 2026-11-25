@@ -1,10 +1,8 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest.dto;
 
-import javax.validation.constraints.NotBlank;
 
 public class ReturnReviewCaseRequest {
 
-    @NotBlank(message = "reason must not be blank")
     private String reason;
 
     public String getReason() { return reason; }

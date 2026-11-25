@@ -64,7 +64,7 @@ class ResourceNotFoundErrorCodeApiTest {
                 Arguments.of("POST", "/review-cases/missing/assign-rereviewer", "hospital_manager", ASSIGN_BODY),
                 Arguments.of("POST", "/review-cases/missing/reassign-rereviewer", "hospital_manager", ASSIGN_BODY),
                 Arguments.of("POST", "/review-cases/missing/start-rereview", "rereviewer", null),
-                Arguments.of("POST", "/review-cases/missing/rereview/draft", "rereviewer", "{\"submissionId\":\"s\"}"),
+                Arguments.of("POST", "/review-cases/missing/rereview/draft", "rereviewer", "{\"submissionId\":\"s\",\"answers\":[]}"),
                 Arguments.of("POST", "/review-cases/missing/rereview/submit", "rereviewer", "{\"submissionId\":\"s\"}"),
                 Arguments.of("POST", "/review-cases/missing/rereview/submissions/s/close", "rereviewer", null),
                 Arguments.of("POST", "/review-cases/missing/rereview/submissions/s/revise", "rereviewer", "{}"));
@@ -81,7 +81,7 @@ class ResourceNotFoundErrorCodeApiTest {
     static Stream<Arguments> missingSubmission() {
         return Stream.of(
                 Arguments.of("GET", "/review-submissions/missing", "hospital_manager", null),
-                Arguments.of("POST", "/review-cases/c1/rereview/draft", "rereviewer", "{\"submissionId\":\"missing\"}"),
+                Arguments.of("POST", "/review-cases/c1/rereview/draft", "rereviewer", "{\"submissionId\":\"missing\",\"answers\":[]}"),
                 Arguments.of("POST", "/review-cases/c1/rereview/submit", "rereviewer", "{\"submissionId\":\"missing\"}"),
                 Arguments.of("POST", "/review-cases/c1/rereview/submissions/missing/close", "rereviewer", null),
                 Arguments.of("POST", "/review-cases/c1/rereview/submissions/missing/revise", "rereviewer", "{}"));

@@ -15,8 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.temporal.Temporal;
 import java.util.stream.Collectors;
@@ -101,6 +103,16 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("BAD_REQUEST",
                 "The request body could not be read"));
+    }
+
+    /** D-088 第 11 點（H-7）：讀不進來的查詢參數、少了必填的查詢參數，回 400 BAD_REQUEST，有外殼。 */
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class, MissingServletRequestParameterException.class})
+    public ResponseEntity<ApiResponse<Void>> handleBadParameter(Exception ex) {
+        String name = ex instanceof MethodArgumentTypeMismatchException
+                ? ((MethodArgumentTypeMismatchException) ex).getName()
+                : ((MissingServletRequestParameterException) ex).getParameterName();
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("BAD_REQUEST", "Invalid or missing request parameter: " + name));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

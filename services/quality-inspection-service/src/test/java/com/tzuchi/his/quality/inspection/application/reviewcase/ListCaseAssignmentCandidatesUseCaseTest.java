@@ -33,7 +33,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
                 null, null, null, null));
 
         List<AssignmentCandidateView> result = useCase.execute(managerActor(), "c1",
-                AssignmentCandidateRole.REVIEWER, null);
+                "REVIEWER", null);
 
         assertEquals(2, result.size());
         assertTrue(result.stream().allMatch(AssignmentCandidateView::isSelectable));
@@ -47,7 +47,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
                 null, null, null, null));
 
         List<AssignmentCandidateView> result = useCase.execute(managerActor(), "c1",
-                AssignmentCandidateRole.REREVIEWER, null);
+                "REREVIEWER", null);
 
         AssignmentCandidateView samePerson = result.stream()
                 .filter(item -> item.getUserId().equals("reviewer-1"))
@@ -66,7 +66,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
                 null, null, null, null));
 
         List<AssignmentCandidateView> result = useCase.execute(managerActor(), "c1",
-                AssignmentCandidateRole.REVIEWER, null);
+                "REVIEWER", null);
 
         assertTrue(result.stream().allMatch(item -> !item.isSelectable()));
         assertTrue(result.stream().allMatch(item -> "INITIAL_ASSIGNMENT_NOT_ALLOWED".equals(item.getBlockedReason())));
@@ -81,7 +81,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
                 null, null, null, null));
 
         List<AssignmentCandidateView> result = useCase.execute(managerActor(), "c1",
-                AssignmentCandidateRole.REVIEWER, null);
+                "REVIEWER", null);
 
         assertTrue(result.stream().noneMatch(AssignmentCandidateView::isSelectable));
         assertTrue(result.stream().allMatch(item -> "INITIAL_ASSIGNMENT_NOT_ALLOWED".equals(item.getBlockedReason())));
@@ -97,7 +97,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
         readerPort.read.add("c1:rereviewer-1");
 
         List<AssignmentCandidateView> result = useCase.execute(managerActor(), "c1",
-                AssignmentCandidateRole.REREVIEWER, null);
+                "REREVIEWER", null);
 
         AssignmentCandidateView reader = result.stream()
                 .filter(item -> item.getUserId().equals("rereviewer-1")).findFirst().orElseThrow();
@@ -116,7 +116,7 @@ class ListCaseAssignmentCandidatesUseCaseTest {
         readerPort.read.add("c1:reviewer-2");
 
         List<AssignmentCandidateView> result = useCase.execute(managerActor(), "c1",
-                AssignmentCandidateRole.REVIEWER, null);
+                "REVIEWER", null);
 
         assertTrue(result.stream().allMatch(AssignmentCandidateView::isSelectable));
     }

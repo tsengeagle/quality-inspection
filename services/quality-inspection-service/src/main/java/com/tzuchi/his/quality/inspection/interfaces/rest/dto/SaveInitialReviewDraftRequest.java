@@ -1,14 +1,11 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest.dto;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.util.List;
 
 public class SaveInitialReviewDraftRequest {
 
-    @NotNull(message = "answers must not be null")
     @Valid
     private List<AnswerInputDto> answers;
 
@@ -36,10 +33,8 @@ public class SaveInitialReviewDraftRequest {
     public void setAttachments(List<AttachmentRef> attachments) { this.attachments = attachments; }
 
     public static class AnswerInputDto {
-        @NotBlank(message = "itemId must not be blank")
         private String itemId;
 
-        @NotNull(message = "answerValue must not be null")
         private String answerValue;
 
         public AnswerInputDto() {}
