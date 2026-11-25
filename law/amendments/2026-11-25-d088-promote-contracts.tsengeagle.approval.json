@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-25-d088-promote-contracts",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:f074285ea909e5fcb5b495a53e920c3f77f54c43afeb86a961763de9bf866a94",
+  "reviewed_commit": "67a40b4ea0d7f0e2a01bcb93dbcb453cbeb0bed7",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEB6DO45iqUuoGpSBcMuu2ECAwFA1Q5J06X0M9rfJpoCXOcqriiR0wvQ\nUmYvmRb7O2zjfhyDCxU4ot7+edkyRE4HAQAAAKc=\n-----END SSH SIGNATURE-----\n"
+}
