@@ -3639,3 +3639,49 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/harness/25-topic-backlog.md`、`docs/harness/39-http-interfaces-common-draft.md`、`docs/harness/README.md`
 - 後續：建構 PR、修法 PR 二（契約移到 `specs/`）、D-2、E
+
+---
+
+## D-089 — review-project、score-sheet 的格式 v2 與請求端
+
+### Status
+
+`accepted`（2026-11-25，負責人對 `docs/harness/40-project-scoresheet-request-side-draft.md` 的 V-1～V-8 全部照建議裁決）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 V-n）。
+
+1. **分批（V-1 選 A）**：第 3 點是行為變更，所以分三個 PR：修法 PR 一（升級、規則、範例；紅的凍結）→ 建構 PR → 修法 PR 二（登記）。
+2. **升級到格式 v2（V-2）**：`specs/review-project/`、`specs/score-sheet/` 的三個檔案改成 `spec_version: 2`，只改 `spec_lint` 要求的 7 處：
+   - `ProjectVersion.qualityThreshold` 的 `range` 刪除，RP-CRT-03 已經涵蓋。
+   - `RP-INV-04` 的 `enforced_by` 刪除，內容移到註解。
+   - `success.output` 改成 use case 的 `output.fields`。
+   - `input_note` 移到註解。
+   - `not_covered` 的 `rules: [emits]` 改成 `item: 事件`。
+
+   範例的寫法與行為不變。實測：兩個目錄 84 個範例照 v2 執行全部通過。
+3. **本文的列舉（V-3 選 A）**：比照 D-088 第 13 點（H-5），`medicalRecordTypes`、`scoreType`、`requiredRule` 的轉換從 controller 移進 use case，順序依 D-024。代碼維持 `BAD_REQUEST`，兩個 `usecases.yaml` 新增這個錯誤代碼。
+   - 新增 RP-CRT-04、RP-UPD-05、SS-UPD-13。SS-UPD-13 與 SS-UPD-04 同一步（六相位命令裡驗證輸入的那一步）。
+   - RP-CRT-04、RP-UPD-05 排在各自的狀態與其他輸入的檢查之前（在角色、載入、院區範圍之後）：那些檢查在 domain 裡，use case 要先把字串轉成列舉才能交給 domain。草稿沒有寫位置，這是實作時確認的。
+   - 行為變更：沒有權限的角色帶不認得的值，從 400 變成 403。
+   - 規格的輸入型別不改，行為以 `http` 步驟的範例表達。
+4. **經過 HTTP 的成功範例（V-4）**：review-project 4 個（建立、更新、綁定、列表）、score-sheet 3 個（建立、更新、列表）。
+5. **建立專案的回應（V-5）**：照程式。controller 建立後以 `GetReviewProjectDetail` 取得 `status`，不改。
+6. **登記（V-6）**：修法 PR 二把 `ReviewProjectController`、`ScoreSheetController` 與 5 個請求 dto 登記為已立法，問題側不再有 `grandfathered` 的列。`law/coverage.txt` 裡已刪除的兩個 dto（#175）的註解一併刪除。
+7. **事件的驗證（V-7 選 A）**：本裁決不補。兩個目錄的 `not_covered` 維持「事件不由範例驗證」，另立題目。程式在綁定評分表時發出 `ScoreSheetBoundToProject`，規格沒有宣告，一併列進該題。
+8. **題目清單（V-8）**：D-088 與本題移到已完成；新增「review-project、score-sheet 的事件驗證」。
+
+### Relationship / Evidence
+
+- **起因**：D-088 第 13 點。這兩個目錄的範例是格式 v1，不能寫 `http` 步驟，請求端無法立法。
+- **草案與實測**：`docs/harness/40-project-scoresheet-request-side-draft.md`（main = `f1d332e`）。格式升級是實測的：本機改成 v2，跑 `spec_lint` 與完整測試，用完還原。
+- **與既有裁決的關係**：延伸 D-065（格式 v2.0）、D-074（格式 v2.1）、D-088 第 13 點；第 3 點是行為變更。
+
+### Mapping
+
+- `specs/review-project/`、`specs/score-sheet/` 的 `model.yaml`、`usecases.yaml`、`examples.yaml`
+- `services/quality-inspection-service/known-test-failures.txt`
+- `law/coverage.txt`（修法 PR 二）
+- `docs/harness/40-project-scoresheet-request-side-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續：建構 PR、修法 PR 二

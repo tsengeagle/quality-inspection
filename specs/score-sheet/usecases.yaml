@@ -1,5 +1,5 @@
 # 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-spec_version: 1
+spec_version: 2
 kind: usecases
 aggregate: ScoreSheetDefinition
 
@@ -20,6 +20,7 @@ sources:
 # 分類給實作端決定對外的狀態碼用；規格本身不寫 HTTP。
 error_codes:
   - { code: ROLE_DENIED,                 category: denied,         source: [{ decision: D-023 }] }
+  - { code: BAD_REQUEST,                 category: invalid_input,  source: [{ decision: D-089 }] }
   - { code: HOSPITAL_SCOPE_MISMATCH,     category: denied,         source: [{ decision: D-024 }] }
   - { code: PROJECT_NOT_FOUND,           category: not_found,      source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.1 Error" }] }
   - { code: SCORE_SHEET_NOT_FOUND,       category: not_found,      source: [{ doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }] }
@@ -107,9 +108,10 @@ usecases:
         outcome: { result: SUCCESS }
         status: decided
         source: [{ decision: D-050 }]
-    success:
-      output:
+    output:
+      fields:
         - { name: scoreSheetId, type: id }
+    success:
       state:
         - { id: SS-CRT-S1, text: currentVersion.status = DRAFT、versionNo = 1、沒有章節, status: decided, source: [{ decision: D-015 }, { doc: docs/03-contracts/persistence-model.md, section: "§5.5" }] }
         - { id: SS-CRT-S2, text: projectId 等於輸入, status: decided, source: [{ decision: D-015 }] }
@@ -128,10 +130,10 @@ usecases:
       - { name: updateItems,      type: list<ItemInput>,            required: false }
       - { name: addSections,      type: list<SectionInput>,         required: false }
       - { name: addItems,         type: list<ItemToSectionInput>,   required: false }
-    input_note: 六相位命令（D-015、D-050 第 5 點）
+    # 六相位命令（D-015、D-050 第 5 點）。v1 的 input_note 在 v2 拿掉（D-089 第 2 點）。
     guards: [SS-G-01, SS-G-02, SS-G-04]
     # SS-UPD-01 在任何相位之前檢查。其餘規則在各相位執行時檢查（相位順序見 SS-UPD-S1）；
-    # 每個相位內依下列順序：先驗證該操作的輸入（SS-UPD-04～08），再查找章節或題目（SS-UPD-02、03），
+    # 每個相位內依下列順序：先驗證該操作的輸入（SS-UPD-04、13、05～08），再查找章節或題目（SS-UPD-02、03），
     # 最後檢查重複（SS-UPD-09～11）。第一個違反的規則決定結果；被拒絕時整個命令沒有任何改變。
     rules:
       - id: SS-UPD-01
@@ -144,6 +146,11 @@ usecases:
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
         status: decided
         source: [{ decision: D-050 }]
+      - id: SS-UPD-13
+        when: 題目的 scoreType 或 requiredRule 有給，但不是 ScoreType、RequiredRule 的值（與 SS-UPD-04 同一步）
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        status: decided
+        source: [{ decision: D-089 }]
       - id: SS-UPD-05
         when: 新增或改名的章節 title 為 null 或空白
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
@@ -238,9 +245,10 @@ usecases:
         outcome: { result: SUCCESS }
         status: decided
         source: [{ decision: D-050 }]
+    output:
+      fields:
+        - { name: scoreSheetVersionId, type: id }
     success:
-      output:
-        - { name: scoreSheetVersionId, type: id, status: decided, source: [{ decision: D-050 }] }
       state:
         - id: SS-PUB-S1
           text: currentVersion.status = PUBLISHED；versionNo 不變

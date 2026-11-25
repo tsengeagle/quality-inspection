@@ -1,5 +1,5 @@
 # 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-spec_version: 1
+spec_version: 2
 kind: aggregate
 name: ReviewProject
 term: 審查專案            # glossary.md「審查專案 [ReviewProject]」
@@ -75,7 +75,6 @@ entities:
         source: [{ decision: D-041 }]
       - name: qualityThreshold
         type: int
-        range: [1, 10]        # 暫定
         required: false       # 草稿可為 null；發布時必填，見 RP-PUB-04
         source: [{ decision: D-046 }]
         status: decided
@@ -148,10 +147,10 @@ invariants:
     text: 版本發布後權重固定，不可修改
     source: [{ decision: D-020 }]
     status: decided
+  # RP-INV-04 由抽選的 use case 執行（SB-EXE，specs/sampling-batch/）。v1 的 enforced_by 在 v2 拿掉（D-089 第 2 點）。
   - id: RP-INV-04
     text: 未啟用的專案不得執行抽選
     source:
       - { doc: docs/02-ddd/domain-model.md, section: "§5.1 Domain Invariants" }
       - { doc: docs/02-ddd/permission-matrix.md, section: "§6", note: "executeSampling 的 Key Guard" }
     status: decided
-    enforced_by: 抽選的 use case（不在本次範圍）

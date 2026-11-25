@@ -4,15 +4,15 @@
 
 ## 進行中
 
-1. **切片 D、E：HTTP 介面與共用元件**（D-088）。D-1 回應契約（#168、#169、#170）、D-2 請求端（#171、#172、#173）已完成；E 共用元件的登記是本切片最後一個修法 PR。之後問題側暫准的只剩待辦第 5 題的範圍。
+1. **review-project、score-sheet 的格式 v2 與請求端**（D-089）：修法 PR 一（升級、本文列舉的規則、HTTP 範例）→ 建構 PR → 修法 PR 二（登記，問題側不再有暫准的列）。
 
 ## 待辦（依序）
 
-1. **問題側其餘的範圍**（`law/coverage.txt` 的 `grandfathered`）。負責人 2026-11-25 同意的順序：C `ReviewSubmission` 與計分（已完成，D-085）→ A SamplingBatch 其餘部分（已完成，D-086）→ B 報表與儀表板（已完成，D-087）→ D、E HTTP 介面與共用元件（進行中，D-088）→ 專案版本管理（score-sheet 的 `freezeVersion` 等、品質線與權重取自目前的版本）與未裁決事項（逾期、多角色的讀取授權、`latestRevisionSummary`），要負責人先定方向。逾期的現況（D-087 第 5 點）：儀表板的 `overdueCases` 只看初審期限、不看複審期限；初審準時提交但期限已過且還沒結案也算；「現在」取資料庫的時間，範例的時鐘控制不到。ReviewCase 的五個切片已完成（D-080～D-084）
+1. **問題側其餘的範圍**（`law/coverage.txt` 的 `grandfathered`）。負責人 2026-11-25 同意的順序：C `ReviewSubmission` 與計分（已完成，D-085）→ A SamplingBatch 其餘部分（已完成，D-086）→ B 報表與儀表板（已完成，D-087）→ D、E HTTP 介面與共用元件（已完成，D-088）→ review-project、score-sheet 的請求端（進行中，D-089）→ 專案版本管理（score-sheet 的 `freezeVersion` 等、品質線與權重取自目前的版本）與未裁決事項（逾期、多角色的讀取授權、`latestRevisionSummary`），要負責人先定方向。逾期的現況（D-087 第 5 點）：儀表板的 `overdueCases` 只看初審期限、不看複審期限；初審準時提交但期限已過且還沒結案也算；「現在」取資料庫的時間，範例的時鐘控制不到。ReviewCase 的五個切片已完成（D-080～D-084）
 2. **前端移除 `finalConclusion`、`rereviewRequired`**（D-084 第 9 點）：後端的建構 PR 移除欄位之後，前端的型別（`cases.service.ts`）與案件詳情頁的 `finalConclusion` 顯示一併移除。前端任務從 `.ai/governance/repo-governance-instruction.md` 進入。
 3. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
 4. **HTTP 回應與 `api-spec.md` 的落差**（D-088 第 2 點，契約照程式）：執行抽選的回應只有 `batchId`（§9.3 寫 `batchId`、`status`、`selectedCount`）；重跑的回應是 `batchId`（§9.4 寫 `newBatchId`、`retryOfBatchId`）；預覽、執行的請求本文 `mode` 沒有讀取。程式一律輸出 null 的欄位：`rereviewContext.initialReviewerName`、執行頁的 `previewStats`（`previewReady` 一律是 false）。另外兩件之後再做：沒有回應 dto 的端點改成 dto（H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）。
-5. **review-project、score-sheet 的範例升級到格式 v2**（D-088 第 13 點）：升級後才能寫 `http` 步驟，補上請求端的範例，`ReviewProjectController`、`ScoreSheetController` 與它們的 5 個請求 dto 才能登記為已立法。E 之後，問題側暫准的只剩這些，以及沒有使用的 `CloseWithoutRereviewRequest`、`SendToRereviewRequest`（要不要刪除待負責人決定）。
+5. **review-project、score-sheet 的事件驗證**（D-089 第 7 點）：v2 之後範例可以用 `emits` 驗證事件；兩個目錄的 `not_covered` 目前寫「事件不由範例驗證」。程式在綁定評分表時發出 `ScoreSheetBoundToProject`，規格沒有宣告。
 6. **後端 JDK 定為 17**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗。負責人已決定與 CI 一致，定為 17（含 CLAUDE.md、`.github/copilot-instructions.md` 等文件）。
 
 ## 已完成
@@ -39,5 +39,6 @@
 | 切片 C：`ReviewSubmission` 本體、計分，以及 ReviewCase 的收尾 | D-085 | #162、#163 |
 | 切片 A：SamplingBatch 其餘部分（重跑的檢查、預覽、執行頁、查詢與匯出、批次本體、規則快照） | D-086 | #164、#165 |
 | 切片 B：報表與儀表板（入口改成 use case、件數不含已取消的案件、匯出的規則與遮罩） | D-087 | #166、#167 |
+| 切片 D、E：HTTP 介面與共用元件（回應契約、請求端、共用元件的登記） | D-088 | #168～#175 |
 
 D-072 第 4 點的違憲清單到此全部修正完成（D-075 第 12 點）。

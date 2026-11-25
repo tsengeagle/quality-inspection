@@ -2,7 +2,7 @@
 #
 # 每個範例的 basis 指向 usecases.yaml 或 model.yaml 的規則 id。
 # basis 裡只要有一條規則是 proposed，這個範例就還不能當驗收依據。
-spec_version: 1
+spec_version: 2
 kind: examples
 aggregate: ReviewProject
 
@@ -774,8 +774,91 @@ examples:
     when: { run: CreateReviewProject, as: manager_h1, input: { description: "2026 年度", medicalRecordTypes: [OUTPATIENT] } }
     then: { result: REJECTED, code: VALIDATION_ERROR }
 
+  # ---------- 請求端（D-089；格式 v2.1） ----------
+  # 本文的列舉由 use case 檢查，角色在前（D-024）。經過 HTTP 的成功範例確認請求的欄位名稱有傳到 use case；
+  # 業務規則仍由上面的 use case 範例驗證。
+
+  - name: checks_the_role_before_the_record_type
+    basis: [RP-G-01, RP-CRT-04]
+    when:
+      http:
+        method: POST
+        path: /review-projects
+        body: { name: "門診品質審查", medicalRecordTypes: [NOT_A_TYPE] }
+      as: reviewer_h1
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_an_unknown_record_type
+    basis: [RP-CRT-04]
+    when:
+      http:
+        method: POST
+        path: /review-projects
+        body: { name: "門診品質審查", medicalRecordTypes: [NOT_A_TYPE] }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: rejects_an_unknown_record_type_in_an_update
+    basis: [RP-UPD-05]
+    given: [{ use: draft_project }]
+    when:
+      http:
+        method: PUT
+        path: "/review-projects/${p}"
+        body: { name: "住院品質審查", medicalRecordTypes: [NOT_A_TYPE] }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: creates_a_project_over_http
+    basis: [RP-CRT-01]
+    when:
+      http:
+        method: POST
+        path: /review-projects
+        body: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5 }
+      as: manager_h1
+    then: { result: SUCCESS, output: { status: DRAFT } }
+
+  - name: updates_a_project_over_http
+    basis: [RP-UPD-02]
+    given: [{ use: draft_project }]
+    when:
+      http:
+        method: PUT
+        path: "/review-projects/${p}"
+        body: { name: "住院品質審查", description: "修訂", medicalRecordTypes: [INPATIENT] }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: GetReviewProjectDetail
+        as: manager_h1
+        input: { projectId: "${p}" }
+        expect: { result: SUCCESS, output: { name: "住院品質審查", description: "修訂" } }
+
+  - name: binds_a_score_sheet_over_http
+    basis: [RP-BND-04]
+    given: [{ use: published_score_sheet }]
+    when:
+      http:
+        method: POST
+        path: "/review-projects/${p}/bind-score-sheet"
+        body: { scoreSheetVersionId: "${sv}" }
+      as: manager_h1
+    then: { result: SUCCESS }
+
+  - name: lists_projects_of_a_requested_hospital_over_http
+    basis: [RP-LST-01]
+    given: [{ use: draft_project }]
+    when:
+      http:
+        method: GET
+        path: /review-projects
+        query: { hospitalId: H-01 }
+      as: admin
+    then: { result: SUCCESS, output: { "items[projectId=${p}]": { hospitalId: H-01 } } }
+
 not_covered:
-  - rules: [emits]
+  - item: 事件
     reason: >
       範圍內沒有查詢看得到 event。要驗證 event，得透過稽核軌跡的查詢（不在本次範圍），
       或由實作端的白箱測試負責
