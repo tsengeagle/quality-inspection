@@ -218,3 +218,16 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/ExportCaseQuery.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/ExportCaseRecord.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/RereviewerHistoryQuery.java  legislated  specs/review-case/
+
+# ---- 已立法：review-case、sampling-batch 的 HTTP 回應（D-088 第 10 點）。寫在目錄那幾列之後，以最後一行為準 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/CloseRereviewResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/FixInitialReviewResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/RevisionHistoryResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/RevisionResultResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SaveDraftResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/StartInitialReviewResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SubmitInitialReviewResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SubmitRereviewResponse.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SubmissionSummaryDto.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SamplingExecuteContextResponse.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/WhitelistedSubmissionDetailView.java  legislated  specs/review-case/

@@ -170,6 +170,8 @@ specs/
 |---|---|---|
 | `ScoreSheetDefinition` | `specs/score-sheet/http.yaml` | 7 |
 | `ReviewProject` | `specs/review-project/http.yaml` | 9（含列表與版本查詢，D-062） |
+| `ReviewCase` | `specs/review-case/http.yaml` | 29（含提交明細、稽核、報表，D-088） |
+| `SamplingBatch` | `specs/sampling-batch/http.yaml` | 7（D-088） |
 
 ## 八、欄位表（D-063，v1.1）
 

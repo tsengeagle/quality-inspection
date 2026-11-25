@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-25-d088-promote-contracts",
+  "decision": "D-088",
+  "reason": "D-088 第 10 點的修法 PR 二：建構 PR #169 之後，spec-draft/ 的 review-case（29 個端點）、sampling-batch（7 個）http.yaml 移到 specs/，閘門開始擋。HttpContractFilesTest 的端點數 16 改為 52。law/coverage.txt 登記 10 個回應 dto（review-case 9 個、sampling-batch 1 個）與建構 PR 新增的 WhitelistedSubmissionDetailView。文件：specs/README.md 第七節的端點表、spec-draft/README、題目清單。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/review-case/http.yaml",
+    "specs/sampling-batch/http.yaml",
+    "spec-draft/",
+    "specs/README.md",
+    "law/coverage.txt",
+    "law/amendments/",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/HttpContractFilesTest.java"
+  ]
+}
