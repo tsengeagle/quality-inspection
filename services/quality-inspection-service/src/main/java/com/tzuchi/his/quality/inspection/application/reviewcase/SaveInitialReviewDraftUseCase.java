@@ -117,11 +117,9 @@ public class SaveInitialReviewDraftUseCase {
                     BigDecimal.ZERO);
         }
 
-        // Convert AnswerInput -> raw AnswerItem (no score yet)
-        List<AnswerItem> rawItems = answers.stream()
-                .filter(Objects::nonNull)
-                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                .collect(Collectors.toList());
+        // Convert AnswerInput -> raw AnswerItem (no score yet)；缺欄位的作答由計分時的檢查回 VALIDATION_ERROR
+        List<AnswerItem> rawItems = RevisionChecks.rawAnswers(
+                answers.stream().filter(Objects::nonNull).collect(Collectors.toList()));
 
         // Load score sheet for scoring
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
@@ -129,10 +127,9 @@ public class SaveInitialReviewDraftUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheetDefinition not found: " + submission.getBasedOnScoreSheetVersionId()));
 
-        // Calculate scores
+        // RC-DRF-04（D-085 第 8 點）：計分先檢查作答，不合法回 VALIDATION_ERROR，在沒有變更的檢查之前
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
-        // 計分時會丟掉評分表沒有的題目，存下的也是過濾後的答案；所以用計分後的答案比較
         rejectIfUnchanged(result.getScoredAnswers(), comment, submission);
 
         // Update draft

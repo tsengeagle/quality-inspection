@@ -79,6 +79,9 @@ class StartRereviewUseCaseTest {
         assertEquals("rereviewer-1", rereviewDraft.getReviewerId());
         assertEquals(rereviewDraft.getSubmissionId(), saved.getLatestRereviewSubmissionId());
         assertEquals(1, eventPublisher.events.size());
+        // RS-INV-05、RC-STR-S4（D-085 第 11 點）：複審草稿記下案件的評分表版本
+        assertEquals("ss-1", saved.getScoreSheetVersionRef());
+        assertEquals("ss-1", rereviewDraft.getBasedOnScoreSheetVersionId());
     }
 
     @Test

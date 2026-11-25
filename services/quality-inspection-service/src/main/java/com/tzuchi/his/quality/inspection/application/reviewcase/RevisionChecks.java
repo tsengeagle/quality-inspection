@@ -21,12 +21,16 @@ final class RevisionChecks {
     private RevisionChecks() {
     }
 
+    /**
+     * 輸入的作答原樣轉換，不檢查：缺少 itemId 或 answerValue 的作答交給
+     * {@link ScoreCalculationService#requireValidAnswers} 回 VALIDATION_ERROR（RC-INV-07）。
+     */
     static List<AnswerItem> rawAnswers(List<AnswerInput> answers) {
         if (answers == null) {
             return Collections.emptyList();
         }
         return answers.stream()
-                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
+                .map(a -> a == null ? null : AnswerItem.reconstitute(a.getItemId(), a.getAnswerValue(), null))
                 .collect(Collectors.toList());
     }
 

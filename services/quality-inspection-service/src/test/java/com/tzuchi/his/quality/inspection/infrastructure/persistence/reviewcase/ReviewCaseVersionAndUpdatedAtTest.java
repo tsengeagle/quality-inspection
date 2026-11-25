@@ -162,7 +162,7 @@ class ReviewCaseVersionAndUpdatedAtTest {
     @Test
     void concurrentSubmissionOnlyWritesConflictEvenWhenTheTimeCannotAdvance() {
         repository.save(newCase("c1"));
-        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("s1", "c1", "doctor", Instant.now());
+        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("s1", "c1", "doctor", "ssv-1", Instant.now());
         submissions.save(draft);
         clock.set("2026-11-16T09:00:00Z");
         TransactionTemplate outer = new TransactionTemplate(transactions);

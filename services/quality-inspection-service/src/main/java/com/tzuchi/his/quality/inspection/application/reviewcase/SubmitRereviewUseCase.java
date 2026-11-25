@@ -114,8 +114,11 @@ public class SubmitRereviewUseCase {
 
         // Get current answers (from command if provided, else from draft)
         List<AnswerItem> currentAnswers = answers != null
-                ? answers.stream().map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue())).collect(Collectors.toList())
+                ? RevisionChecks.rawAnswers(answers)
                 : submission.getAnswerSet();
+
+        // RC-SRR-10（D-085 第 8 點）：複審草稿保存時不計分，不合法的作答在這裡擋下；位置在必答題之前
+        scoreCalculationService.requireValidAnswers(currentAnswers, scoreSheet);
 
         // D-076 第 4 點：必答題看這次提交採用的答案（輸入有 answers 就看它，包括空的清單），與初審（D-067）相同
         Set<String> answeredItemIds = currentAnswers.stream()

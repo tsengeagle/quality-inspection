@@ -278,7 +278,7 @@ class ReviewSubmissionTest {
 
     @Test
     void createRereviewDraft_shouldCreateWithStageRereview() {
-        ReviewSubmission sub = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", Instant.now());
+        ReviewSubmission sub = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", "ssv-1", Instant.now());
         assertEquals("sub-r1", sub.getSubmissionId());
         assertEquals("c1", sub.getCaseId());
         assertEquals("rereviewer-1", sub.getReviewerId());

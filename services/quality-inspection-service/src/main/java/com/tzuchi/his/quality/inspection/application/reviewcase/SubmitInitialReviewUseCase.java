@@ -111,6 +111,9 @@ public class SubmitInitialReviewUseCase {
 
         List<AnswerItem> currentAnswers = submission.getAnswerSet();
 
+        // RC-SUB-04（D-085 第 8 點）：草稿的作答在必答題之前再檢查一次
+        scoreCalculationService.requireValidAnswers(currentAnswers, scoreSheet);
+
         // Validate required items
         Set<String> answeredItemIds = currentAnswers.stream()
                 .map(AnswerItem::getItemId)

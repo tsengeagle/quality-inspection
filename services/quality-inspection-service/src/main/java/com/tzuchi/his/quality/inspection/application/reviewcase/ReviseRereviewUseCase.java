@@ -110,6 +110,8 @@ public class ReviseRereviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND", "ScoreSheetDefinition not found: " + reviewCase.getScoreSheetVersionRef()));
 
         List<AnswerItem> rawItems = RevisionChecks.rawAnswers(answers);
+        // RC-RVR-10（D-085 第 8 點）：作答的檢查在必答題與沒有變更之前
+        scoreCalculationService.requireValidAnswers(rawItems, scoreSheet);
         // D-083 第 1 點：必答題與提交相同（D-076）；第 2 點：沒有變更回 NO_CHANGES（D-038）
         RevisionChecks.requireRequiredItemsAnswered(rawItems, scoreSheet);
         RevisionChecks.rejectIfUnchanged(rawItems, comment, oldSubmission);

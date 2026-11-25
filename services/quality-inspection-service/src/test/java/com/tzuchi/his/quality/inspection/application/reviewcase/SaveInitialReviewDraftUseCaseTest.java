@@ -197,20 +197,20 @@ class SaveInitialReviewDraftUseCaseTest {
     }
 
     @Test
-    void execute_resendingAPayloadWithAnUnknownItem_isRejectedWithNoChanges() {
-        // 計分時會丟掉評分表沒有的題目，存下的答案不含它；比較要用同樣過濾後的答案（Codex 審查）
+    void execute_payloadWithAnUnknownItem_isRejectedWithValidationError() {
+        // RC-DRF-04（D-085 第 5、8 點）：評分表沒有的題目不再默默丟掉，回 VALIDATION_ERROR，不寫入、不發事件
         seedPublishedScoreSheet();
         seedReviewCase();
         seedDraftSubmission();
         List<AnswerInput> payload = List.of(new AnswerInput("Q001", "true"), new AnswerInput("NOT-IN-SHEET", "x"));
-        useCase.execute(reviewer(), CASE_ID, payload, "c");
-        int eventsAfterFirstSave = eventPublisher.events.size();
 
-        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+        com.tzuchi.his.quality.inspection.domain.common.DomainValidationException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.DomainValidationException.class,
                 () -> useCase.execute(reviewer(), CASE_ID, payload, "c"));
 
-        assertEquals("NO_CHANGES", e.getErrorCode());
-        assertEquals(eventsAfterFirstSave, eventPublisher.events.size());
+        assertEquals("VALIDATION_ERROR", e.getErrorCode());
+        assertTrue(eventPublisher.events.isEmpty());
+        assertTrue(submissionRepo.store.get(SUBMISSION_ID).getAnswerSet().isEmpty());
     }
 
     @Test

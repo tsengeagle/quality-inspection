@@ -53,7 +53,8 @@ public class StartRereviewUseCase {
         String draftSubmissionId = idGenerator.newId();
         reviewCase.startRereview(actor.getUserId(), draftSubmissionId);
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(
-                draftSubmissionId, caseId, actor.getUserId(), Instant.now(clock));
+                draftSubmissionId, caseId, actor.getUserId(),
+                reviewCase.getScoreSheetVersionRef(), Instant.now(clock));
         submissionRepository.save(rereviewDraft);
         caseRepository.save(reviewCase);
         eventPublisher.publish(new RereviewStartedEvent(

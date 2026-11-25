@@ -96,7 +96,7 @@ class ReviseRereviewUseCaseTest {
         caseRepo.save(rc);
 
         // Seed the submitted rereview submission (old submission that will be revised)
-        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID, Instant.now());
+        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID, "ssv-1", Instant.now());
         List<AnswerItem> oldAnswers = Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "10", new BigDecimal("5.0")));
@@ -217,7 +217,7 @@ class ReviseRereviewUseCaseTest {
             submissionRepo.save(target);
         }
         if (scenario.equals("draft")) {
-            target = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID, Instant.now());
+            target = ReviewSubmission.createRereviewDraft(OLD_SUBMISSION_ID, CASE_ID, REREVIEWER_ID, "ssv-1", Instant.now());
             submissionRepo.save(target);
         }
         if (scenario.equals("submitted")) target.submit(Instant.now());
@@ -226,7 +226,7 @@ class ReviseRereviewUseCaseTest {
             target.markSuperseded("newer-submission", Instant.now());
         }
         if (scenario.equals("stale")) {
-            ReviewSubmission newer = ReviewSubmission.createRereviewDraft("newer-submission", CASE_ID, REREVIEWER_ID, Instant.now());
+            ReviewSubmission newer = ReviewSubmission.createRereviewDraft("newer-submission", CASE_ID, REREVIEWER_ID, "ssv-1", Instant.now());
             submissionRepo.save(newer);
             com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(reviewCase, newer.getSubmissionId());
         }
