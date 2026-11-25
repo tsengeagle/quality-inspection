@@ -61,7 +61,8 @@ public class GetSubmissionDetailUseCase {
                 null,
                 null,
                 null,
-                view.getCreatedAt(),
+                // D-084 第 4 點：SYSTEM_ADMIN 只取得白名單欄位（permission-matrix §5.1），沒有 createdAt
+                actor.hasRole(DomainRole.SYSTEM_ADMIN) ? null : view.getCreatedAt(),
                 view.getSubmittedAt(),
                 List.of("answers", "comment", "totalScore", "attachmentRefsJson"));
     }

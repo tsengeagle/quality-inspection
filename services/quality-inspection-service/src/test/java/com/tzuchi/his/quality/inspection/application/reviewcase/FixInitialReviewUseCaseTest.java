@@ -67,7 +67,7 @@ class FixInitialReviewUseCaseTest {
     private void completedCase(CaseStatus status, String latestInitial) {
         cases.save(ReviewCase.reconstitute("c1", "b1", "p1", "H001", "SK-1", MedicalRecordType.OUTPATIENT,
                 status, new ReviewerAssignment("doctor", Instant.parse("2026-01-01T00:00:00Z")), null,
-                null, null, null, null, false, null, null, latestInitial, null, "ss:v1",
+                null, null, null, null, null, latestInitial, "ss:v1",
                 null, null, new BigDecimal("7"), null));
     }
 
@@ -128,7 +128,6 @@ class FixInitialReviewUseCaseTest {
 
         assertEquals("PENDING_REREVIEW", result.getCaseStatus());
         assertEquals(CaseStatus.PENDING_REREVIEW, stored().getStatus());
-        assertTrue(stored().isRereviewRequired());
         assertEquals(2, events.events.size());
         assertInstanceOf(InitialReviewFixedEvent.class, events.events.get(0));
         assertInstanceOf(ReviewCaseEscalatedToRereviewEvent.class, events.events.get(1));

@@ -67,7 +67,6 @@ class PermanentBlindReviewReadApiTest {
         rc.setReviewerAssignedAt(Instant.parse("2026-01-01T00:00:00Z"));
         rc.setRereviewerId("rr"); rc.setRereviewerAssignedAt(rc.getReviewerAssignedAt());
         rc.setInitialReviewScore(new BigDecimal("92")); rc.setFinalScore(new BigDecimal("86"));
-        rc.setFinalConclusion("SECRET_INITIAL_CONCLUSION");
         rc.setLatestInitialSubmissionId("i2"); rc.setLatestRereviewSubmissionId("r1");
         cases.save(rc);
         submissions.save(sub("i1", ReviewStage.INITIAL, "initial", SubmissionStatus.SUPERSEDED));
@@ -424,7 +423,7 @@ class PermanentBlindReviewReadApiTest {
             ReviewCaseEntity rc = cases.findById("c1").orElseThrow();
             rc.setStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
             rc.setRereviewerId(null); rc.setRereviewerAssignedAt(null); rc.setLatestRereviewSubmissionId(null);
-            rc.setRereviewRequired(false); rc.setFinalScore(rc.getInitialReviewScore()); cases.save(rc);
+            rc.setFinalScore(rc.getInitialReviewScore()); cases.save(rc);
         } else {
             assignmentEvidenceFixture("missingAll", false);
         }

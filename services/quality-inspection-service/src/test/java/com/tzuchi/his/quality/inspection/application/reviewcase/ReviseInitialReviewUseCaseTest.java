@@ -163,8 +163,7 @@ class ReviseInitialReviewUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CLOSED, null, null,
-                null, null, null, Instant.now(),
-                false, null, null, null, null, null,
+                null, null, null, Instant.now(), null, null, null,
                 null, null, null, null);
         caseRepo.save(rc);
 
@@ -179,8 +178,7 @@ class ReviseInitialReviewUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 CASE_ID, "b1", PROJECT_ID, HOSPITAL_ID, "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CANCELLED, null, null,
-                null, null, Instant.now(), null,
-                false, null, null, null, null, null,
+                null, null, Instant.now(), null, null, null, null,
                 null, null, null, null);
         caseRepo.save(rc);
 

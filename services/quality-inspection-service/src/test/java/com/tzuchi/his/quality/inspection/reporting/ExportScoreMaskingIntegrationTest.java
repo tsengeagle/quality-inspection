@@ -136,9 +136,9 @@ class ExportScoreMaskingIntegrationTest {
         for (int i = 0; i < 1201; i++) {
             rows.add(new Object[]{String.format("bulk-%04d", i), i == 1150 ? 0 : 1});
         }
-        jdbc.batchUpdate("insert into review_case (case_id, batch_id, project_id, hospital_id, status, rereview_required,"
+        jdbc.batchUpdate("insert into review_case (case_id, batch_id, project_id, hospital_id, status,"
                 + " initial_review_score, final_score, rereviewer_history_complete, created_at)"
-                + " values (?, 'b', 'p', 'H001', 'CLOSED', 0, 92, 86, ?, TIMESTAMP '2026-04-15 00:00:00')", rows);
+                + " values (?, 'b', 'p', 'H001', 'CLOSED', 92, 86, ?, TIMESTAMP '2026-04-15 00:00:00')", rows);
         history.save(new RereviewerAssignmentHistoryEntity("bulk-1200", "rr1", Instant.parse("2026-01-01T00:00:00Z"), "mgr", "ASSIGN"));
 
         Map<String, ExportRow> exported = exportAs("rr1", DomainRole.AUDITOR);

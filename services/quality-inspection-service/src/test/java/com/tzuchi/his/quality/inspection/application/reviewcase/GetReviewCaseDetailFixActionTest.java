@@ -41,7 +41,7 @@ class GetReviewCaseDetailFixActionTest {
     private void caseWith(String status, String latestInitial, boolean fixed, SubmissionSummaryItem... submissions) {
         ReviewCaseDetailView view = new ReviewCaseDetailView(
                 "c1", "p1", "b1", "H001", status, "doctor", null, "OUTPATIENT", "SK-1",
-                new BigDecimal("7"), new BigDecimal("7"), null, null, null, null, null, null,
+                new BigDecimal("7"), new BigDecimal("7"), null, null, null, null, null,
                 latestInitial, "ss:v1", List.of(submissions), null, null, null, false, null, null)
                 .withInitialReviewFixed(fixed);
         when(queryPort.findDetailById("c1")).thenReturn(Optional.of(view));

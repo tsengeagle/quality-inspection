@@ -32,9 +32,8 @@ class ReviewCaseEntityRoundTripTest {
                 CaseStatus.PENDING_INITIAL_REVIEW,
                 new ReviewerAssignment("reviewer-1", Instant.parse("2025-06-01T10:00:00Z")),
                 Instant.parse("2025-06-15T23:59:00Z"),
-                null, null, null, null,
-                false, null, null,
-                null, null, null,
+                null, null, null, null, null,
+                null, null,
                 null, null, null, null
         );
 
@@ -61,9 +60,8 @@ class ReviewCaseEntityRoundTripTest {
                 "case-rt-2", "batch-2", "proj-2", "hosp-2",
                 "SK-002", null,
                 CaseStatus.SELECTED_PENDING_ASSIGNMENT,
-                null, null, null, null, null, null,
-                false, null, null,
-                null, null, null,
+                null, null, null, null, null, null, null,
+                null, null,
                 null, null, null, null
         );
 
@@ -79,9 +77,7 @@ class ReviewCaseEntityRoundTripTest {
         assertThat(rc.getReturnReason()).isNull();
         assertThat(rc.getCancelledAt()).isNull();
         assertThat(rc.getClosedAt()).isNull();
-        assertThat(rc.isRereviewRequired()).isFalse();
         assertThat(rc.getFinalScore()).isNull();
-        assertThat(rc.getFinalConclusion()).isNull();
     }
 
     @Test
@@ -92,9 +88,8 @@ class ReviewCaseEntityRoundTripTest {
                 CaseStatus.CANCELLED,
                 null, null,
                 "Duplicate case", null,
-                Instant.parse("2025-07-01T12:00:00Z"), null,
-                false, null, null,
-                null, null, null,
+                Instant.parse("2025-07-01T12:00:00Z"), null, null,
+                null, null,
                 null, null, null, null
         );
 

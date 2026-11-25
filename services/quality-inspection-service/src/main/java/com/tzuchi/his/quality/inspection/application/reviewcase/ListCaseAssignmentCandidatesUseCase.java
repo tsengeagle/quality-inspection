@@ -16,11 +16,14 @@ public class ListCaseAssignmentCandidatesUseCase {
 
     private final ReviewCaseAssignmentQueryPort queryPort;
     private final AssignmentCandidateDirectoryPort candidateDirectoryPort;
+    private final InitialReviewReaderPort readerPort;
 
     public ListCaseAssignmentCandidatesUseCase(ReviewCaseAssignmentQueryPort queryPort,
-                                               AssignmentCandidateDirectoryPort candidateDirectoryPort) {
+                                               AssignmentCandidateDirectoryPort candidateDirectoryPort,
+                                               InitialReviewReaderPort readerPort) {
         this.queryPort = queryPort;
         this.candidateDirectoryPort = candidateDirectoryPort;
+        this.readerPort = readerPort;
     }
 
     public List<AssignmentCandidateView> execute(ActorContext actor, String caseId,
@@ -33,7 +36,8 @@ public class ListCaseAssignmentCandidatesUseCase {
 
         actor.requireHospitalScope(snapshot.getHospitalId());
 
-        List<String> allowedActions = resolveAllowedActions(snapshot);
+        // D-084 第 5 點：與分派頁共用同一份可執行動作的判斷
+        List<String> allowedActions = GetCaseAssignmentContextUseCase.allowedActions(snapshot);
 
         boolean actionAllowed = isActionAllowed(role, allowedActions);
 
@@ -47,24 +51,6 @@ public class ListCaseAssignmentCandidatesUseCase {
             return allowedActions.contains("ASSIGN_REVIEWER") || allowedActions.contains("REASSIGN_REVIEWER");
         }
         return allowedActions.contains("ASSIGN_REREVIEWER") || allowedActions.contains("REASSIGN_REREVIEWER");
-    }
-
-    private List<String> resolveAllowedActions(AssignmentCaseSnapshotView snapshot) {
-        switch (snapshot.getStatus()) {
-            case "SELECTED_PENDING_ASSIGNMENT":
-                return List.of("ASSIGN_REVIEWER");
-            case "PENDING_INITIAL_REVIEW":
-            case "RETURNED":
-                return snapshot.getReviewerId() == null
-                        ? List.of()
-                        : List.of("REASSIGN_REVIEWER");
-            case "PENDING_REREVIEW":
-                return snapshot.getRereviewerId() == null
-                        ? List.of("ASSIGN_REREVIEWER")
-                        : List.of("REASSIGN_REREVIEWER");
-            default:
-                return List.of();
-        }
     }
 
     private AssignmentCandidateView toCandidateView(AssignmentCaseSnapshotView snapshot,
@@ -98,6 +84,11 @@ public class ListCaseAssignmentCandidatesUseCase {
                 && snapshot.getReviewerId() != null
                 && snapshot.getReviewerId().equals(entry.getUserId())) {
             return "REREVIEWER_SAME_AS_REVIEWER";
+        }
+        // D-084 第 6 點：與指派的 422 一致（D-055 第 5 點）；只讀紀錄，不寫入
+        if (role == AssignmentCandidateRole.REREVIEWER
+                && readerPort.hasRead(snapshot.getCaseId(), entry.getUserId())) {
+            return "REREVIEWER_HAS_READ_INITIAL";
         }
         return null;
     }

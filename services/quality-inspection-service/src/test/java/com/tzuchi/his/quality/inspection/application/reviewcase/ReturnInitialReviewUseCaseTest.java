@@ -49,8 +49,7 @@ class ReturnInitialReviewUseCaseTest {
                 CaseStatus.INITIAL_REVIEW_IN_PROGRESS,
                 new ReviewerAssignment("reviewer-1", Instant.now()),
                 DUE,
-                null, null, null, null,
-                false, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 null, null, null, null);
         repository.save(rc);
         return rc;

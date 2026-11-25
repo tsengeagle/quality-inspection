@@ -34,7 +34,7 @@ class GetSubmissionDetailUseCaseTest {
         for (int i = 1; i <= 3; i++) {
             casePort.setDetail("c" + i, new com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView(
                     "c" + i, "p", "b", "H001", "PENDING_REREVIEW", "r" + i, i == 1 ? "assigned-rereviewer" : "u" + i,
-                    null, null, null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null,
                     Collections.emptyList(), null, null, null, false));
         }
         useCase = new GetSubmissionDetailUseCase(queryPort, casePort, newPolicy());
@@ -135,5 +135,42 @@ class GetSubmissionDetailUseCaseTest {
         public boolean existsSubmittedRereview(String caseId) {
             return submittedRereviewMap.getOrDefault(caseId, false);
         }
+    }
+
+    // D-084 第 4 點：SYSTEM_ADMIN 只取得白名單欄位，沒有 createdAt
+    @Test
+    void systemAdminGetsWhitelistOnly_D084() {
+        java.time.Instant created = java.time.Instant.parse("2026-11-19T08:00:00Z");
+        java.time.Instant submitted = java.time.Instant.parse("2026-11-19T09:00:00Z");
+        SubmissionDetailView detail = new SubmissionDetailView(
+                "sub1", "c1", "INITIAL", 1, "SUBMITTED", "r1",
+                Collections.emptyList(), "ok", null, BigDecimal.valueOf(90), created, submitted, null);
+        queryPort.setDetail("sub1", detail);
+        ActorContext admin = new ActorContext("a1", "Admin", EnumSet.of(DomainRole.SYSTEM_ADMIN), Optional.of("H009"));
+
+        SubmissionDetailView result = useCase.execute(admin, "sub1");
+
+        assertNull(result.getCreatedAt());
+        assertEquals(submitted, result.getSubmittedAt());
+        assertNull(result.getTotalScore());
+        assertNull(result.getComment());
+        assertEquals(java.util.List.of("answers", "comment", "totalScore", "attachmentRefsJson"), result.getMaskedFields());
+        assertFalse(accessRecords.hasRead("c1", "a1"));
+    }
+
+    // 複審醫師讀初審：內容遮罩，但 createdAt 照舊（D-084 第 4 點只限 SYSTEM_ADMIN）
+    @Test
+    void rereviewerKeepsCreatedAtOnMaskedInitial_D084() {
+        java.time.Instant created = java.time.Instant.parse("2026-11-19T08:00:00Z");
+        SubmissionDetailView detail = new SubmissionDetailView(
+                "sub1", "c1", "INITIAL", 1, "SUBMITTED", "r1",
+                Collections.emptyList(), "ok", null, BigDecimal.valueOf(90), created, null, null);
+        queryPort.setDetail("sub1", detail);
+        ActorContext rereviewer = new ActorContext("assigned-rereviewer", "RR", EnumSet.of(DomainRole.REREVIEWER), Optional.of("H001"));
+
+        SubmissionDetailView result = useCase.execute(rereviewer, "sub1");
+
+        assertEquals(created, result.getCreatedAt());
+        assertNull(result.getTotalScore());
     }
 }

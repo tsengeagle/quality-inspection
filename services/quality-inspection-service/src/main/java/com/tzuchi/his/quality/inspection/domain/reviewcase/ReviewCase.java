@@ -35,11 +35,8 @@ public class ReviewCase {
     private Instant closedAt;
 
     // --- B3b/B3c: reserved (nullable, not used in B3a) ---
-    private boolean rereviewRequired;
     private BigDecimal finalScore;
-    private String finalConclusion;
     private String latestInitialSubmissionId;
-    private String ruleSnapshotRef;
     private String scoreSheetVersionRef;
 
     // --- B4: rereview ---
@@ -87,14 +84,14 @@ public class ReviewCase {
             String sourceCaseKey, MedicalRecordType medicalRecordType,
             CaseStatus status, ReviewerAssignment reviewerAssignment, Instant dueAt,
             String cancelReason, String returnReason, Instant cancelledAt, Instant closedAt,
-            boolean rereviewRequired, BigDecimal finalScore, String finalConclusion,
-            String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef,
+            BigDecimal finalScore,
+            String latestInitialSubmissionId, String scoreSheetVersionRef,
             ReviewerAssignment rereviewerAssignment, Instant rereviewerDueAt,
             BigDecimal initialReviewScore,
             String latestRereviewSubmissionId) {
         return reconstitute(caseId, batchId, projectId, hospitalId, sourceCaseKey, medicalRecordType,
                 status, reviewerAssignment, dueAt, cancelReason, returnReason, cancelledAt, closedAt,
-                rereviewRequired, finalScore, finalConclusion, latestInitialSubmissionId, ruleSnapshotRef,
+                finalScore, latestInitialSubmissionId,
                 scoreSheetVersionRef, rereviewerAssignment, rereviewerDueAt, initialReviewScore,
                 latestRereviewSubmissionId, null, null, null);
     }
@@ -105,8 +102,8 @@ public class ReviewCase {
             String sourceCaseKey, MedicalRecordType medicalRecordType,
             CaseStatus status, ReviewerAssignment reviewerAssignment, Instant dueAt,
             String cancelReason, String returnReason, Instant cancelledAt, Instant closedAt,
-            boolean rereviewRequired, BigDecimal finalScore, String finalConclusion,
-            String latestInitialSubmissionId, String ruleSnapshotRef, String scoreSheetVersionRef,
+            BigDecimal finalScore,
+            String latestInitialSubmissionId, String scoreSheetVersionRef,
             ReviewerAssignment rereviewerAssignment, Instant rereviewerDueAt,
             BigDecimal initialReviewScore,
             String latestRereviewSubmissionId,
@@ -128,11 +125,8 @@ public class ReviewCase {
         rc.returnReason = returnReason;
         rc.cancelledAt = cancelledAt;
         rc.closedAt = closedAt;
-        rc.rereviewRequired = rereviewRequired;
         rc.finalScore = finalScore;
-        rc.finalConclusion = finalConclusion;
         rc.latestInitialSubmissionId = latestInitialSubmissionId;
-        rc.ruleSnapshotRef = ruleSnapshotRef;
         rc.scoreSheetVersionRef = scoreSheetVersionRef;
         rc.rereviewerAssignment = rereviewerAssignment;
         rc.rereviewerDueAt = rereviewerDueAt;
@@ -256,7 +250,6 @@ public class ReviewCase {
         this.initialFixedBy = fixedBy;
         this.initialFixedSubmissionId = submissionId;
         if (qualityThreshold != null && fixedScore.compareTo(qualityThreshold) > 0) {
-            this.rereviewRequired = true;
             // 進複審後還沒有最終分數：保留 initialReviewScore，finalScore 於複審提交時依 D-012／D-020 加權計算。
             this.finalScore = null;
             this.status = CaseStatus.PENDING_REREVIEW;
@@ -518,11 +511,8 @@ public class ReviewCase {
     public String getReturnReason() { return returnReason; }
     public Instant getCancelledAt() { return cancelledAt; }
     public Instant getClosedAt() { return closedAt; }
-    public boolean isRereviewRequired() { return rereviewRequired; }
     public BigDecimal getFinalScore() { return finalScore; }
-    public String getFinalConclusion() { return finalConclusion; }
     public String getLatestInitialSubmissionId() { return latestInitialSubmissionId; }
-    public String getRuleSnapshotRef() { return ruleSnapshotRef; }
     public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public ReviewerAssignment getRereviewerAssignment() { return rereviewerAssignment; }
     public Instant getRereviewerDueAt() { return rereviewerDueAt; }

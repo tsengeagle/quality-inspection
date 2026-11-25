@@ -256,7 +256,7 @@ public class ReviewCaseController {
         return ResponseEntity.ok(ApiResponse.ok(new SubmitInitialReviewResponse(
                 result.getSubmissionId(), result.getStatus(),
                 result.getCaseId(), result.getCaseStatus(),
-                result.getTotalScore(), result.isRereviewRequired())));
+                result.getTotalScore())));
     }
 
     // --- B3c endpoints ---

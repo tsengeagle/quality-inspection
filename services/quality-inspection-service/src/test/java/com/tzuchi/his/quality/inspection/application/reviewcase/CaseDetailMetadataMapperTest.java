@@ -24,7 +24,7 @@ class CaseDetailMetadataMapperTest {
                 java.util.EnumSet.of(com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType.OUTPATIENT),
                 ProjectStatus.ACTIVE, "sheet", 1, true, null, null, null)));
         ReviewCaseDetailView raw = new ReviewCaseDetailView("c", "p", "batch", "H001", "CLOSED", "initial", "rr",
-                "type", "secret source", java.math.BigDecimal.TEN, java.math.BigDecimal.ONE, "secret conclusion",
+                "type", "secret source", java.math.BigDecimal.TEN, java.math.BigDecimal.ONE,
                 null, null, null, null, null, List.of(), null, "FULL", "HOSPITAL_MANAGER", false) {
             public String getFutureSensitiveField() { return "secret future field"; }
         };

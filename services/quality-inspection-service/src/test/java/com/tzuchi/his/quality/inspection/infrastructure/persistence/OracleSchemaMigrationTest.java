@@ -158,7 +158,6 @@ class OracleSchemaMigrationTest {
         c.setProjectId("p1");
         c.setHospitalId("H001");
         c.setStatus(CaseStatus.PENDING_REREVIEW);
-        c.setRereviewRequired(true);
         c.setInitialReviewScore(new BigDecimal("92.00"));
         em.persistAndFlush(c);
         em.clear();
@@ -167,7 +166,6 @@ class OracleSchemaMigrationTest {
         assertThat(loadedProject.isVersionPublished()).isTrue();
         assertThat(loadedProject.getMedicalRecordTypes()).containsExactlyInAnyOrder("OUTPATIENT", "INPATIENT");
         ReviewCaseEntity loadedCase = em.find(ReviewCaseEntity.class, "case-1");
-        assertThat(loadedCase.isRereviewRequired()).isTrue();
         assertThat(loadedCase.getStatus()).isEqualTo(CaseStatus.PENDING_REREVIEW);
     }
 

@@ -168,7 +168,6 @@ class RereviewApiTest {
         e.setReviewerId(REVIEWER_ID);
         e.setReviewerAssignedAt(Instant.now());
         e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
-        e.setRereviewRequired(true);
         e.setLatestInitialSubmissionId("init-sub-1");
         e.setScoreSheetVersionRef(com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1));
         e.setInitialReviewScore(new BigDecimal("17.5"));
@@ -205,7 +204,6 @@ class RereviewApiTest {
         e.setReviewerId(REVIEWER_ID);
         e.setReviewerAssignedAt(Instant.now());
         e.setDueAt(Instant.parse("2026-02-01T23:59:00Z"));
-        e.setRereviewRequired(true);
         e.setRereviewerId(REREVIEWER_ID);
         e.setRereviewerAssignedAt(Instant.now());
         e.setRereviewerDueAt(Instant.parse("2026-06-30T23:59:00Z"));

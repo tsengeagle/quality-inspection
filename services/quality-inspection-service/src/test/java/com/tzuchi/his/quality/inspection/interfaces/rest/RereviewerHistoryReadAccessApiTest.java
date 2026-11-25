@@ -175,8 +175,8 @@ class RereviewerHistoryReadAccessApiTest {
     void casesCreatedThroughTheEntityAreComplete_rowsWithoutTheColumnDefaultToIncomplete() {
         assertThat(cases.findById("c1").orElseThrow().isRereviewerHistoryComplete()).isTrue();
         // 不指定這個欄位的 insert（等同 V5 之前就存在的資料）取得 migration 的預設值：不完整。
-        jdbc.update("insert into review_case (case_id, batch_id, project_id, status, rereview_required)"
-                + " values ('legacy', 'b', 'p', 'CLOSED', 0)");
+        jdbc.update("insert into review_case (case_id, batch_id, project_id, status)"
+                + " values ('legacy', 'b', 'p', 'CLOSED')");
         assertThat(jdbc.queryForObject("select rereviewer_history_complete from review_case where case_id = 'legacy'",
                 Integer.class)).isZero();
         assertThat(cases.findById("legacy").orElseThrow().isRereviewerHistoryComplete()).isFalse();

@@ -97,8 +97,8 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
                 e.getSourceCaseKey(), mrt,
                 e.getStatus(), assignment, e.getDueAt(),
                 e.getCancelReason(), e.getReturnReason(), e.getCancelledAt(), e.getClosedAt(),
-                e.isRereviewRequired(), e.getFinalScore(), e.getFinalConclusion(),
-                e.getLatestInitialSubmissionId(), e.getRuleSnapshotRef(), e.getScoreSheetVersionRef(),
+                e.getFinalScore(),
+                e.getLatestInitialSubmissionId(), e.getScoreSheetVersionRef(),
                 rereviewerAssignment, e.getRereviewerDueAt(), e.getInitialReviewScore(),
                 e.getLatestRereviewSubmissionId(),
                 e.getInitialFixedAt(), e.getInitialFixedBy(), e.getInitialFixedSubmissionId());
@@ -135,11 +135,8 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
         e.setReturnReason(rc.getReturnReason());
         e.setCancelledAt(rc.getCancelledAt());
         e.setClosedAt(rc.getClosedAt());
-        e.setRereviewRequired(rc.isRereviewRequired());
         e.setFinalScore(rc.getFinalScore());
-        e.setFinalConclusion(rc.getFinalConclusion());
         e.setLatestInitialSubmissionId(rc.getLatestInitialSubmissionId());
-        e.setRuleSnapshotRef(rc.getRuleSnapshotRef());
         e.setScoreSheetVersionRef(rc.getScoreSheetVersionRef());
         e.setRereviewerId(rc.getRereviewerAssignment() != null ? rc.getRereviewerAssignment().getReviewerId() : null);
         e.setRereviewerAssignedAt(rc.getRereviewerAssignment() != null ? rc.getRereviewerAssignment().getAssignedAt() : null);
@@ -156,9 +153,9 @@ public class ReviewCaseRepositoryImpl implements ReviewCaseRepository {
         return new Object[] {
                 e.getCaseId(), e.getBatchId(), e.getProjectId(), e.getHospitalId(), e.getSourceCaseKey(),
                 e.getMedicalRecordType(), e.getStatus(), e.getReviewerId(), e.getReviewerAssignedAt(), e.getDueAt(),
-                e.getCancelReason(), e.getReturnReason(), e.getCancelledAt(), e.getClosedAt(), e.isRereviewRequired(),
-                number(e.getFinalScore()), e.getFinalConclusion(), e.getLatestInitialSubmissionId(),
-                e.getRuleSnapshotRef(), e.getScoreSheetVersionRef(), e.getRereviewerId(), e.getRereviewerAssignedAt(),
+                e.getCancelReason(), e.getReturnReason(), e.getCancelledAt(), e.getClosedAt(),
+                number(e.getFinalScore()), e.getLatestInitialSubmissionId(),
+                e.getScoreSheetVersionRef(), e.getRereviewerId(), e.getRereviewerAssignedAt(),
                 e.getRereviewerDueAt(), number(e.getInitialReviewScore()), e.getLatestRereviewSubmissionId(),
                 e.getInitialFixedAt(), e.getInitialFixedBy(), e.getInitialFixedSubmissionId()
         };

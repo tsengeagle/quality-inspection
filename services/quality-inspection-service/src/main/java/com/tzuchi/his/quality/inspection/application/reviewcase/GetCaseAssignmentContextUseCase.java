@@ -36,7 +36,7 @@ public class GetCaseAssignmentContextUseCase {
         String pageMode = resolvePageMode(snapshot);
         String blockedReason = resolveBlockedReason(snapshot);
         boolean blocked = blockedReason != null;
-        List<String> allowedActions = blocked ? Collections.emptyList() : resolveAllowedActions(snapshot);
+        List<String> allowedActions = allowedActions(snapshot);
 
         return new AssignmentBootstrapView(
                 snapshot.getCaseId(),
@@ -87,12 +87,18 @@ public class GetCaseAssignmentContextUseCase {
         return "ASSIGN_INITIAL";
     }
 
-    private List<String> resolveAllowedActions(AssignmentCaseSnapshotView snapshot) {
+    /**
+     * 分派頁的可執行動作；候選人清單（ListCaseAssignmentCandidatesUseCase）共用這一份判斷（D-084 第 5 點）。
+     * 被擋下的狀態沒有任何動作。
+     */
+    static List<String> allowedActions(AssignmentCaseSnapshotView snapshot) {
+        if (resolveBlockedReason(snapshot) != null) {
+            return Collections.emptyList();
+        }
         switch (snapshot.getStatus()) {
             case "SELECTED_PENDING_ASSIGNMENT":
                 return List.of("ASSIGN_REVIEWER");
             case "PENDING_INITIAL_REVIEW":
-            case "RETURNED":
                 return snapshot.getReviewerId() == null
                         ? Collections.emptyList()
                         : List.of("REASSIGN_REVIEWER");
@@ -105,18 +111,19 @@ public class GetCaseAssignmentContextUseCase {
         }
     }
 
-    private String resolveBlockedReason(AssignmentCaseSnapshotView snapshot) {
+    private static String resolveBlockedReason(AssignmentCaseSnapshotView snapshot) {
         switch (snapshot.getStatus()) {
             case "CLOSED":
                 return "CASE_ALREADY_CLOSED";
             case "CANCELLED":
                 return "CASE_ALREADY_CANCELLED";
+            // D-084 第 5 點：退回的案件要先重開（D-080），才能改派（D-082）
+            case "RETURNED":
             case "INITIAL_REVIEW_IN_PROGRESS":
             case "INITIAL_REVIEW_COMPLETED":
             case "REREVIEW_IN_PROGRESS":
                 return "CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS";
             case "PENDING_INITIAL_REVIEW":
-            case "RETURNED":
                 return snapshot.getReviewerId() == null
                         ? "REVIEWER_ASSIGNMENT_MISSING"
                         : null;
