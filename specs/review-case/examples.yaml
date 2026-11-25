@@ -2108,6 +2108,209 @@ examples:
         input: { caseId: "${c}", submissionId: "${s2}" }
         expect: { result: REJECTED, code: CONFLICT }
 
+  # ---------- 儀表板摘要（D-087）。範例的時鐘從 2026-11-19T09:00:00Z 開始，案件的建立時間就是這個時間 ----------
+
+  - name: dashboard_counts_an_open_case
+    basis: [RC-DSH-07, RC-DSH-08, RC-DSH-03]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 1, closedCases: 0, rereviewedCases: 0, completionRate: 0, rereviewRate: 0 } }
+
+  - name: dashboard_counts_an_assigned_rereviewer
+    basis: [RC-DSH-07, RC-DSH-08]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 1, closedCases: 0, rereviewedCases: 1, completionRate: 0, rereviewRate: 1 } }
+
+  - name: dashboard_counts_a_closed_case
+    basis: [RC-DSH-07, RC-DSH-08]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: GetDashboardSummary, as: auditor_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 1, closedCases: 1, rereviewedCases: 1, completionRate: 1, rereviewRate: 1 } }
+
+  # D-087 第 4 點：已取消的案件不計入；沒有案件時比率都是 0。
+  - name: dashboard_leaves_out_cancelled_cases
+    basis: [RC-DSH-07, RC-DSH-08]
+    given: [{ use: case_in_CANCELLED }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 0, closedCases: 0, rereviewedCases: 0, completionRate: 0, rereviewRate: 0, overdueRate: 0 } }
+
+  - name: dashboard_does_not_take_the_requested_hospital
+    basis: [RC-DSH-03]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetDashboardSummary, as: manager_h2, input: { hospitalId: H-01, projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 0 } }
+
+  - name: system_admin_dashboard_covers_other_hospitals
+    basis: [RC-DSH-04]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetDashboardSummary, as: admin, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 1 } }
+
+  - name: system_admin_dashboard_narrows_to_a_hospital
+    basis: [RC-DSH-04]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetDashboardSummary, as: admin, input: { hospitalId: H-02, projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 0 } }
+
+  - name: dashboard_of_an_unknown_project_is_empty
+    basis: [RC-DSH-05]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: no-such-project } }
+    then: { result: SUCCESS, output: { totalCases: 0, completionRate: 0 } }
+
+  # 含起：from 等於建立時間的案件算在內。
+  - name: dashboard_range_includes_the_start
+    basis: [RC-DSH-06]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}", from: "2026-11-19T09:00:00Z", to: "2026-11-19T10:00:00Z" } }
+    then: { result: SUCCESS, output: { totalCases: 1 } }
+
+  # 不含迄：to 等於建立時間的案件不算。
+  - name: dashboard_range_excludes_the_end
+    basis: [RC-DSH-06]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}", from: "2026-11-19T08:00:00Z", to: "2026-11-19T09:00:00Z" } }
+    then: { result: SUCCESS, output: { totalCases: 0 } }
+
+  - name: rejects_dashboard_with_only_one_end_of_the_range
+    basis: [RC-DSH-01]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { from: "2026-11-19T09:00:00Z" } }
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: rejects_dashboard_with_an_empty_range
+    basis: [RC-DSH-02]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { from: "2026-11-19T09:00:00Z", to: "2026-11-19T09:00:00Z" } }
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  # D-087 第 2 點：角色的檢查在輸入的檢查之前。
+  - name: rejects_dashboard_by_a_reviewer_before_checking_the_range
+    basis: [RC-G-01]
+    when: { run: GetDashboardSummary, as: reviewer_h1, input: { from: "2026-11-19T09:00:00Z" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  # ---------- 匯出（D-087 第 8 點；D-055 第 6 點、D-057） ----------
+
+  # 初審已提交、還沒固定：之後還可能指派複審醫師，分數遮罩。
+  - name: export_masks_scores_while_a_rereviewer_can_still_be_assigned
+    basis: [RC-RPT-06, RC-RPT-08, RC-RPT-04]
+    given: [{ use: case_in_INITIAL_REVIEW_COMPLETED }]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then:
+      result: SUCCESS
+      output:
+        reportType: REVIEW_COMPLETION
+        page: 0
+        size: 100
+        totalElements: 1
+        totalPages: 1
+        rows:
+          - { caseId: "${c}", projectId: "${p}", hospitalId: H-01, status: INITIAL_REVIEW_COMPLETED, reviewerId: u-r1, maskedFields: [initialScore, finalScore] }
+      absent: ["rows[*].initialScore", "rows[*].finalScore"]
+
+  # 初審 20 分、複審 20 分、權重各 0.50：finalScore = 20。
+  - name: export_shows_scores_of_a_closed_case
+    basis: [RC-RPT-11, RC-RPT-12]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then:
+      result: SUCCESS
+      output:
+        rows:
+          - { caseId: "${c}", status: CLOSED, reviewerId: u-r1, rereviewerId: u-rr1, initialScore: "20", finalScore: "20", maskedFields: [] }
+        summary.totalCases: 1
+        summary.closedCases: 1
+        summary.rereviewedCases: 1
+        summary.completionRate: 1
+
+  - name: auditor_export_shows_scores_of_a_closed_case
+    basis: [RC-RPT-11]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: auditor_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then: { result: SUCCESS, output: { rows: [{ caseId: "${c}", initialScore: "20", finalScore: "20", maskedFields: [] }] } }
+
+  - name: system_admin_export_has_no_scores
+    basis: [RC-RPT-07, RC-RPT-05]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: admin, input: { reportType: REVIEW_COMPLETION, hospitalId: H-01, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then:
+      result: SUCCESS
+      output: { rows: [{ caseId: "${c}", status: CLOSED, maskedFields: [initialScore, finalScore] }] }
+      absent: ["rows[*].initialScore", "rows[*].finalScore"]
+
+  - name: system_admin_export_narrows_to_a_hospital
+    basis: [RC-RPT-05]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: admin, input: { reportType: REVIEW_COMPLETION, hospitalId: H-02, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then: { result: SUCCESS, output: { rows: [], totalElements: 0 } }
+
+  # u-rr1 是這個案件的複審醫師，改用 AUDITOR 角色匯出：結案後也拿不到分數。
+  - name: rereviewer_exporting_in_another_role_gets_no_scores
+    basis: [RC-RPT-09]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: rr1_as_auditor_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then:
+      result: SUCCESS
+      output: { rows: [{ caseId: "${c}", status: CLOSED, maskedFields: [initialScore, finalScore] }] }
+      absent: ["rows[*].initialScore", "rows[*].finalScore"]
+
+  - name: export_does_not_take_the_requested_hospital
+    basis: [RC-RPT-04]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: manager_h2, input: { reportType: REVIEW_COMPLETION, hospitalId: H-01, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then: { result: SUCCESS, output: { rows: [], totalElements: 0, summary.totalCases: 0 } }
+
+  - name: export_leaves_out_cases_created_outside_the_range
+    basis: [RC-RPT-06, RC-RPT-12]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T10:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then: { result: SUCCESS, output: { rows: [], totalElements: 0, totalPages: 0, summary.totalCases: 0 } }
+
+  - name: export_page_beyond_the_end_is_empty
+    basis: [RC-RPT-06, RC-RPT-12]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z", page: 1, size: 1 } }
+    then: { result: SUCCESS, output: { rows: [], page: 1, size: 1, totalElements: 1, totalPages: 1, summary.totalCases: 1 } }
+
+  - name: export_normalizes_the_page_and_caps_the_size
+    basis: [RC-RPT-06]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z", page: -1, size: 5000 } }
+    then: { result: SUCCESS, output: { page: 0, size: 1000, totalElements: 1 } }
+
+  # D-087 第 4 點：已取消的案件在逐案資料列裡，不在摘要的件數裡。
+  - name: export_lists_cancelled_cases_but_the_summary_leaves_them_out
+    basis: [RC-RPT-06, RC-RPT-12, RC-DSH-07]
+    given: [{ use: case_in_CANCELLED }]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then:
+      result: SUCCESS
+      output:
+        totalElements: 1
+        rows: [{ caseId: "${c}", status: CANCELLED }]
+        summary.totalCases: 0
+        summary.completionRate: 0
+
+  - name: rejects_export_of_an_unsupported_report_type
+    basis: [RC-RPT-01]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: MONTHLY, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: rejects_export_without_the_end_of_the_range
+    basis: [RC-RPT-02]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z" } }
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: rejects_export_with_an_empty_range
+    basis: [RC-RPT-03]
+    when: { run: ExportReport, as: manager_h1, input: { reportType: REVIEW_COMPLETION, from: "2026-11-20T00:00:00Z", to: "2026-11-19T00:00:00Z" } }
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  # D-087 第 2 點：角色的檢查在輸入的檢查之前。
+  - name: rejects_export_by_a_reviewer_before_checking_the_input
+    basis: [RC-G-01]
+    when: { run: ExportReport, as: reviewer_h1, input: { reportType: MONTHLY } }
+    then: { result: REJECTED, code: ROLE_DENIED }
 not_covered:
   - item: 修正時提交不存在、不是目前有效的結果、操作者不是受指派的複審醫師或不是提交者（RC-RVI-02、RC-RVI-06、RC-RVR-02、RC-RVR-03、RC-RVR-05、RC-RVR-07）
     # D-085：修正過之後，舊的提交是 SUPERSEDED，先被 SUBMISSION_NOT_SUBMITTED 擋下；「已提交但不是目前有效」仍做不出來
@@ -2132,3 +2335,7 @@ not_covered:
     reason: 案件在 INITIAL_REVIEW_COMPLETED 時，初審的提交都已提交過；草稿只在 INITIAL_REVIEW_IN_PROGRESS 出現，那時固定先被 RC-FIX-03 擋下（D-085）。RC-FIX-04 已有範例
   - item: 提交不存在（RC-RDR-04、RC-SRR-04、RC-CLR-03）與不是目前有效的複審草稿（RC-RDR-08、RC-SRR-08）
     reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。複審草稿只有開始複審時的那一份，改派只在複審開始前，所以做不出「是草稿但不是目前有效」（D-085）。RC-CLR-07 已有範例
+  - rules: [RC-RPT-10, RC-RPT-13]
+    reason: 複審指派歷史不完整的案件用 use case 做不出來（指派一定寫歷史）；讀取者紀錄與案件版本沒有查詢 use case 可以觀察。由既有的整合測試驗證（D-087 第 12 點）
+  - item: 逾期的件數與比率（overdueCases、overdueRate）
+    reason: 沒有立法，列在 model.yaml 的 deferred_behaviors（D-087 第 5 點）

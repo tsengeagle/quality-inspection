@@ -6,3 +6,33 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+# ---- D-087：報表與儀表板（切片 B）。規格先立法，程式由建構 PR 配合（D-087 第 11 點）----
+# 兩支 use case 的類別還不存在（GetDashboardSummaryUseCase、ExportReportUseCase），範例全部無法執行
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_counts_an_open_case
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_counts_an_assigned_rereviewer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_counts_a_closed_case
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_leaves_out_cancelled_cases
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_does_not_take_the_requested_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/system_admin_dashboard_covers_other_hospitals
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/system_admin_dashboard_narrows_to_a_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_of_an_unknown_project_is_empty
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_range_includes_the_start
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_range_excludes_the_end
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_dashboard_with_only_one_end_of_the_range
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_dashboard_with_an_empty_range
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_dashboard_by_a_reviewer_before_checking_the_range
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/export_masks_scores_while_a_rereviewer_can_still_be_assigned
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/export_shows_scores_of_a_closed_case
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/auditor_export_shows_scores_of_a_closed_case
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/system_admin_export_has_no_scores
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/system_admin_export_narrows_to_a_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rereviewer_exporting_in_another_role_gets_no_scores
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/export_does_not_take_the_requested_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/export_leaves_out_cases_created_outside_the_range
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/export_page_beyond_the_end_is_empty
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/export_normalizes_the_page_and_caps_the_size
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/export_lists_cancelled_cases_but_the_summary_leaves_them_out
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_export_of_an_unsupported_report_type
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_export_without_the_end_of_the_range
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_export_with_an_empty_range
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_export_by_a_reviewer_before_checking_the_input

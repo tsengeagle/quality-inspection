@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-25-d087-reporting",
+  "decision": "D-087",
+  "reason": "D-087：切片 B（報表與儀表板）；docs/harness/38 的 R-1～R-10，R-4 裁決為件數不包含已取消的案件、其餘照建議。規格：review-case/usecases.yaml 新增錯誤代碼 BAD_REQUEST、output_types 的 DashboardSummary 與 ExportRow、GetDashboardSummary（RC-DSH-01～08）、ExportReport（RC-RPT-01～13）；model.yaml 的 deferred_behaviors 新增逾期；examples.yaml 新增 28 個範例，not_covered 新增兩項。兩支 use case 的類別還不存在，28 個範例一開始都是紅的，加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。law/coverage.txt 登記 reporting/ 的檔案（含建構 PR 改名後的兩個入口）與 application/common/ 的三個查詢介面（specs/review-case/）。文件：api-spec §15、UI-015 的件數說明、草稿 38、題目清單（D-086 移到已完成、本切片進行中、逾期的現況）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/model.yaml",
+    "specs/review-case/examples.yaml",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

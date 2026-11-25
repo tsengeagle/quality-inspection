@@ -1756,6 +1756,12 @@ SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白
 * `from`
 * `to`
 
+件數不包含已取消（`CANCELLED`）的案件（D-087 第 4 點）：`totalCases` 是範圍內其餘案件的數目，`closedCases`、`rereviewedCases` 也只算其中的案件。`overdueCases`、`overdueRate` 的規則尚未立法（D-087 第 5 點）。
+
+檢查的順序是角色 → 輸入（D-087 第 2 點）：沒有權限的角色一律回 `403 ROLE_DENIED`。
+
+規格：`specs/review-case/`（`GetDashboardSummary`）。
+
 `from`、`to` 為選填的 ISO-8601 時間點（D-057 第 4 點）：兩個都給時，只統計案件建立時間 `from` ≤ `createdAt` < `to` 的案件，`from` 不早於 `to` 回 `400 BAD_REQUEST`；只給其中一個回 `400 BAD_REQUEST`；都不給時不依時間過濾。
 
 ---
@@ -1781,6 +1787,10 @@ SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白
 #### Response（分頁欄位、逐案列與遮罩相關的欄位）
 
 逐案資料列 `rows` 為當頁內容，依 `caseId` 遞增排序；`totalElements`、`totalPages` 與統計摘要 `summary` 都以整個過濾範圍計算，不受分頁影響（D-057 第 3 點）。
+
+已取消（`CANCELLED`）的案件仍然在 `rows` 與 `totalElements` 裡，但不計入 `summary` 的件數，所以 `totalElements` 可以大於 `summary.totalCases`（D-087 第 4 點）。
+
+檢查的順序是角色 → `reportType` → `from`、`to`（D-087 第 2 點）。規格：`specs/review-case/`（`ExportReport`）。
 
 ```json
 {

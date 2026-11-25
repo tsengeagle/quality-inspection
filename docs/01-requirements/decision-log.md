@@ -3536,3 +3536,49 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/03-contracts/api-spec.md` §9、`docs/harness/25-topic-backlog.md`
 - 後續：建構 PR
+
+---
+
+## D-087 — 切片 B：報表與儀表板（`reporting/`）
+
+### Status
+
+`accepted`（2026-11-25，負責人對 `docs/harness/38-reporting-draft.md` 的 R-1～R-10 裁決：R-4 改為不包含已取消的案件，其餘照建議）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 R-n）。
+
+1. **入口與範例（R-1 選 A）**：報表的兩個入口改成範例執行器叫得到的形狀，留在 `reporting/`：`GetDashboardSummaryUseCase`（輸入 `hospitalId`、`projectId`、`from`、`to`）、`ExportReportUseCase`（輸入 `reportType`、`hospitalId`、`from`、`to`、`page`、`size`）。規格寫成兩支查詢 use case，範例走真實的查詢。
+2. **時間區間的檢查與錯誤代碼（R-2 選 A）**：檢查從 `ReportController` 移到問題側，順序依 D-024：角色 → 輸入的檢查。錯誤代碼維持 `BAD_REQUEST`（400）。問題側丟自己的例外，不再依賴 HTTP 層；ARCH-01 的基線縮短。行為變更：沒有權限的角色帶錯誤的輸入，從 400 變成 403 `ROLE_DENIED`。
+3. **規格的位置（R-3 選 A）**：寫進 `specs/review-case/`，規則前綴 `RC-DSH`（儀表板）、`RC-RPT`（匯出）。
+4. **件數的定義（R-4，負責人裁決）**：**已取消（`CANCELLED`）的案件不計入任何件數。**
+   - `totalCases`：範圍內不是 `CANCELLED` 的案件數。
+   - `closedCases`：其中 `status = CLOSED` 的。
+   - `rereviewedCases`：其中已指派複審醫師的（不代表複審已完成）。
+   - 這是行為變更：原本 `totalCases` 與 `rereviewedCases` 包含已取消的案件。比率的分母跟著改變。UI-015 的說明跟著修改。
+   - 匯出的逐案資料列仍然包含已取消的案件（它們是資料），所以 `totalElements` 可以大於 `summary.totalCases`。D-057 第 3 點「`summary` 與 `totalElements` 對應同一個母體」改為：同一個院區與時間區間，`summary` 另外排除已取消的案件。
+5. **逾期（R-5 選 A）**：本裁決不立逾期的規則。`overdueCases`、`overdueRate` 保留在輸出，列進 `deferred_behaviors`，程式不動。現況：只看初審期限（不看複審期限）；初審準時提交但期限已過、還沒結案也算；「現在」取資料庫的時間。等逾期的題目一起裁決。
+6. **比率（R-6 選 A）**：件數 ÷ `totalCases`，`totalCases` 是 0 時是 0，不四捨五入。
+7. **篩選與院區（R-7）**：`HOSPITAL_MANAGER`、`AUDITOR`、`SYSTEM_ADMIN`。不是 `SYSTEM_ADMIN` 只統計本院，輸入的 `hospitalId` 不採用；`SYSTEM_ADMIN` 統計所有院區，可用 `hospitalId` 縮小。`projectId` 不檢查是否存在。`from`、`to` 兩個都給才依建立時間篩選（含起不含迄）；只給一個，或 `from` 不早於 `to`，`BAD_REQUEST`。
+8. **匯出的規則（R-8）**：照 D-055 第 6 點、D-056、D-057 立法：只支援 `REVIEW_COMPLETION`；`from`、`to` 必填；依 `caseId` 遞增分頁（`size` 預設 100、上限 1000）；四種遮罩（`SYSTEM_ADMIN`、之後還可能指派複審醫師的狀態、匯出者是目前或歷史的複審醫師、複審指派歷史不完整）；`summary` 是同一個範圍的儀表板摘要。一致讀取的作法不寫進規格，由既有的整合測試保護。
+9. **匯出的稽核紀錄（R-9 選 A）**：與 D-086 第 14 點一致，不發事件。
+10. **登記範圍（R-10）**：`reporting/` 的檔案（改名後）與 `application/common/` 的 `ExportCaseQuery.java`、`ExportCaseRecord.java`、`RereviewerHistoryQuery.java` 登記到 `specs/review-case/`。`reporting/` 的目錄列保留。
+11. **一開始是紅的範例**：兩支 use case 的類別還不存在，範例全部是紅的，照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+12. **做不出範例的規則**：複審指派歷史不完整（RC-RPT-10）、匯出不寫入讀取者紀錄與不遞增版本（RC-RPT-13），由既有的整合測試驗證。
+13. **題目清單**：D-086 移到已完成；本切片標為進行中；逾期的題目補上第 5 點的現況。
+14. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+
+### Relationship / Evidence
+
+- **起因**：負責人 2026-11-25 同意的問題側立法順序的第三個切片（B）。
+- **草案與查證**：`docs/harness/38-reporting-draft.md`（main = `e04d782`）。事實是讀程式與既有測試確認的，沒有實測（報表的入口在本裁決之前寫不出能執行的範例）。
+- **與既有裁決的關係**：沿用 D-033、D-035、D-042、D-047、D-055 第 6 點、D-056、D-057、D-077。第 2、4 點是行為變更；第 4 點修改 D-057 第 3 點關於母體的描述。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（`BAD_REQUEST`、`GetDashboardSummary` 的 RC-DSH-01～08、`ExportReport` 的 RC-RPT-01～13）、`model.yaml`（`deferred_behaviors`）、`examples.yaml`
+- `law/coverage.txt`（第 10 點的檔案）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/03-contracts/api-spec.md` §15、`docs/05-ui/` 的 UI-015、`docs/harness/25-topic-backlog.md`
+- 後續：建構 PR
