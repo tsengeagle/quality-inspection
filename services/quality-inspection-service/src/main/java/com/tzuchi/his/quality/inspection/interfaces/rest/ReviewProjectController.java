@@ -3,7 +3,6 @@ package com.tzuchi.his.quality.inspection.interfaces.rest;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.project.*;
 import com.tzuchi.his.quality.inspection.application.project.query.ReviewProjectSummary;
-import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -51,9 +50,8 @@ public class ReviewProjectController {
     public ResponseEntity<ApiResponse<Map<String, String>>> createProject(
             @CurrentActor ActorContext actor,
             @Valid @RequestBody CreateReviewProjectRequest request) {
-        Set<MedicalRecordType> types = parseMedicalRecordTypes(request.getMedicalRecordTypes());
         String projectId = createUseCase.execute(actor, request.getName(),
-                request.getDescription(), types, request.getQualityThreshold(),
+                request.getDescription(), request.getMedicalRecordTypes(), request.getQualityThreshold(),
                 request.getInitialReviewWeight(), request.getRereviewWeight());
         // api-spec §7.1：回應是 { projectId, status }。狀態由查詢取得，不在 controller 裡假設新建的狀態。
         String status = getDetailUseCase.execute(actor, projectId).getStatus().name();
@@ -76,9 +74,8 @@ public class ReviewProjectController {
             @CurrentActor ActorContext actor,
             @PathVariable String projectId,
             @Valid @RequestBody UpdateReviewProjectRequest request) {
-        Set<MedicalRecordType> types = parseMedicalRecordTypes(request.getMedicalRecordTypes());
         updateDraftUseCase.execute(actor, projectId, request.getName(),
-                request.getDescription(), types, request.getQualityThreshold(),
+                request.getDescription(), request.getMedicalRecordTypes(), request.getQualityThreshold(),
                 request.getInitialReviewWeight(), request.getRereviewWeight());
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
@@ -137,18 +134,6 @@ public class ReviewProjectController {
         versionMap.put("versionNumber", version.getVersionNo());
         versionMap.put("published", version.isPublished());
         return ResponseEntity.ok(ApiResponse.ok(versionMap));
-    }
-
-    private Set<MedicalRecordType> parseMedicalRecordTypes(Set<String> raw) {
-        if (raw == null) return Collections.emptySet();
-        return raw.stream()
-                .map(s -> {
-                    try { return MedicalRecordType.valueOf(s); }
-                    catch (IllegalArgumentException e) {
-                        throw new BadRequestException("Invalid medicalRecordType: " + s);
-                    }
-                })
-                .collect(Collectors.toSet());
     }
 
     private ReviewProjectResponse toResponse(ReviewProjectSummary summary) {

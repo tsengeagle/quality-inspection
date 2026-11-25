@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
@@ -28,7 +29,7 @@ public class UpdateReviewProjectDraftUseCase {
     }
 
     public void execute(ActorContext actor, String projectId, String name,
-                        String description, Set<MedicalRecordType> medicalRecordTypes,
+                        String description, Set<String> medicalRecordTypes,
                         BigDecimal qualityThreshold, BigDecimal initialReviewWeight,
                         BigDecimal rereviewWeight) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
@@ -36,7 +37,8 @@ public class UpdateReviewProjectDraftUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
                         "Project not found: " + projectId));
         actor.requireHospitalScope(project.getHospitalId());
-        project.updateDraft(name, description, medicalRecordTypes,
+        Set<MedicalRecordType> types = CreateReviewProjectUseCase.parseMedicalRecordTypes(medicalRecordTypes);
+        project.updateDraft(name, description, types,
                 qualityThreshold, initialReviewWeight, rereviewWeight);
         repository.save(project);
         eventPublisher.publish(new ReviewProjectDraftUpdatedEvent(this, actor.getUserId(), actor.getUserName(), projectId,

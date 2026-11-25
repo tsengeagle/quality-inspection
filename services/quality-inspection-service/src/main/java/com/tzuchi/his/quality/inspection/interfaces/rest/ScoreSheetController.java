@@ -2,10 +2,8 @@ package com.tzuchi.his.quality.inspection.interfaces.rest;
 
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.scoresheet.*;
-import com.tzuchi.his.quality.inspection.domain.scoresheet.RequiredRule;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreItem;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetSection;
-import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreType;
 import com.tzuchi.his.quality.inspection.application.scoresheet.input.ItemInput;
 import com.tzuchi.his.quality.inspection.application.scoresheet.input.ItemToSectionInput;
 import com.tzuchi.his.quality.inspection.application.scoresheet.input.SectionInput;
@@ -15,8 +13,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -84,10 +80,10 @@ public class ScoreSheetController {
                     in.setItemId(i.getItemId());
                     in.setCode(i.getCode());
                     in.setTitle(i.getTitle());
-                    in.setScoreType(parseEnum(ScoreType.class, i.getScoreType(), "scoreType"));
+                    in.setScoreType(i.getScoreType());
                     in.setMaxScore(i.getMaxScore());
                     in.setWeight(i.getWeight());
-                    in.setRequiredRule(parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"));
+                    in.setRequiredRule(i.getRequiredRule());
                     in.setConditionExpression(i.getConditionExpression());
                     return in;
                 }),
@@ -161,10 +157,10 @@ public class ScoreSheetController {
         in.setItemId(i.getItemId());
         in.setCode(i.getCode());
         in.setTitle(i.getTitle());
-        in.setScoreType(parseEnum(ScoreType.class, i.getScoreType(), "scoreType"));
+        in.setScoreType(i.getScoreType());
         in.setMaxScore(i.getMaxScore());
         in.setWeight(i.getWeight());
-        in.setRequiredRule(parseEnum(RequiredRule.class, i.getRequiredRule(), "requiredRule"));
+        in.setRequiredRule(i.getRequiredRule());
         in.setConditionExpression(i.getConditionExpression());
         return in;
     }
@@ -201,22 +197,5 @@ public class ScoreSheetController {
         return new ScoreSheetItemResponse(item.getItemId(), item.getCode(), item.getTitle(),
                 item.getScoreType().name(), item.getMaxScore(), item.getWeight(),
                 item.getRequiredRule().name(), item.getConditionExpression());
-    }
-
-    /** 未提供（null）時回傳 null，交給 domain 依檢查順序回 VALIDATION_ERROR（SS-UPD-04）；不認得的值仍是 BAD_REQUEST。 */
-    private <E extends Enum<E>> E parseEnum(Class<E> enumClass, String value, String fieldName) {
-        if (value == null) {
-            return null;
-        }
-        try {
-            return Enum.valueOf(enumClass, value);
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new BadRequestException(
-                    String.format("Invalid %s: '%s'. Allowed values: %s",
-                            fieldName, value,
-                            Arrays.stream(enumClass.getEnumConstants())
-                                    .map(Enum::name)
-                                    .collect(Collectors.joining(", "))));
-        }
     }
 }

@@ -40,7 +40,7 @@ class UpdateReviewProjectDraftUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
         useCase.execute(actor, "p1", "New Name", "New Desc",
-                EnumSet.of(MedicalRecordType.INPATIENT), null, null, null);
+                Set.of("INPATIENT"), null, null, null);
 
         ReviewProject updated = repository.store.get("p1");
         assertEquals("New Name", updated.getName());
@@ -56,7 +56,7 @@ class UpdateReviewProjectDraftUseCaseTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
         useCase.execute(actor, "p1", "New", null,
-                EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null);
+                Set.of("OUTPATIENT"), null, null, null);
 
         assertEquals(1, eventPublisher.events.size());
         assertInstanceOf(ReviewProjectDraftUpdatedEvent.class, eventPublisher.events.get(0));
@@ -69,7 +69,7 @@ class UpdateReviewProjectDraftUseCaseTest {
 
         assertThrows(RoleDeniedException.class,
                 () -> useCase.execute(actor, "p1", "X", null,
-                        EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null));
+                        Set.of("OUTPATIENT"), null, null, null));
     }
 
     @Test
@@ -82,7 +82,7 @@ class UpdateReviewProjectDraftUseCaseTest {
 
         assertThrows(AccessDeniedException.class,
                 () -> useCase.execute(actor, "p1", "X", null,
-                        EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null));
+                        Set.of("OUTPATIENT"), null, null, null));
     }
 
     @Test
@@ -98,7 +98,7 @@ class UpdateReviewProjectDraftUseCaseTest {
 
         assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(actor, "p1", "X", null,
-                        EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null));
+                        Set.of("OUTPATIENT"), null, null, null));
     }
 
     @Test
@@ -108,7 +108,7 @@ class UpdateReviewProjectDraftUseCaseTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> useCase.execute(actor, "no-such", "X", null,
-                        EnumSet.of(MedicalRecordType.OUTPATIENT), null, null, null));
+                        Set.of("OUTPATIENT"), null, null, null));
     }
 
 }
