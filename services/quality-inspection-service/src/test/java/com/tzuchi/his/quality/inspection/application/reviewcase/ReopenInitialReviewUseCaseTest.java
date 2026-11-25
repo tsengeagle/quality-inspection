@@ -48,8 +48,7 @@ class ReopenInitialReviewUseCaseTest {
                 CaseStatus.RETURNED,
                 new ReviewerAssignment("reviewer-1", Instant.now()),
                 DUE,
-                null, "needs correction", null, null,
-                false, null, null, null, null, null,
+                null, "needs correction", null, null, null, null, null,
                 null, null, null, null);
         repository.save(rc);
         return rc;

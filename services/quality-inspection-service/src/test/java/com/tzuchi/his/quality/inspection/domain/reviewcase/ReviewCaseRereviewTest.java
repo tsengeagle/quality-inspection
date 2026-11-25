@@ -44,7 +44,6 @@ class ReviewCaseRereviewTest {
         ReviewCase rc = submitted("90");
         rc.fixInitialReview("sub-1", "reviewer-1", FIXED_AT, new BigDecimal("90"), new BigDecimal("80"));
         assertEquals(CaseStatus.PENDING_REREVIEW, rc.getStatus());
-        assertTrue(rc.isRereviewRequired());
         // 進複審時還沒有最終分數：保留初審分數，finalScore 待複審提交時加權計算（與舊的自動進複審路徑相同）。
         assertEquals(new BigDecimal("90"), rc.getInitialReviewScore());
         assertNull(rc.getFinalScore());
@@ -395,8 +394,7 @@ class ReviewCaseRereviewTest {
         ReviewCase cancelledCase = ReviewCase.reconstitute(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CANCELLED, null, null,
-                "test", null, Instant.now(), null,
-                false, null, null, null, null, null,
+                "test", null, Instant.now(), null, null, null, null,
                 null, null, null, null);
         assertThrows(DomainStateConflictException.class,
                 () -> cancelledCase.recordRereviewRevision(null, "sub-new",

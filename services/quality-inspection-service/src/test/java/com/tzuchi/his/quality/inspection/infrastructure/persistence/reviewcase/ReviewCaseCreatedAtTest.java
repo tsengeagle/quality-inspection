@@ -64,8 +64,8 @@ class ReviewCaseCreatedAtTest {
 
     @Test
     void rowsWrittenWithoutTheColumnStayNull() {
-        jdbc.update("insert into review_case (case_id, batch_id, project_id, status, rereview_required)"
-                + " values ('legacy', 'b', 'p', 'CLOSED', 0)");
+        jdbc.update("insert into review_case (case_id, batch_id, project_id, status)"
+                + " values ('legacy', 'b', 'p', 'CLOSED')");
         assertThat(jdbc.queryForObject("select created_at from review_case where case_id = 'legacy'", java.sql.Timestamp.class))
                 .isNull();
     }

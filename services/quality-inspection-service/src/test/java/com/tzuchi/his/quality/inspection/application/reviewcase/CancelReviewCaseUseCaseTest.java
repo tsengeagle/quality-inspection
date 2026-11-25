@@ -93,8 +93,7 @@ class CancelReviewCaseUseCaseTest {
         ReviewCase rc = ReviewCase.reconstitute(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CLOSED, null, null,
-                null, null, Instant.now(), Instant.now(),
-                false, null, null, null, null, null,
+                null, null, Instant.now(), Instant.now(), null, null, null,
                 null, null, null, null);
         repository.save(rc);
 

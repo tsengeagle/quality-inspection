@@ -26,7 +26,6 @@ public class RereviewBootstrapView {
     private final BigDecimal initialTotalScore;
     private final Instant initialSubmittedAt;
     private final BigDecimal finalScore;
-    private final String finalConclusion;
 
     public RereviewBootstrapView(String pageMode, boolean hasDraft, boolean hasSubmittedBase,
                                  boolean closedRevisionException, boolean readonly,
@@ -41,8 +40,7 @@ public class RereviewBootstrapView {
                                  String initialReviewerName,
                                  BigDecimal initialTotalScore,
                                  Instant initialSubmittedAt,
-                                 BigDecimal finalScore,
-                                 String finalConclusion) {
+                                 BigDecimal finalScore) {
         this.pageMode = pageMode;
         this.hasDraft = hasDraft;
         this.hasSubmittedBase = hasSubmittedBase;
@@ -62,7 +60,6 @@ public class RereviewBootstrapView {
         this.initialTotalScore = initialTotalScore;
         this.initialSubmittedAt = initialSubmittedAt;
         this.finalScore = finalScore;
-        this.finalConclusion = finalConclusion;
     }
 
     public String getPageMode() { return pageMode; }
@@ -84,5 +81,4 @@ public class RereviewBootstrapView {
     public BigDecimal getInitialTotalScore() { return initialTotalScore; }
     public Instant getInitialSubmittedAt() { return initialSubmittedAt; }
     public BigDecimal getFinalScore() { return finalScore; }
-    public String getFinalConclusion() { return finalConclusion; }
 }

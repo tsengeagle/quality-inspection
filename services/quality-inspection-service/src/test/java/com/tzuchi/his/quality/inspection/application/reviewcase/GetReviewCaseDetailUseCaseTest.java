@@ -38,8 +38,7 @@ class GetReviewCaseDetailUseCaseTest {
     void managerWithIncompleteHistoryIsDenied_D055() {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
                 "c1", "p1", "b1", "H001", "CLOSED", "r1", null,
-                "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85),
-                "PASS", null, null, null, null, null, Collections.emptyList(), null,
+                "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85), null, null, null, null, null, Collections.emptyList(), null,
                 null, null, false);
         queryPort.setDetail("c1", detail);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
@@ -54,8 +53,7 @@ class GetReviewCaseDetailUseCaseTest {
     void managerWithCompleteHistoryIsGrantedAndRecorded_D055() {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
                 "c1", "p1", "b1", "H001", "CLOSED", "r1", null,
-                "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85),
-                "PASS", null, null, null, null, null, Collections.emptyList(), null,
+                "OUTPATIENT", "SK-1", BigDecimal.valueOf(85), BigDecimal.valueOf(85), null, null, null, null, null, Collections.emptyList(), null,
                 null, null, false);
         queryPort.setDetail("c1", detail);
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
@@ -84,7 +82,7 @@ class GetReviewCaseDetailUseCaseTest {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
             "c1", "p1", "b1", "H001", "INITIAL_REVIEW_IN_PROGRESS",
             "reviewer-1", null, "OUTPATIENT", "SK-1",
-            null, null, null,
+            null, null,
             null, null, null, null, null,
             "sub-init-draft", "ss-init-v1",
             List.of(new SubmissionSummaryItem(
@@ -106,7 +104,7 @@ class GetReviewCaseDetailUseCaseTest {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
             "c1", "p1", "b1", "H001", "INITIAL_REVIEW_IN_PROGRESS",
             "reviewer-1", null, "OUTPATIENT", "SK-1",
-            null, null, null,
+            null, null,
             null, null, null, null, null,
             "sub-init-draft", "ss-init-v1",
             List.of(new SubmissionSummaryItem(
@@ -127,7 +125,7 @@ class GetReviewCaseDetailUseCaseTest {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
             "c1", "p1", "b1", "H001", "CLOSED",
             "reviewer-1", "rereviewer-1", "OUTPATIENT", "SK-1",
-            BigDecimal.valueOf(82), BigDecimal.valueOf(85), "FINAL_PASS",
+            BigDecimal.valueOf(82), BigDecimal.valueOf(85),
             null, null, null, null, null,
             "sub-init-1", "ss-rereview-v1",
             List.of(
@@ -165,7 +163,7 @@ class GetReviewCaseDetailUseCaseTest {
         ReviewCaseDetailView detail = new ReviewCaseDetailView(
             "c1", "p1", "b1", "H001", "REREVIEW_IN_PROGRESS",
             "reviewer-1", "rereviewer-1", "OUTPATIENT", "SK-1",
-            BigDecimal.valueOf(82), BigDecimal.valueOf(85), null,
+            BigDecimal.valueOf(82), BigDecimal.valueOf(85),
             null, null, null, null, null,
             "sub-init-1", "ss-rereview-v1",
             List.of(

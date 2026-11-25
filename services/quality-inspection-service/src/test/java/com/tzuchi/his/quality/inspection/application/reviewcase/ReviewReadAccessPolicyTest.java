@@ -30,7 +30,7 @@ class ReviewReadAccessPolicyTest {
 
     private static ReviewCaseDetailView caseView(String rereviewer) {
         return new ReviewCaseDetailView("c", "p", "b", "H001", "CLOSED", "initial", rereviewer,
-                null, null, null, null, null, null, null, null, null, null, List.of(), null, null, null, false);
+                null, null, null, null, null, null, null, null, null, List.of(), null, null, null, false);
     }
 
     private static ActorContext actor(String id, DomainRole role) {
@@ -117,6 +117,18 @@ class ReviewReadAccessPolicyTest {
                 EnumSet.of(DomainRole.HOSPITAL_MANAGER, DomainRole.AUDITOR), Optional.of("H001"));
 
         assertThrows(AccessDeniedException.class, () -> policy.requireAccess(multi, caseView(null)));
+        assertTrue(records.readers.isEmpty());
+    }
+
+    // D-084 第 1 點：院區先於多角色（D-024 的順序）
+    @Test
+    void multiRoleOfAnotherHospital_getsHospitalScopeMismatch_D084() {
+        ActorContext multi = new ActorContext("A", "A",
+                EnumSet.of(DomainRole.REVIEWER, DomainRole.REREVIEWER), Optional.of("H002"));
+
+        AccessDeniedException e = assertThrows(AccessDeniedException.class,
+                () -> policy.requireAccess(multi, caseView(null)));
+        assertEquals("HOSPITAL_SCOPE_MISMATCH", e.getErrorCode());
         assertTrue(records.readers.isEmpty());
     }
 }

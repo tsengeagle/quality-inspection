@@ -166,7 +166,6 @@ public class SubmitInitialReviewUseCase {
                 submission.getStatus().name(),
                 caseId,
                 reviewCase.getStatus().name(),
-                result.getTotalScore(),
-                reviewCase.isRereviewRequired());
+                result.getTotalScore());
     }
 }

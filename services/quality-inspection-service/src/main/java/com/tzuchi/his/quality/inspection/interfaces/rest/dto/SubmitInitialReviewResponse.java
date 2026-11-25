@@ -9,17 +9,15 @@ public class SubmitInitialReviewResponse {
     private final String caseId;
     private final String caseStatus;
     private final BigDecimal totalScore;
-    private final boolean rereviewRequired;
 
     public SubmitInitialReviewResponse(String submissionId, String status,
                                         String caseId, String caseStatus,
-                                        BigDecimal totalScore, boolean rereviewRequired) {
+                                        BigDecimal totalScore) {
         this.submissionId = submissionId;
         this.status = status;
         this.caseId = caseId;
         this.caseStatus = caseStatus;
         this.totalScore = totalScore;
-        this.rereviewRequired = rereviewRequired;
     }
 
     public String getSubmissionId() { return submissionId; }
@@ -27,5 +25,4 @@ public class SubmitInitialReviewResponse {
     public String getCaseId() { return caseId; }
     public String getCaseStatus() { return caseStatus; }
     public BigDecimal getTotalScore() { return totalScore; }
-    public boolean isRereviewRequired() { return rereviewRequired; }
 }

@@ -91,20 +91,12 @@ public class ReviewCaseEntity {
 
     // --- B3b/B3c reserved ---
 
-    @Column(name = "rereview_required")
-    private boolean rereviewRequired;
-
     @Column(name = "final_score", precision = 10, scale = 2)
     private BigDecimal finalScore;
-
-    @Column(name = "final_conclusion")
-    private String finalConclusion;
 
     @Column(name = "latest_initial_submission_id")
     private String latestInitialSubmissionId;
 
-    @Column(name = "rule_snapshot_ref")
-    private String ruleSnapshotRef;
 
     @Column(name = "score_sheet_version_ref")
     private String scoreSheetVersionRef;
@@ -169,20 +161,14 @@ public class ReviewCaseEntity {
     public Instant getClosedAt() { return closedAt; }
     public void setClosedAt(Instant closedAt) { this.closedAt = closedAt; }
 
-    public boolean isRereviewRequired() { return rereviewRequired; }
-    public void setRereviewRequired(boolean rereviewRequired) { this.rereviewRequired = rereviewRequired; }
 
     public BigDecimal getFinalScore() { return finalScore; }
     public void setFinalScore(BigDecimal finalScore) { this.finalScore = finalScore; }
 
-    public String getFinalConclusion() { return finalConclusion; }
-    public void setFinalConclusion(String finalConclusion) { this.finalConclusion = finalConclusion; }
 
     public String getLatestInitialSubmissionId() { return latestInitialSubmissionId; }
     public void setLatestInitialSubmissionId(String latestInitialSubmissionId) { this.latestInitialSubmissionId = latestInitialSubmissionId; }
 
-    public String getRuleSnapshotRef() { return ruleSnapshotRef; }
-    public void setRuleSnapshotRef(String ruleSnapshotRef) { this.ruleSnapshotRef = ruleSnapshotRef; }
 
     public String getScoreSheetVersionRef() { return scoreSheetVersionRef; }
     public void setScoreSheetVersionRef(String scoreSheetVersionRef) { this.scoreSheetVersionRef = scoreSheetVersionRef; }

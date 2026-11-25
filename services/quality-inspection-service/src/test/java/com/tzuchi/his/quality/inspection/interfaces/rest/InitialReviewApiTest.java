@@ -303,7 +303,9 @@ class InitialReviewApiTest {
                 .andExpect(jsonPath("$.data.status").value("SUBMITTED"))
                 .andExpect(jsonPath("$.data.caseId").value(CASE_ID))
                 .andExpect(jsonPath("$.data.caseStatus").isString())
-                .andExpect(jsonPath("$.data.totalScore").isNumber());
+                .andExpect(jsonPath("$.data.totalScore").isNumber())
+                // D-084 第 9 點：rereviewRequired 已移除
+                .andExpect(jsonPath("$.data.rereviewRequired").doesNotExist());
     }
 
     @Test

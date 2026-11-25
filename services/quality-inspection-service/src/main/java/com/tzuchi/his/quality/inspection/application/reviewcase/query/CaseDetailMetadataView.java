@@ -14,7 +14,7 @@ public class CaseDetailMetadataView extends ReviewCaseDetailView {
                                   String hospitalId, String reviewerId, String rereviewerId,
                                   java.time.Instant updatedAt) {
         super(caseId, null, null, hospitalId, caseStatus, reviewerId, rereviewerId,
-                null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null,
                 List.of(), null, "METADATA_ONLY", "SYSTEM_ADMIN", false);
         Map<String, Object> fields = new LinkedHashMap<>();
         fields.put("caseId", caseId);

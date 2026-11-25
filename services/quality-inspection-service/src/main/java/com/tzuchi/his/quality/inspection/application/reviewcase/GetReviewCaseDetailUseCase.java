@@ -160,8 +160,7 @@ public class GetReviewCaseDetailUseCase {
                 null,
                 latestInitialSubmitted != null ? latestInitialSubmitted.getTotalScore() : raw.getInitialReviewScore(),
                 latestInitialSubmitted != null ? latestInitialSubmitted.getSubmittedAt() : null,
-                raw.getFinalScore(),
-                raw.getFinalConclusion());
+                raw.getFinalScore());
     }
 
     private List<SubmissionSummaryItem> filterByStage(ReviewCaseDetailView raw, String stage) {

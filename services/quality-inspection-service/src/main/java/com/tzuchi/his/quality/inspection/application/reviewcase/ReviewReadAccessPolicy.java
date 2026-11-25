@@ -51,10 +51,11 @@ public class ReviewReadAccessPolicy {
 
     private void requireAccess(ActorContext actor, String caseId, String hospital, String reviewer, String rereviewer,
                                boolean initialSubmitter, boolean rereviewSubmitter) {
+        // D-084 第 1 點：照 D-024 的順序，院區先於多角色
+        actor.requireReadScope(hospital);
         if (actor.getRoles().size() != 1) {
             throw new AccessDeniedException("Multi-role read authorization is pending confirmation");
         }
-        actor.requireReadScope(hospital);
         if (actor.hasRole(DomainRole.SYSTEM_ADMIN)) return;
         boolean allowed = actor.hasRole(DomainRole.HOSPITAL_MANAGER) || actor.hasRole(DomainRole.AUDITOR);
         allowed |= actor.hasRole(DomainRole.REVIEWER)

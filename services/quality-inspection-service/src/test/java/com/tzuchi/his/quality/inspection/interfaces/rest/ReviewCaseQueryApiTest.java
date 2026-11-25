@@ -174,7 +174,6 @@ class ReviewCaseQueryApiTest {
             e.setScoreSheetVersionRef("ss-rereview-v1");
             e.setInitialReviewScore(BigDecimal.valueOf(82));
             e.setFinalScore(BigDecimal.valueOf(85));
-            e.setFinalConclusion("FINAL_PASS");
             caseRepo.save(e);
             seedSubmission("sub-init-1", "c1", ReviewStage.INITIAL, "reviewer-1",
                 SubmissionStatus.SUBMITTED, 1, BigDecimal.valueOf(82),
@@ -193,7 +192,10 @@ class ReviewCaseQueryApiTest {
                 .andExpect(jsonPath("$.data.rereviewContext.initialSubmissionId").value("sub-init-1"))
                 .andExpect(jsonPath("$.data.rereviewContext.initialReviewerId").value("reviewer-1"))
                 .andExpect(jsonPath("$.data.rereviewContext.finalScore").isEmpty())
-                .andExpect(jsonPath("$.data.rereviewContext.finalConclusion").isEmpty())
+                // D-084 第 9 點：finalConclusion 已移除
+                .andExpect(jsonPath("$.data.rereviewContext.finalConclusion").doesNotExist())
+                .andExpect(jsonPath("$.data.finalConclusion").doesNotExist())
+                .andExpect(jsonPath("$.data.rereviewRequired").doesNotExist())
                 .andExpect(jsonPath("$.data.rereviewContext.allowedActions").isEmpty());
             }
 

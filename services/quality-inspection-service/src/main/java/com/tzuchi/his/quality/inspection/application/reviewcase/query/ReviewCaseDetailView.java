@@ -17,7 +17,6 @@ public class ReviewCaseDetailView {
     private final String sourceCaseKey;
     private final BigDecimal initialReviewScore;
     private final BigDecimal finalScore;
-    private final String finalConclusion;
     private final Instant createdAt;
     private final Instant assignedAt;
     private final Instant dueAt;
@@ -40,7 +39,7 @@ public class ReviewCaseDetailView {
                                  String hospitalId, String status, String reviewerId,
                                  String rereviewerId, String medicalRecordType,
                                  String sourceCaseKey, BigDecimal initialReviewScore,
-                                 BigDecimal finalScore, String finalConclusion,
+                                 BigDecimal finalScore,
                                  Instant createdAt, Instant assignedAt,
                                  Instant dueAt, Instant closedAt,
                                  Instant cancelledAt,
@@ -49,7 +48,7 @@ public class ReviewCaseDetailView {
                                  String projectionType, String actorRole, boolean isOwner) {
         this(caseId, projectId, batchId, hospitalId, status, reviewerId, rereviewerId,
                 medicalRecordType, sourceCaseKey, initialReviewScore, finalScore,
-                finalConclusion, createdAt, assignedAt, dueAt, closedAt, cancelledAt,
+                createdAt, assignedAt, dueAt, closedAt, cancelledAt,
                 null, null, submissions, latestRereviewSubmissionId,
                 projectionType, actorRole, isOwner, null, null);
     }
@@ -58,7 +57,7 @@ public class ReviewCaseDetailView {
                                  String hospitalId, String status, String reviewerId,
                                  String rereviewerId, String medicalRecordType,
                                  String sourceCaseKey, BigDecimal initialReviewScore,
-                                 BigDecimal finalScore, String finalConclusion,
+                                 BigDecimal finalScore,
                                  Instant createdAt, Instant assignedAt,
                                  Instant dueAt, Instant closedAt,
                                  Instant cancelledAt,
@@ -80,7 +79,6 @@ public class ReviewCaseDetailView {
         this.sourceCaseKey = sourceCaseKey;
         this.initialReviewScore = initialReviewScore;
         this.finalScore = finalScore;
-        this.finalConclusion = finalConclusion;
         this.createdAt = createdAt;
         this.assignedAt = assignedAt;
         this.dueAt = dueAt;
@@ -129,7 +127,6 @@ public class ReviewCaseDetailView {
     public String getSourceCaseKey() { return sourceCaseKey; }
     public BigDecimal getInitialReviewScore() { return initialReviewScore; }
     public BigDecimal getFinalScore() { return finalScore; }
-    public String getFinalConclusion() { return finalConclusion; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getAssignedAt() { return assignedAt; }
     public Instant getDueAt() { return dueAt; }
@@ -155,7 +152,7 @@ public class ReviewCaseDetailView {
                 .collect(java.util.stream.Collectors.toList());
         return new ReviewCaseDetailView(caseId, projectId, batchId, hospitalId, status, reviewerId,
                 rereviewerId, metadataOnly ? null : medicalRecordType, metadataOnly ? null : sourceCaseKey,
-                null, null, null, createdAt, assignedAt, dueAt, closedAt, cancelledAt,
+                null, null, createdAt, assignedAt, dueAt, closedAt, cancelledAt,
                 latestInitialSubmissionId, scoreSheetVersionRef, visibleSubmissions, latestRereviewSubmissionId,
                 projectionType, actorRole, isOwner, null, null);
     }
@@ -167,7 +164,7 @@ public class ReviewCaseDetailView {
                 this.caseId, this.projectId, this.batchId, this.hospitalId,
                 this.status, this.reviewerId, this.rereviewerId,
                 this.medicalRecordType, this.sourceCaseKey,
-                this.initialReviewScore, this.finalScore, this.finalConclusion,
+                this.initialReviewScore, this.finalScore,
                 this.createdAt, this.assignedAt, this.dueAt,
                 this.closedAt, this.cancelledAt,
                 this.latestInitialSubmissionId, this.scoreSheetVersionRef,

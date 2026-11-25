@@ -118,4 +118,22 @@ class GetCaseAssignmentContextUseCaseTest {
             return Optional.ofNullable(entries.get(userId));
         }
     }
+
+    // D-084 第 5 點：退回的案件要先重開（D-080），才能改派（D-082）
+    @Test
+    void returnedCase_isReadOnlyBlocked_D084() {
+        queryPort.put(new AssignmentCaseSnapshotView(
+                "c1", "p1", "Project 1", "b1", "H001", "SK-001", "OUTPATIENT",
+                "RETURNED", "reviewer-1",
+                Instant.parse("2026-04-01T10:00:00Z"),
+                Instant.parse("2026-04-10T23:59:00Z"),
+                null, null, null));
+
+        AssignmentBootstrapView result = useCase.execute(managerActor(), "c1");
+
+        assertEquals("READONLY_BLOCKED", result.getPageMode());
+        assertTrue(result.isBlocked());
+        assertEquals("CASE_NOT_ASSIGNABLE_IN_CURRENT_STATUS", result.getBlockedReason());
+        assertEquals(List.of(), result.getAllowedActions());
+    }
 }

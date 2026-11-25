@@ -126,7 +126,6 @@ class SubmitInitialReviewUseCaseTest {
         assertEquals("SUBMITTED", result.getStatus());
         assertEquals(CASE_ID, result.getCaseId());
         assertEquals("INITIAL_REVIEW_COMPLETED", result.getCaseStatus());
-        assertFalse(result.isRereviewRequired());
 
         ReviewSubmission saved = submissionRepo.store.get(SUBMISSION_ID);
         assertEquals(SubmissionStatus.SUBMITTED, saved.getStatus());
@@ -248,7 +247,6 @@ class SubmitInitialReviewUseCaseTest {
         ReviewCase savedCase = caseRepo.store.get(CASE_ID);
         assertEquals(CaseStatus.INITIAL_REVIEW_COMPLETED, savedCase.getStatus());
         assertFalse(savedCase.isInitialReviewFixed());
-        assertFalse(result.isRereviewRequired());
         assertTrue(eventPublisher.events.stream().noneMatch(
                 e -> e instanceof com.tzuchi.his.quality.inspection.domain.reviewcase.event.ReviewCaseEscalatedToRereviewEvent));
     }
