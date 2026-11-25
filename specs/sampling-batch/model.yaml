@@ -1,6 +1,6 @@
 # 格式說明見 ../README.md（規格格式 v2.0，第十節）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-# 範圍：從抽選到初審提交的直向切片（D-066）。只寫到「建立得出案件」。
-# 來源：docs/harness/samples/reviewcase-v2-trial/round-2/sampling-batch/（第二輪試寫）。
+# 範圍：抽選、重跑走得到的檢查、預覽、執行頁、批次的查詢與匯出（D-066、D-086）。
+# 來源：docs/harness/samples/reviewcase-v2-trial/round-2/sampling-batch/（第二輪試寫）；docs/harness/37-sampling-batch-draft.md。
 spec_version: 2
 kind: aggregate
 name: SamplingBatch
@@ -9,8 +9,12 @@ term: 抽選批次
 identity: { name: batchId, type: id, assigned_by: system }
 
 sources:
+  - { decision: D-007 }
+  - { decision: D-011 }
+  - { decision: D-013 }
   - { decision: D-024 }
   - { decision: D-066 }
+  - { decision: D-086 }
   - { doc: docs/02-ddd/state-machine.md, section: "§5" }
   - { doc: docs/02-ddd/domain-events.md, section: "§5" }
   - { doc: docs/02-ddd/permission-matrix.md, section: "§6" }
@@ -20,6 +24,10 @@ enums:
     values: [STARTED, COLLECTING_CANDIDATES, SAMPLING, COMPLETED, FAILED]
     status: decided
     source: [{ doc: docs/02-ddd/state-machine.md, section: "§5.1" }]
+  - name: ExecutionMode
+    values: [MANUAL, SCHEDULED, RETRY]
+    status: decided
+    source: [{ decision: D-086 }]
 
 # 抽選母體的來源是外部系統。v2.0 只有宣告與 returns（D-065 第 11 點）。
 ports:
@@ -28,15 +36,45 @@ ports:
     operations:
       - { name: queryCandidates, returns: "list<Candidate>" }
 
+terminal_states: [COMPLETED, FAILED]
+
+invariants:
+  - id: SB-INV-01
+    text: populationCount、eligibleCount、excludedCount 不得為負；selectedCount 不大於 eligibleCount
+    status: decided
+    source: [{ decision: D-086 }]
+  - id: SB-INV-02
+    text: COMPLETED、FAILED 的批次內容不再改變
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§5.3" }, { decision: D-086 }]
+  - id: SB-INV-03
+    text: 同一個批次內 sourceCaseKey 不重複；不同批次之間不排重
+    status: decided
+    source: [{ decision: D-007 }, { decision: D-086 }]
+  - id: SB-INV-04
+    text: 批次記下執行當時專案的版本號與評分表版本，完成後不變
+    status: decided
+    source: [{ decision: D-011 }, { decision: D-086 }]
+  - id: SB-INV-05
+    text: 只有 executionMode 是 RETRY 的批次有 retryOfBatchId
+    status: decided
+    source: [{ decision: D-013 }, { decision: D-086 }]
+
 # state-machine §5.2 的觸發（beginCollect、runSampling…）是 ExecuteSampling 內部的步驟，不是 use case。
 # 從外面只看得到「執行完是 COMPLETED」，所以這幾列留在這裡。
 deferred_transitions:
   - { from: STARTED,               to: COLLECTING_CANDIDATES, by: beginCollect,      note: ExecuteSampling 內部的步驟 }
   - { from: COLLECTING_CANDIDATES, to: SAMPLING,              by: runSampling,       note: ExecuteSampling 內部的步驟 }
   - { from: SAMPLING,              to: COMPLETED,             by: samplingSucceeded, note: ExecuteSampling 內部的步驟 }
-  - { from: SAMPLING,              to: FAILED,                by: samplingFailed,    note: 失敗與重跑不在本次範圍 }
+  - { from: SAMPLING,              to: FAILED,                by: samplingFailed,    note: 沒有任何行為會產生 FAILED 的批次；等母體來源的介接（D-086 第 1 點） }
 
 deferred_behaviors:
-  - 抽選失敗與重跑、排除條件、同批次重複的案件、規則快照
-  - 批次的查詢與匯出
-  - 抽選母體回傳 0 筆時批次的結果
+  - 抽選失敗：抽選中途出錯時不留下批次；FAILED、SamplingBatchFailed、failureReason 沒有任何行為寫入，等母體來源的介接定案（D-086 第 1 點）
+  - 重跑的成功路徑（FAILED 的批次重跑出新的批次、retryOfBatchId、沿用原批次的快照，D-013）：FAILED 做不出來，所以走不到；快照目前不影響母體的查詢（D-086 第 2 點）
+  - 抽樣比例、排除條件、分層：母體來源回傳的每一筆都選中（SB-EXE-S2、SB-EXE-S8），等母體來源的介接與專案版本管理（D-086 第 6 點）
+  - executionMode 的 SCHEDULED（排程抽選）：沒有任何行為使用（D-086 第 7 點）
+  - 規則快照的 samplingPolicy（固定 MANUAL）、snapshotSummary（固定 null）與完整的快照內容：等抽樣規則與快照的保存方式裁決（D-011、D-086 第 8 點）
+  - 快照沒有被任何行為使用：案件的評分表版本、品質線與權重取自專案目前的版本，等專案版本管理立法（D-068 第 4 點、D-086 第 8 點）
+  - 執行頁的 previewReady、previewStats、executing、executeFailed（目前是固定值）與顯示文字 ruleSummary、postExecuteSummary（D-086 第 10 點）
+  - 批次列表依開始時間篩選（D-086 第 11 點）
+  - 匯出的檔案格式（D-086 第 14 點）

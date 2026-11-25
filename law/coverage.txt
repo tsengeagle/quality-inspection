@@ -180,3 +180,27 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseSummary.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/RevisionHistoryEntry.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/RevisionHistoryView.java  legislated  specs/review-case/
+# ---- 已立法：SamplingBatch 其餘部分（D-086 第 16 點）。寫在目錄那幾列之後，以最後一行為準 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/SamplingBatch.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/BatchStatus.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/ExecutionMode.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/RuleSnapshot.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/SelectedCaseRef.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/SamplingBatchRepository.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/event/SamplingBatchFailedEvent.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/CandidateSourcePort.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/RetrySamplingBatchUseCase.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/PreviewSamplingPopulationUseCase.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SamplingPreviewResult.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/GetSamplingExecuteContextUseCase.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SamplingExecuteContextView.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/ListSamplingBatchesUseCase.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/GetSamplingBatchDetailUseCase.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/ExportSamplingBatchResultUseCase.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SamplingBatchQueryPort.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SamplingBatchQueryCriteria.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SamplingBatchSummary.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SamplingBatchDetailView.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/RuleSnapshotSummary.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SelectedCaseRefView.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/SamplingBatchExportResult.java  legislated  specs/sampling-batch/

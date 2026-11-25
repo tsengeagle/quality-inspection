@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-25-d086-sampling-batch",
+  "decision": "D-086",
+  "reason": "D-086：切片 A（SamplingBatch 其餘部分）；docs/harness/37 的 S-1～S-16，S-5 裁決為加大替身的母體來源、其餘照建議。規格：sampling-batch/model.yaml 新增 ExecutionMode、terminal_states、SB-INV-01～05，deferred_behaviors 改寫（失敗、重跑的成功路徑、抽樣與排除、SCHEDULED、快照、執行頁的固定值與顯示文字、時間篩選、匯出格式）；usecases.yaml 新增錯誤代碼 SAMPLING_BATCH_NOT_FOUND、BATCH_NOT_RETRYABLE、DUPLICATE_SELECTED_CASE_IN_BATCH，前置檢查 SB-G-04、SB-G-05，ExecuteSampling 加上 SB-EXE-02、SB-EXE-S6～S9，新增 RetrySamplingBatch（SB-RTY-01）、PreviewSamplingPopulation（SB-PRV-01、02）、GetSamplingExecuteContext（SB-CTX-01～04）、ListSamplingBatches（SB-LST-01～04）、GetSamplingBatchDetail（SB-DET-01～03）、ExportSamplingBatchResult（SB-EXP-01）；examples.yaml 新增 38 個範例與兩個 fixture，not_covered 更新。一開始是紅的 15 個範例加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。law/coverage.txt 登記 domain/sampling/ 七個檔案與 application/sampling/ 十六個檔案（specs/sampling-batch/）。文件：api-spec §4.2、§9.2、§9.4～§9.6，草稿 37，題目清單（D-085 移到已完成、本切片進行中、新增母體來源的介接），README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/sampling-batch/usecases.yaml",
+    "specs/sampling-batch/model.yaml",
+    "specs/sampling-batch/examples.yaml",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

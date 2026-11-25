@@ -133,6 +133,7 @@ Accept: application/json
 | `SECTION_NOT_FOUND`                |         422 | 更新命令指向不存在的章節（D-050）     |
 | `ITEM_NOT_FOUND`                   |         422 | 更新命令指向不存在的題目（D-050）     |
 | `BATCH_NOT_RETRYABLE`              |         422 | 批次不可重跑                    |
+| `SAMPLING_BATCH_NOT_FOUND`         |         404 | 批次不存在（D-086）              |
 | `DUPLICATE_SELECTED_CASE_IN_BATCH` |         409 | 同批次重複抽中同一案件               |
 | `CASE_NOT_ASSIGNABLE`              |         422 | 案件目前不可指派（指派初審醫師；指派複審醫師時案件不是 `PENDING_REREVIEW`，D-069） |
 | `REREVIEWER_HAS_READ_INITIAL`      |         422 | 指派或改派的複審醫師曾讀過本案完整初審（D-055） |
@@ -783,6 +784,12 @@ Accept: application/json
 }
 ```
 
+#### 檢查（D-086 第 9 點）
+
+依序：角色 → `PROJECT_NOT_FOUND`（404）→ 院區 `HOSPITAL_SCOPE_MISMATCH`（403）→ `PROJECT_NOT_ACTIVE`（422）。不建立批次、不發事件。目前母體來源回傳的每一筆都算合格，`excludedCount` 是 0（D-086 第 6 點）。
+
+規格：`specs/sampling-batch/`。
+
 ---
 
 ## 9.3 執行抽選
@@ -855,6 +862,21 @@ Accept: application/json
 }
 ```
 
+#### 檢查（D-086 第 1～3 點）
+
+依序：角色 → 載入 → 院區範圍 → 領域規則（D-024）。
+
+| code | HTTP | 說明 |
+|------|------|------|
+| `ROLE_DENIED` | 403 | 操作者不是 `HOSPITAL_MANAGER` |
+| `SAMPLING_BATCH_NOT_FOUND` | 404 | batchId 不存在 |
+| `HOSPITAL_SCOPE_MISMATCH` | 403 | 操作者的院區與批次所屬專案的院區不同 |
+| `BATCH_NOT_RETRYABLE` | 422 | 批次不是 `FAILED` |
+
+目前沒有任何行為會產生 `FAILED` 的批次（抽選中途出錯時不留下批次），所以成功的重跑走不到；失敗的記錄與重跑的成功路徑等母體來源的介接定案（D-086 第 1、2 點）。
+
+規格：`specs/sampling-batch/`。
+
 ---
 
 ## 9.5 查詢批次清單
@@ -873,10 +895,15 @@ Accept: application/json
 * `projectId`
 * `hospitalId`
 * `status`
-* `startedFrom`
-* `startedTo`
+* `executionMode`
 * `page`
 * `size`
+
+`startedFrom`、`startedTo` 尚未實作（D-086 第 11 點）。
+
+不是 `SYSTEM_ADMIN` 只看得到本院的批次，`hospitalId` 不採用；`SYSTEM_ADMIN` 可用 `hospitalId` 縮小範圍。依開始時間由新到舊；`size` 預設 20、上限 100。
+
+規格：`specs/sampling-batch/`。
 
 ---
 
@@ -890,6 +917,10 @@ Accept: application/json
 * `HOSPITAL_MANAGER`
 * `AUDITOR`：授權範圍內
 * `REVIEWER` / `REREVIEWER` 不開放（D-051）
+
+`SYSTEM_ADMIN` 的回應沒有 `selectedCases`（抽中的每一筆病歷）；計數、執行方式、狀態、時間與規則快照照給（D-086 第 12 點）。批次不存在回 `SAMPLING_BATCH_NOT_FOUND`（404）。
+
+規格：`specs/sampling-batch/`。
 
 ---
 

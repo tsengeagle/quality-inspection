@@ -8,6 +8,7 @@ sources:
   - { decision: D-024 }
   - { decision: D-066 }
   - { decision: D-067 }
+  - { decision: D-086 }
   - { doc: docs/02-ddd/domain-events.md, section: "§5.1–§5.4" }
   - { doc: docs/03-contracts/api-spec.md, section: "§4.2、§9.3" }
 
@@ -16,6 +17,9 @@ error_codes:
   - { code: HOSPITAL_SCOPE_MISMATCH, category: denied,         status: decided, source: [{ decision: D-024 }] }
   - { code: PROJECT_NOT_FOUND,       category: not_found,      status: decided, source: [{ decision: D-066 }, { rule: RP-G-02 }] }
   - { code: PROJECT_NOT_ACTIVE,      category: rule_violation, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: SAMPLING_BATCH_NOT_FOUND,         category: not_found,      status: decided, source: [{ decision: D-086 }] }
+  - { code: BATCH_NOT_RETRYABLE,              category: rule_violation, status: decided, source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
+  - { code: DUPLICATE_SELECTED_CASE_IN_BATCH, category: conflict,       status: decided, source: [{ decision: D-007 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }] }
 
 guards:
   - id: SB-G-01
@@ -33,12 +37,57 @@ guards:
     outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
     status: decided
     source: [{ decision: D-024 }]
+  - id: SB-G-04
+    when: batchId 找不到對應的批次
+    outcome: { result: REJECTED, code: SAMPLING_BATCH_NOT_FOUND }
+    status: decided
+    source: [{ decision: D-086 }]
+  - id: SB-G-05
+    when: 操作者的院區與批次所屬專案的 hospitalId 不同
+    outcome: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+    status: decided
+    source: [{ decision: D-024 }, { decision: D-086 }]
 
 output_types:
   Candidate:
     - { name: sourceCaseKey,     type: text }
     - { name: hospitalId,        type: id }
     - { name: medicalRecordType, type: enum review-project.MedicalRecordType }
+  RuleSnapshot:
+    - { name: projectVersionId,     type: text }
+    - { name: projectVersionNumber, type: int }
+    - { name: scoreSheetVersionId,  type: id }
+    - { name: samplingPolicy,       type: text }
+  BatchSummary:
+    - { name: batchId,              type: id }
+    - { name: projectId,            type: id }
+    - { name: projectName,          type: text }
+    - { name: executionMode,        type: enum ExecutionMode }
+    - { name: status,               type: enum SamplingBatchStatus }
+    - { name: populationCount,      type: int }
+    - { name: eligibleCount,        type: int }
+    - { name: excludedCount,        type: int }
+    - { name: selectedCount,        type: int }
+    - { name: projectVersionId,     type: text }
+    - { name: projectVersionNumber, type: int }
+    - { name: retryOfBatchId,       type: id }
+    - { name: startedAt,            type: datetime }
+    - { name: finishedAt,           type: datetime }
+  BatchDetail:
+    - { name: batchId,         type: id }
+    - { name: projectId,       type: id }
+    - { name: executionMode,   type: enum ExecutionMode }
+    - { name: status,          type: enum SamplingBatchStatus }
+    - { name: populationCount, type: int }
+    - { name: eligibleCount,   type: int }
+    - { name: excludedCount,   type: int }
+    - { name: selectedCount,   type: int }
+    - { name: retryOfBatchId,  type: id }
+    - { name: failureReason,   type: text }
+    - { name: startedAt,       type: datetime }
+    - { name: finishedAt,      type: datetime }
+    - { name: ruleSnapshot,    type: RuleSnapshot }
+    - { name: selectedCases,   type: "list<Candidate>" }
 
 usecases:
   - name: ExecuteSampling
@@ -54,6 +103,12 @@ usecases:
         outcome: { result: REJECTED, code: PROJECT_NOT_ACTIVE }
         status: decided
         source: [{ doc: docs/03-contracts/api-spec.md, section: "§4.2" }, { doc: docs/02-ddd/permission-matrix.md, section: "§6" }]
+      - id: SB-EXE-02
+        when: 抽選母體回傳的清單裡，同一個 sourceCaseKey 出現兩次以上
+        text: 不留下批次，也不建立案件
+        outcome: { result: REJECTED, code: DUPLICATE_SELECTED_CASE_IN_BATCH }
+        status: decided
+        source: [{ decision: D-007 }, { decision: D-086 }]
     success:
       state:
         - { id: SB-EXE-S1, text: 批次的 status = COMPLETED, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§5.2" }] }
@@ -61,6 +116,10 @@ usecases:
         - { id: SB-EXE-S3, text: SamplingBatchStarted、SamplingBatchCompleted 帶有 batchId 與 projectId, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.1、§5.4" }, { decision: D-066 }] }
         - { id: SB-EXE-S4, text: SamplingCandidatesPrepared 帶有 batchId、populationCount、eligibleCount、excludedCount；ReviewCasesSelected 帶有 batchId、selectedCount, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.2、§5.3" }, { decision: D-067 }] }
         - { id: SB-EXE-S5, text: SamplingBatchCompleted 帶有 populationCount、eligibleCount、excludedCount、selectedCount, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.4" }, { decision: D-068 }] }
+        - { id: SB-EXE-S6, text: 抽選母體回傳 0 筆時，批次仍是 COMPLETED，四個計數都是 0，不建立案件，四個事件照發, status: decided, source: [{ decision: D-086 }] }
+        - { id: SB-EXE-S7, text: 不做跨批次排重：同一個專案再執行一次，母體回傳的病歷即使在先前的批次抽過，仍然各建立一個案件, status: decided, source: [{ decision: D-007 }, { decision: D-086 }] }
+        - { id: SB-EXE-S8, text: excludedCount = 0，eligibleCount、selectedCount 都等於 populationCount（母體回傳的筆數）, status: decided, source: [{ decision: D-086 }] }
+        - { id: SB-EXE-S9, text: 批次的 executionMode = MANUAL，沒有 retryOfBatchId；規則快照記下專案目前版本的版本號與專案綁定的評分表版本, status: decided, source: [{ decision: D-011 }, { decision: D-086 }] }
       emits:
         - { event: SamplingBatchStarted,       status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.1" }] }
         - { event: SamplingCandidatesPrepared, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§5.2" }] }
@@ -69,3 +128,206 @@ usecases:
     output:
       fields:
         - { name: batchId, type: id }
+
+  # ---------- 重跑（D-086 第 1～3 點：只有走得到的檢查；成功路徑見 model.yaml 的 deferred_behaviors） ----------
+
+  - name: RetrySamplingBatch
+    kind: command
+    summary: 重跑一個失敗的批次。目前沒有任何行為會產生失敗的批次，所以只立法走得到的檢查
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: batchId, type: id, required: true }
+    guards: [SB-G-01, SB-G-04, SB-G-05]
+    rules:
+      - id: SB-RTY-01
+        when: 批次的 status 不是 FAILED
+        outcome: { result: REJECTED, code: BATCH_NOT_RETRYABLE }
+        status: decided
+        source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§6" }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }, { decision: D-086 }]
+
+  # ---------- 預覽與執行頁 ----------
+
+  - name: PreviewSamplingPopulation
+    kind: query
+    summary: 預估抽選母體的筆數，不建立批次
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [SB-G-01, SB-G-02, SB-G-03]
+    rules:
+      - id: SB-PRV-01
+        when: 專案的 status 不是 ACTIVE
+        outcome: { result: REJECTED, code: PROJECT_NOT_ACTIVE }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.2" }, { decision: D-086 }]
+      - id: SB-PRV-02
+        when: 專案是 ACTIVE
+        text: populationCount 是抽選母體回傳的筆數，excludedCount = 0，eligibleCount = populationCount；不建立批次，不發事件
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.2" }, { decision: D-086 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.2" }]
+      fields:
+        - { name: populationCount, type: int }
+        - { name: eligibleCount,   type: int }
+        - { name: excludedCount,   type: int }
+
+  - name: GetSamplingExecuteContext
+    kind: query
+    summary: 抽選執行頁（UI-006）載入時的專案摘要、不能執行的原因與最新一次完成的批次
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: projectId, type: id, required: true }
+    guards: [SB-G-01, SB-G-02, SB-G-03]
+    rules:
+      - id: SB-CTX-01
+        when: 專案目前的版本還沒發布
+        text: blockedReason = PROJECT_VERSION_NOT_PUBLISHED
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.1" }, { decision: D-086 }]
+      - id: SB-CTX-02
+        when: 專案目前的版本已發布，但專案的 status 不是 ACTIVE
+        text: blockedReason = PROJECT_NOT_ACTIVE
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.1" }, { decision: D-086 }]
+      - id: SB-CTX-03
+        when: 專案是 ACTIVE
+        text: blockedReason 是 null
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.1" }, { decision: D-086 }]
+      - id: SB-CTX-04
+        when: 專案開始時間最新的批次是 COMPLETED
+        text: executedBatchId 是那個批次；專案還沒有批次時是 null
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.1" }, { decision: D-086 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.1" }, { decision: D-086 }]
+      fields:
+        - { name: projectId,        type: id }
+        - { name: projectName,      type: text }
+        - { name: hospitalId,       type: id }
+        - { name: projectStatus,    type: enum review-project.ProjectStatus }
+        - { name: versionNo,        type: int }
+        - { name: scoreSheetId,     type: id }
+        - { name: qualityThreshold, type: text }
+        - { name: blockedReason,    type: text }
+        - { name: executedBatchId,  type: id }
+
+  # ---------- 查詢與匯出 ----------
+
+  - name: ListSamplingBatches
+    kind: query
+    summary: 列出操作者院區範圍內的批次，開始時間新的在前
+    actor: { roles: [HOSPITAL_MANAGER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: projectId,     type: id,                       required: false }
+      - { name: status,        type: enum SamplingBatchStatus, required: false }
+      - { name: executionMode, type: enum ExecutionMode,       required: false }
+      - { name: hospitalId,    type: id,                       required: false }
+      - { name: page,          type: int,                      required: false }
+      - { name: size,          type: int,                      required: false }
+    guards: [SB-G-01]
+    rules:
+      - id: SB-LST-01
+        when: 操作者不是 SYSTEM_ADMIN
+        text: 只列出所屬專案的院區等於操作者院區的批次；輸入的 hospitalId 不採用
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-042 }, { decision: D-086 }]
+      - id: SB-LST-02
+        when: 操作者是 SYSTEM_ADMIN
+        text: 列出所有院區的批次；輸入有 hospitalId 時只列出那個院區的
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-047 }, { decision: D-086 }]
+      - id: SB-LST-03
+        when: 輸入有 projectId、status 或 executionMode
+        text: 只列出符合的批次
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-086 }]
+      - id: SB-LST-04
+        when: 任何查詢
+        text: 依開始時間由新到舊；size 沒有給或不是正數時是 20，最大 100；page 從 0 開始，負數當成 0
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-086 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.5" }, { decision: D-086 }]
+      fields:
+        - { name: content, type: "list<BatchSummary>" }
+
+  - name: GetSamplingBatchDetail
+    kind: query
+    summary: 查詢一個批次的詳情
+    actor: { roles: [HOSPITAL_MANAGER, AUDITOR, SYSTEM_ADMIN] }
+    input:
+      - { name: batchId, type: id, required: true }
+    guards: [SB-G-01, SB-G-04, SB-G-05]
+    guard_exceptions:
+      - { guard: SB-G-05, text: SYSTEM_ADMIN 的讀取不受院區限制, status: decided, source: [{ decision: D-047 }] }
+    rules:
+      - id: SB-DET-01
+        when: 操作者是 HOSPITAL_MANAGER 或 AUDITOR
+        text: 完整的詳情，包含 selectedCases（抽中的每一筆病歷）
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.6" }, { decision: D-086 }]
+      - id: SB-DET-02
+        when: 操作者是 SYSTEM_ADMIN
+        text: 只有 metadata：沒有 selectedCases；計數、執行方式、狀態、時間與規則快照照給
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.6" }, { decision: D-086 }]
+      - id: SB-DET-03
+        when: 任何角色
+        text: ruleSnapshot 的 projectVersionNumber 是抽選當時專案的版本號，scoreSheetVersionId 是當時專案綁定的評分表版本
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-011 }, { decision: D-086 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.6" }, { decision: D-086 }]
+      fields:
+        - { name: batchId,         type: id }
+        - { name: projectId,       type: id }
+        - { name: executionMode,   type: enum ExecutionMode }
+        - { name: status,          type: enum SamplingBatchStatus }
+        - { name: populationCount, type: int }
+        - { name: eligibleCount,   type: int }
+        - { name: excludedCount,   type: int }
+        - { name: selectedCount,   type: int }
+        - { name: retryOfBatchId,  type: id }
+        - { name: failureReason,   type: text }
+        - { name: startedAt,       type: datetime }
+        - { name: finishedAt,      type: datetime }
+        - { name: ruleSnapshot,    type: RuleSnapshot }
+        - { name: selectedCases,   type: "list<Candidate>" }
+
+  - name: ExportSamplingBatchResult
+    kind: query
+    summary: 匯出一個批次的結果；內容與批次詳情相同
+    actor: { roles: [HOSPITAL_MANAGER] }
+    input:
+      - { name: batchId, type: id, required: true }
+    guards: [SB-G-01, SB-G-04, SB-G-05]
+    rules:
+      - id: SB-EXP-01
+        when: 通過前面的檢查
+        text: detail 與 HOSPITAL_MANAGER 查詢同一個批次的詳情相同；不發事件
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.7" }, { decision: D-086 }]
+    output:
+      status: decided
+      source: [{ doc: docs/03-contracts/api-spec.md, section: "§9.7" }]
+      fields:
+        - { name: detail, type: BatchDetail }
