@@ -76,6 +76,48 @@
 
 ---
 
+## 4.1a `ReviewProjectDraftUpdated`
+
+### Emitted By
+
+* `ReviewProject`
+
+### 業務意義
+
+專案草稿的名稱、說明、病歷類型、品質線或權重已更新。
+
+### 發布條件
+
+* `updateDraft(...)` 成功
+
+### 最低必要欄位（D-090）
+
+`projectId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
+
+---
+
+## 4.1b `ScoreSheetBoundToProject`
+
+### Emitted By
+
+* `ReviewProject`
+
+### 業務意義
+
+專案目前的版本綁定了一個已發布的評分表版本（D-041、D-050）。
+
+### 發布條件
+
+* `bindScoreSheet(...)` 成功；已綁定時由新的版本取代
+
+### 最低必要欄位（D-090）
+
+`projectId`、`scoreSheetVersionId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
+
+稽核紀錄的 `detail` 是 `{"scoreSheetId":"<評分表版本 id>"}`，鍵名沿用既有格式（D-090 第 4 點）。
+
+---
+
 ## 4.2 `ReviewProjectActivated`
 
 ### Emitted By
@@ -90,6 +132,10 @@
 
 * `activate()` 成功
 * 專案狀態由非啟用轉為啟用
+
+### 最低必要欄位（D-090）
+
+`projectId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
 
 ---
 
@@ -106,6 +152,10 @@
 ### 發布條件
 
 * `deactivate()` 成功
+
+### 最低必要欄位（D-090）
+
+`projectId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
 
 ---
 
@@ -129,6 +179,10 @@
 * 此事件不代表既有批次 / 案件重新套用新版
 * 舊批次與舊案件仍維持原 version / snapshot 參照
 
+### 最低必要欄位（D-090）
+
+`projectId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
+
 ---
 
 ## 4.5 `ScoreSheetDraftCreated`
@@ -144,6 +198,10 @@
 ### 發布條件
 
 * `createDraft(...)` 成功
+
+### 最低必要欄位（D-090）
+
+`scoreSheetId`、`projectId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
 
 ---
 
@@ -161,6 +219,10 @@
 
 * 六相位的更新命令成功
 
+### 最低必要欄位（D-090）
+
+`scoreSheetId`、`projectId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
+
 ---
 
 ## 4.6 `ScoreSheetVersionPublished`
@@ -176,6 +238,10 @@
 ### 發布條件
 
 * `publishVersion()` 成功
+
+### 最低必要欄位（D-090）
+
+`scoreSheetId`、`projectId`；另有共用的 `hospitalId`、`occurredAt`、操作者。
 
 ---
 

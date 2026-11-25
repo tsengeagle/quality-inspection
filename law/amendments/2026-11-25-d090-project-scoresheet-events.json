@@ -1,0 +1,14 @@
+{
+  "id": "2026-11-25-d090-project-scoresheet-events",
+  "decision": "D-090",
+  "reason": "D-090：review-project、score-sheet 的事件驗證；docs/harness/41 的 E-1～E-7 照建議。規格：BindScoreSheetToProject 的 success.emits 宣告 ScoreSheetBoundToProject。範例：review-project 8 個、score-sheet 4 個成功的範例加上 emits（含三個沒有變更的情況），with 用規格詞彙（projectId、scoreSheetId、scoreSheetVersionId、hospitalId）；兩個目錄 not_covered 的「事件不由範例驗證」刪除。事件類別還沒有這些 getter，12 個範例一開始是紅的，加進 known-test-failures.txt，由建構 PR 移除。文件：domain-events.md §4 補上 ReviewProjectDraftUpdated、ScoreSheetBoundToProject 與各事件的最低必要欄位；草稿 41、題目清單（本題進行中、新增事件的發生時間）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-project/usecases.yaml",
+    "specs/review-project/examples.yaml",
+    "specs/score-sheet/examples.yaml",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

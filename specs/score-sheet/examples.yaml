@@ -67,7 +67,10 @@ examples:
       as: manager_h1
       input: { projectId: "${p}" }
       save: { s: scoreSheetId }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ScoreSheetDraftCreated, with: { scoreSheetId: "${s}", projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetScoreSheetDetail
         as: manager_h1
@@ -165,7 +168,10 @@ examples:
             title: "完整性"
             items:
               - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", requiredRule: ALWAYS_REQUIRED }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ScoreSheetDraftUpdated, with: { scoreSheetId: "${s}", projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetScoreSheetSections
         as: manager_h1
@@ -254,7 +260,10 @@ examples:
       run: UpdateScoreSheetDraft
       as: manager_h1
       input: { scoreSheetId: "${s}" }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ScoreSheetDraftUpdated, with: { scoreSheetId: "${s}", projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetScoreSheetDetail
         as: manager_h1
@@ -523,7 +532,10 @@ examples:
       as: manager_h1
       input: { scoreSheetId: "${s}" }
       save: { sv: scoreSheetVersionId }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ScoreSheetVersionPublished, with: { scoreSheetId: "${s}", projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetScoreSheetVersion
         as: manager_h1
@@ -795,5 +807,4 @@ examples:
     then: { result: SUCCESS, output: { "items[scoreSheetId=${s}]": { projectId: "${p}" } } }
 
 not_covered:
-  - { item: emits, reason: "事件不由範例驗證（執行器把 emits 列在 not_covered）" }
   - { item: "發布時的 snapshot 與 checksum（D-011）", reason: "屬於抽選與提交的規格" }

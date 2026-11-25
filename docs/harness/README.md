@@ -61,6 +61,7 @@
 | `35-read-draft.md` | ReviewCase 切片 E：讀取（V-1～V-11，已由 D-084 裁決）：實測、多角色與院區的順序、初審醫師看複審、複審醫師看初審醫師身分、SYSTEM_ADMIN 白名單、退回案件的分派頁、讀過初審的候選人、讀取者紀錄的範例、輸出欄位、沒有被寫入的欄位、登記範圍 |
 | `36-review-submission-draft.md` | 切片 C：`ReviewSubmission` 本體、計分，以及 ReviewCase 的收尾（T-1～T-14，已由 D-085 裁決）：實測、RANGE 的錯誤作答與上限、小數位數、未知題目、重複作答、三種題目的計分、狀態轉移與不變式、草稿的分數、評分表版本、附件、修正歷史的可見規則、補範例、登記範圍 |
 | `37-sampling-batch-draft.md` | 切片 A：SamplingBatch 其餘部分（S-1～S-16，已由 D-086 裁決）：失敗的批次、D-013 與重跑、母體 0 筆、重複、抽樣與排除、不變式、規則快照、預覽、執行頁、列表、`SYSTEM_ADMIN` 的詳情、匯出、架構基線、登記範圍 |
+| `41-project-scoresheet-events-draft.md` | review-project、score-sheet 的事件驗證（E-1～E-7，已由 D-090 裁決）：驗證的程度、事件的屬性、沒有變更也發事件、綁定評分表的事件、domain-events.md、occurredAt |
 | `40-project-scoresheet-request-side-draft.md` | review-project、score-sheet 的格式 v2 與請求端（V-1～V-8，已由 D-089 裁決）：分批、升級的作法、本文的列舉、經過 HTTP 的成功範例、建立專案的回應、登記、事件的驗證 |
 | `39-http-interfaces-common-draft.md` | 切片 D、E：HTTP 介面與共用元件（H-1～H-12，已由 D-088 裁決）：分批、回應契約照程式、涵蓋缺口、請求端的檢查、沒有外殼的 400、操作者的傳遞、共用元件的登記；第九節是 D-1 的實測 |
 | `38-reporting-draft.md` | 切片 B：報表與儀表板（R-1～R-10，已由 D-087 裁決）：入口與範例、時間區間的檢查與錯誤代碼、規格的位置、件數的定義（已取消的案件）、逾期、比率、篩選與院區、匯出的規則與遮罩、匯出的稽核紀錄、登記範圍 |
