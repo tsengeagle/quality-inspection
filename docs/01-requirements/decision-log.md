@@ -3669,6 +3669,7 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 4. **經過 HTTP 的成功範例（V-4）**：review-project 4 個（建立、更新、綁定、列表）、score-sheet 3 個（建立、更新、列表）。
 5. **建立專案的回應（V-5）**：照程式。controller 建立後以 `GetReviewProjectDetail` 取得 `status`，不改。
 6. **登記（V-6）**：修法 PR 二把 `ReviewProjectController`、`ScoreSheetController` 與 5 個請求 dto 登記為已立法，問題側不再有 `grandfathered` 的列。`law/coverage.txt` 裡已刪除的兩個 dto（#175）的註解一併刪除。
+   - 追記（2026-11-25，負責人決定）：暫准的目錄列一律刪除，不改成已立法。之後不在清單內的問題側新檔案由 `law-check` 判為未通過，要先以修法列進清單。指向已不存在檔案的列一併刪除。
 7. **事件的驗證（V-7 選 A）**：本裁決不補。兩個目錄的 `not_covered` 維持「事件不由範例驗證」，另立題目。程式在綁定評分表時發出 `ScoreSheetBoundToProject`，規格沒有宣告，一併列進該題。
 8. **題目清單（V-8）**：D-088 與本題移到已完成；新增「review-project、score-sheet 的事件驗證」。
 

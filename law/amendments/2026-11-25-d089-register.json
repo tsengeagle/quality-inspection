@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-25-d089-register",
+  "decision": "D-089",
+  "reason": "D-089 第 6 點的修法 PR 二：建構 PR #177 之後，ReviewProjectController 與 3 個請求 dto 登記到 specs/review-project/，ScoreSheetController 與 2 個請求 dto 登記到 specs/score-sheet/。負責人 2026-11-25 決定刪除所有暫准的列（含目錄列）：問題側不再有 grandfathered，不在清單內的新檔案由 law-check 判為未通過，要先修法列進清單。一併刪除指向已不存在檔案的列（#177 刪除的 BadRequestException、先前建構 PR 改名或刪除的 7 個檔案）與已刪除 dto 的註解。檔頭的 grandfathered 說明保留（格式仍支援）。逐檔核對：問題側 257 個檔案全部對到已立法的列。文件：D-089 第 6 點的追記、題目清單。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/coverage.txt",
+    "law/amendments/"
+  ]
+}

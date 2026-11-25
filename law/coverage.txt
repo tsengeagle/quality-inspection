@@ -23,35 +23,11 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/scoresheet/               legislated  specs/score-sheet/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/scoresheet/          legislated  specs/score-sheet/
 
-# ---- 暫准：aggregate ----
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/               grandfathered  ReviewCase（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/          grandfathered  ReviewCase（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/sampling/                 grandfathered  SamplingBatch（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/sampling/            grandfathered  SamplingBatch（未立法）
+# ---- 已立法：稽核查詢 ----
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/audit/               legislated     specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/                       grandfathered  報表與儀表板（未立法）
 
-# ---- 暫准：跨 aggregate 的共用部分 ----
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/                   grandfathered  domain 共用（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/package-info.java         grandfathered  domain 共用（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/              grandfathered  application 共用：角色、院區、讀取政策（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/package-info.java    grandfathered  application 共用（未立法）
-
-# ---- HTTP 介面。逐一列出 controller，新增 controller 會被擋下 ----
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/config/                          grandfathered  HTTP 設定（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/package-info.java               grandfathered  HTTP 共用（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/                        grandfathered  HTTP 請求與回應格式（未立法；有 HTTP 契約的回應 dto 見下方）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ActorContextArgumentResolver.java  grandfathered  HTTP 共用（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/CurrentActor.java           grandfathered  HTTP 共用（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/BadRequestException.java    grandfathered  HTTP 共用（未立法）
+# ---- HTTP 介面。逐一列出檔案；不在清單內的新檔案（含新的 controller）會被擋下（D-089 第 6 點） ----
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/GlobalExceptionHandler.java legislated     specs/http-common.yaml
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewProjectController.java  grandfathered  ReviewProject 的 HTTP 介面（回應由 HTTP 契約涵蓋，含列表與版本查詢（D-062）；請求端未立法，D-061 Q-3）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ScoreSheetController.java   grandfathered  ScoreSheet 的 HTTP 介面（回應由 HTTP 契約涵蓋；請求端未立法，D-061 Q-3）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewCaseController.java   grandfathered  ReviewCase 的 HTTP 介面（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SubmissionController.java   grandfathered  ReviewCase 的 HTTP 介面（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SamplingController.java     grandfathered  SamplingBatch 的 HTTP 介面（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/AuditController.java        grandfathered  稽核查詢的 HTTP 介面（未立法）
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReportController.java       grandfathered  報表的 HTTP 介面（未立法）
 
 # ---- 已立法：HTTP 契約涵蓋的回應（D-061）。寫在 dto/ 那一行之後，以最後一行為準 ----
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ApiResponse.java                  legislated  specs/http-common.yaml
@@ -106,7 +82,6 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReopenInitialReviewUseCase.java           legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/CancelReviewCaseUseCase.java              legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/CloseWithoutRereviewUseCase.java          legislated  specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/command/CloseWithoutRereviewCommand.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseReturnedEvent.java             legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseCancelledEvent.java            legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/CaseClosedWithoutRereviewEvent.java      legislated  specs/review-case/
@@ -115,13 +90,11 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 # ---- 已立法：改派初審醫師、改派複審醫師（D-082）。寫在目錄那幾列之後，以最後一行為準 ----
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReassignReviewCaseUseCase.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReassignRereviewerUseCase.java  legislated  specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/command/ReassignRereviewerCommand.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/ReviewCaseReassignedEvent.java  legislated  specs/review-case/
 
 # ---- 已立法：修正已提交的初審與複審、ReviewCase 本體（D-083）。寫在目錄那幾列之後，以最後一行為準 ----
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReviseInitialReviewUseCase.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/ReviseRereviewUseCase.java  legislated  specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/command/ReviseRereviewCommand.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/RevisionResult.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/event/RereviewRevisedEvent.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/reviewcase/submission/event/ReviewSubmissionRevisedEvent.java  legislated  specs/review-case/
@@ -207,11 +180,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 # ---- 已立法：報表與儀表板（D-087 第 10 點）。前兩列是建構 PR 改名後的入口（第 1 點）。寫在目錄那幾列之後，以最後一行為準 ----
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/GetDashboardSummaryUseCase.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportReportUseCase.java  legislated  specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/DashboardQueryService.java  legislated  specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/DashboardQueryCriteria.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/DashboardSummary.java  legislated  specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportQueryService.java  legislated  specs/review-case/
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportCriteria.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportResult.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportRow.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/package-info.java  legislated  specs/review-case/
@@ -233,7 +202,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/WhitelistedSubmissionDetailView.java  legislated  specs/review-case/
 
 # ---- 已立法：review-case、sampling-batch 的 HTTP 請求端與操作者的傳遞（D-088 第 11、13 點）。寫在目錄那幾列之後，以最後一行為準 ----
-# ReviewProjectController、ScoreSheetController 與它們的請求 dto 仍是暫准（D-088 第 13 點）；CloseWithoutRereviewRequest、SendToRereviewRequest 沒有使用，仍是暫准。
+# ReviewProjectController、ScoreSheetController 與它們的請求 dto 見 D-089 那一段。
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewCaseController.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SubmissionController.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/AuditController.java  legislated  specs/review-case/
@@ -254,7 +223,6 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/AttachmentRef.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ActorContextArgumentResolver.java  legislated  specs/http-common.yaml
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/CurrentActor.java  legislated  specs/http-common.yaml
-services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/BadRequestException.java  legislated  specs/http-common.yaml
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/package-info.java  legislated  specs/http-common.yaml
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/config/  legislated  specs/http-common.yaml
 
@@ -276,3 +244,12 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/package-info.java  legislated  specs/http-common.yaml
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/domain/common/MedicalRecordType.java  legislated  specs/review-project/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/common/HospitalIdResolver.java  legislated  specs/score-sheet/
+
+# ---- 已立法：review-project、score-sheet 的 HTTP 請求端（D-089 第 6 點）。問題側不再有暫准的列：目錄列已刪除，不在清單內的新檔案由 law-check 擋下 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewProjectController.java  legislated  specs/review-project/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/CreateReviewProjectRequest.java  legislated  specs/review-project/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/UpdateReviewProjectRequest.java  legislated  specs/review-project/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/BindScoreSheetRequest.java  legislated  specs/review-project/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ScoreSheetController.java  legislated  specs/score-sheet/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/CreateScoreSheetDraftRequest.java  legislated  specs/score-sheet/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/UpdateScoreSheetDraftRequest.java  legislated  specs/score-sheet/
