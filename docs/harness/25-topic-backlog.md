@@ -4,7 +4,7 @@
 
 ## 進行中
 
-1. **切片 D、E：HTTP 介面與共用元件**（D-088）。分三批：D-1 回應契約（#168、#169、#170，已完成）→ D-2 請求端（#171、#172；修法 PR 二：讀不進來的查詢參數的範例與登記）→ E 共用元件。
+1. **切片 D、E：HTTP 介面與共用元件**（D-088）。D-1 回應契約（#168、#169、#170）、D-2 請求端（#171、#172、#173）已完成；E 共用元件的登記是本切片最後一個修法 PR。之後問題側暫准的只剩待辦第 5 題的範圍。
 
 ## 待辦（依序）
 
@@ -12,7 +12,7 @@
 2. **前端移除 `finalConclusion`、`rereviewRequired`**（D-084 第 9 點）：後端的建構 PR 移除欄位之後，前端的型別（`cases.service.ts`）與案件詳情頁的 `finalConclusion` 顯示一併移除。前端任務從 `.ai/governance/repo-governance-instruction.md` 進入。
 3. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
 4. **HTTP 回應與 `api-spec.md` 的落差**（D-088 第 2 點，契約照程式）：執行抽選的回應只有 `batchId`（§9.3 寫 `batchId`、`status`、`selectedCount`）；重跑的回應是 `batchId`（§9.4 寫 `newBatchId`、`retryOfBatchId`）；預覽、執行的請求本文 `mode` 沒有讀取。程式一律輸出 null 的欄位：`rereviewContext.initialReviewerName`、執行頁的 `previewStats`（`previewReady` 一律是 false）。另外兩件之後再做：沒有回應 dto 的端點改成 dto（H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）。
-5. **review-project、score-sheet 的範例升級到格式 v2**（D-088 第 13 點）：升級後才能寫 `http` 步驟，補上請求端的範例，`ReviewProjectController`、`ScoreSheetController` 與它們的請求 dto 才能登記為已立法。排在 E 之後。
+5. **review-project、score-sheet 的範例升級到格式 v2**（D-088 第 13 點）：升級後才能寫 `http` 步驟，補上請求端的範例，`ReviewProjectController`、`ScoreSheetController` 與它們的 5 個請求 dto 才能登記為已立法。E 之後，問題側暫准的只剩這些，以及沒有使用的 `CloseWithoutRereviewRequest`、`SendToRereviewRequest`（要不要刪除待負責人決定）。
 6. **後端 JDK 定為 17**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗。負責人已決定與 CI 一致，定為 17（含 CLAUDE.md、`.github/copilot-instructions.md` 等文件）。
 
 ## 已完成
