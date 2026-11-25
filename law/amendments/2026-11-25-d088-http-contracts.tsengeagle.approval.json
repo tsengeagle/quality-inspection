@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-25-d088-http-contracts",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:52afd5b0dcb60f0b184b5f4eca75b621b5f2464d131aac4b018006451c6a9529",
+  "reviewed_commit": "cdda4cd8b6963f162c7be4a093ac7edea5da19e8",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBux0ahpe1RNENJr7wToj/eGEj4Xc/T3qKyq02RH1uwqGe5a9VpnDcr\nwu/1cn38p9AAoN8Qya1/H/57FPIc9/QDAQAAAKA=\n-----END SSH SIGNATURE-----\n"
+}
