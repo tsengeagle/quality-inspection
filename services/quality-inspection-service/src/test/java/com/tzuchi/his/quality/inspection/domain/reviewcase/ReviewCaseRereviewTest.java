@@ -342,16 +342,48 @@ class ReviewCaseRereviewTest {
         assertNull(rc.getClosedAt());
     }
 
-    // --- updateFinalScoreForRereview tests (rereview revision) ---
+    // --- recordRereviewRevision tests (rereview revision, D-083 第 9 點) ---
 
     @Test
-    void updateFinalScoreForRereview_closedCase_shouldRejectWithoutChangingScore() {
+    void recordRereviewRevision_recalculatesFinalScoreAndPointsAtNewSubmission() {
+        ReviewCase rc = caseAtRereviewInProgress();
+        ReviewCaseTestSupport.pointRereviewAt(rc, "sub-r1");
+        rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        CaseStatus before = rc.getStatus();
+
+        rc.recordRereviewRevision("sub-r1", "sub-r2", new BigDecimal("20"),
+                new BigDecimal("0.5"), new BigDecimal("0.5"));
+
+        assertEquals(0, rc.getInitialReviewScore().multiply(new BigDecimal("0.5"))
+                .add(new BigDecimal("10")).compareTo(rc.getFinalScore()));
+        assertEquals("sub-r2", rc.getLatestRereviewSubmissionId());
+        assertEquals(before, rc.getStatus());
+    }
+
+    @Test
+    void recordRereviewRevision_staleSubmission_shouldRejectWithoutChange() {
+        ReviewCase rc = caseAtRereviewInProgress();
+        ReviewCaseTestSupport.pointRereviewAt(rc, "sub-r2");
+        rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        BigDecimal beforeScore = rc.getFinalScore();
+
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> rc.recordRereviewRevision("sub-r1", "sub-r3", new BigDecimal("20"),
+                        new BigDecimal("0.5"), new BigDecimal("0.5")));
+        assertEquals("CONFLICT", e.getErrorCode());
+        assertEquals(beforeScore, rc.getFinalScore());
+        assertEquals("sub-r2", rc.getLatestRereviewSubmissionId());
+    }
+
+    @Test
+    void recordRereviewRevision_closedCase_shouldRejectWithoutChangingScore() {
         ReviewCase rc = caseAtRereviewInProgress();
         rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
         rc.closeAfterRereview(CLOSED_AT);
         BigDecimal beforeScore = rc.getFinalScore();
         Instant beforeClosedAt = rc.getClosedAt();
-        assertThrows(DomainStateConflictException.class, () -> rc.updateFinalScoreForRereview(
+        assertThrows(DomainStateConflictException.class, () -> rc.recordRereviewRevision(
+                rc.getLatestRereviewSubmissionId(), "sub-new",
                 new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")));
         assertEquals(beforeScore, rc.getFinalScore());
         assertEquals(beforeClosedAt, rc.getClosedAt());
@@ -359,11 +391,7 @@ class ReviewCaseRereviewTest {
     }
 
     @Test
-    void updateFinalScoreForRereview_cancelledCase_shouldThrow() {
-        ReviewCase rc = caseAtPendingRereview();
-        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
-        rc.startRereview("rereviewer-1");
-        // Force cancel for test — use reconstitute
+    void recordRereviewRevision_cancelledCase_shouldThrow() {
         ReviewCase cancelledCase = ReviewCase.reconstitute(
                 "c1", "b1", "p1", "H001", "SK-001", MedicalRecordType.OUTPATIENT,
                 CaseStatus.CANCELLED, null, null,
@@ -371,7 +399,16 @@ class ReviewCaseRereviewTest {
                 false, null, null, null, null, null,
                 null, null, null, null);
         assertThrows(DomainStateConflictException.class,
-                () -> cancelledCase.updateFinalScoreForRereview(
+                () -> cancelledCase.recordRereviewRevision(null, "sub-new",
                         new BigDecimal("80"), new BigDecimal("0.5"), new BigDecimal("0.5")));
+    }
+
+    @Test
+    void startRereview_withDraft_pointsAtDraft() {
+        ReviewCase rc = caseAtPendingRereview();
+        rc.assignRereviewer("rereviewer-1", Instant.now(), Instant.now());
+        rc.startRereview("rereviewer-1", "sub-draft");
+        assertEquals(CaseStatus.REREVIEW_IN_PROGRESS, rc.getStatus());
+        assertEquals("sub-draft", rc.getLatestRereviewSubmissionId());
     }
 }

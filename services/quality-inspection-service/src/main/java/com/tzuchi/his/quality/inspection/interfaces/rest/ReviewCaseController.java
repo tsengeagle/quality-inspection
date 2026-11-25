@@ -5,7 +5,6 @@ import com.tzuchi.his.quality.inspection.application.audit.GetCaseLifecycleUseCa
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.reviewcase.*;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentBootstrapView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateRole;
@@ -14,7 +13,6 @@ import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCase
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryView;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -397,17 +395,9 @@ public class ReviewCaseController {
             @PathVariable String caseId,
             @PathVariable String submissionId,
             @RequestBody @Valid ReviseRereviewRequest request) {
-        ReviseRereviewCommand cmd = new ReviseRereviewCommand();
-        cmd.setCaseId(caseId);
-        cmd.setSubmissionId(submissionId);
-        if (request.getAnswers() != null) {
-            cmd.setAnswers(request.getAnswers().stream()
-                    .filter(Objects::nonNull)
-                    .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                    .collect(Collectors.toList()));
-        }
-        cmd.setComment(request.getComment());
-        RevisionResult result = reviseRereviewUseCase.execute(actor, cmd);
+        // D-083 第 6 點：修正複審改收參數，answers 與修正初審同型別
+        RevisionResult result = reviseRereviewUseCase.execute(
+                actor, caseId, submissionId, toAnswerInputs(request.getAnswers()), request.getComment());
         return ResponseEntity.ok(ApiResponse.ok(new RevisionResultResponse(
                 result.getNewSubmissionId(), result.getOldSubmissionId(),
                 result.getRevisionNo(), result.getTotalScore(),

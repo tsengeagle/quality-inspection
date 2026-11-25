@@ -4,7 +4,8 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
+import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
@@ -18,21 +19,19 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.event.RereviewRevised
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmission;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubmissionRepository;
+import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionRevisedEvent;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
 
 /**
  * Use case: Revise a submitted rereview.
- * D-032: only non-terminal cases may receive a rereview revision.
+ * D-032: only non-terminal cases may receive a rereview revision. D-083：檢查順序、必答題、沒有變更與事件。
  * Creates a new revision of the rereview submission and recalculates the weighted final score.
  * This is the "append-only revision" pattern — old submission is marked SUPERSEDED,
  * new revision is directly SUBMITTED.
@@ -46,6 +45,7 @@ public class ReviseRereviewUseCase {
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public ReviseRereviewUseCase(ReviewCaseRepository caseRepository,
                                   ReviewSubmissionRepository submissionRepository,
@@ -53,7 +53,8 @@ public class ReviseRereviewUseCase {
                                   ScoreSheetRepository scoreSheetRepository,
                                   DomainEventPublisher eventPublisher,
                                   ScoreCalculationService scoreCalculationService,
-                                  Clock clock) {
+                                  Clock clock,
+                                  IdGenerator idGenerator) {
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.projectRepository = projectRepository;
@@ -61,16 +62,17 @@ public class ReviseRereviewUseCase {
         this.eventPublisher = eventPublisher;
         this.scoreCalculationService = scoreCalculationService;
         this.clock = clock;
+        this.idGenerator = idGenerator;
     }
 
     @Transactional
-    public RevisionResult execute(ActorContext actor, ReviseRereviewCommand cmd) {
-        // 1. Require REREVIEWER role
+    public RevisionResult execute(ActorContext actor, String caseId, String submissionId,
+                                   List<AnswerInput> answers, String comment) {
+        // D-083 第 7 點的檢查順序
         actor.requireRole(DomainRole.REREVIEWER);
 
-        // 2. Load ReviewCase and validate actor is the assigned rereviewer
-        ReviewCase reviewCase = caseRepository.findById(cmd.getCaseId())
-                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + cmd.getCaseId()));
+        ReviewCase reviewCase = caseRepository.findById(caseId)
+                .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
         reviewCase.requireNotTerminal();
@@ -81,9 +83,8 @@ public class ReviseRereviewUseCase {
                     "Only the assigned rereviewer can revise this rereview");
         }
 
-        // 3. Load old ReviewSubmission by submissionId
-        ReviewSubmission oldSubmission = submissionRepository.findById(cmd.getSubmissionId())
-                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + cmd.getSubmissionId()));
+        ReviewSubmission oldSubmission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND", "ReviewSubmission not found: " + submissionId));
 
         if (!reviewCase.getCaseId().equals(oldSubmission.getCaseId())
                 || oldSubmission.getStage() != ReviewStage.REREVIEW) {
@@ -104,69 +105,58 @@ public class ReviseRereviewUseCase {
                     "Submission is not the current rereview result");
         }
 
-        // 4. Load ScoreSheetDefinition via reviewCase.getScoreSheetVersionRef()
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
                 .findByVersionId(reviewCase.getScoreSheetVersionRef())
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND", "ScoreSheetDefinition not found: " + reviewCase.getScoreSheetVersionRef()));
 
-        // 5. Build raw AnswerItem list from cmd answers
-        List<AnswerItem> rawItems = cmd.getAnswers().stream()
-                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                .collect(Collectors.toList());
+        List<AnswerItem> rawItems = RevisionChecks.rawAnswers(answers);
+        // D-083 第 1 點：必答題與提交相同（D-076）；第 2 點：沒有變更回 NO_CHANGES（D-038）
+        RevisionChecks.requireRequiredItemsAnswered(rawItems, scoreSheet);
+        RevisionChecks.rejectIfUnchanged(rawItems, comment, oldSubmission);
 
-        // 6. Calculate scores via ScoreCalculationService
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
-        // 7. Create revision using static method
-        String newSubmissionId = "sub-rev-" + UUID.randomUUID().toString();
+        // D-083 第 6 點：新提交 ID 一律是 UUID
+        String newSubmissionId = idGenerator.newId();
         Instant now = Instant.now(clock);
         ReviewSubmission revision = ReviewSubmission.createRevision(
-                newSubmissionId,
-                oldSubmission,
-                result.getScoredAnswers(),
-                result.getTotalScore(),
-                cmd.getComment(),
-                now);
-
-        // 8. Mark old submission superseded
+                newSubmissionId, oldSubmission, result.getScoredAnswers(),
+                result.getTotalScore(), comment, now);
         oldSubmission.markSuperseded(newSubmissionId, now);
 
-        // 9. Save both old and new submissions
-        submissionRepository.save(oldSubmission);
-        submissionRepository.save(revision);
-
-        // 10. Load ReviewProject and get weights from getCurrentVersion()
+        // D-068 第 4 點的已知問題：加權取專案目前的版本（D-083 第 11 點，與提交複審相同）
         ReviewProject project = projectRepository.findById(reviewCase.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND", "ReviewProject not found: " + reviewCase.getProjectId()));
         ProjectVersion version = project.getCurrentVersion();
 
-        // 11. Update case final score without changing its lifecycle state
-        reviewCase.updateFinalScoreForRereview(
-                result.getTotalScore(),
-                version.getInitialReviewWeight(),
-                version.getRereviewWeight());
-        reviewCase.setLatestRereviewSubmissionId(newSubmissionId);
+        // D-083 第 9 點：由 domain 檢查目前有效、重算 finalScore、改指新提交；status 不變
+        reviewCase.recordRereviewRevision(
+                submissionId, newSubmissionId, result.getTotalScore(),
+                version.getInitialReviewWeight(), version.getRereviewWeight());
 
-        // 12. Save case
+        submissionRepository.save(oldSubmission);
+        submissionRepository.save(revision);
         caseRepository.save(reviewCase);
 
-        // 13. Publish RereviewRevisedEvent
+        // D-083 第 3 點：與修正初審對稱先發 ReviewSubmissionRevised（不帶分數），再發 RereviewRevised（帶分數，D-071 遮罩）
+        eventPublisher.publish(new ReviewSubmissionRevisedEvent(
+                this, actor.getUserId(), actor.getUserName(),
+                reviewCase.getHospitalId(), caseId,
+                submissionId, newSubmissionId,
+                ReviewStage.REREVIEW.name(), revision.getRevisionNo()));
         eventPublisher.publish(new RereviewRevisedEvent(
-                this,
-                actor.getUserId(),
-                actor.getUserName(),
-                reviewCase.getHospitalId(),
-                reviewCase.getCaseId(),
-                String.format("{\"newSubmissionId\":\"%s\",\"oldSubmissionId\":\"%s\",\"rereviewScore\":%s,\"finalScore\":%s}",
-                        newSubmissionId, cmd.getSubmissionId(), result.getTotalScore(), reviewCase.getFinalScore())));
+                this, actor.getUserId(), actor.getUserName(),
+                reviewCase.getHospitalId(), caseId,
+                submissionId, newSubmissionId,
+                result.getTotalScore(), reviewCase.getFinalScore()));
 
+        // D-033：輸出只有自己階段的分數，沒有 finalScore 與初審分數
         return new RevisionResult(
-                newSubmissionId,
-                cmd.getSubmissionId(),
+                newSubmissionId, submissionId,
                 revision.getRevisionNo(),
                 result.getTotalScore(),
                 revision.getStatus().name(),
                 revision.getStage().name(),
-                cmd.getCaseId());
+                caseId);
     }
 }

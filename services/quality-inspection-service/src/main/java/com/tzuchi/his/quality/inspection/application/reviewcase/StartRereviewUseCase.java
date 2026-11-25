@@ -50,11 +50,11 @@ public class StartRereviewUseCase {
             throw new AccessDeniedException("NOT_ASSIGNED_REREVIEWER",
                     "Only the assigned rereviewer can start the rereview");
         }
-        reviewCase.startRereview(actor.getUserId());
+        String draftSubmissionId = idGenerator.newId();
+        reviewCase.startRereview(actor.getUserId(), draftSubmissionId);
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(
-                idGenerator.newId(), caseId, actor.getUserId(), Instant.now(clock));
+                draftSubmissionId, caseId, actor.getUserId(), Instant.now(clock));
         submissionRepository.save(rereviewDraft);
-        reviewCase.setLatestRereviewSubmissionId(rereviewDraft.getSubmissionId());
         caseRepository.save(reviewCase);
         eventPublisher.publish(new RereviewStartedEvent(
                 this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),

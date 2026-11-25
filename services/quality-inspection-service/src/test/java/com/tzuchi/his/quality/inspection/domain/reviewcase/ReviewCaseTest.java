@@ -345,42 +345,43 @@ class ReviewCaseTest {
         assertDoesNotThrow(rc::requireNotTerminal);
     }
 
-    // --- updateFinalScore ---
+    // --- recordInitialReviewRevision（updateFinalScore 不再公開，D-083 第 9 點） ---
 
     @Test
-    void updateFinalScore_updatesScore() {
+    void recordInitialReviewRevision_updatesScore() {
         ReviewCase rc = createPendingAssignment();
         rc.forceStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
 
-        rc.updateFinalScore(new BigDecimal("85.00"));
+        rc.recordInitialReviewRevision(rc.getLatestInitialSubmissionId(), "sub-new", new BigDecimal("85.00"));
+        assertEquals("sub-new", rc.getLatestInitialSubmissionId());
 
         assertEquals(new BigDecimal("85.00"), rc.getFinalScore());
     }
 
     @Test
-    void updateFinalScore_whenClosed_throwsConflict() {
+    void recordInitialReviewRevision_whenClosed_throwsConflict() {
         ReviewCase rc = createPendingAssignment();
         rc.forceStatus(CaseStatus.CLOSED);
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.updateFinalScore(new BigDecimal("85.00")));
+                () -> rc.recordInitialReviewRevision(rc.getLatestInitialSubmissionId(), "sub-new", new BigDecimal("85.00")));
     }
 
     @Test
-    void updateFinalScore_whenCancelled_throwsConflict() {
+    void recordInitialReviewRevision_whenCancelled_throwsConflict() {
         ReviewCase rc = createPendingAssignment();
         rc.forceStatus(CaseStatus.CANCELLED);
 
         assertThrows(DomainStateConflictException.class,
-                () -> rc.updateFinalScore(new BigDecimal("85.00")));
+                () -> rc.recordInitialReviewRevision(rc.getLatestInitialSubmissionId(), "sub-new", new BigDecimal("85.00")));
     }
 
     @Test
-    void updateFinalScore_nullScore_shouldThrow() {
+    void recordInitialReviewRevision_nullScore_shouldThrow() {
         ReviewCase rc = createPendingAssignment();
         rc.forceStatus(CaseStatus.INITIAL_REVIEW_COMPLETED);
 
         assertThrows(NullPointerException.class,
-                () -> rc.updateFinalScore(null));
+                () -> rc.recordInitialReviewRevision(rc.getLatestInitialSubmissionId(), "sub-new", null));
     }
 }

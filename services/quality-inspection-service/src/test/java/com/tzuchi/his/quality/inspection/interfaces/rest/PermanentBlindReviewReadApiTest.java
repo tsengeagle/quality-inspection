@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.*;
 import com.tzuchi.his.quality.inspection.application.common.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.AssignRereviewerUseCase;
 import com.tzuchi.his.quality.inspection.application.reviewcase.ReassignRereviewerUseCase;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.*;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
 import com.tzuchi.his.quality.inspection.infrastructure.persistence.project.*;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;

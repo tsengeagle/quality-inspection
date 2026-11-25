@@ -226,10 +226,7 @@ class UpdatedAtContractIntegrationTest {
         // Seed the existing legal nonterminal revision precondition; do not submit/close and reopen it.
         ReviewSubmissionEntity previous = submissions.findById("s1").orElseThrow();
         previous.setStatus(SubmissionStatus.SUBMITTED); previous.setSubmittedAt(previous.getCreatedAt()); submissions.save(previous);
-        com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand cmd =
-                new com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand();
-        cmd.setCaseId("c1"); cmd.setSubmissionId("s1"); cmd.setAnswers(List.of(AnswerItem.ofRaw("Q", "false"))); cmd.setComment("revision");
-        rereviewRevise.execute(context(DomainRole.REREVIEWER, "H001", "doctor"), cmd);
+        rereviewRevise.execute(context(DomainRole.REREVIEWER, "H001", "doctor"), "c1", "s1", RevisionTestInputs.of(List.of(AnswerItem.ofRaw("Q", "false"))), "revision");
         assertEquals(SubmissionStatus.SUPERSEDED, submissions.findById("s1").orElseThrow().getStatus());
         requireTime();
     }

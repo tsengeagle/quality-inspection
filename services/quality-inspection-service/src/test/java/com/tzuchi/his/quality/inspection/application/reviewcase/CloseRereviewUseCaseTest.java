@@ -4,7 +4,6 @@ import com.tzuchi.his.quality.inspection.application.common.AccessDeniedExceptio
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand;
 import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
@@ -91,7 +90,7 @@ class CloseRereviewUseCaseTest {
         rc.assignRereviewer(REREVIEWER_ID, Instant.parse("2026-06-30T23:59:00Z"), Instant.now());
         rc.startRereview(REREVIEWER_ID); // → REREVIEW_IN_PROGRESS
         rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5")); // finalScore 80.00
-        rc.setLatestRereviewSubmissionId(SUBMISSION_ID);
+        com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, SUBMISSION_ID);
         caseRepo.save(rc);
 
         ReviewSubmission sub = ReviewSubmission.createRereviewDraft(SUBMISSION_ID, CASE_ID, REREVIEWER_ID, Instant.now());
@@ -249,13 +248,9 @@ class CloseRereviewUseCaseTest {
         seedProject();
         seedScoreSheet();
         ReviseRereviewUseCase revise = new ReviseRereviewUseCase(caseRepo, submissionRepo, projectRepo,
-                scoreSheetRepo, new CapturingDomainEventPublisher(), new ScoreCalculationService(), Clock.systemDefaultZone());
-        ReviseRereviewCommand reviseCmd = new ReviseRereviewCommand();
-        reviseCmd.setCaseId(CASE_ID);
-        reviseCmd.setSubmissionId(SUBMISSION_ID);
-        reviseCmd.setAnswers(Arrays.asList(AnswerItem.ofRaw("Q001", "true"), AnswerItem.ofRaw("Q002", "20")));
-        reviseCmd.setComment("revised");
-        revise.execute(rereviewer(), reviseCmd);
+                scoreSheetRepo, new CapturingDomainEventPublisher(), new ScoreCalculationService(), Clock.systemDefaultZone(),
+                () -> java.util.UUID.randomUUID().toString());
+        revise.execute(rereviewer(), CASE_ID, SUBMISSION_ID, RevisionTestInputs.of(Arrays.asList(AnswerItem.ofRaw("Q001", "true"), AnswerItem.ofRaw("Q002", "20"))), "revised");
 
         // revision 已先完成：指向舊版的結案回 CONFLICT
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
@@ -269,7 +264,7 @@ class CloseRereviewUseCaseTest {
         ReviewCase rc = seedSubmittedRereview();
         ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-draft", CASE_ID, REREVIEWER_ID, Instant.now());
         submissionRepo.save(draft);
-        rc.setLatestRereviewSubmissionId("sub-draft");
+        com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, "sub-draft");
         caseRepo.save(rc);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(rereviewer(), CASE_ID, "sub-draft"));
@@ -297,14 +292,10 @@ class CloseRereviewUseCaseTest {
         BigDecimal closedScore = caseRepo.findById(CASE_ID).orElseThrow().getFinalScore();
 
         ReviseRereviewUseCase revise = new ReviseRereviewUseCase(caseRepo, submissionRepo, projectRepo,
-                scoreSheetRepo, new CapturingDomainEventPublisher(), new ScoreCalculationService(), Clock.systemDefaultZone());
-        ReviseRereviewCommand reviseCmd = new ReviseRereviewCommand();
-        reviseCmd.setCaseId(CASE_ID);
-        reviseCmd.setSubmissionId(SUBMISSION_ID);
-        reviseCmd.setAnswers(Arrays.asList(AnswerItem.ofRaw("Q001", "true"), AnswerItem.ofRaw("Q002", "20")));
-        reviseCmd.setComment("revised");
+                scoreSheetRepo, new CapturingDomainEventPublisher(), new ScoreCalculationService(), Clock.systemDefaultZone(),
+                () -> java.util.UUID.randomUUID().toString());
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
-                () -> revise.execute(rereviewer(), reviseCmd));
+                () -> revise.execute(rereviewer(), CASE_ID, SUBMISSION_ID, RevisionTestInputs.of(Arrays.asList(AnswerItem.ofRaw("Q001", "true"), AnswerItem.ofRaw("Q002", "20"))), "revised"));
         assertEquals("CASE_TERMINAL", e.getErrorCode());
 
         ReviewCase rc = caseRepo.findById(CASE_ID).orElseThrow();

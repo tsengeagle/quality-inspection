@@ -16,7 +16,6 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubm
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionRevisedEvent;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.*;
-import com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException;
 import com.tzuchi.his.quality.inspection.testfixture.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -199,7 +198,7 @@ class ReviseInitialReviewUseCaseTest {
     }
 
     @Test
-    void revise_submissionCaseIdMismatch_throwsBadRequest() {
+    void revise_submissionCaseIdMismatch_throwsConflict_D083() {
         seedScoreSheet();
         seedCompletedCase();
 
@@ -209,12 +208,14 @@ class ReviseInitialReviewUseCaseTest {
         sub.submit(Instant.now());
         submissionRepo.save(sub);
 
-        assertThrows(BadRequestException.class,
+        // D-083 第 4 點：不屬於本案一律 409 CONFLICT
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID, revisedAnswers(), null));
+        assertEquals("CONFLICT", e.getErrorCode());
     }
 
     @Test
-    void revise_submissionNotInitialStage_throwsRuleViolation() {
+    void revise_submissionNotInitialStage_throwsConflict_D083() {
         seedScoreSheet();
         seedCompletedCase();
 
@@ -226,8 +227,10 @@ class ReviseInitialReviewUseCaseTest {
                 SCORE_SHEET_ID, null, null, Instant.now(), Instant.now());
         submissionRepo.save(sub);
 
-        assertThrows(DomainRuleViolationException.class,
+        // D-083 第 4 點：不是初審一律 409 CONFLICT（SUBMISSION_NOT_INITIAL 停用）
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
                 () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID, revisedAnswers(), null));
+        assertEquals("CONFLICT", e.getErrorCode());
     }
 
     @Test
@@ -265,5 +268,82 @@ class ReviseInitialReviewUseCaseTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID, revisedAnswers(), null));
+    }
+
+    // --- D-083 ---
+
+    @Test
+    void revise_requiredItemMissing_rejectsWithoutMutation_D083() {
+        seedScoreSheet();
+        seedCompletedCase();
+        seedSubmittedSubmission();
+
+        DomainRuleViolationException e = assertThrows(DomainRuleViolationException.class,
+                () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID,
+                        Collections.singletonList(new AnswerInput("Q002", "18")), "revised"));
+        assertEquals("REQUIRED_ITEMS_NOT_ANSWERED", e.getErrorCode());
+        assertEquals(SubmissionStatus.SUBMITTED, submissionRepo.store.get(SUBMISSION_ID).getStatus());
+        assertEquals(1, submissionRepo.store.size());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
+    @Test
+    void revise_noChanges_rejectsWithoutMutation_D083() {
+        seedScoreSheet();
+        seedCompletedCase();
+        seedSubmittedSubmission();
+
+        // 答案順序不同、數值寫法不同仍視為相同（D-044）
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID,
+                        Arrays.asList(new AnswerInput("Q002", "15.0"), new AnswerInput("Q001", "true")),
+                        "initial comment"));
+        assertEquals("NO_CHANGES", e.getErrorCode());
+        assertEquals(SubmissionStatus.SUBMITTED, submissionRepo.store.get(SUBMISSION_ID).getStatus());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
+    @Test
+    void revise_commentOnlyChange_isAChange_D083() {
+        seedScoreSheet();
+        seedCompletedCase();
+        seedSubmittedSubmission();
+
+        RevisionResult result = useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID,
+                Arrays.asList(new AnswerInput("Q001", "true"), new AnswerInput("Q002", "15")), "new comment");
+        assertEquals(2, result.getRevisionNo());
+    }
+
+    @Test
+    void revise_fixedInitialReview_rejectsBeforeRequiredItems_D083() {
+        seedScoreSheet();
+        ReviewCase rc = seedCompletedCase();
+        rc.fixInitialReview(SUBMISSION_ID, REVIEWER_ID, Instant.parse("2026-01-01T00:00:00Z"),
+                new BigDecimal("17.5"), new BigDecimal("80"));
+        caseRepo.save(rc);
+        seedSubmittedSubmission();
+
+        // 第 7 點：未固定的檢查在必答題之前
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID, Collections.emptyList(), null));
+        assertEquals("INVALID_STATE_TRANSITION", e.getErrorCode());
+    }
+
+    @Test
+    void revise_eventCarriesProperties_D083() {
+        seedScoreSheet();
+        seedCompletedCase();
+        seedSubmittedSubmission();
+
+        RevisionResult result = useCase.execute(reviewer(), CASE_ID, SUBMISSION_ID, revisedAnswers(), "revised");
+
+        ReviewSubmissionRevisedEvent event = (ReviewSubmissionRevisedEvent) eventPublisher.events.get(0);
+        assertEquals(CASE_ID, event.getCaseId());
+        assertEquals(SUBMISSION_ID, event.getOldSubmissionId());
+        assertEquals(result.getNewSubmissionId(), event.getNewSubmissionId());
+        assertEquals("INITIAL", event.getStage());
+        assertEquals(2, event.getRevisionNo());
+        assertEquals("{\"caseId\":\"" + CASE_ID + "\",\"oldSubmissionId\":\"" + SUBMISSION_ID
+                + "\",\"stage\":\"INITIAL\",\"revisionNo\":2}", event.getDetail());
     }
 }
