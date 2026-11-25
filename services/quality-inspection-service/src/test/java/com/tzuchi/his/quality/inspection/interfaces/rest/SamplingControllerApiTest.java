@@ -153,6 +153,51 @@ class SamplingControllerApiTest {
         assert !newBatchId.equals("test-failed-batch") : "Retry must produce a new batchId";
     }
 
+    /**
+     * D-088 第 4 點：失敗與重跑的批次沒有 use case 做得出來（D-086 第 1、2 點），
+     * 這裡讓 HTTP 契約觀察到 failureReason、retryOfBatchId 有值的回應。
+     */
+    @Test
+    void failedAndRetriedBatches_shouldShowFailureReasonAndRetryOf() throws Exception {
+        String projectId = createAndActivateProject("Failed And Retried Test");
+
+        SamplingBatch failedBatch = SamplingBatch.start(
+                "failed-read-batch", projectId, ExecutionMode.MANUAL,
+                new RuleSnapshot("PV-" + projectId + "-v1", 1, "SS-001-v1", "MANUAL", null), Instant.now());
+        failedBatch.fail("simulated failure", Instant.now());
+        batchRepository.save(failedBatch);
+
+        MvcResult retry = mockMvc.perform(post("/sampling-batches/failed-read-batch/retry")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isCreated())
+                .andReturn();
+        String retriedBatchId = objectMapper.readTree(retry.getResponse().getContentAsString())
+                .get("data").get("batchId").asText();
+
+        mockMvc.perform(get("/sampling-batches/failed-read-batch")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("FAILED"))
+                .andExpect(jsonPath("$.data.failureReason").value("simulated failure"));
+        mockMvc.perform(get("/sampling-batches/failed-read-batch/export")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.detail.failureReason").value("simulated failure"));
+        mockMvc.perform(get("/sampling-batches/" + retriedBatchId)
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.retryOfBatchId").value("failed-read-batch"));
+        mockMvc.perform(get("/sampling-batches/" + retriedBatchId + "/export")
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.detail.retryOfBatchId").value("failed-read-batch"));
+        mockMvc.perform(get("/sampling-batches").param("projectId", projectId)
+                        .header("api-key", TestTokenFactory.hospitalManagerToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content[?(@.batchId == '" + retriedBatchId + "')].retryOfBatchId")
+                        .value("failed-read-batch"));
+    }
+
     @Test
     void retrySampling_completedBatch_shouldReturn422() throws Exception {
         String projectId = createAndActivateProject("Retry-Completed Test");

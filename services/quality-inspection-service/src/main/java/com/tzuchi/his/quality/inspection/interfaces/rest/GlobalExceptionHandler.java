@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
 
     /**
      * D-073 第 3 點：請求本文的時間不帶時區、讀不成時間點時回 400 VALIDATION_ERROR（憲法草案第一條第 2 點）。
-     * 其他讀不進來的本文維持現狀：原樣丟回，由 Spring 的 DefaultHandlerExceptionResolver 處理。
+     * 其他讀不進來的本文回 400 BAD_REQUEST，有外殼（D-088 第 7 點，修訂 D-073 第 3 點）。
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnreadable(HttpMessageNotReadableException ex) {
@@ -99,7 +99,8 @@ public class GlobalExceptionHandler {
                         field + " must be an ISO-8601 date-time with a time zone offset"));
             }
         }
-        throw ex;
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ApiResponse.error("BAD_REQUEST",
+                "The request body could not be read"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -17,6 +17,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -47,6 +48,8 @@ class SubmissionQueryApiTest {
         e.setRevisionNo(1);
         e.setTotalScore(BigDecimal.valueOf(85));
         e.setComment("Looks good");
+        e.setCreatedAt(Instant.parse("2026-11-19T09:00:00Z"));
+        e.setSubmittedAt(Instant.parse("2026-11-19T10:00:00Z"));
         submissionRepo.save(e);
     }
 

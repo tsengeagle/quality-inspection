@@ -6,9 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-# ---- D-088：HTTP 介面 D-1（回應契約）。規格先立法，程式由建構 PR 配合（D-088 第 3、7 點）----
-# 案件列表與詳情的 createdAt 目前一律是 null（ReviewCaseQueryAdapter 沒有接上建立時間）
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lists_the_creation_time_of_a_case
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/shows_the_creation_time_in_the_case_detail
-# 其他讀不進來的本文目前是框架預設的 400、沒有本文
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_an_unreadable_body_as_a_bad_request

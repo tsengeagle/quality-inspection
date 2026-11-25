@@ -1,12 +1,11 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase.query;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
+/** 值是 null 的欄位照常輸出（D-088 第 6 點）；SYSTEM_ADMIN 的白名單見 {@link WhitelistedSubmissionDetailView}。 */
 public class SubmissionDetailView {
 
     private final String submissionId;
