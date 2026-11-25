@@ -1,0 +1,11 @@
+{
+  "id": "2026-11-25-d088-request-side-2",
+  "decision": "D-088",
+  "reason": "D-088 第 11、13 點：D-2 的修法 PR 二。建構 PR #172 之後，review-case 加入讀不進來的查詢參數的 3 個範例（少了 role、page 讀不進來、from 讀不進來，都是 BAD_REQUEST）。law/coverage.txt 登記 ReviewCaseController、SubmissionController、AuditController、ReportController 與 13 個請求 dto（含 AttachmentRef）到 specs/review-case/，SamplingController 到 specs/sampling-batch/，ActorContextArgumentResolver、CurrentActor、BadRequestException、interfaces/package-info.java、interfaces/config/ 到 specs/http-common.yaml。ReviewProjectController、ScoreSheetController 與它們的請求 dto 仍是暫准（第 13 點）；沒有使用的 CloseWithoutRereviewRequest、SendToRereviewRequest 仍是暫准。文件：題目清單。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "specs/review-case/examples.yaml",
+    "law/coverage.txt",
+    "law/amendments/"
+  ]
+}

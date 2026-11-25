@@ -2512,6 +2512,40 @@ examples:
       as: manager_h1
     then: { result: REJECTED, code: BAD_REQUEST }
 
+  - name: rejects_a_missing_candidate_role
+    basis: [RC-ACD-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: GET
+        path: "/review-cases/${c}/assignment-candidates"
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+
+  - name: rejects_an_unreadable_page_number
+    basis: [RC-LST-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: GET
+        path: "/review-cases"
+        query: { page: abc }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+
+  - name: rejects_an_unreadable_time_in_the_query
+    basis: [RC-AUD-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: GET
+        path: "/audit-trails"
+        query: { from: not-a-time }
+      as: auditor_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
   - name: rejects_an_anonymous_request
     basis: [RC-G-01]
     given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]

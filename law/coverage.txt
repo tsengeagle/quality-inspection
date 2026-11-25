@@ -231,3 +231,29 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SubmissionSummaryDto.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SamplingExecuteContextResponse.java  legislated  specs/sampling-batch/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/WhitelistedSubmissionDetailView.java  legislated  specs/review-case/
+
+# ---- 已立法：review-case、sampling-batch 的 HTTP 請求端與操作者的傳遞（D-088 第 11、13 點）。寫在目錄那幾列之後，以最後一行為準 ----
+# ReviewProjectController、ScoreSheetController 與它們的請求 dto 仍是暫准（D-088 第 13 點）；CloseWithoutRereviewRequest、SendToRereviewRequest 沒有使用，仍是暫准。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReviewCaseController.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SubmissionController.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/AuditController.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ReportController.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/SamplingController.java  legislated  specs/sampling-batch/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/AssignReviewerRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReassignReviewerRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/CancelReviewCaseRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReturnReviewCaseRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SaveInitialReviewDraftRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReviseInitialReviewRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/AssignRereviewerRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReassignRereviewerRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SaveRereviewDraftRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/SubmitRereviewRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ReviseRereviewRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/ExportRequest.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/AttachmentRef.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ActorContextArgumentResolver.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/CurrentActor.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/BadRequestException.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/package-info.java  legislated  specs/http-common.yaml
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/config/  legislated  specs/http-common.yaml
