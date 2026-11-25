@@ -93,7 +93,7 @@ class ListReviewCasesUseCaseTest {
     void pageAndSize_defaultWhenNotGiven() {
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
 
-        useCase.execute(actor, null, null, "b1", CaseStatus.PENDING_INITIAL_REVIEW, null, null, null, null, null);
+        useCase.execute(actor, null, null, "b1", "PENDING_INITIAL_REVIEW", null, null, null, null, null);
 
         assertEquals(0, queryPort.lastCriteria.getPage());
         assertEquals(20, queryPort.lastCriteria.getSize());

@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.*;
@@ -27,7 +28,7 @@ public class ListCaseAssignmentCandidatesUseCase {
     }
 
     public List<AssignmentCandidateView> execute(ActorContext actor, String caseId,
-                                                 AssignmentCandidateRole role,
+                                                 String roleName,
                                                  String keyword) {
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
 
@@ -35,6 +36,7 @@ public class ListCaseAssignmentCandidatesUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
 
         actor.requireHospitalScope(snapshot.getHospitalId());
+        AssignmentCandidateRole role = parseRole(roleName);
 
         // D-084 第 5 點：與分派頁共用同一份可執行動作的判斷
         List<String> allowedActions = GetCaseAssignmentContextUseCase.allowedActions(snapshot);
@@ -44,6 +46,18 @@ public class ListCaseAssignmentCandidatesUseCase {
         return candidateDirectoryPort.findCandidates(snapshot.getHospitalId(), role, keyword).stream()
                 .map(entry -> toCandidateView(snapshot, role, actionAllowed, entry))
                 .collect(Collectors.toList());
+    }
+
+    /** RC-ACD-05（D-088 第 13 點）：role 沒有給或不認得，在角色、載入、院區範圍的檢查之後回 BAD_REQUEST。 */
+    private static AssignmentCandidateRole parseRole(String roleName) {
+        if (roleName == null) {
+            throw new DomainValidationException("BAD_REQUEST", "role is required");
+        }
+        try {
+            return AssignmentCandidateRole.valueOf(roleName);
+        } catch (IllegalArgumentException e) {
+            throw new DomainValidationException("BAD_REQUEST", "Invalid candidate role: " + roleName);
+        }
     }
 
     private boolean isActionAllowed(AssignmentCandidateRole role, List<String> allowedActions) {

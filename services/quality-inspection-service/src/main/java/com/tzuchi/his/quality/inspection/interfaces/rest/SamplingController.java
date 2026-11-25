@@ -3,8 +3,6 @@ package com.tzuchi.his.quality.inspection.interfaces.rest;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.sampling.*;
-import com.tzuchi.his.quality.inspection.domain.sampling.BatchStatus;
-import com.tzuchi.his.quality.inspection.domain.sampling.ExecutionMode;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.SamplingExecuteContextResponse;
 import org.springframework.http.HttpStatus;
@@ -83,24 +81,9 @@ public class SamplingController {
             @RequestParam(required = false) String hospitalId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        BatchStatus batchStatus = null;
-        if (status != null) {
-            try {
-                batchStatus = BatchStatus.valueOf(status);
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException("Invalid status: " + status);
-            }
-        }
-        ExecutionMode mode = null;
-        if (executionMode != null) {
-            try {
-                mode = ExecutionMode.valueOf(executionMode);
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException("Invalid executionMode: " + executionMode);
-            }
-        }
+        // SB-LST-05（D-088 第 13 點）：status、executionMode 由 use case 檢查，角色在前
         Page<SamplingBatchSummary> result = listUseCase.execute(
-                actor, projectId, batchStatus, mode, hospitalId, page, size);
+                actor, projectId, status, executionMode, hospitalId, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 

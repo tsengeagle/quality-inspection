@@ -522,7 +522,7 @@ class SamplingUseCaseTest {
         assertEquals(2, queryPort.lastCriteria.getPage());
         assertEquals(20, queryPort.lastCriteria.getSize());
 
-        listUseCase.execute(hospitalManagerActor, "p1", BatchStatus.COMPLETED, ExecutionMode.MANUAL, null, 0, 20);
+        listUseCase.execute(hospitalManagerActor, "p1", "COMPLETED", "MANUAL", null, 0, 20);
         assertEquals("p1", queryPort.lastCriteria.getProjectId());
         assertEquals(BatchStatus.COMPLETED, queryPort.lastCriteria.getStatus());
         assertEquals(ExecutionMode.MANUAL, queryPort.lastCriteria.getExecutionMode());

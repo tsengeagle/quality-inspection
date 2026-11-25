@@ -7,12 +7,10 @@ import com.tzuchi.his.quality.inspection.application.common.Page;
 import com.tzuchi.his.quality.inspection.application.reviewcase.*;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentBootstrapView;
-import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.AssignmentCandidateView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseSummary;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView;
 import com.tzuchi.his.quality.inspection.application.reviewcase.query.RevisionHistoryView;
-import com.tzuchi.his.quality.inspection.domain.reviewcase.CaseStatus;
 import com.tzuchi.his.quality.inspection.interfaces.rest.dto.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -121,16 +119,9 @@ public class ReviewCaseController {
             @RequestParam(required = false) String medicalRecordType,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        CaseStatus caseStatus = null;
-        if (status != null) {
-            try {
-                caseStatus = CaseStatus.valueOf(status);
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException("Invalid status: " + status);
-            }
-        }
+        // RC-LST-02（D-088 第 13 點）：status 由 use case 檢查，角色在前
         Page<ReviewCaseSummary> result = listReviewCasesUseCase.execute(actor,
-                hospitalId, projectId, batchId, caseStatus,
+                hospitalId, projectId, batchId, status,
                 reviewerId, rereviewerId, medicalRecordType, page, size);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
@@ -155,16 +146,11 @@ public class ReviewCaseController {
         public ResponseEntity<ApiResponse<List<AssignmentCandidateView>>> listAssignmentCandidates(
                         @CurrentActor ActorContext actor,
                         @PathVariable String caseId,
-                        @RequestParam String role,
+                        @RequestParam(required = false) String role,
                         @RequestParam(required = false) String keyword) {
-                AssignmentCandidateRole candidateRole;
-                try {
-                        candidateRole = AssignmentCandidateRole.valueOf(role);
-                } catch (IllegalArgumentException ex) {
-                        throw new BadRequestException("Invalid candidate role: " + role);
-                }
+                // RC-ACD-05（D-088 第 13 點）：role 由 use case 檢查，角色、載入、院區範圍在前
                 List<AssignmentCandidateView> candidates = listCaseAssignmentCandidatesUseCase.execute(
-                                actor, caseId, candidateRole, keyword);
+                                actor, caseId, role, keyword);
                 return ResponseEntity.ok(ApiResponse.ok(candidates));
         }
 
@@ -237,12 +223,8 @@ public class ReviewCaseController {
             @CurrentActor ActorContext actor,
             @PathVariable String caseId,
             @Valid @RequestBody SaveInitialReviewDraftRequest request) {
-        List<AnswerInput> answers = request.getAnswers().stream()
-                .filter(Objects::nonNull)
-                .map(dto -> new AnswerInput(dto.getItemId(), dto.getAnswerValue()))
-                .collect(Collectors.toList());
         SaveDraftResult result = saveInitialReviewDraftUseCase.execute(
-                actor, caseId, answers, request.getComment());
+                actor, caseId, toAnswerInputs(request.getAnswers()), request.getComment());
         return ResponseEntity.ok(ApiResponse.ok(new SaveDraftResponse(
                 result.getSubmissionId(), result.getStatus(),
                 result.getStage(), result.getTotalScore())));

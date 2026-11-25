@@ -1,12 +1,10 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest.dto;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 public class ReviseInitialReviewRequest {
 
-    @NotNull(message = "answers must not be null")
     @Valid
     private List<SaveInitialReviewDraftRequest.AnswerInputDto> answers;
 

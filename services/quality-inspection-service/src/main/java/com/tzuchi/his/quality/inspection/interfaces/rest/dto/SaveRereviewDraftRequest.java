@@ -1,11 +1,9 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest.dto;
 
-import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.util.List;
 
 public class SaveRereviewDraftRequest {
-    @NotBlank
     private String submissionId;
     private List<SaveInitialReviewDraftRequest.AnswerInputDto> answers;
     private BigDecimal totalScore;

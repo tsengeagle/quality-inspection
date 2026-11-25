@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.project;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
@@ -40,6 +41,10 @@ public class BindScoreSheetToProjectUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
                         "Project not found: " + projectId));
         actor.requireHospitalScope(project.getHospitalId());
+        // RP-BND-04（D-088 第 13 點）：在狀態檢查之前
+        if (scoreSheetVersionId == null || scoreSheetVersionId.isBlank()) {
+            throw new DomainValidationException("VALIDATION_ERROR", "scoreSheetVersionId is required");
+        }
         project.requireBindable();
 
         // 不存在與屬於其他專案的結果相同，不透露其他專案的版本是否存在（RP-BND-02）

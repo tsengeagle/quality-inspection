@@ -1,11 +1,9 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest.dto;
 
-import javax.validation.constraints.NotBlank;
 import java.time.Instant;
 
 public class ExportRequest {
 
-    @NotBlank
     private String reportType;
     private String hospitalId;
     private Instant from;

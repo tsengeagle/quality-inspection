@@ -1,10 +1,8 @@
 package com.tzuchi.his.quality.inspection.interfaces.rest.dto;
 
-import javax.validation.constraints.NotBlank;
 import java.util.List;
 
 public class SubmitRereviewRequest {
-    @NotBlank
     private String submissionId;
     private List<SaveInitialReviewDraftRequest.AnswerInputDto> answers;
     private String comment;

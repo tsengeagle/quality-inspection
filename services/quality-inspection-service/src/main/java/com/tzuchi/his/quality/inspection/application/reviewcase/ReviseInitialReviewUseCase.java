@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
@@ -99,6 +100,10 @@ public class ReviseInitialReviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheetDefinition not found: " + oldSubmission.getBasedOnScoreSheetVersionId()));
 
+        // RC-RVI-10（D-088 第 13 點）：answers 沒有給是不合法的作答，在必答題的檢查之前
+        if (answers == null) {
+            throw new DomainValidationException("VALIDATION_ERROR", "answers is required");
+        }
         List<AnswerItem> rawItems = RevisionChecks.rawAnswers(answers);
         // RC-RVI-10（D-085 第 8 點）：作答的檢查在必答題與沒有變更之前
         scoreCalculationService.requireValidAnswers(rawItems, scoreSheet);

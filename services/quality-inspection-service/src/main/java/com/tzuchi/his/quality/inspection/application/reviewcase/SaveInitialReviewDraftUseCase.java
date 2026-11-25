@@ -1,5 +1,6 @@
 package com.tzuchi.his.quality.inspection.application.reviewcase;
 
+import com.tzuchi.his.quality.inspection.domain.common.DomainValidationException;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
@@ -100,8 +101,12 @@ public class SaveInitialReviewDraftUseCase {
                     "Submission must be DRAFT");
         }
 
+        // RC-DRF-04（D-088 第 13 點）：answers 沒有給是不合法的作答；空的清單是清空作答
+        if (answers == null) {
+            throw new DomainValidationException("VALIDATION_ERROR", "answers is required");
+        }
         // If no answers, update with empty + zero
-        if (answers == null || answers.isEmpty()) {
+        if (answers.isEmpty()) {
             rejectIfUnchanged(Collections.emptyList(), comment, submission);
             submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment, Instant.now(clock));
             submissionRepository.save(submission);
