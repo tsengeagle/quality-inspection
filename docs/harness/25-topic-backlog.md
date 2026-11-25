@@ -10,7 +10,8 @@
 
 1. **還沒立法的 ReviewCase 範圍**（`law/coverage.txt` 的 `grandfathered`）。負責人 2026-11-24 同意切成五個切片，順序 C＋B（已完成）→ A 改派（已完成）→ D 修正（已完成）→ E 讀取（進行中）；共用元件跟著第一個用到它的切片，`ReviewSubmission.java` 最後處理。負責人 2026-11-24 決定 `ReviewCase.java` 提早到切片 D 立法。
 2. **前端移除 `finalConclusion`、`rereviewRequired`**（D-084 第 9 點）：後端的建構 PR 移除欄位之後，前端的型別（`cases.service.ts`）與案件詳情頁的 `finalConclusion` 顯示一併移除。前端任務從 `.ai/governance/repo-governance-instruction.md` 進入。
-3. **後端 JDK 定為 17**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗。負責人已決定與 CI 一致，定為 17（含 CLAUDE.md、`.github/copilot-instructions.md` 等文件）。
+3. **更正 D-083 第 10 點與 D-084 第 9 點的事實描述**：兩者說 `rereviewRequired`、`finalConclusion`、`ruleSnapshotRef`「沒有任何行為寫入」，但 `rereviewRequired` 在固定初審、分數超過品質線時被 `fixInitialReview` 寫成 `true`（D-084 建構 PR 查到）。沒有任何地方讀它做判斷，移除不改變行為；條文的理由應改為「沒有任何行為讀取」。在下一個修法 PR 以註記更正。
+4. **後端 JDK 定為 17**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗。負責人已決定與 CI 一致，定為 17（含 CLAUDE.md、`.github/copilot-instructions.md` 等文件）。
 
 ## 已完成
 
