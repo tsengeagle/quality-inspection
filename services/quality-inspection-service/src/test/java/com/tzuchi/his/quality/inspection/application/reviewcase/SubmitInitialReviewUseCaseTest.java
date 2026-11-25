@@ -154,6 +154,29 @@ class SubmitInitialReviewUseCaseTest {
         assertEquals(0, new BigDecimal("80").compareTo(completed.getQualityThreshold()));
     }
 
+    /** RC-SUB-04（D-085 第 8、16 點）：草稿的作答不合法回 VALIDATION_ERROR，在必答題之前，不寫入、不發事件。 */
+    @Test
+    void execute_draftWithInvalidAnswer_isRejectedBeforeRequiredItems() {
+        seedScoreSheet();
+        seedCaseInProgress();
+        ReviewSubmission sub = ReviewSubmission.createInitialDraft(
+                SUBMISSION_ID, CASE_ID, REVIEWER_ID,
+                com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetVersionId.of(SCORE_SHEET_ID, 1), Instant.now());
+        // 必答的 Q001 沒有作答，Q002 的作答不是數字：先回作答的錯誤
+        sub.updateDraft(Collections.singletonList(AnswerItem.ofScored("Q002", "abc", BigDecimal.ZERO)),
+                BigDecimal.ZERO, "draft comment", Instant.now());
+        submissionRepo.save(sub);
+
+        com.tzuchi.his.quality.inspection.domain.common.DomainValidationException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.DomainValidationException.class,
+                () -> useCase.execute(reviewer(), CASE_ID));
+
+        assertEquals("VALIDATION_ERROR", e.getErrorCode());
+        assertEquals(SubmissionStatus.DRAFT, submissionRepo.store.get(SUBMISSION_ID).getStatus());
+        assertEquals(CaseStatus.INITIAL_REVIEW_IN_PROGRESS, caseRepo.store.get(CASE_ID).getStatus());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
     @Test
     void execute_wrongRole_shouldThrow() {
         ActorContext manager = new ActorContext("u1", "Manager",

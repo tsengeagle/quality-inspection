@@ -58,7 +58,7 @@ class SaveRereviewDraftUseCaseTest {
         com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, "sub-r1");
         caseRepository.save(rc);
 
-        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", Instant.now());
+        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", "ssv-1", Instant.now());
         submissionRepository.save(draft);
     }
 

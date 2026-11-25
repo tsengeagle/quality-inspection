@@ -66,10 +66,13 @@ public class ReviewSubmission {
     /**
      * Create a rereview draft submission.
      * Called by StartRereviewUseCase.
+     * RS-INV-05（D-085 第 11 點）：scoreSheetVersionId 是案件的評分表版本。
      */
     public static ReviewSubmission createRereviewDraft(String submissionId, String caseId, String reviewerId,
-                                                       Instant createdAt) {
+                                                       String scoreSheetVersionId, Instant createdAt) {
+        Objects.requireNonNull(scoreSheetVersionId, "scoreSheetVersionId must not be null");
         ReviewSubmission s = new ReviewSubmission();
+        s.basedOnScoreSheetVersionId = scoreSheetVersionId;
         s.submissionId = submissionId;
         s.caseId = caseId;
         s.reviewerId = reviewerId;

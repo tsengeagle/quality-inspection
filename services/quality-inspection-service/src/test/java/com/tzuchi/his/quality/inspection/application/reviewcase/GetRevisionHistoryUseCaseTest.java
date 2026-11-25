@@ -143,7 +143,7 @@ class GetRevisionHistoryUseCaseTest {
         submissionRepo.save(initial);
         if (!phase.equals("before")) {
             rc.startRereview(REREVIEWER_ID);
-            ReviewSubmission own = ReviewSubmission.createRereviewDraft("own", CASE_ID, REREVIEWER_ID, Instant.now());
+            ReviewSubmission own = ReviewSubmission.createRereviewDraft("own", CASE_ID, REREVIEWER_ID, "ssv-1", Instant.now());
             own.updateDraft(Collections.emptyList(), new BigDecimal("80"), "own comment", Instant.now());
             if (!phase.equals("progress")) own.submit(Instant.now());
             submissionRepo.save(own);
@@ -159,7 +159,7 @@ class GetRevisionHistoryUseCaseTest {
     // --- D-059 第 3 點：revision-history 對複審資料的保護（取代已移除的 rereview-revisions） ---
 
     private void seedSubmittedRereview() {
-        ReviewSubmission rereview = ReviewSubmission.createRereviewDraft("sub-r1", CASE_ID, REREVIEWER_ID, Instant.now());
+        ReviewSubmission rereview = ReviewSubmission.createRereviewDraft("sub-r1", CASE_ID, REREVIEWER_ID, "ssv-1", Instant.now());
         rereview.updateDraft(
                 java.util.Arrays.asList(
                         com.tzuchi.his.quality.inspection.domain.reviewcase.submission.AnswerItem

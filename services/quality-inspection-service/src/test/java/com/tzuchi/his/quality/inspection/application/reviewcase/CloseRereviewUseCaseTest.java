@@ -93,7 +93,7 @@ class CloseRereviewUseCaseTest {
         com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, SUBMISSION_ID);
         caseRepo.save(rc);
 
-        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(SUBMISSION_ID, CASE_ID, REREVIEWER_ID, Instant.now());
+        ReviewSubmission sub = ReviewSubmission.createRereviewDraft(SUBMISSION_ID, CASE_ID, REREVIEWER_ID, "ssv-1", Instant.now());
         sub.updateDraft(Arrays.asList(
                 AnswerItem.ofScored("Q001", "true", new BigDecimal("10.0")),
                 AnswerItem.ofScored("Q002", "10", new BigDecimal("5.0"))), new BigDecimal("15.0"), "comment", Instant.now());
@@ -221,7 +221,7 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_submissionOfAnotherCase_shouldRejectWithConflict() {
         seedSubmittedRereview();
-        ReviewSubmission other = ReviewSubmission.createRereviewDraft("sub-other", "c-other", REREVIEWER_ID, Instant.now());
+        ReviewSubmission other = ReviewSubmission.createRereviewDraft("sub-other", "c-other", REREVIEWER_ID, "ssv-1", Instant.now());
         other.submit(Instant.now());
         submissionRepo.save(other);
         DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
@@ -262,7 +262,7 @@ class CloseRereviewUseCaseTest {
     @Test
     void execute_draftSubmission_shouldRejectWithSubmissionNotSubmitted() {
         ReviewCase rc = seedSubmittedRereview();
-        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-draft", CASE_ID, REREVIEWER_ID, Instant.now());
+        ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-draft", CASE_ID, REREVIEWER_ID, "ssv-1", Instant.now());
         submissionRepo.save(draft);
         com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, "sub-draft");
         caseRepo.save(rc);
