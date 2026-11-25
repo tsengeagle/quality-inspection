@@ -391,6 +391,13 @@ public class ReviewCase {
         this.status = CaseStatus.REREVIEW_IN_PROGRESS;
     }
 
+    /** 開始複審並指向新建立的複審草稿（D-083 第 9 點：案件的複審指標只由 domain 方法改變）。 */
+    public void startRereview(String actorId, String draftSubmissionId) {
+        Objects.requireNonNull(draftSubmissionId, "draftSubmissionId must not be null");
+        startRereview(actorId);
+        this.latestRereviewSubmissionId = draftSubmissionId;
+    }
+
     /**
      * 複審提交：依 D-012／D-020 計算並保存 finalScore。
      * 不結案、不固定，案件維持 REREVIEW_IN_PROGRESS（D-032、D-053 第 4 點）；結案由 {@link #closeAfterRereview()} 另行執行。
@@ -428,10 +435,26 @@ public class ReviewCase {
         this.status = CaseStatus.CLOSED;
     }
 
-    public void updateFinalScoreForRereview(BigDecimal newRereviewScore,
+    /**
+     * 記錄複審修正（D-083 第 9 點，對應 {@link #recordInitialReviewRevision}）：
+     * 舊提交必須是目前有效的複審結果；依 D-012／D-020 以固定的初審分數重算 finalScore；改指新提交。status 不變。
+     */
+    public void recordRereviewRevision(String previousSubmissionId, String newSubmissionId,
+                                       BigDecimal newRereviewScore,
+                                       BigDecimal initialWeight,
+                                       BigDecimal rereviewWeight) {
+        requireNotTerminal();
+        if (!Objects.equals(previousSubmissionId, this.latestRereviewSubmissionId)) {
+            throw new DomainStateConflictException("CONFLICT", "Rereview submission is no longer current");
+        }
+        Objects.requireNonNull(newSubmissionId, "newSubmissionId must not be null");
+        updateFinalScoreForRereview(newRereviewScore, initialWeight, rereviewWeight);
+        this.latestRereviewSubmissionId = newSubmissionId;
+    }
+
+    private void updateFinalScoreForRereview(BigDecimal newRereviewScore,
                                              BigDecimal initialWeight,
                                              BigDecimal rereviewWeight) {
-        requireNotTerminal();
         Objects.requireNonNull(newRereviewScore, "newRereviewScore must not be null");
         this.finalScore = this.initialReviewScore.multiply(initialWeight)
                 .add(newRereviewScore.multiply(rereviewWeight))
@@ -451,8 +474,7 @@ public class ReviewCase {
     /**
      * Update finalScore after a revision. Does not change case status.
      */
-    public void updateFinalScore(BigDecimal newScore) {
-        requireNotTerminal();
+    private void updateFinalScore(BigDecimal newScore) {
         Objects.requireNonNull(newScore, "newScore must not be null");
         this.initialReviewScore = newScore;
         this.finalScore = newScore;
@@ -510,7 +532,8 @@ public class ReviewCase {
     public String getInitialFixedBy() { return initialFixedBy; }
     public String getInitialFixedSubmissionId() { return initialFixedSubmissionId; }
 
-    public void setLatestRereviewSubmissionId(String submissionId) {
+    /** Test-only: package-private, like {@link #forceStatus}. 正式程式改用 startRereview／recordRereviewRevision（D-083 第 9 點）。 */
+    void setLatestRereviewSubmissionId(String submissionId) {
         this.latestRereviewSubmissionId = submissionId;
     }
 }

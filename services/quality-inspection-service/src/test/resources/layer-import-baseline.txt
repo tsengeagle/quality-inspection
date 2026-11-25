@@ -1,7 +1,6 @@
 # ARCH-04 的凍結基線：規則上線當時（2026-11-13）已存在的違規。
 # 格式：分層套件底下的檔案路徑 imports 類別全名。以 # 開頭的行是註解。
 # 本清單只能縮短。違規修掉後，在同一個修改裡把那一行刪掉。
-application/reviewcase/ReviseInitialReviewUseCase.java imports com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException
 infrastructure/security/ApiKeyAuthFilter.java imports com.tzuchi.his.quality.inspection.interfaces.rest.dto.ApiResponse
 interfaces/rest/ActorContextArgumentResolver.java imports com.tzuchi.his.quality.inspection.infrastructure.security.ApiKeyAuthFilter
 reporting/ExportQueryService.java imports com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException

@@ -3,7 +3,6 @@ package com.tzuchi.his.quality.inspection.application.reviewcase;
 import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.common.RoleDeniedException;
-import com.tzuchi.his.quality.inspection.application.reviewcase.command.ReviseRereviewCommand;
 import com.tzuchi.his.quality.inspection.application.common.AccessDeniedException;
 import com.tzuchi.his.quality.inspection.domain.common.MedicalRecordType;
 import com.tzuchi.his.quality.inspection.domain.project.ProjectStatus;
@@ -53,7 +52,8 @@ class ReviseRereviewUseCaseTest {
         scoreSheetRepo = new InMemoryScoreSheetRepository();
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
-        useCase = new ReviseRereviewUseCase(caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone());
+        useCase = new ReviseRereviewUseCase(caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone(),
+                () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext rereviewerActor() {
@@ -91,8 +91,8 @@ class ReviseRereviewUseCaseTest {
                 java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("90"), new BigDecimal("80"));
         rc.assignRereviewer(REREVIEWER_ID, Instant.parse("2026-06-30T23:59:00Z"), Instant.now());
         rc.startRereview(REREVIEWER_ID); // → REREVIEW_IN_PROGRESS
-        rc.updateFinalScoreForRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
-        rc.setLatestRereviewSubmissionId(OLD_SUBMISSION_ID);
+        rc.completeRereview(new BigDecimal("70"), new BigDecimal("0.5"), new BigDecimal("0.5"));
+        com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, OLD_SUBMISSION_ID);
         caseRepo.save(rc);
 
         // Seed the submitted rereview submission (old submission that will be revised)
@@ -116,13 +116,8 @@ class ReviseRereviewUseCaseTest {
                 AnswerItem.ofRaw("Q001", "true"),
                 AnswerItem.ofRaw("Q002", "20")); // max score
 
-        ReviseRereviewCommand cmd = new ReviseRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(OLD_SUBMISSION_ID);
-        cmd.setAnswers(newAnswers);
-        cmd.setComment("revised comment");
 
-        RevisionResult result = useCase.execute(rereviewerActor(), cmd);
+        RevisionResult result = useCase.execute(rereviewerActor(), CASE_ID, OLD_SUBMISSION_ID, RevisionTestInputs.of(newAnswers), "revised comment");
 
         assertNotNull(result.getNewSubmissionId());
         assertEquals(OLD_SUBMISSION_ID, result.getOldSubmissionId());
@@ -177,16 +172,11 @@ class ReviseRereviewUseCaseTest {
                 AnswerItem.ofRaw("Q001", "true"),
                 AnswerItem.ofRaw("Q002", "20"));
 
-        ReviseRereviewCommand cmd = new ReviseRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(OLD_SUBMISSION_ID);
-        cmd.setAnswers(newAnswers);
-        cmd.setComment("revised comment");
 
         ActorContext wrongActor = new ActorContext("someone-else", "Other", EnumSet.of(DomainRole.REREVIEWER), Optional.of(HOSPITAL_ID));
 
         // D-068 第 2 點
-        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, cmd));
+        AccessDeniedException ex = assertThrows(AccessDeniedException.class, () -> useCase.execute(wrongActor, CASE_ID, OLD_SUBMISSION_ID, RevisionTestInputs.of(newAnswers), "revised comment"));
         assertEquals("NOT_ASSIGNED_REREVIEWER", ex.getErrorCode());
     }
 
@@ -200,15 +190,10 @@ class ReviseRereviewUseCaseTest {
                 AnswerItem.ofRaw("Q001", "true"),
                 AnswerItem.ofRaw("Q002", "20"));
 
-        ReviseRereviewCommand cmd = new ReviseRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(OLD_SUBMISSION_ID);
-        cmd.setAnswers(newAnswers);
-        cmd.setComment("revised comment");
 
         ActorContext reviewer = new ActorContext(REREVIEWER_ID, "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of(HOSPITAL_ID));
 
-        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, cmd));
+        assertThrows(RoleDeniedException.class, () -> useCase.execute(reviewer, CASE_ID, OLD_SUBMISSION_ID, RevisionTestInputs.of(newAnswers), "revised comment"));
     }
 
     @ParameterizedTest
@@ -243,22 +228,18 @@ class ReviseRereviewUseCaseTest {
         if (scenario.equals("stale")) {
             ReviewSubmission newer = ReviewSubmission.createRereviewDraft("newer-submission", CASE_ID, REREVIEWER_ID, Instant.now());
             submissionRepo.save(newer);
-            reviewCase.setLatestRereviewSubmissionId(newer.getSubmissionId());
+            com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(reviewCase, newer.getSubmissionId());
         }
-        if (scenario.equals("missingPointer")) reviewCase.setLatestRereviewSubmissionId(null);
+        if (scenario.equals("missingPointer")) com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(reviewCase, null);
         if (scenario.equals("closed")) { reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5")); reviewCase.closeAfterRereview(Instant.now()); }
         if (scenario.equals("cancelled")) reviewCase.cancel("cancelled", Instant.now());
         caseRepo.save(reviewCase);
         List<Object> beforeCase = caseState(reviewCase);
         Map<String, List<Object>> beforeSubmissions = submissionState();
-        ReviseRereviewCommand cmd = new ReviseRereviewCommand();
-        cmd.setCaseId(CASE_ID);
-        cmd.setSubmissionId(OLD_SUBMISSION_ID);
-        cmd.setAnswers(Arrays.asList(AnswerItem.ofRaw("Q001", "true"), AnswerItem.ofRaw("Q002", "20")));
         ActorContext actor = scenario.equals("wrongHospital")
                 ? new ActorContext(REREVIEWER_ID, "ReReviewer", EnumSet.of(DomainRole.REREVIEWER), Optional.of("OTHER"))
                 : rereviewerActor();
-        RuntimeException failure = assertThrows(RuntimeException.class, () -> useCase.execute(actor, cmd));
+        RuntimeException failure = assertThrows(RuntimeException.class, () -> useCase.execute(actor, CASE_ID, OLD_SUBMISSION_ID, RevisionTestInputs.of(Arrays.asList(AnswerItem.ofRaw("Q001", "true"), AnswerItem.ofRaw("Q002", "20"))), null));
         assertTrue(failure instanceof DomainStateConflictException
                 || failure instanceof com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException
                 || failure instanceof com.tzuchi.his.quality.inspection.application.common.AccessDeniedException,
@@ -280,5 +261,79 @@ class ReviseRereviewUseCaseTest {
                 new ArrayList<>(sub.getAnswerSet()), sub.getTotalScore(), sub.getComment(), sub.getSubmittedAt(),
                 sub.getSupersededBySubmissionId(), sub.getCreatedAt(), sub.getUpdatedAt())));
         return state;
+    }
+
+    // --- D-083 ---
+
+    private RevisionResult reviseWith(List<AnswerItem> answers, String comment) {
+        return useCase.execute(rereviewerActor(), CASE_ID, OLD_SUBMISSION_ID,
+                RevisionTestInputs.of(answers), comment);
+    }
+
+    @Test
+    void execute_requiredItemMissing_rejectsWithoutMutation_D083() {
+        seedProject();
+        seedScoreSheet();
+        seedInProgressCaseWithSubmittedRereview();
+        List<Object> beforeCase = caseState(caseRepo.findById(CASE_ID).orElseThrow());
+        Map<String, List<Object>> beforeSubmissions = submissionState();
+
+        com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException e = assertThrows(
+                com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException.class,
+                () -> reviseWith(Collections.singletonList(AnswerItem.ofRaw("Q002", "20")), "revised"));
+        assertEquals("REQUIRED_ITEMS_NOT_ANSWERED", e.getErrorCode());
+        assertEquals(beforeCase, caseState(caseRepo.findById(CASE_ID).orElseThrow()));
+        assertEquals(beforeSubmissions, submissionState());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
+    @Test
+    void execute_noChanges_rejectsWithoutMutation_D083() {
+        seedProject();
+        seedScoreSheet();
+        seedInProgressCaseWithSubmittedRereview();
+        Map<String, List<Object>> beforeSubmissions = submissionState();
+
+        DomainStateConflictException e = assertThrows(DomainStateConflictException.class,
+                () -> reviseWith(Arrays.asList(AnswerItem.ofRaw("Q002", "10"), AnswerItem.ofRaw("Q001", "true")),
+                        "original comment"));
+        assertEquals("NO_CHANGES", e.getErrorCode());
+        assertEquals(beforeSubmissions, submissionState());
+        assertTrue(eventPublisher.events.isEmpty());
+    }
+
+    @Test
+    void execute_publishesSubmissionRevisedThenRereviewRevised_D083() {
+        seedProject();
+        seedScoreSheet();
+        seedInProgressCaseWithSubmittedRereview();
+
+        RevisionResult result = reviseWith(
+                Arrays.asList(AnswerItem.ofRaw("Q001", "true"), AnswerItem.ofRaw("Q002", "20")), "revised");
+
+        // 第 6 點：新提交 ID 是純 UUID
+        assertEquals(result.getNewSubmissionId(), UUID.fromString(result.getNewSubmissionId()).toString());
+
+        assertEquals(2, eventPublisher.events.size());
+        com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionRevisedEvent revised =
+                (com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionRevisedEvent)
+                        eventPublisher.events.get(0);
+        assertEquals(CASE_ID, revised.getCaseId());
+        assertEquals(OLD_SUBMISSION_ID, revised.getOldSubmissionId());
+        assertEquals(result.getNewSubmissionId(), revised.getNewSubmissionId());
+        assertEquals("REREVIEW", revised.getStage());
+        assertEquals(2, revised.getRevisionNo());
+        assertFalse(revised.getDetail().contains("Score"), "ReviewSubmissionRevised 不帶分數");
+
+        RereviewRevisedEvent rr = (RereviewRevisedEvent) eventPublisher.events.get(1);
+        assertEquals(CASE_ID, rr.getCaseId());
+        assertEquals(OLD_SUBMISSION_ID, rr.getOldSubmissionId());
+        assertEquals(result.getNewSubmissionId(), rr.getNewSubmissionId());
+        assertEquals(0, new BigDecimal("20").compareTo(rr.getRereviewScore()));
+        assertEquals(0, new BigDecimal("55").compareTo(rr.getFinalScore()));
+        // 稽核 detail 格式不變（D-083 第 5 點）
+        assertEquals("{\"newSubmissionId\":\"" + result.getNewSubmissionId() + "\",\"oldSubmissionId\":\""
+                + OLD_SUBMISSION_ID + "\",\"rereviewScore\":" + rr.getRereviewScore()
+                + ",\"finalScore\":" + rr.getFinalScore() + "}", rr.getDetail());
     }
 }

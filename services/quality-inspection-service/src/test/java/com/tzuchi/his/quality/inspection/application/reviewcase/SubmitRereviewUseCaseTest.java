@@ -100,7 +100,7 @@ class SubmitRereviewUseCaseTest {
         // score 90 > threshold 80 → PENDING_REREVIEW
         rc.assignRereviewer(REREVIEWER_ID, Instant.parse("2026-06-30T23:59:00Z"), Instant.now());
         rc.startRereview(REREVIEWER_ID);
-        rc.setLatestRereviewSubmissionId(SUBMISSION_ID);
+        com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, SUBMISSION_ID);
         caseRepo.save(rc);
     }
 
@@ -236,9 +236,9 @@ class SubmitRereviewUseCaseTest {
         if (scenario.equals("stale")) {
             ReviewSubmission newer = ReviewSubmission.createRereviewDraft("newer-submission", CASE_ID, REREVIEWER_ID, Instant.now());
             submissionRepo.save(newer);
-            reviewCase.setLatestRereviewSubmissionId(newer.getSubmissionId());
+            com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(reviewCase, newer.getSubmissionId());
         }
-        if (scenario.equals("missingPointer")) reviewCase.setLatestRereviewSubmissionId(null);
+        if (scenario.equals("missingPointer")) com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(reviewCase, null);
         if (scenario.equals("closed")) { reviewCase.completeRereview(BigDecimal.TEN, new BigDecimal("0.5"), new BigDecimal("0.5")); reviewCase.closeAfterRereview(Instant.now()); }
         if (scenario.equals("cancelled")) reviewCase.cancel("cancelled", Instant.now());
         caseRepo.save(reviewCase);

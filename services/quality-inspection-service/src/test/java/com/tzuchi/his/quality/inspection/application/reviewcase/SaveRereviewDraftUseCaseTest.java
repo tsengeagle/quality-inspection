@@ -55,7 +55,7 @@ class SaveRereviewDraftUseCaseTest {
                 java.time.Instant.parse("2026-01-01T00:00:00Z"), new BigDecimal("90"), new BigDecimal("80"));
         rc.assignRereviewer("rereviewer-1", Instant.parse("2026-06-30T23:59:00Z"), Instant.now());
         rc.startRereview("rereviewer-1");
-        rc.setLatestRereviewSubmissionId("sub-r1");
+        com.tzuchi.his.quality.inspection.domain.reviewcase.ReviewCaseTestSupport.pointRereviewAt(rc, "sub-r1");
         caseRepository.save(rc);
 
         ReviewSubmission draft = ReviewSubmission.createRereviewDraft("sub-r1", "c1", "rereviewer-1", Instant.now());

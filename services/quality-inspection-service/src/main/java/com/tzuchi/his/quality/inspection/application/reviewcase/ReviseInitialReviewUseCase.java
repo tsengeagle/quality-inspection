@@ -5,7 +5,6 @@ import com.tzuchi.his.quality.inspection.application.common.ActorContext;
 import com.tzuchi.his.quality.inspection.application.common.DomainEventPublisher;
 import com.tzuchi.his.quality.inspection.application.common.DomainRole;
 import com.tzuchi.his.quality.inspection.application.reviewcase.dto.AnswerInput;
-import com.tzuchi.his.quality.inspection.domain.common.DomainRuleViolationException;
 import com.tzuchi.his.quality.inspection.domain.common.DomainStateConflictException;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.SubmissionStatus;
 import com.tzuchi.his.quality.inspection.domain.common.ResourceNotFoundException;
@@ -18,13 +17,11 @@ import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewSubm
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.event.ReviewSubmissionRevisedEvent;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetDefinition;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
-import com.tzuchi.his.quality.inspection.interfaces.rest.BadRequestException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
 
@@ -69,14 +66,11 @@ public class ReviseInitialReviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("SUBMISSION_NOT_FOUND",
                         "Submission not found: " + submissionId));
 
-        if (!oldSubmission.getCaseId().equals(caseId)) {
-            throw new BadRequestException(
-                    "Submission " + submissionId + " does not belong to case " + caseId);
-        }
-
-        if (oldSubmission.getStage() != ReviewStage.INITIAL) {
-            throw new DomainRuleViolationException("SUBMISSION_NOT_INITIAL",
-                    "Can only revise INITIAL stage submissions. Current: " + oldSubmission.getStage());
+        // D-083 第 4 點：不屬於本案或不是初審，一律 409 CONFLICT
+        if (!caseId.equals(oldSubmission.getCaseId())
+                || oldSubmission.getStage() != ReviewStage.INITIAL) {
+            throw new DomainStateConflictException("CONFLICT",
+                    "Submission must belong to this case and INITIAL stage");
         }
 
         if (!actor.getUserId().equals(oldSubmission.getReviewerId())) {
@@ -93,6 +87,11 @@ public class ReviseInitialReviewUseCase {
             throw new DomainStateConflictException("CONFLICT",
                     "Submission is not the current INITIAL result");
         }
+        // D-083 第 7 點：固定的檢查在必答題之前（domain 的 recordInitialReviewRevision 仍會再檢查）
+        if (reviewCase.isInitialReviewFixed()) {
+            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
+                    "Initial review is fixed and can no longer be revised (D-031, D-054)");
+        }
 
         // Load score sheet for scoring
         ScoreSheetDefinition scoreSheet = scoreSheetRepository
@@ -100,10 +99,12 @@ public class ReviseInitialReviewUseCase {
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
                         "ScoreSheetDefinition not found: " + oldSubmission.getBasedOnScoreSheetVersionId()));
 
+        List<AnswerItem> rawItems = RevisionChecks.rawAnswers(answers);
+        // D-083 第 1 點：必答題與提交相同（D-067）；第 2 點：沒有變更回 NO_CHANGES（D-038）
+        RevisionChecks.requireRequiredItemsAnswered(rawItems, scoreSheet);
+        RevisionChecks.rejectIfUnchanged(rawItems, comment, oldSubmission);
+
         // Calculate scores
-        List<AnswerItem> rawItems = answers.stream()
-                .map(a -> AnswerItem.ofRaw(a.getItemId(), a.getAnswerValue()))
-                .collect(Collectors.toList());
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Create new revision
