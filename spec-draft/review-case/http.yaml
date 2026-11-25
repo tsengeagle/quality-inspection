@@ -1,0 +1,509 @@
+spec_version: 1
+kind: http
+aggregate: ReviewCase
+# ReviewCase 的 HTTP 契約（D-061、D-088）。共用層在 specs/http-common.yaml，格式見 specs/README.md 第七節。
+# 每個端點屬於它呼叫的 use case 所在的規格目錄（specs/review-case/usecases.yaml），不看 URL 前綴。
+# 形狀照程式現況（D-088 第 2 點，2026-11-25 實測），路徑以程式為準（D-058）。
+# 鍵結尾的 ? 表示欄位的值可以是 null；字面值 'null' 是程式目前一律輸出 null 的欄位（D-088 第 2 點）。
+# 草稿：建構 PR 接上 createdAt、改掉提交明細的 NON_NULL 之後，才移到 specs/（D-088 的順序）。
+
+endpoints:
+
+  - usecase: ListReviewCases
+    method: GET
+    path: /review-cases
+    success:
+      status: 200
+      data:
+        content:
+          - caseId: id
+            projectId: id
+            batchId: id
+            hospitalId: id
+            status: enum CaseStatus
+            reviewerId: 'id?'
+            rereviewerId: 'id?'
+            medicalRecordType: text
+            sourceCaseKey: text
+            createdAt: 'text?'
+            assignedAt: 'text?'
+            dueAt: 'text?'
+            projectionType: text
+        page: int
+        size: int
+        totalElements: int
+        totalPages: int
+
+  - usecase: GetReviewCaseDetail
+    method: GET
+    path: /review-cases/{caseId}
+    success:
+      status: 200
+      variants:
+        - name: full
+          data:
+            caseId: id
+            projectId: id
+            batchId: id
+            hospitalId: id
+            status: enum CaseStatus
+            reviewerId: 'id?'
+            rereviewerId: 'id?'
+            medicalRecordType: 'text?'
+            sourceCaseKey: 'text?'
+            initialReviewScore: 'decimal?'
+            finalScore: 'decimal?'
+            createdAt: 'text?'
+            assignedAt: 'text?'
+            dueAt: 'text?'
+            closedAt: 'text?'
+            cancelledAt: 'text?'
+            latestInitialSubmissionId: 'id?'
+            scoreSheetVersionRef: 'text?'
+            submissions:
+              - submissionId: id
+                stage: text
+                reviewerId: id
+                revisionNo: int
+                status: text
+                totalScore: 'decimal?'
+                submittedAt: 'text?'
+            latestRereviewSubmissionId: 'id?'
+            projectionType: text
+            actorRole: text
+            initialReviewContext:
+              pageMode: text
+              hasDraft: boolean
+              hasSubmittedBase: boolean
+              readonly: boolean
+              blocked: boolean
+              blockedReason: 'text?'
+              scoreSheetVersionId: 'id?'
+              allowedActions: [ text ]
+              currentSubmission?:
+                submissionId: id
+                revisionNo: int
+                status: text
+                submittedAt: 'text?'
+              editableSubmission?:
+                submissionId: id
+                revisionNo: int
+                status: text
+                submittedAt: 'null'
+              basedOnVersion?:
+                submissionId: id
+                revisionNo: int
+                status: text
+                submittedAt: text
+            rereviewContext:
+              pageMode: text
+              hasDraft: boolean
+              hasSubmittedBase: boolean
+              closedRevisionException: boolean
+              readonly: boolean
+              blocked: boolean
+              blockedReason: 'text?'
+              scoreSheetVersionId: 'id?'
+              allowedActions: [ text ]
+              currentSubmission?:
+                submissionId: id
+                revisionNo: int
+                status: text
+                submittedAt: text
+              editableSubmission?:
+                submissionId: id
+                revisionNo: int
+                status: text
+                submittedAt: text
+              basedOnVersion?:
+                submissionId: id
+                revisionNo: int
+                status: text
+                submittedAt: text
+              initialSubmissionId: 'id?'
+              initialSubmissionRevisionNo: 'int?'
+              initialReviewerId: 'id?'
+              initialReviewerName: 'null'
+              initialTotalScore: 'decimal?'
+              initialSubmittedAt: 'text?'
+              finalScore: 'decimal?'
+            owner: boolean
+        - name: metadata
+          data:
+            caseId: id
+            caseStatus: enum CaseStatus
+            projectName: text
+            hospitalId: id
+            reviewerId: 'id?'
+            rereviewerId: 'id?'
+            updatedAt: 'text?'
+            latestRevisionSummary: 'null'
+
+  - usecase: GetCaseAssignmentContext
+    method: GET
+    path: /review-cases/{caseId}/assignment-context
+    success:
+      status: 200
+      data:
+        caseId: id
+        projectId: id
+        projectName: text
+        batchId: id
+        hospitalId: id
+        sourceCaseKey: text
+        medicalRecordType: text
+        status: enum CaseStatus
+        pageMode: text
+        blocked: boolean
+        blockedReason: 'text?'
+        allowedActions: [ text ]
+        currentReviewer?:
+          userId: id
+          displayName: text
+          displayLabel: text
+          assignedAt: text
+        currentRereviewer?:
+          userId: id
+          displayName: text
+          displayLabel: text
+          assignedAt: text
+        reviewerDueAt: 'text?'
+        rereviewerDueAt: 'text?'
+        effectiveDueAt: 'text?'
+
+  - usecase: ListCaseAssignmentCandidates
+    method: GET
+    path: /review-cases/{caseId}/assignment-candidates
+    success:
+      status: 200
+      data:
+        - userId: id
+          displayName: text
+          displayLabel: text
+          role: text
+          active: boolean
+          selectable: boolean
+          blockedReason: 'text?'
+
+  - usecase: GetCaseLifecycle
+    method: GET
+    path: /review-cases/{caseId}/lifecycle
+    success:
+      status: 200
+      data:
+        - id: id
+          entityType: text
+          entityId: id
+          action: text
+          actorUserId: id
+          actorUserName: text
+          hospitalId: id
+          occurredAt: text
+          detail: 'text?'
+
+  - usecase: AssignReviewCase
+    method: POST
+    path: /review-cases/{caseId}/assign-reviewer
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: ReassignReviewCase
+    method: POST
+    path: /review-cases/{caseId}/reassign-reviewer
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: CancelReviewCase
+    method: POST
+    path: /review-cases/{caseId}/cancel
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: ReturnInitialReview
+    method: POST
+    path: /review-cases/{caseId}/initial-review/return
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: ReopenInitialReview
+    method: POST
+    path: /review-cases/{caseId}/reopen
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: StartInitialReview
+    method: POST
+    path: /review-cases/{caseId}/initial-review/start
+    success:
+      status: 201
+      data:
+        submissionId: id
+
+  - usecase: SaveInitialReviewDraft
+    method: POST
+    path: /review-cases/{caseId}/initial-review/draft
+    success:
+      status: 200
+      data:
+        submissionId: id
+        status: text
+        stage: text
+        totalScore: decimal
+
+  - usecase: SubmitInitialReview
+    method: POST
+    path: /review-cases/{caseId}/initial-review/submit
+    success:
+      status: 200
+      data:
+        submissionId: id
+        status: text
+        caseId: id
+        caseStatus: enum CaseStatus
+        totalScore: decimal
+
+  - usecase: ReviseInitialReview
+    method: POST
+    path: /review-cases/{caseId}/initial-review/submissions/{submissionId}/revise
+    success:
+      status: 200
+      data:
+        newSubmissionId: id
+        oldSubmissionId: id
+        revisionNo: int
+        totalScore: decimal
+        status: text
+        stage: text
+        caseId: id
+
+  - usecase: GetRevisionHistory
+    method: GET
+    path: /review-cases/{caseId}/revision-history
+    success:
+      status: 200
+      data:
+        caseId: id
+        submissions:
+          - submissionId: id
+            stage: text
+            reviewerId: id
+            status: text
+            revisionNo: int
+            totalScore: 'decimal?'
+            comment: 'text?'
+            submittedAt: text
+            supersededBySubmissionId: 'id?'
+
+  - usecase: CloseWithoutRereview
+    method: POST
+    path: /review-cases/{caseId}/close-without-rereview
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: SendToRereview
+    method: POST
+    path: /review-cases/{caseId}/send-to-rereview
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: AssignRereviewer
+    method: POST
+    path: /review-cases/{caseId}/assign-rereviewer
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: ReassignRereviewer
+    method: POST
+    path: /review-cases/{caseId}/reassign-rereviewer
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: StartRereview
+    method: POST
+    path: /review-cases/{caseId}/start-rereview
+    success:
+      status: 200
+      data: 'null'
+
+  - usecase: SaveRereviewDraft
+    method: POST
+    path: /review-cases/{caseId}/rereview/draft
+    success:
+      status: 200
+      data:
+        submissionId: id
+        status: text
+        stage: text
+        totalScore: decimal
+
+  - usecase: SubmitRereview
+    method: POST
+    path: /review-cases/{caseId}/rereview/submit
+    success:
+      status: 200
+      data:
+        submissionId: id
+        status: text
+        caseId: id
+        caseStatus: enum CaseStatus
+
+  - usecase: FixInitialReview
+    method: POST
+    path: /review-cases/{caseId}/initial-review/submissions/{submissionId}/fix
+    success:
+      status: 200
+      data:
+        caseId: id
+        caseStatus: enum CaseStatus
+        submissionId: id
+        fixedAt: text
+
+  - usecase: CloseRereview
+    method: POST
+    path: /review-cases/{caseId}/rereview/submissions/{submissionId}/close
+    success:
+      status: 200
+      data:
+        caseId: id
+        caseStatus: enum CaseStatus
+        submissionId: id
+
+  - usecase: ReviseRereview
+    method: POST
+    path: /review-cases/{caseId}/rereview/submissions/{submissionId}/revise
+    success:
+      status: 200
+      data:
+        newSubmissionId: id
+        oldSubmissionId: id
+        revisionNo: int
+        totalScore: decimal
+        status: text
+        stage: text
+        caseId: id
+
+  - usecase: GetSubmissionDetail
+    method: GET
+    path: /review-submissions/{submissionId}
+    success:
+      status: 200
+      variants:                    # RC-SBV-01～03（D-084）；值是 null 的欄位照常輸出（D-088）
+        - name: full               # RC-SBV-03
+          data:
+            submissionId: id
+            caseId: id
+            stage: text
+            revisionNo: int
+            status: text
+            reviewerId: id
+            answers:
+              - itemId: id
+                answerValue: text
+                derivedScore: decimal
+            comment: text
+            attachmentRefsJson: 'text?'
+            totalScore: decimal
+            createdAt: text
+            submittedAt: 'text?'
+            maskedFields: 'null'
+        - name: masked             # RC-SBV-01：複審醫師讀初審
+          data:
+            submissionId: id
+            caseId: id
+            stage: text
+            revisionNo: int
+            status: text
+            reviewerId: id
+            answers: 'null'
+            comment: 'null'
+            attachmentRefsJson: 'null'
+            totalScore: 'null'
+            createdAt: text
+            submittedAt: text
+            maskedFields: [ text ]
+        - name: whitelist          # RC-SBV-02：SYSTEM_ADMIN，只有白名單的欄位
+          data:
+            submissionId: id
+            caseId: id
+            stage: text
+            revisionNo: int
+            status: text
+            reviewerId: id
+            submittedAt: text
+            maskedFields: [ text ]
+
+  - usecase: ListAuditTrails
+    method: GET
+    path: /audit-trails
+    success:
+      status: 200
+      data:
+        content:
+          - id: id
+            entityType: text
+            entityId: id
+            action: text
+            actorUserId: id
+            actorUserName: text
+            hospitalId: id
+            occurredAt: text
+            detail: 'text?'
+        page: int
+        size: int
+        totalElements: int
+        totalPages: int
+
+  - usecase: GetDashboardSummary
+    method: GET
+    path: /reports/dashboard-summary
+    success:
+      status: 200
+      data:
+        totalCases: int
+        closedCases: int
+        rereviewedCases: int
+        overdueCases: int
+        completionRate: decimal
+        rereviewRate: decimal
+        overdueRate: decimal
+
+  - usecase: ExportReport
+    method: POST
+    path: /reports/export
+    success:
+      status: 200
+      data:
+        reportType: text
+        rows:
+          - caseId: id
+            projectId: id
+            hospitalId: id
+            status: enum CaseStatus
+            reviewerId: 'id?'
+            rereviewerId: 'id?'
+            initialScore: 'decimal?'
+            finalScore: 'decimal?'
+            createdAt: text
+            closedAt: 'text?'
+            maskedFields: [ text ]
+        summary:
+          totalCases: int
+          closedCases: int
+          rereviewedCases: int
+          overdueCases: int
+          completionRate: decimal
+          rereviewRate: decimal
+          overdueRate: decimal
+        page: int
+        size: int
+        totalElements: int
+        totalPages: int

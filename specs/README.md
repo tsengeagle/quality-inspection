@@ -153,15 +153,17 @@ specs/
    - 純量型別：`id`、`text`、`int`、`decimal`、`boolean`、`enum <名稱>`（名稱在同目錄 `model.yaml` 的 `enums`）。結尾加 `?` 表示可以是 null，要加引號。
    - 字面值 `'null'`、`'true'`、`'false'` 要加引號。
    - `$data` 只能用在共用層的外殼，代表端點的 data 形狀。
+   - 對應表的鍵結尾加 `?`（例如 `currentReviewer?: { userId: id }`）：這個欄位的值可以是 null，值可以是對應表、清單或純量；欄位名稱不含 `?`。不能與純量的 `?`、字面值、`$data` 一起用（D-088 第 5 點）。
+   - 一個端點有幾種形狀時，`success` 用 `variants` 取代 `data`：至少兩項，每項有 `name` 與 `data`。每筆成功回應必須剛好符合其中一種（D-088 第 6 點）。
 3. **錯誤回應。** 錯誤代碼先查 `transport_codes`，再查該 aggregate `usecases.yaml` 的 `error_codes`，以分類對應狀態碼。兩邊都找不到的代碼算違反。
 4. **比對（B-1 觀察）。** 測試期間經過 MockMvc 的每一個回應，都用契約比對；本文必須是單一 JSON 文件。比對器在 `services/quality-inspection-service/src/test/java/.../acceptance/http/`（律法，gate），以 `application-test.yml` 的 `context.initializer.classes` 掛進每個測試 context。
-5. **涵蓋。** 每個端點至少觀察到一次成功回應；data 形狀裡的每個陣列至少觀察到一次非空；data 形狀裡可為 null 的欄位，null 與非 null 都要觀察到。共用層的外殼不寫可為 null 的欄位（錯誤回應的 `message` 一律要有值）。
+5. **涵蓋。** 每個端點至少觀察到一次成功回應（有 `variants` 時每一種都要）；data 形狀裡的每個陣列至少觀察到一次非空；data 形狀裡可為 null 的欄位，null 與非 null 都要觀察到。有 `variants` 時依形狀分開計算。共用層的外殼不寫可為 null 的欄位（錯誤回應的 `message` 一律要有值）。
 6. **閘門。** 報告寫在 `build/reports/http-contract/report.txt`，`build.gradle` 的 test 閘門讀它判決：
    - `specs/` 的契約有問題就未通過。
    - 完整執行時，報告必須是本次執行產生的。
    - 有篩選條件時只判每一筆回應，涵蓋不判。
    - `spec-draft/` 裡的契約只列出、不擋。
-7. **檢查。** `spec_lint` 不檢查這兩種檔案，由 `HttpContractFilesTest` 檢查它們讀得進來、沒有載入問題。
+7. **檢查。** `spec_lint` 不檢查這兩種檔案，由 `HttpContractFilesTest` 檢查它們讀得進來、沒有載入問題。同目錄的 `usecases.yaml`、`model.yaml` 可以是格式 v1 或 v2（D-088 第 6 點）。
 8. **不涵蓋的。** 請求端（請求本文、query、參數名稱）、操作者怎麼傳進來、值的正確性（由 use case 範例負責）。
 
 | aggregate | `http.yaml` | 端點 |

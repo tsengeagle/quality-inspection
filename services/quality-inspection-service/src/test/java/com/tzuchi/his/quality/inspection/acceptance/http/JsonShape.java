@@ -18,6 +18,8 @@ import java.util.regex.Pattern;
  *   <li>字串：純量型別 {@code id}、{@code text}、{@code int}、{@code decimal}、{@code boolean}、
  *       {@code enum <名稱>}，結尾加 {@code ?} 表示可以是 null；字面值 {@code null}、{@code true}、{@code false}；
  *       {@code $data} 只能出現在共用層的外殼，代表端點的 data 形狀。</li>
+ *   <li>對應表的鍵結尾加 {@code ?}：這個欄位的值可以是 null，值的形狀可以是對應表、清單或純量（D-088）。
+ *       欄位名稱不含 {@code ?}。與純量的 {@code ?} 擇一，不可兩個都寫。</li>
  * </ul>
  *
  * <p>形狀無效時 {@link #validate} 記為載入問題；{@link #check} 不丟例外，只把該位置記為無法比對，
@@ -37,6 +39,8 @@ final class JsonShape {
         final Set<String> arrays = new java.util.HashSet<>();
         final Set<String> nulls = new java.util.HashSet<>();
         final Set<String> values = new java.util.HashSet<>();
+        /** 符合這種形狀的成功回應次數（只有幾種形狀的端點才計，D-088）。 */
+        int observed;
     }
 
     /**
@@ -47,7 +51,19 @@ final class JsonShape {
                          List<String> problems, List<String> arrays, List<String> nullables) {
         if (shape instanceof Map) {
             for (Map.Entry<?, ?> e : ((Map<?, ?>) shape).entrySet()) {
-                validate(e.getValue(), path + "." + e.getKey(), enums, allowData, problems, arrays, nullables);
+                String key = String.valueOf(e.getKey());
+                if (!isNullableKey(key)) {
+                    validate(e.getValue(), path + "." + key, enums, allowData, problems, arrays, nullables);
+                    continue;
+                }
+                String field = path + "." + fieldName(key);
+                if (e.getValue() instanceof String && (((String) e.getValue()).endsWith("?")
+                        || LITERALS.contains(e.getValue()) || DATA.equals(e.getValue()))) {
+                    problems.add(field + "：鍵結尾的 ? 不能與 " + e.getValue() + " 一起用");
+                    continue;
+                }
+                nullables.add(field);
+                validate(e.getValue(), field, enums, allowData, problems, arrays, nullables);
             }
         } else if (shape instanceof List) {
             List<?> list = (List<?>) shape;
@@ -112,17 +128,25 @@ final class JsonShape {
                 return;
             }
             Map<?, ?> fields = (Map<?, ?>) shape;
+            Set<String> names = new java.util.HashSet<>();
             for (Map.Entry<?, ?> e : fields.entrySet()) {
-                String key = String.valueOf(e.getKey());
+                String raw = String.valueOf(e.getKey());
+                String key = fieldName(raw);
+                names.add(key);
                 if (!node.has(key)) {
                     out.add(path + "：缺少欄位 " + key);
-                } else {
-                    check(e.getValue(), node.get(key), path + "." + key, norm + "." + key, dataShape, enums, out, seen);
+                    continue;
                 }
+                JsonNode value = node.get(key);
+                if (isNullableKey(raw)) {
+                    (value.isNull() ? seen.nulls : seen.values).add(norm + "." + key);
+                    if (value.isNull()) continue;
+                }
+                check(e.getValue(), value, path + "." + key, norm + "." + key, dataShape, enums, out, seen);
             }
             for (Iterator<String> it = node.fieldNames(); it.hasNext(); ) {
                 String key = it.next();
-                if (!fields.containsKey(key)) {
+                if (!names.contains(key)) {
                     out.add(path + "：契約沒有的欄位 " + key);
                 }
             }
@@ -202,6 +226,15 @@ final class JsonShape {
             default:
                 out.add(path + "：不認得的型別 " + s);
         }
+    }
+
+    /** 對應表的鍵結尾是 ?：這個欄位的值可以是 null（D-088）。 */
+    static boolean isNullableKey(String key) {
+        return key.length() > 1 && key.endsWith("?");
+    }
+
+    static String fieldName(String key) {
+        return isNullableKey(key) ? key.substring(0, key.length() - 1) : key;
     }
 
     static String kind(JsonNode node) {

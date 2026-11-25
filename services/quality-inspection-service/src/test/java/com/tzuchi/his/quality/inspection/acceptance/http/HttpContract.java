@@ -34,6 +34,29 @@ import java.util.stream.Stream;
  */
 public final class HttpContract {
 
+    /** 端點成功回應的一種 data 形狀（D-088：一個端點可以有幾種形狀，每筆回應必須剛好符合其中一種）。 */
+    public static final class Variant {
+        private final String name;
+        private final Object shape;
+        private final List<String> arrays;
+        private final List<String> nullables;
+
+        Variant(String name, Object shape, List<String> arrays, List<String> nullables) {
+            this.name = name;
+            this.shape = shape;
+            this.arrays = arrays;
+            this.nullables = nullables;
+        }
+
+        /** 形狀的名稱；端點只有 {@code data}、沒有 {@code variants} 時是 null。 */
+        public String name() { return name; }
+        Object shape() { return shape; }
+        /** 這種形狀裡的陣列位置，以 {@code $.data} 開頭，巢狀的索引寫成 []。 */
+        List<String> arrays() { return arrays; }
+        /** 這種形狀裡可為 null 的欄位位置，寫法同 {@link #arrays()}。 */
+        List<String> nullables() { return nullables; }
+    }
+
     /** 一個端點。 */
     public static final class Endpoint {
         private final String aggregate;
@@ -42,21 +65,17 @@ public final class HttpContract {
         private final String path;
         private final String[] segments;
         private final int successStatus;
-        private final Object dataShape;
-        private final List<String> arrays;
-        private final List<String> nullables;
+        private final List<Variant> variants;
 
         Endpoint(String aggregate, String usecase, String method, String path, int successStatus,
-                 Object dataShape, List<String> arrays, List<String> nullables) {
+                 List<Variant> variants) {
             this.aggregate = aggregate;
             this.usecase = usecase;
             this.method = method;
             this.path = path;
             this.segments = split(path);
             this.successStatus = successStatus;
-            this.dataShape = dataShape;
-            this.arrays = arrays;
-            this.nullables = nullables;
+            this.variants = variants;
         }
 
         public String aggregate() { return aggregate; }
@@ -64,11 +83,8 @@ public final class HttpContract {
         public String method() { return method; }
         public String path() { return path; }
         public int successStatus() { return successStatus; }
-        Object dataShape() { return dataShape; }
-        /** data 形狀裡的陣列位置，以 {@code $.data} 開頭，巢狀的索引寫成 []。 */
-        List<String> arrays() { return arrays; }
-        /** data 形狀裡可為 null 的欄位位置，寫法同 {@link #arrays()}。 */
-        List<String> nullables() { return nullables; }
+        /** 成功回應的 data 形狀，至少一種。 */
+        List<Variant> variants() { return variants; }
 
         public String key() { return method + " " + path; }
 
@@ -257,17 +273,46 @@ public final class HttpContract {
                     loadProblems.add(where + "：重複的端點 " + normalized);
                 }
                 Map<?, ?> success = map(m.get("success"));
-                if (!(success.get("status") instanceof Integer) || !success.containsKey("data")) {
-                    loadProblems.add(where + "：success 必須有整數 status 與 data");
+                if (!(success.get("status") instanceof Integer) || success.containsKey("data") == success.containsKey("variants")) {
+                    loadProblems.add(where + "：success 必須有整數 status，以及 data 或 variants 其中一個");
                     continue;
                 }
-                List<String> arrays = new ArrayList<>();
-                List<String> nullables = new ArrayList<>();
-                JsonShape.validate(success.get("data"), "$.data", en, false, loadProblems, arrays, nullables);
-                endpoints.add(new Endpoint(aggregate, usecase, method, path, (Integer) success.get("status"),
-                        success.get("data"), arrays, nullables));
+                List<Variant> variants = new ArrayList<>();
+                if (success.containsKey("data")) {
+                    variants.add(variant(null, success.get("data"), where, en));
+                } else {
+                    List<?> raw = list(success.get("variants"));
+                    if (raw.size() < 2) {
+                        loadProblems.add(where + "：variants 至少要有兩種形狀（只有一種時用 data）");
+                    }
+                    Set<String> variantNames = new HashSet<>();
+                    for (Object v : raw) {
+                        Map<?, ?> vm = map(v);
+                        Object name = vm.get("name");
+                        if (!(name instanceof String) || !vm.containsKey("data") || vm.size() != 2) {
+                            loadProblems.add(where + "：variants 的每一項必須剛好有 name（字串）與 data");
+                            continue;
+                        }
+                        if (!variantNames.add((String) name)) {
+                            loadProblems.add(where + "：重複的形狀名稱 " + name);
+                        }
+                        variants.add(variant((String) name, vm.get("data"), where + "（" + name + "）", en));
+                    }
+                    if (variants.isEmpty()) continue;
+                }
+                endpoints.add(new Endpoint(aggregate, usecase, method, path, (Integer) success.get("status"), variants));
             }
         }
+    }
+
+    private Variant variant(String name, Object shape, String where, Map<String, Set<String>> en) {
+        List<String> arrays = new ArrayList<>();
+        List<String> nullables = new ArrayList<>();
+        List<String> problems = new ArrayList<>();
+        JsonShape.validate(shape, "$.data", en, false, problems, arrays, nullables);
+        if (name != null) problems.forEach(p -> loadProblems.add(where + " " + p));
+        else loadProblems.addAll(problems);
+        return new Variant(name, shape, arrays, nullables);
     }
 
     private Map<?, ?> yaml(String name, String text, String kind) {
@@ -287,7 +332,12 @@ public final class HttpContract {
             return null;
         }
         Map<?, ?> m = (Map<?, ?>) doc;
-        if (!Integer.valueOf(1).equals(m.get("spec_version"))) loadProblems.add(name + "：spec_version 必須是 1");
+        // D-088：use case 規格的格式 v2（D-065）也要讀得進來；http.yaml、http-common.yaml 仍是 1。
+        boolean specFile = "usecases".equals(kind) || "aggregate".equals(kind);
+        Object version = m.get("spec_version");
+        if (!(Integer.valueOf(1).equals(version) || specFile && Integer.valueOf(2).equals(version))) {
+            loadProblems.add(name + "：spec_version 必須是 1" + (specFile ? " 或 2" : ""));
+        }
         if (!kind.equals(m.get("kind"))) loadProblems.add(name + "：kind 必須是 " + kind + "，實際是 " + m.get("kind"));
         return m;
     }

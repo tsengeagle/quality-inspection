@@ -1,0 +1,147 @@
+spec_version: 1
+kind: http
+aggregate: SamplingBatch
+# SamplingBatch 的 HTTP 契約（D-061、D-088）。共用層在 specs/http-common.yaml，格式見 specs/README.md 第七節。
+# 每個端點屬於它呼叫的 use case 所在的規格目錄（specs/sampling-batch/usecases.yaml），不看 URL 前綴。
+# 形狀照程式現況（D-088 第 2 點，2026-11-25 實測），路徑以程式為準（D-058）。
+# 鍵結尾的 ? 表示欄位的值可以是 null；字面值 'null' 是程式目前一律輸出 null 的欄位（D-088 第 2 點）。
+# 草稿：建構 PR 補上失敗與重跑批次的觀察之後，才移到 specs/（D-088 的順序）。
+
+endpoints:
+
+  - usecase: GetSamplingExecuteContext
+    method: GET
+    path: /review-projects/{projectId}/sampling/execute-context
+    success:
+      status: 200
+      data:
+        projectId: id
+        projectName: text
+        hospitalId: id
+        projectStatus: text
+        versionNo: int
+        scoreSheetId: 'id?'
+        qualityThreshold: text
+        ruleSummary: text
+        previewReady: boolean
+        executing: boolean
+        executeFailed: boolean
+        executedBatchId: 'id?'
+        blockedReason: 'text?'
+        previewStats: 'null'
+        postExecuteSummary?:
+          tone: text
+          title: text
+          description: text
+          batchId: id
+          startedAt: text
+          finishedAt: text
+
+  - usecase: PreviewSamplingPopulation
+    method: POST
+    path: /review-projects/{projectId}/sampling/preview
+    success:
+      status: 200
+      data:
+        populationCount: int
+        eligibleCount: int
+        excludedCount: int
+
+  - usecase: ExecuteSampling
+    method: POST
+    path: /review-projects/{projectId}/sampling/execute
+    success:
+      status: 201
+      data:
+        batchId: id
+
+  - usecase: RetrySamplingBatch
+    method: POST
+    path: /sampling-batches/{batchId}/retry
+    success:
+      status: 201
+      data:
+        batchId: id
+
+  - usecase: ListSamplingBatches
+    method: GET
+    path: /sampling-batches
+    success:
+      status: 200
+      data:
+        content:
+          - batchId: id
+            projectId: id
+            projectName: text
+            executionMode: enum ExecutionMode
+            status: enum SamplingBatchStatus
+            populationCount: int
+            eligibleCount: int
+            excludedCount: int
+            selectedCount: int
+            projectVersionId: id
+            projectVersionNumber: int
+            retryOfBatchId: 'id?'
+            startedAt: text
+            finishedAt: text
+        page: int
+        size: int
+        totalElements: int
+        totalPages: int
+
+  - usecase: GetSamplingBatchDetail
+    method: GET
+    path: /sampling-batches/{batchId}
+    success:
+      status: 200
+      data:
+        batchId: id
+        projectId: id
+        executionMode: enum ExecutionMode
+        status: enum SamplingBatchStatus
+        populationCount: int
+        eligibleCount: int
+        excludedCount: int
+        selectedCount: int
+        retryOfBatchId: 'id?'
+        failureReason: 'text?'
+        startedAt: text
+        finishedAt: text
+        ruleSnapshot:
+          projectVersionId: id
+          projectVersionNumber: int
+          scoreSheetVersionId: id
+          samplingPolicy: text
+        selectedCases:
+          - sourceCaseKey: text
+            hospitalId: id
+            medicalRecordType: text
+
+  - usecase: ExportSamplingBatchResult
+    method: GET
+    path: /sampling-batches/{batchId}/export
+    success:
+      status: 200
+      data:
+        detail:
+          batchId: id
+          projectId: id
+          executionMode: enum ExecutionMode
+          status: enum SamplingBatchStatus
+          populationCount: int
+          eligibleCount: int
+          excludedCount: int
+          selectedCount: int
+          retryOfBatchId: 'id?'
+          failureReason: 'text?'
+          startedAt: text
+          finishedAt: text
+          ruleSnapshot:
+            projectVersionId: id
+            projectVersionNumber: int
+            scoreSheetVersionId: id
+            samplingPolicy: text
+          selectedCases:
+            - sourceCaseKey: text
+              hospitalId: id
+              medicalRecordType: text

@@ -5,6 +5,7 @@
 - 2026-11-15：`ScoreSheetDefinition` 草稿（直接採格式 v1，Q-16～Q-23 由 D-050 裁決）已升格到 `specs/score-sheet/`，草稿已移除。
 - 2026-11-18：HTTP 契約試做（`http-common.yaml`、`score-sheet/http.yaml`），只列出、不擋。說明見 `docs/harness/13-http-contract-options.md` 第八、九節。
 - 2026-11-19：HTTP 契約依 D-061 升格到 `specs/http-common.yaml`、`specs/score-sheet/http.yaml`，草稿已移除。之後放在這裡的 HTTP 契約草稿仍會被比對，但只列出、不擋（`specs/README.md` 第七節）。
+- 2026-11-25：`review-case/http.yaml`、`sampling-batch/http.yaml`（D-088 第 10 點）。建構 PR 之後由修法 PR 二移到 `specs/`，草稿移除。
 - 建立日期：2026-11-11，由 Claude Code 依現有文件轉換。
 - 範圍：`ReviewProject` 的 5 支命令與 1 支查詢。
 - 目的：試出一個機器可讀、可驗證的規格格式，並找出現有文件補不出來的地方。

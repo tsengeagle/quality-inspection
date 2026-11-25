@@ -1604,9 +1604,9 @@ examples:
           output: { "content[caseId=${c}]": { status: SELECTED_PENDING_ASSIGNMENT } }
           absent: ["content[caseId=${c}].dueAt"]
 
-  # D-073 第 3 點：其他讀不進來的本文不決定怎麼處理，維持現狀（框架預設的 400、沒有本文）。
+  # D-088 第 7 點（修訂 D-073 第 3 點）：其他讀不進來的本文回 400 BAD_REQUEST，有外殼。
   # 它是 RC-G-05 的邊界：讀不進來、但不是時間格式的問題時，不回 VALIDATION_ERROR。
-  - name: keeps_the_bare_response_for_an_unreadable_body
+  - name: rejects_an_unreadable_body_as_a_bad_request
     basis: [RC-G-05]
     given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
     when:
@@ -1615,7 +1615,7 @@ examples:
         path: "/review-cases/${c}/assign-reviewer"
         body_raw: '{"reviewerId":'
       as: manager_h1
-    then: { status: 400, body: empty }
+    then: { result: REJECTED, code: BAD_REQUEST }
 
   # ---------- 讀取：案件詳情（D-084） ----------
 
@@ -2311,6 +2311,89 @@ examples:
     basis: [RC-G-01]
     when: { run: ExportReport, as: reviewer_h1, input: { reportType: MONTHLY } }
     then: { result: REJECTED, code: ROLE_DENIED }
+
+  # ---------- HTTP 契約的涵蓋（D-088 第 4 點；格式 v2.1） ----------
+  # 業務規則由上面的 use case 範例驗證。這幾個範例經過 HTTP，讓 http.yaml 裡可為 null 的欄位觀察到有值的回應（D-061 第 3 點）。
+
+  # D-088 第 3 點：案件的建立時間是抽選出案件的時間（範例的時鐘起點）。
+  - name: lists_the_creation_time_of_a_case
+    basis: [RC-LST-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: manager_h1, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output: { "content[caseId=${c}]": { createdAt: "2026-11-19T09:00:00Z" } }
+
+  - name: shows_the_creation_time_in_the_case_detail
+    basis: [RC-DTV-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: GetReviewCaseDetail, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS, output: { projectionType: FULL, createdAt: "2026-11-19T09:00:00Z" } }
+
+  - name: lists_a_case_with_both_doctors_over_http
+    basis: [RC-LST-01]
+    given: [{ use: case_in_CLOSED }]
+    when:
+      http: { method: GET, path: /review-cases, query: { batchId: "${b}" } }
+      as: manager_h1
+    then:
+      result: SUCCESS
+      output: { "content[caseId=${c}]": { status: CLOSED, reviewerId: u-r1, rereviewerId: u-rr1 } }
+
+  - name: reads_a_closed_case_detail_over_http
+    basis: [RC-DTV-01]
+    given: [{ use: case_in_CLOSED }]
+    when:
+      http: { method: GET, path: "/review-cases/${c}" }
+      as: manager_h1
+    then: { result: SUCCESS, output: { projectionType: FULL, status: CLOSED } }
+
+  - name: reads_a_cancelled_case_detail_over_http
+    basis: [RC-DTV-01]
+    given: [{ use: case_in_CANCELLED }]
+    when:
+      http: { method: GET, path: "/review-cases/${c}" }
+      as: manager_h1
+    then: { result: SUCCESS, output: { projectionType: FULL, status: CANCELLED } }
+
+  - name: reads_an_own_draft_over_http
+    basis: [RC-SBV-03]
+    given: [{ use: answered_case }]
+    when:
+      http: { method: GET, path: "/review-submissions/${s1}" }
+      as: reviewer_h1
+    then: { result: SUCCESS, output: { submissionId: "${s1}", status: DRAFT } }
+
+  - name: reads_the_assignment_context_with_a_rereviewer_over_http
+    basis: [RC-ACX-01]
+    given: [{ use: rereviewer_assigned }]
+    when:
+      http: { method: GET, path: "/review-cases/${c}/assignment-context" }
+      as: manager_h1
+    then: { result: SUCCESS, output: { caseId: "${c}", "currentRereviewer.userId": u-rr1 } }
+
+  - name: exports_a_closed_case_over_http
+    basis: [RC-RPT-06]
+    given: [{ use: case_in_CLOSED }]
+    when:
+      http:
+        method: POST
+        path: /reports/export
+        body: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" }
+      as: manager_h1
+    then: { result: SUCCESS, output: { "rows[caseId=${c}]": { status: CLOSED, reviewerId: u-r1, rereviewerId: u-rr1 } } }
+
+  - name: exports_masked_scores_for_a_system_admin_over_http
+    basis: [RC-RPT-07]
+    given: [{ use: case_in_CLOSED }]
+    when:
+      http:
+        method: POST
+        path: /reports/export
+        body: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" }
+      as: admin
+    then: { result: SUCCESS, output: { "rows[caseId=${c}]": { maskedFields: [initialScore, finalScore] } } }
+
 not_covered:
   - item: 修正時提交不存在、不是目前有效的結果、操作者不是受指派的複審醫師或不是提交者（RC-RVI-02、RC-RVI-06、RC-RVR-02、RC-RVR-03、RC-RVR-05、RC-RVR-07）
     # D-085：修正過之後，舊的提交是 SUPERSEDED，先被 SUBMISSION_NOT_SUBMITTED 擋下；「已提交但不是目前有效」仍做不出來

@@ -478,6 +478,17 @@ examples:
     when: { run: ExportSamplingBatchResult, as: manager_h2, input: { batchId: "${b}" } }
     then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
 
+  # ---------- HTTP 契約的涵蓋（D-088 第 4 點；格式 v2.1） ----------
+  # 業務規則由上面的 use case 範例驗證。這個範例經過 HTTP，讓 http.yaml 裡可為 null 的 blockedReason 觀察到有值的回應（D-061 第 3 點）。
+
+  - name: reads_a_blocked_execute_context_over_http
+    basis: [SB-CTX-01]
+    given: [{ use: review-project.draft_project }]
+    when:
+      http: { method: GET, path: "/review-projects/${p}/sampling/execute-context" }
+      as: manager_h1
+    then: { result: SUCCESS, output: { projectId: "${p}", blockedReason: PROJECT_VERSION_NOT_PUBLISHED } }
+
 not_covered:
   - item: 專案沒有已發布的版本
     reason: 用 use case 建立不出「啟用中卻沒有已發布版本」的專案（啟用需要已發布，RP-ACT 系列）；由建構者的白箱測試負責（D-065 第 13 點）

@@ -129,6 +129,7 @@ output_types:
     - { name: status,        type: enum CaseStatus }
     - { name: reviewerId,    type: id }
     - { name: rereviewerId,  type: id }
+    - { name: createdAt,     type: datetime }   # D-088 第 3 點
     - { name: assignedAt,    type: datetime }
     - { name: dueAt,         type: datetime }
   RevisionEntry:

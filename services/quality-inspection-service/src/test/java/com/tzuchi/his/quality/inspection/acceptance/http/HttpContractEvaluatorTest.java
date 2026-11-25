@@ -340,4 +340,146 @@ class HttpContractEvaluatorTest {
         assertTrue(e.observationProblems().stream().noneMatch(p -> p.contains("沒有觀察到任何成功回應")), e.observationProblems().toString());
         assertTrue(e.coverageProblems().stream().anyMatch(p -> p.contains("GET /things：沒有觀察到任何成功回應")), e.coverageProblems().toString());
     }
+
+    // ---------- D-088：對應表的鍵結尾加 ?，欄位的值（物件、陣列或純量）可以是 null ----------
+
+    private static final String NULLABLE_HTTP = String.join("\n",
+            "spec_version: 1",
+            "kind: http",
+            "endpoints:",
+            "  - usecase: GetThing",
+            "    method: GET",
+            "    path: /things/{thingId}",
+            "    success:",
+            "      status: 200",
+            "      data:",
+            "        thingId: id",
+            "        owner?: { userId: id, name: text }",
+            "        tags?: [ text ]");
+
+    private static HttpContract nullableContract() {
+        return contract(NULLABLE_HTTP, USECASES);
+    }
+
+    @Test
+    void nullableKeyAcceptsNullAndCoversBothValues() {
+        HttpContract c = nullableContract();
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"owner\":null,\"tags\":null}")));
+        e.observe(new HttpObservation("GET", "/things/T2", 200,
+                ok("{\"thingId\":\"T2\",\"owner\":{\"userId\":\"u1\",\"name\":\"n\"},\"tags\":[\"a\"]}")));
+        List<String> problems = e.problems().stream().filter(p -> p.startsWith("GET /things/{thingId}")).collect(java.util.stream.Collectors.toList());
+        assertTrue(problems.isEmpty(), problems.toString());
+    }
+
+    @Test
+    void nullableKeyStillChecksTheValueShape() {
+        HttpContractEvaluator e = new HttpContractEvaluator(nullableContract());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"owner\":{\"userId\":\"u1\"},\"tags\":null}")));
+        assertProblem(e, "$.data.owner：缺少欄位 name");
+    }
+
+    @Test
+    void nullableKeyIsStillRequiredAndNamedWithoutTheMark() {
+        HttpContractEvaluator e = new HttpContractEvaluator(nullableContract());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"tags\":null,\"owner?\":null}")));
+        assertProblem(e, "$.data：缺少欄位 owner");
+        assertProblem(e, "$.data：契約沒有的欄位 owner?");
+    }
+
+    @Test
+    void nullableKeyNeverObservedNullOrNonNullIsAProblem() {
+        HttpContractEvaluator e = new HttpContractEvaluator(nullableContract());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"owner\":null,\"tags\":[\"a\"]}")));
+        assertProblem(e, "可為 null 的欄位 $.data.owner 從未觀察到非 null 的值");
+        assertProblem(e, "可為 null 的欄位 $.data.tags 從未觀察到 null");
+    }
+
+    @Test
+    void nullableKeyWithNullableScalarIsALoadProblem() {
+        HttpContract c = contract(NULLABLE_HTTP.replace("tags?: [ text ]", "note?: 'text?'"), USECASES);
+        assertTrue(c.loadProblems().stream().anyMatch(p -> p.contains("note：鍵結尾的 ? 不能與 text? 一起用")), c.loadProblems().toString());
+    }
+
+    // ---------- D-088：一個端點有幾種形狀（variants），每筆回應剛好符合其中一種 ----------
+
+    private static final String VARIANT_HTTP = String.join("\n",
+            "spec_version: 1",
+            "kind: http",
+            "endpoints:",
+            "  - usecase: GetThing",
+            "    method: GET",
+            "    path: /things/{thingId}",
+            "    success:",
+            "      status: 200",
+            "      variants:",
+            "        - name: full",
+            "          data: { thingId: id, secret: text, note: 'text?' }",
+            "        - name: masked",
+            "          data: { thingId: id, maskedFields: [ text ] }");
+
+    private static HttpContract variantContract() {
+        return contract(VARIANT_HTTP, USECASES);
+    }
+
+    private static List<String> problemsOf(HttpContractEvaluator e, String key) {
+        return e.problems().stream().filter(p -> p.startsWith(key)).collect(java.util.stream.Collectors.toList());
+    }
+
+    @Test
+    void variantsMatchEachResponseToExactlyOneShape() {
+        HttpContract c = variantContract();
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"secret\":\"s\",\"note\":null}")));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"secret\":\"s\",\"note\":\"n\"}")));
+        e.observe(new HttpObservation("GET", "/things/T2", 200, ok("{\"thingId\":\"T2\",\"maskedFields\":[\"secret\"]}")));
+        assertTrue(problemsOf(e, "GET /things/{thingId}").isEmpty(), e.problems().toString());
+    }
+
+    @Test
+    void aResponseMatchingNoVariantReportsTheClosestOne() {
+        HttpContractEvaluator e = new HttpContractEvaluator(variantContract());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"maskedFields\":[\"secret\"],\"secret\":\"s\"}")));
+        assertProblem(e, "不符合任何一種形狀；最接近的是 masked");
+        assertProblem(e, "$.data：契約沒有的欄位 secret");
+    }
+
+    @Test
+    void eachVariantMustBeObservedAndCoveredOnItsOwn() {
+        HttpContractEvaluator e = new HttpContractEvaluator(variantContract());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"secret\":\"s\",\"note\":null}")));
+        assertProblem(e, "GET /things/{thingId}（masked）：沒有觀察到這種形狀的成功回應");
+        assertProblem(e, "GET /things/{thingId}（full）：可為 null 的欄位 $.data.note 從未觀察到非 null 的值");
+    }
+
+    @Test
+    void ambiguousVariantsAreAProblem() {
+        HttpContract c = contract(VARIANT_HTTP.replace("{ thingId: id, maskedFields: [ text ] }", "{ thingId: id, secret: text, note: 'text?' }"), USECASES);
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"secret\":\"s\",\"note\":null}")));
+        assertProblem(e, "同時符合不只一種形狀（full、masked）");
+    }
+
+    @Test
+    void variantsNeedAtLeastTwoNamedShapesAndExcludeData() {
+        HttpContract one = contract(VARIANT_HTTP.replace(String.join("\n",
+                "        - name: masked",
+                "          data: { thingId: id, maskedFields: [ text ] }"), ""), USECASES);
+        assertTrue(one.loadProblems().stream().anyMatch(p -> p.contains("variants 至少要有兩種形狀")), one.loadProblems().toString());
+        HttpContract both = contract(VARIANT_HTTP.replace("      variants:", "      data: { thingId: id }\n      variants:"), USECASES);
+        assertTrue(both.loadProblems().stream().anyMatch(p -> p.contains("data 或 variants 其中一個")), both.loadProblems().toString());
+    }
+
+    @Test
+    void useCaseSpecsInFormatV2AreReadable() {
+        HttpContract c = HttpContract.parse(COMMON, Map.of("thing", HTTP),
+                Map.of("thing", USECASES.replace("spec_version: 1", "spec_version: 2")),
+                Map.of("thing", MODEL.replace("spec_version: 1", "spec_version: 2")));
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContract bad = HttpContract.parse(COMMON, Map.of("thing", HTTP.replace("spec_version: 1", "spec_version: 2")),
+                Map.of("thing", USECASES), Map.of("thing", MODEL));
+        assertTrue(bad.loadProblems().stream().anyMatch(p -> p.contains("thing/http.yaml：spec_version 必須是 1")), bad.loadProblems().toString());
+    }
 }
