@@ -1,5 +1,5 @@
 # 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-spec_version: 1
+spec_version: 2
 kind: aggregate
 name: ScoreSheetDefinition
 term: 評分表              # glossary.md「評分表 [ScoreSheetDefinition]」

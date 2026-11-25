@@ -1,7 +1,7 @@
 # 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
 #
 # 建立評分表要先有專案，所以每個範例都需要 specs/review-project 的 CreateReviewProject（needs）。
-spec_version: 1
+spec_version: 2
 kind: examples
 aggregate: ScoreSheetDefinition
 
@@ -698,6 +698,101 @@ examples:
           output:
             items:
               - { scoreSheetId: "${s2}" }
+
+  # ---------- 請求端（D-089；格式 v2.1） ----------
+  # 本文的列舉由 use case 檢查，角色在前（D-024）。經過 HTTP 的成功範例確認請求的欄位名稱有傳到 use case；
+  # 業務規則仍由上面的 use case 範例驗證。
+
+  - name: checks_the_role_before_the_score_type
+    basis: [SS-G-01, SS-UPD-13]
+    given: [{ use: draft_sheet }]
+    when:
+      http:
+        method: PUT
+        path: "/score-sheets/${s}"
+        body:
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: NOT_A_TYPE, maxScore: "20", requiredRule: ALWAYS_REQUIRED }
+      as: reviewer_h1
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_an_unknown_score_type
+    basis: [SS-UPD-13]
+    given: [{ use: draft_sheet }]
+    when:
+      http:
+        method: PUT
+        path: "/score-sheets/${s}"
+        body:
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: NOT_A_TYPE, maxScore: "20", requiredRule: ALWAYS_REQUIRED }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: rejects_an_unknown_required_rule
+    basis: [SS-UPD-13]
+    given: [{ use: draft_sheet }]
+    when:
+      http:
+        method: PUT
+        path: "/score-sheets/${s}"
+        body:
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", requiredRule: NOT_A_RULE }
+      as: manager_h1
+    then: { result: REJECTED, code: BAD_REQUEST }
+
+  - name: creates_a_draft_over_http
+    basis: [SS-CRT-01]
+    given: [{ use: project_h1 }]
+    when:
+      http:
+        method: POST
+        path: /score-sheets
+        body: { projectId: "${p}" }
+      as: manager_h1
+    then: { result: SUCCESS }
+
+  - name: adds_a_section_over_http
+    basis: [SS-UPD-04]
+    given: [{ use: draft_sheet }]
+    when:
+      http:
+        method: PUT
+        path: "/score-sheets/${s}"
+        body:
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", requiredRule: ALWAYS_REQUIRED }
+      as: manager_h1
+    then: { result: SUCCESS }
+    observe:
+      - run: GetScoreSheetDetail
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        expect: { result: SUCCESS, output: { sectionCount: 1, itemCount: 1 } }
+
+  - name: lists_sheets_of_a_requested_hospital_over_http
+    basis: [SS-LST-01]
+    given: [{ use: draft_sheet }]
+    when:
+      http:
+        method: GET
+        path: /score-sheets
+        query: { hospitalId: H-01 }
+      as: admin
+    then: { result: SUCCESS, output: { "items[scoreSheetId=${s}]": { projectId: "${p}" } } }
 
 not_covered:
   - { item: emits, reason: "事件不由範例驗證（執行器把 emits 列在 not_covered）" }

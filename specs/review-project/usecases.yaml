@@ -1,5 +1,5 @@
 # 格式說明見 ../README.md（規格格式 v1）。本檔是律法（spec 類），修改需要修法紀錄與簽章。
-spec_version: 1
+spec_version: 2
 kind: usecases
 aggregate: ReviewProject
 
@@ -30,6 +30,7 @@ sources:
 # 分類給實作端決定對外的狀態碼用；規格本身不寫 HTTP。
 error_codes:
   - { code: ROLE_DENIED,                     category: denied,         source: [{ decision: D-023 }] }
+  - { code: BAD_REQUEST,                     category: invalid_input,  source: [{ decision: D-089 }] }
   - { code: HOSPITAL_SCOPE_MISMATCH,         category: denied,         source: [{ decision: D-024 }] }
   - { code: PROJECT_NOT_FOUND,               category: not_found,      source: [{ doc: docs/03-contracts/api-spec.md }] }
   - { code: SCORE_SHEET_NOT_FOUND,           category: not_found,      source: [{ decision: D-050 }, { doc: docs/03-contracts/api-spec.md, section: "§8.2 Error" }] }
@@ -71,6 +72,11 @@ usecases:
       - { name: rereviewWeight,     type: decimal(2),                  required: false, status: decided, source: [{ decision: D-047 }] }
     guards: [RP-G-01]
     rules:
+      - id: RP-CRT-04
+        when: medicalRecordTypes 有不是 MedicalRecordType 的值（在角色檢查之後、其他輸入的檢查之前）
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        source: [{ decision: D-089 }]
+        status: decided
       - id: RP-CRT-01
         when: name 為 null 或空白
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
@@ -86,9 +92,10 @@ usecases:
         outcome: { result: REJECTED, code: VALIDATION_ERROR }
         source: [{ decision: D-040 }]
         status: decided
-    success:
-      output:
+    output:
+      fields:
         - { name: projectId, type: id }
+    success:
       state:
         - { id: RP-CRT-S1, text: status = DRAFT, source: [{ scenario: TS-PV-001 }], status: decided }
         - { id: RP-CRT-S2, text: hospitalId = 操作者的院區（不由輸入指定）, status: decided, source: [{ decision: D-040 }] }
@@ -112,6 +119,11 @@ usecases:
       - { name: rereviewWeight,     type: decimal(2),                  required: false, status: decided, source: [{ decision: D-047 }] }
     guards: [RP-G-01, RP-G-02, RP-G-03]
     rules:
+      - id: RP-UPD-05
+        when: medicalRecordTypes 有不是 MedicalRecordType 的值（在角色、載入、院區範圍的檢查之後，狀態與其他輸入的檢查之前）
+        outcome: { result: REJECTED, code: BAD_REQUEST }
+        source: [{ decision: D-089 }]
+        status: decided
       - id: RP-UPD-01
         when: currentVersion.published = true
         outcome: { result: REJECTED, code: INVALID_STATE_TRANSITION }

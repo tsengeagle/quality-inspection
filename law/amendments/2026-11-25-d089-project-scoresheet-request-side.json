@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-25-d089-project-scoresheet-request-side",
+  "decision": "D-089",
+  "reason": "D-089：review-project、score-sheet 的格式 v2 與請求端的修法 PR 一；docs/harness/40 的 V-1～V-8 照建議。兩個目錄的 model.yaml、usecases.yaml、examples.yaml 改成 spec_version: 2，只改 spec_lint 要求的 7 處（range、enforced_by、success.output、input_note、not_covered 的 rules: [emits]）。規格：兩個 usecases.yaml 新增錯誤代碼 BAD_REQUEST 與 RP-CRT-04、RP-UPD-05、SS-UPD-13（本文的列舉在角色檢查之後）。範例：review-project 新增 7 個 http 範例（列舉 3、成功 4），score-sheet 新增 6 個（列舉 3、成功 3）。紅的 2 個加進 known-test-failures.txt，由建構 PR 移除。文件：草稿 40、題目清單（D-088 移到已完成、本題進行中、事件驗證另立題目）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-project/",
+    "specs/score-sheet/",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}
