@@ -1234,7 +1234,7 @@ examples:
   # ---------- 修正（D-083） ----------
 
   - name: revises_a_submitted_initial_review
-    basis: [RC-RVI-S1, RC-RVI-S2, RC-RVI-S3]
+    basis: [RC-RVI-S1, RC-RVI-S2, RC-RVI-S3, RS-T-05, RS-INV-03, RS-INV-04]
     given: [{ use: low_score_completed_case }]
     when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "3" }], comment: "修正初審" } }
     then:
@@ -1299,7 +1299,7 @@ examples:
     then: { result: REJECTED, code: CASE_TERMINAL }
 
   - name: revises_a_submitted_rereview
-    basis: [RC-RVR-S1, RC-RVR-S2, RC-RVR-S3, RC-RVR-S4, RC-INV-03]
+    basis: [RC-RVR-S1, RC-RVR-S2, RC-RVR-S3, RC-RVR-S4, RC-INV-03, RS-T-06]
     given:
       - use: weighted_rereview_answered
       - run: SubmitRereview
@@ -1923,8 +1923,194 @@ examples:
     when: { run: GetCaseAssignmentContext, as: manager_h2, input: { caseId: "${c}" } }
     then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
 
+  # ---------- 作答的檢查與計分（D-085） ----------
+  # low_score_completed_case 的評分表：I1 是 RANGE、滿分 20、權重 1；初審作答 5 分。拒絕時不寫入。
+
+  - name: rejects_a_non_numeric_range_answer
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "abc" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: rejects_a_negative_range_answer
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "-1" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: rejects_a_range_answer_above_the_maximum
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "21" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: rejects_a_range_answer_with_three_decimals
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "5.555" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: rejects_an_answer_to_an_unknown_item
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "6" }, { itemId: X9, answerValue: "3" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: rejects_two_answers_to_the_same_item
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "3" }, { itemId: I1, answerValue: "4" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: rejects_an_answer_without_a_value
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1 }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: rejects_an_answer_without_an_item
+    basis: [RC-RVI-10, RC-INV-07]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ answerValue: "6" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+    observe:
+      - run: GetRevisionHistory
+        as: reviewer_h1
+        input: { caseId: "${c}" }
+        expect: { result: SUCCESS, output: { "entries[submissionId=${s1}]": { status: SUBMITTED, totalScore: "5" } } }
+
+  - name: accepts_a_range_answer_with_two_decimals
+    basis: [RC-INV-07, RC-INV-08]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "5.55" }] } }
+    then: { result: SUCCESS, output: { totalScore: "5.55" } }
+
+  - name: accepts_a_range_answer_equal_to_the_maximum
+    basis: [RC-INV-07, RC-INV-08]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "20" }] } }
+    then: { result: SUCCESS, output: { totalScore: "20" } }
+
+  # 預設專案的 I1 是 FIXED（滿分 20）：作答內容不影響分數。
+  - name: a_fixed_item_scores_the_maximum_whatever_the_answer
+    basis: [RC-INV-08]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: SaveInitialReviewDraft, as: reviewer_h1, input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "false" }] } }
+    then: { result: SUCCESS, output: { totalScore: "20" } }
+
+  - name: rejects_saving_an_initial_draft_with_an_unknown_item
+    basis: [RC-DRF-04, RC-INV-07]
+    given: [{ use: case_in_INITIAL_REVIEW_IN_PROGRESS }]
+    when: { run: SaveInitialReviewDraft, as: reviewer_h1, input: { caseId: "${c}", answers: [{ itemId: I1, answerValue: "20" }, { itemId: X9, answerValue: "1" }] } }
+    then: { result: REJECTED, code: VALIDATION_ERROR }
+
+  # 複審草稿保存時不計分，不合法的作答在提交時才擋下（RC-SRR-10）。
+  - name: rejects_submitting_a_rereview_draft_with_an_invalid_answer
+    basis: [RC-SRR-10, RC-INV-07]
+    given: [{ use: weighted_rereview_answered }]
+    when: { run: SaveRereviewDraft, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "abc" }], comment: "複審評語" } }
+    then: { result: SUCCESS }
+    observe:
+      - run: SubmitRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}" }
+        expect: { result: REJECTED, code: VALIDATION_ERROR }
+
+  - name: rejects_revising_a_rereview_with_an_invalid_answer
+    basis: [RC-RVR-10, RC-INV-07]
+    given: [{ use: weighted_rereview_answered }]
+    when: { run: SubmitRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}" } }
+    then: { result: SUCCESS }
+    observe:
+      - run: ReviseRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "25" }], comment: "改" }
+        expect: { result: REJECTED, code: VALIDATION_ERROR }
+
+  # ---------- 修正歷史的可見規則（D-085 第 12 點） ----------
+
+  - name: rereviewer_history_hides_the_initial_review
+    basis: [RC-VIS-02]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetRevisionHistory, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "entries[stage=INITIAL]": { submissionId: "${s1}", status: SUBMITTED, reviewerId: u-r1 }
+        "entries[stage=REREVIEW]": { submissionId: "${s2}", totalScore: "20", comment: "複審評語" }
+      absent: ["entries[stage=INITIAL].totalScore", "entries[stage=INITIAL].comment"]
+
+  - name: reviewer_history_shows_the_rereview
+    basis: [RC-VIS-04]
+    given: [{ use: rereview_submitted }]
+    when: { run: GetRevisionHistory, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "entries[stage=REREVIEW]": { submissionId: "${s2}", totalScore: "20", comment: "複審評語" }
+
+  # ---------- D-083 之後做得出來的前提（D-085 第 13 點） ----------
+
+  - name: rejects_fixing_a_superseded_initial_review
+    basis: [RC-FIX-04]
+    given: [{ use: low_score_completed_case }]
+    when: { run: ReviseInitialReview, as: reviewer_h1, input: { caseId: "${c}", submissionId: "${s1}", answers: [{ itemId: I1, answerValue: "6" }] } }
+    then: { result: SUCCESS }
+    observe:
+      - run: FixInitialReview
+        as: reviewer_h1
+        input: { caseId: "${c}", submissionId: "${s1}" }
+        expect: { result: REJECTED, code: CONFLICT }
+
+  - name: rejects_closing_with_a_superseded_rereview
+    basis: [RC-CLR-07]
+    given: [{ use: rereview_submitted }]
+    when: { run: ReviseRereview, as: rereviewer_h1, input: { caseId: "${c}", submissionId: "${s2}", answers: [{ itemId: I1, answerValue: "5" }], comment: "修正複審" } }
+    then: { result: SUCCESS }
+    observe:
+      - run: CloseRereview
+        as: rereviewer_h1
+        input: { caseId: "${c}", submissionId: "${s2}" }
+        expect: { result: REJECTED, code: CONFLICT }
+
 not_covered:
   - item: 修正時提交不存在、不是目前有效的結果、操作者不是受指派的複審醫師或不是提交者（RC-RVI-02、RC-RVI-06、RC-RVR-02、RC-RVR-03、RC-RVR-05、RC-RVR-07）
+    # D-085：修正過之後，舊的提交是 SUPERSEDED，先被 SUBMISSION_NOT_SUBMITTED 擋下；「已提交但不是目前有效」仍做不出來
     reason: 不存在與身分的檢查與既有的提交、固定、結案相同（RC-SRR、RC-CLR、RC-FIX 已有範例）；已被取代的提交先被 SUBMISSION_NOT_SUBMITTED 擋下，要做出「已提交但不是目前有效」的提交需要直接改資料（D-083）
   - item: 逾期
     reason: 權威文件沒有已裁決的逾期規則（api-spec §10.3：期限的檢核尚未定稿），也沒有輸出欄位表示逾期
@@ -1934,9 +2120,15 @@ not_covered:
     reason: 候選人來自人員目錄的埠（AssignmentCandidateDirectoryPort），範例執行器無法把 returns 轉成它的目錄項目，查詢的輸出又是最外層的清單，路徑語法指不到。改執行器是閘門的修改，不在本次範圍；由建構 PR 以單元測試驗證（D-084）
   - item: 複審醫師讀別人的複審提交（RC-SBD-02）
     reason: 通過讀取範圍的複審醫師只有目前的複審醫師與提交過複審的人；改派只在複審開始前，所以目前的複審醫師不會遇到別人已提交的複審。不在範圍內的複審醫師先被 RC-SBD-01 擋下（D-084）
+  - item: BOOLEAN 題目的作答檢查與計分、權重不是 1 時的四捨五入（RC-INV-07、RC-INV-08 的一部分）
+    reason: 範例的評分表只有 FIXED 與 RANGE、權重都是 1；由建構 PR 以單元測試驗證（D-085）
+  - item: 提交初審時草稿的答案不合法（RC-SUB-04）
+    reason: 初審草稿保存時就檢查（RC-DRF-04），範例做不出不合法的初審草稿；由建構 PR 以單元測試驗證（D-085）
+  - item: 複審草稿記錄評分表版本（RC-STR-S4、RS-INV-05）
+    reason: 沒有任何查詢輸出 basedOnScoreSheetVersionId；由建構 PR 以單元測試驗證（D-085）
   - item: 案件沒有 rereviewRequired、finalConclusion、ruleSnapshotRef（RC-INV-06）
     reason: 執行器把 null 與沒有欄位視為相同，範例看不出欄位是否移除；由建構 PR 以單元測試與 migration 驗證（D-084 第 9 點）
-  - item: 初審固定的目標不是本案目前有效的初審結果、仍是草稿（RC-FIX-04、RC-FIX-05）
-    reason: 案件在 INITIAL_REVIEW_COMPLETED 時，唯一的初審提交就是目前有效、已提交的那份；要做出別的情況需要修正已提交的初審；修正已由 D-083 立法，這兩條的範例還沒補
-  - item: 提交不存在（RC-RDR-04、RC-SRR-04、RC-CLR-03）與不是目前有效的複審結果（RC-RDR-08、RC-SRR-08、RC-CLR-07）
-    reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。不是目前有效的複審結果需要修正已提交的複審；修正已由 D-083 立法，這幾條的範例還沒補
+  - item: 初審固定的目標仍是草稿（RC-FIX-05）
+    reason: 案件在 INITIAL_REVIEW_COMPLETED 時，初審的提交都已提交過；草稿只在 INITIAL_REVIEW_IN_PROGRESS 出現，那時固定先被 RC-FIX-03 擋下（D-085）。RC-FIX-04 已有範例
+  - item: 提交不存在（RC-RDR-04、RC-SRR-04、RC-CLR-03）與不是目前有效的複審草稿（RC-RDR-08、RC-SRR-08）
+    reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。複審草稿只有開始複審時的那一份，改派只在複審開始前，所以做不出「是草稿但不是目前有效」（D-085）。RC-CLR-07 已有範例

@@ -1,0 +1,16 @@
+{
+  "id": "2026-11-25-d085-review-submission",
+  "decision": "D-085",
+  "reason": "D-085：切片 C（ReviewSubmission 本體、計分、ReviewCase 的收尾）；docs/harness/36 的 T-1～T-14 全部照建議裁決，並以第 20 點註記更正 D-083 第 10 點與 D-084 第 9 點的事實描述。規格：review-case/usecases.yaml 在五個計分的 use case 加上作答檢查（RC-DRF-04、RC-SUB-04、RC-SRR-10、RC-RVI-10、RC-RVR-10，VALIDATION_ERROR），StartRereview 加上 RC-STR-S4（複審草稿記錄評分表版本），GetRevisionHistory 補上 RC-VIS-02、RC-VIS-04；review-case/model.yaml 新增 RC-INV-07（作答的檢查）、RC-INV-08（計分），deferred_behaviors 更新（修正歷史的遮罩已立法、CONDITIONAL 延後）；review-submission/model.yaml 把修正造成的 SUBMITTED→SUPERSEDED 改為轉移（RS-T-05、RS-T-06），新增 terminal_states、RS-INV-01～06、deferred_behaviors（附件）；review-case/examples.yaml 新增 19 個範例，兩個修正範例的 basis 補上 RS-T-05、RS-T-06，not_covered 更新。一開始是紅的 11 個範例加進 known-test-failures.txt，由建構 PR 移除（D-066 第 5 點）。law/coverage.txt 登記 submission/ 六個檔案（specs/review-submission/）與計分、結果類別、AnswerInput、列表與修正歷史的 view 共 13 個檔案（specs/review-case/）。文件：api-spec §11 的作答檢查、草稿 36、題目清單（D-084 與事實更正移到已完成、寫入負責人同意的順序）、README 索引。程式沒有動（P4）。",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/model.yaml",
+    "specs/review-case/examples.yaml",
+    "specs/review-submission/model.yaml",
+    "law/coverage.txt",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/amendments/"
+  ]
+}

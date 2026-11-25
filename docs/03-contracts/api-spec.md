@@ -1295,6 +1295,17 @@ Accept: application/json
 
 ---
 
+### 作答的檢查與計分（D-085）
+
+保存初審草稿、提交初審、提交複審、修正初審、修正複審都會計分；計分前先檢查作答，不合法回 `400 VALIDATION_ERROR`，不寫入（規格 RC-INV-07、RC-INV-08）：
+
+* 每一筆都有 `itemId` 與 `answerValue`；`itemId` 是評分表的題目；同一題只作答一次。
+* BOOLEAN：作答是 `true` 或 `false`；`true` 得 滿分 × 權重，`false` 得 0。
+* RANGE：作答是 0 到滿分之間的數字，最多兩位小數；得 作答 × 權重。
+* FIXED：作答內容不檢查，得 滿分 × 權重。
+* 題目分數與總分四捨五入到兩位小數（HALF_UP）；總分是各題相加，沒有作答的題目不計分。
+* 位置在狀態、指派、提交歸屬的檢查之後，必答題（與沒有變更）之前。複審草稿保存時不計分，不合法的作答在提交複審時才擋下。
+
 ## 11.1 開始初審
 
 ### `POST /review-cases/{caseId}/initial-review/start`

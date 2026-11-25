@@ -276,6 +276,11 @@ usecases:
         outcome: { result: REJECTED, code: CASE_NOT_IN_INITIAL_REVIEW_STAGE }
         status: decided
         source: [{ decision: D-068 }, { doc: docs/03-contracts/api-spec.md, section: "§4.2" }]
+      - id: RC-DRF-04
+        when: 輸入的 answers 不合法（RC-INV-07），在狀態、提交歸屬的檢查之後、沒有變更的檢查之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-085 }, { rule: RC-INV-07 }]
     success:
       state:
         - { id: RC-DRF-S1, text: 草稿的答案與評語等於輸入, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
@@ -306,6 +311,11 @@ usecases:
         outcome: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
         status: decided
         source: [{ decision: D-067 }]
+      - id: RC-SUB-04
+        when: 草稿的答案不合法（RC-INV-07），在必答題的檢查之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-085 }, { rule: RC-INV-07 }]
     success:
       state:
         - { id: RC-SUB-S1, text: status = INITIAL_REVIEW_COMPLETED，不論分數與品質線的關係, status: decided, source: [{ decision: D-031 }, { decision: D-054 }] }
@@ -473,6 +483,7 @@ usecases:
       state:
         - { id: RC-STR-S1, text: status = REREVIEW_IN_PROGRESS, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§3.2" }, { scenario: TS-RR-002 }] }
         - { id: RC-STR-S2, text: 建立一份複審階段的提交，狀態 DRAFT、revisionNo = 1、醫師是操作者, status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-069 }] }
+        - { id: RC-STR-S4, text: 複審草稿的 basedOnScoreSheetVersionId 是案件的評分表版本（scoreSheetVersionRef）；修正照舊帶過去, status: decided, source: [{ decision: D-085 }] }
         - { id: RC-STR-S3, text: RereviewStarted 帶有 caseId、submissionId、rereviewerId, status: decided, source: [{ decision: D-070 }, { doc: docs/02-ddd/domain-events.md, section: "§6.7" }] }
       emits:
         - { event: RereviewStarted, status: decided, source: [{ doc: docs/02-ddd/domain-events.md, section: "§6.7" }] }
@@ -599,6 +610,11 @@ usecases:
         outcome: { result: REJECTED, code: REQUIRED_ITEMS_NOT_ANSWERED }
         status: decided
         source: [{ decision: D-076 }]
+      - id: RC-SRR-10
+        when: 這次提交採用的答案不合法（RC-INV-07），在必答題的檢查之前。複審草稿保存時不計分（D-069 第 7 點），所以不合法的作答在提交時才擋下
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-085 }, { rule: RC-INV-07 }]
     success:
       state:
         - { id: RC-SRR-S1, text: status 維持 REREVIEW_IN_PROGRESS，不結案、不固定, status: decided, source: [{ decision: D-032 }, { decision: D-053 }, { scenario: TS-RR-003 }] }
@@ -733,6 +749,11 @@ usecases:
         outcome: { result: REJECTED, code: NO_CHANGES }
         status: decided
         source: [{ decision: D-038 }, { decision: D-083 }]
+      - id: RC-RVI-10
+        when: 輸入的 answers 不合法（RC-INV-07），在未固定的檢查之後、必答題之前（D-083 第 7 點的順序加上這一步）
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-085 }, { rule: RC-INV-07 }]
     success:
       state:
         - { id: RC-RVI-S1, text: 建立新的初審提交，狀態 SUBMITTED、revisionNo 加 1、醫師與評分表版本同原提交；原提交改為 SUPERSEDED 並指向新提交；案件改指新提交，status 不變, status: decided, source: [{ decision: D-032 }, { decision: D-083 }, { doc: docs/03-contracts/api-spec.md, section: "§11.4" }] }
@@ -806,6 +827,11 @@ usecases:
         outcome: { result: REJECTED, code: NO_CHANGES }
         status: decided
         source: [{ decision: D-038 }, { decision: D-083 }]
+      - id: RC-RVR-10
+        when: 輸入的 answers 不合法（RC-INV-07），在目前有效的檢查之後、必答題之前
+        outcome: { result: REJECTED, code: VALIDATION_ERROR }
+        status: decided
+        source: [{ decision: D-085 }, { rule: RC-INV-07 }]
     success:
       state:
         - { id: RC-RVR-S1, text: 建立新的複審提交，狀態 SUBMITTED、revisionNo 加 1；原提交改為 SUPERSEDED 並指向新提交；案件改指新提交，status 維持 REREVIEW_IN_PROGRESS, status: decided, source: [{ decision: D-032 }, { decision: D-083 }] }
@@ -1023,6 +1049,18 @@ usecases:
         outcome: { result: SUCCESS }
         status: decided
         source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5" }, { decision: D-055 }]
+      - id: RC-VIS-02
+        when: 操作者是 REREVIEWER（本案目前的複審醫師或提交過複審的人）
+        text: 初審的每一筆沒有 totalScore 與 comment；自己的複審那幾筆有 totalScore 與 comment
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-033 }, { decision: D-085 }]
+      - id: RC-VIS-04
+        when: 操作者是本案的初審醫師
+        text: 複審的每一筆也有 totalScore 與 comment
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-084 }, { decision: D-085 }]
       - id: RC-VIS-03
         when: 操作者是 SYSTEM_ADMIN
         text: 每一筆歷程都沒有 totalScore 與 comment

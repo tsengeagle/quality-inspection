@@ -25,7 +25,36 @@ transitions:
   - { id: RS-T-02, from: DRAFT, to: SUBMITTED, by: review-case.SubmitInitialReview,    status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }] }
   - { id: RS-T-03, from: DRAFT, to: DRAFT,     by: review-case.SaveRereviewDraft,      status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-069 }] }
   - { id: RS-T-04, from: DRAFT, to: SUBMITTED, by: review-case.SubmitRereview,         status: decided, source: [{ doc: docs/02-ddd/state-machine.md, section: "§4.2" }, { decision: D-069 }] }
+  - { id: RS-T-05, from: SUBMITTED, to: SUPERSEDED, by: review-case.ReviseInitialReview, status: decided, source: [{ decision: D-083 }, { decision: D-085 }] }
+  - { id: RS-T-06, from: SUBMITTED, to: SUPERSEDED, by: review-case.ReviseRereview,      status: decided, source: [{ decision: D-083 }, { decision: D-085 }] }
 
-deferred_transitions:
-  - { from: SUBMITTED, to: SUPERSEDED, by: ReviseInitialReview, note: 修正已提交的初審；同時建立一份新的 SUBMITTED }
-  - { from: SUBMITTED, to: SUPERSEDED, by: ReviseRereview,      note: 複審 }
+terminal_states: [SUPERSEDED]
+
+invariants:
+  - id: RS-INV-01
+    text: 提交由開始初審、開始複審建立為 DRAFT，revisionNo = 1；修正直接建立一份 SUBMITTED（不經過 DRAFT）
+    status: decided
+    source: [{ decision: D-054 }, { decision: D-069 }, { decision: D-083 }, { decision: D-085 }]
+  - id: RS-INV-02
+    text: 只有 DRAFT 能保存與提交；SUBMITTED、SUPERSEDED 的答案、評語、分數不再改變（append-only）
+    status: decided
+    source: [{ doc: docs/02-ddd/state-machine.md, section: "§4" }, { decision: D-085 }]
+  - id: RS-INV-03
+    text: 修正建立的提交 revisionNo = 被修正的 + 1；案件、階段、醫師、評分表版本與被修正的相同
+    status: decided
+    source: [{ decision: D-083 }, { decision: D-085 }]
+  - id: RS-INV-04
+    text: SUPERSEDED 的提交一定有 supersededBySubmissionId，指向取代它的提交
+    status: decided
+    source: [{ decision: D-083 }, { decision: D-085 }]
+  - id: RS-INV-05
+    text: 每一份提交都有 basedOnScoreSheetVersionId：初審是開始初審時的評分表版本，複審是案件的評分表版本（RC-STR-S4）
+    status: decided
+    source: [{ decision: D-085 }]
+  - id: RS-INV-06
+    text: 草稿的 totalScore：初審草稿保存時計分（建立時是 0）；複審草稿不計分，是 null，提交時才計分（D-069 第 7 點）
+    status: decided
+    source: [{ decision: D-069 }, { decision: D-085 }]
+
+deferred_behaviors:
+  - 附件（attachmentRefsJson）：沒有任何行為寫入，修正時也不帶到新的提交；等附件的上傳與儲存策略裁決（D-085 第 11 點）
