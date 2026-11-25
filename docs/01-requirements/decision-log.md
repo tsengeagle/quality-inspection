@@ -3420,3 +3420,56 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/03-contracts/api-spec.md`（§10.2、§10.3、§13.1）、`docs/02-ddd/domain-model.md`（ReviewCase 的欄位）
 - 後續：建構 PR；前端移除 `finalConclusion`、`rereviewRequired` 的型別與顯示另列題目
+
+## D-085 — 切片 C：`ReviewSubmission` 本體、計分，以及 ReviewCase 的收尾
+
+### Status
+
+`accepted`（2026-11-25，負責人對 `docs/harness/36-review-submission-draft.md` 的 T-1～T-14 全部照建議裁決）
+
+### Decision
+
+**計分（作答的檢查，RC-INV-07；題目分數，RC-INV-08）**
+
+1. **RANGE 的作答不是數字或小於 0（T-1 選 A）**：400 `VALIDATION_ERROR`，不寫入。
+2. **作答沒有 `answerValue` 或 `itemId`（T-2 選 A）**：400 `VALIDATION_ERROR`。
+3. **RANGE 的作答大於滿分（T-3 選 A）**：400 `VALIDATION_ERROR`，不默默截斷。
+4. **小數位數（T-4 選 A）**：RANGE 的作答最多兩位小數，超過回 400 `VALIDATION_ERROR`。題目分數（作答 × 權重）與總分四捨五入到兩位小數（HALF_UP），與 `finalScore` 相同，輸出與保存一致。
+5. **評分表沒有的題目（T-5 選 A）**：400 `VALIDATION_ERROR`。
+6. **同一題作答兩次（T-6 選 A）**：400 `VALIDATION_ERROR`。
+7. **三種題目的計分（T-7）**：BOOLEAN 的作答只能是 `true` 或 `false`，`true` 得 滿分 × 權重、`false` 得 0；FIXED 作答就得 滿分 × 權重，作答內容不檢查也不影響分數；RANGE 得 作答 × 權重。總分是各題分數相加，沒有作答的題目不計分。`CONDITIONAL` 的必答與 `conditionExpression` 的求值不在本次範圍（D-014），列進 `deferred_behaviors`。
+8. **檢查的位置**：第 1～7 點的作答檢查在每一個計分的地方執行：保存初審草稿（RC-DRF-04）、提交初審（RC-SUB-04）、提交複審（RC-SRR-10）、修正初審（RC-RVI-10）、修正複審（RC-RVR-10）。位置在狀態、指派、提交歸屬的檢查之後，必答題（與沒有變更）的檢查之前。複審草稿保存時不計分（D-069 第 7 點），所以不合法的作答在提交複審時才擋下。
+
+**`ReviewSubmission`**
+
+9. **狀態轉移與不變式（T-8）**：`specs/review-submission/model.yaml` 立法。修正造成的 `SUBMITTED → SUPERSEDED`（RS-T-05、RS-T-06）改為轉移；`SUPERSEDED` 是終點；不變式 RS-INV-01～06：建立、只有 `DRAFT` 能保存與提交、append-only、修正的 `revisionNo` 與照舊的欄位、`SUPERSEDED` 一定指向取代它的提交、評分表版本、草稿的分數。
+10. **草稿的分數（T-9 選 A）**：照程式。初審草稿保存時計分（建立時 0）；複審草稿不計分，是 `null`。
+11. **複審提交的評分表版本（T-10 選 A）**：開始複審時把案件的 `scoreSheetVersionRef` 記到複審草稿的 `basedOnScoreSheetVersionId`，修正照舊帶過去；計分仍用案件的版本，行為不變。
+12. **附件（T-11）**：`attachmentRefsJson` 不移除（附件是規劃中的功能，D-008、permission-matrix §5），列進 `deferred_behaviors`，等附件的上傳與儲存策略裁決；修正時是否帶到新的提交一併延後。
+
+**ReviewCase 的收尾**
+
+13. **修正歷史的可見規則（T-12）**：`GetRevisionHistory` 補上 RC-VIS-02（複審醫師看不到初審的 `totalScore`、`comment`，自己的複審完整，D-033）與 RC-VIS-04（初審醫師看得到複審的分數與評語，D-084 第 2 點）。照程式。
+14. **補得出來的範例（T-13）**：補 RC-FIX-04、RC-CLR-07 的範例。實測後其餘幾條仍做不出前提：修正過的舊提交是 `SUPERSEDED`，先被 `SUBMISSION_NOT_SUBMITTED` 擋下；複審草稿只有開始複審時的那一份。RC-FIX-05、RC-RVI-06、RC-RVR-07、RC-RDR-08、RC-SRR-08 留在 `not_covered`，理由逐項更新。
+15. **登記範圍（T-14）**：`domain/reviewcase/submission/` 的六個檔案登記到 `specs/review-submission/`；`ScoreCalculationService`、`ScoreResult`、六個結果類別、`dto/AnswerInput`、`query/` 的 `ReviewCaseQueryCriteria`、`ReviewCaseSummary`、`RevisionHistoryEntry`、`RevisionHistoryView` 登記到 `specs/review-case/`。`domain/reviewcase/`、`application/reviewcase/` 的目錄列保留。
+16. **範例做不到的部分**：BOOLEAN 的作答與計分、權重不是 1 時的四捨五入、提交初審時草稿的答案不合法、複審草稿的評分表版本，列進 `not_covered`，由建構 PR 以單元測試驗證。
+17. **一開始是紅的範例**：照 D-066 第 5 點加進 `known-test-failures.txt`，由建構 PR 移除。
+18. **題目清單**：D-084 與第 20 點移到已完成；負責人 2026-11-25 同意的順序寫進待辦。
+19. **順序**：本裁決、規格、`law/coverage.txt`、`known-test-failures.txt`、文件在同一個修法 PR；之後是建構 PR。修法 PR 不夾帶程式（P4）。
+20. **更正 D-083 第 10 點與 D-084 第 9 點的事實描述**（題目清單的待辦，負責人 2026-11-25 同意列入）：兩者說 `rereviewRequired`、`finalConclusion`、`ruleSnapshotRef`「沒有任何行為寫入」；實際上 `rereviewRequired` 在固定初審、分數超過品質線時被 `fixInitialReview` 寫成 `true`（D-084 建構 PR #161 查到）。沒有任何地方讀它做判斷（是否進複審由狀態 `PENDING_REREVIEW` 表示），所以移除的理由應為「沒有任何行為讀取」；D-084 第 9 點的決定與結果不變。D-083、D-084 的條文不改，以本點為註記。
+
+### Relationship / Evidence
+
+- **起因**：負責人 2026-11-25 同意的問題側立法順序的第一個切片（C）。
+- **草案與查證**：`docs/harness/36-review-submission-draft.md`（main = `d80939e`）。以暫時的規格範例走真實寫入與查詢路徑實測：RANGE 的錯誤作答與缺少作答值回 500、大於滿分默默截斷、三位小數的輸出與保存不一致、未知題目默默丟掉、重複作答重複計分、FIXED 不看作答。
+- **權威文件的空白**：decision-log 只有權重（D-020）與題目設定的欄位驗證；「未知的題目忽略」出自實作計畫 `docs/superpowers/plans/2026-04-08-b3b-initial-review.md`，不是權威文件。本裁決補上計分的條文。
+- **與既有裁決的關係**：沿用 D-008、D-012、D-014、D-020、D-033、D-044、D-054、D-066、D-067、D-069、D-076、D-083、D-084。第 1～6 點是行為變更：原本默默接受或回 500 的作答改為 400。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（RC-DRF-04、RC-SUB-04、RC-SRR-10、RC-RVI-10、RC-RVR-10、RC-STR-S4、RC-VIS-02、RC-VIS-04）、`model.yaml`（RC-INV-07、RC-INV-08、`deferred_behaviors`）、`examples.yaml`（作答與計分、修正歷史、FIX-04、CLR-07 的範例；`not_covered` 更新）
+- `specs/review-submission/model.yaml`（RS-T-05、RS-T-06、`terminal_states`、RS-INV-01～06、`deferred_behaviors`）
+- `law/coverage.txt`（第 15 點的檔案）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/03-contracts/api-spec.md`（作答的錯誤）、`docs/harness/25-topic-backlog.md`
+- 後續：建構 PR

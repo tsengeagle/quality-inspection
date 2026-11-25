@@ -6,3 +6,16 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+# ---- D-085：作答的檢查（切片 C）。規格先立法，程式由建構 PR 配合（D-085 第 17 點）----
+# 不合法的作答原本默默接受或回 500，改為 VALIDATION_ERROR（第 1～8 點）
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_non_numeric_range_answer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_negative_range_answer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_range_answer_above_the_maximum
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_a_range_answer_with_three_decimals
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_an_answer_to_an_unknown_item
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_two_answers_to_the_same_item
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_an_answer_without_a_value
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_an_answer_without_an_item
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_saving_an_initial_draft_with_an_unknown_item
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_submitting_a_rereview_draft_with_an_invalid_answer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_revising_a_rereview_with_an_invalid_answer

@@ -93,12 +93,21 @@ invariants:
     text: 案件沒有 rereviewRequired、finalConclusion、ruleSnapshotRef（沒有任何行為寫入，D-084 第 9 點移除）
     status: decided
     source: [{ decision: D-083 }, { decision: D-084 }]
+  - id: RC-INV-07
+    text: 計分用的作答必須合法，否則 VALIDATION_ERROR：每一筆都有 itemId 與 answerValue；itemId 是評分表的題目；同一題只作答一次；BOOLEAN 的作答是 true 或 false；RANGE 的作答是 0 到滿分之間的數字，最多兩位小數。FIXED 的作答內容不檢查
+    status: decided
+    source: [{ decision: D-085 }]
+  - id: RC-INV-08
+    text: 題目分數：BOOLEAN 是 true 得 滿分 × 權重、false 得 0；FIXED 得 滿分 × 權重；RANGE 得 作答 × 權重。題目分數與總分四捨五入到兩位小數（HALF_UP）；總分是各題分數相加，沒有作答的題目不計分
+    status: decided
+    source: [{ decision: D-020 }, { decision: D-085 }]
   - id: RC-INV-02
     text: SYSTEM_ADMIN 只取得 metadata，取不到任何階段的答案、分數、評語
     status: decided
     source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1" }]
 
 deferred_behaviors:
-  - 永久盲審的讀取遮罩（D-033）：案件詳情與提交明細已立法（RC-DTV-03、RC-SBV-01，D-084）；revision 歷程對複審醫師的遮罩還沒有規則。複審醫師執行的命令不回傳初審分數與 finalScore，已立法（RC-SRR-S4、RC-CLR-S3）
+  - 永久盲審的讀取遮罩（D-033）：案件詳情、提交明細、修正歷史都已立法（RC-DTV-03、RC-SBV-01、RC-VIS-02）；複審醫師執行的命令不回傳初審分數與 finalScore（RC-SRR-S4、RC-CLR-S3）。稽核與匯出依 D-071、D-055 第 6 點
+  - 必答規則 CONDITIONAL 與 conditionExpression 的求值：必答題的檢查只看 ALWAYS_REQUIRED（D-014 延後 visibilityRule，D-085 第 7 點）
   - updatedAt（D-037）：只有 SYSTEM_ADMIN 的案件詳情輸出它（RC-DTV-04）；其他查詢不輸出（D-084）
   - 品質線與權重取自專案目前的版本，不是案件建立時的版本：與 D-068 第 4 點同一題，等專案版本管理立法（D-069）
