@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-25-d087-reporting",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:233d650ea2dd4f0f4974b4ae286550bf0c18a5e799054fd86d4f33183cf3cd96",
+  "reviewed_commit": "ab115be1c5859559523b7ebaa9207c4e0ccfda67",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAECf9F8BqVX+aN9LDT2Z2Pct28Uqdv0wNLgbhp4uQI5hq3YeCyeLzSwC\n+f1WRkXAFIbNhfc2JkJ4ziCTJ/eyaOUPAQAAAJg=\n-----END SSH SIGNATURE-----\n"
+}
