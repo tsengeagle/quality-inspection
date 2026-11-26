@@ -73,7 +73,6 @@ Accept: application/json
 - shared base：`caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`
 - page extension：
   - UI-009：`batchId`, `dueAt`
-  - UI-010：`latestRevisionSummary`
   - UI-014：`stage`, `revisionNo`, `submittedAt`, `submittedBy`, `isCurrentEffective`
 
 超出白名單欄位視為 FULL-only，不得回傳於 metadata-only 視角。
@@ -994,7 +993,7 @@ Accept: application/json
 * 檢查順序：角色 → 案件存在 → 院區（SYSTEM_ADMIN 不限）→ 多角色（403 `ACCESS_DENIED`）→ 指派／提交範圍 → 歷史複審身分（D-035、D-055）。別院的雙角色使用者回 `HOSPITAL_SCOPE_MISMATCH`。
 * 完整投影（HOSPITAL_MANAGER、AUDITOR、REVIEWER）：`projectionType = FULL`，有 `initialReviewScore`、`finalScore`、每一筆提交的 `totalScore`；寫入初審讀取者紀錄（D-055 第 5 點）。初審醫師也看得到複審的分數與 `finalScore`。
 * 複審醫師的盲審投影：沒有 `initialReviewScore`、`finalScore`；初審提交的 `totalScore` 是 `null`；`rereviewContext` 沒有 `initialTotalScore`、`finalScore`。初審醫師的身分與初審提交的 ID、版本、提交時間可見。`rereviewContext.initialReviewerName` 目前一律是 `null`，請用 `rereviewContext.initialReviewerId`（D-093 第 4 點）。
-* SYSTEM_ADMIN：只有 `caseId`、`caseStatus`、`projectName`、`hospitalId`、`reviewerId`、`rereviewerId`、`updatedAt`、`latestRevisionSummary`（目前固定 `null`）。
+* SYSTEM_ADMIN：只有 `caseId`、`caseStatus`、`projectName`、`hospitalId`、`reviewerId`、`rereviewerId`、`updatedAt`（D-094 第 9 點移除 `latestRevisionSummary`）。
 * 沒有 `rereviewRequired`、`finalConclusion`（D-084 第 9 點移除）。
 
 #### 新增欄位（GAP-13）
@@ -1962,7 +1961,7 @@ SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白
 | 固定後／CLOSED revision 或 CLOSED reopen | 拒絕，不寫新 revision／成功事件 |
 
 複審正式結案的拒絕條件與錯誤代碼已由 D-053 定案（見「D-034 複審獨立 Close Command 對齊」一節），初審固定的已由 D-054 定案（見「DD-03 初審固定的語意契約」一節），保留既有已確認的 role／scope 錯誤。契約行為變更需後續相容性與實作對齊，本文件不宣稱程式已支援。
-複審醫師任何階段不得取得初審答案／分數／評語，亦不得從 command ack、list/detail、revision history/compare、audit、report/export、前端 cache 取得可反推值。finalScore 數值仍在 domain 依原公式計算；所有廣義 FULL view／共用回應範例都須先套用 D-033 角色限制。精確衍生欄位清單與多角色 policy 合成 unknown。
+複審醫師任何階段不得取得初審答案／分數／評語，亦不得從 command ack、list/detail、revision history/compare、audit、report/export、前端 cache 取得可反推值。finalScore 數值仍在 domain 依原公式計算；所有廣義 FULL view／共用回應範例都須先套用 D-033 角色限制。精確衍生欄位清單 unknown；多角色 actor 讀案件內容一律拒絕（D-094 第 7 點）。
 
 ## DD-03 初審固定的語意契約（binding 已由 D-054 定案）
 
@@ -2060,6 +2059,8 @@ Submission Detail、Case Detail、Revision History：完整初審內容讀取新
 UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
 
 `updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+> D-094 第 9 點更正：`latestRevisionSummary` 從白名單移除（值的內容從未定義、沒有使用者），SYSTEM_ADMIN 的 metadata 是七欄。
 
 既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。
 

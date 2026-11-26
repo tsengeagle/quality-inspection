@@ -1,0 +1,18 @@
+{
+  "id": "2026-11-26-d094-versions-and-pending",
+  "decision": "D-094",
+  "reason": "不開放改版（評分表三項待立法改成不做、品質線取自目前版本改成定案、快照理由改寫）；多角色讀取拒絕定案；latestRevisionSummary 從 SYSTEM_ADMIN 白名單移除；HTTP 契約閘門支援 transition 過渡形狀（含測試）並用在案件詳情的 metadata；文件、題目清單、草稿",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/",
+    "specs/README.md",
+    "specs/review-case/",
+    "specs/score-sheet/model.yaml",
+    "specs/sampling-batch/model.yaml",
+    "docs/02-ddd/permission-matrix.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/05-ui/",
+    "docs/harness/"
+  ]
+}

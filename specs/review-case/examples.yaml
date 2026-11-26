@@ -1705,6 +1705,8 @@ examples:
     then:
       result: SUCCESS
       output: { caseId: "${c}", caseStatus: REREVIEW_IN_PROGRESS, hospitalId: H-01, reviewerId: u-r1, rereviewerId: u-rr1, updatedAt: "2026-11-19T09:00:00Z" }
+      only:
+        ".": [caseId, caseStatus, projectName, hospitalId, reviewerId, rereviewerId, updatedAt]
       absent: [initialReviewScore, finalScore, submissions, initialReviewContext, rereviewContext]
 
   - name: reviewer_case_detail_offers_revise_and_fix

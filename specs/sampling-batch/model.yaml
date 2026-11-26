@@ -74,7 +74,7 @@ deferred_behaviors:
   - 抽樣比例、排除條件、分層：母體來源回傳的每一筆都選中（SB-EXE-S2、SB-EXE-S8），等母體來源的介接與專案版本管理（D-086 第 6 點）
   - executionMode 的 SCHEDULED（排程抽選）：沒有任何行為使用（D-086 第 7 點）
   - 規則快照的 samplingPolicy（固定 MANUAL）、snapshotSummary（固定 null）與完整的快照內容：等抽樣規則與快照的保存方式裁決（D-011、D-086 第 8 點）
-  - 快照沒有被任何行為使用：案件的評分表版本、品質線與權重取自專案目前的版本，等專案版本管理立法（D-068 第 4 點、D-086 第 8 點）
+  - 快照沒有被任何行為使用。不開放改版之後（D-094 第 1 點），專案目前的版本就是抽選時的版本，快照不需要用來鎖定版本；快照的內容與保存方式仍等 D-011（D-086 第 8 點、D-094 第 4 點）
   - 執行頁的 previewReady、previewStats、executing、executeFailed（目前是固定值）與顯示文字 ruleSummary、postExecuteSummary（D-086 第 10 點）
   - 批次列表依開始時間篩選（D-086 第 11 點）
   - 匯出的檔案格式（D-086 第 14 點）

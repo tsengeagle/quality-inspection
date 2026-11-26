@@ -40,13 +40,26 @@ public final class HttpContract {
         private final Object shape;
         private final List<String> arrays;
         private final List<String> nullables;
+        private final String transition;
 
         Variant(String name, Object shape, List<String> arrays, List<String> nullables) {
+            this(name, shape, arrays, nullables, null);
+        }
+
+        Variant(String name, Object shape, List<String> arrays, List<String> nullables, String transition) {
+            this.transition = transition;
             this.name = name;
             this.shape = shape;
             this.arrays = arrays;
             this.nullables = nullables;
         }
+
+        /**
+         * D-094：形狀在過渡期間時，是推動過渡的裁決編號（例如 {@code D-094}），否則是 null。
+         * 過渡中的形狀不檢查涵蓋（修法 PR 與建構 PR 之間，新舊形狀各有一段時間觀察不到），
+         * 但每筆回應仍要剛好符合其中一種形狀。報告列出過渡中的形狀，表示它們的涵蓋沒有被評估。
+         */
+        public String transition() { return transition; }
 
         /** 形狀的名稱；端點只有 {@code data}、沒有 {@code variants} 時是 null。 */
         public String name() { return name; }
@@ -289,14 +302,22 @@ public final class HttpContract {
                     for (Object v : raw) {
                         Map<?, ?> vm = map(v);
                         Object name = vm.get("name");
-                        if (!(name instanceof String) || !vm.containsKey("data") || vm.size() != 2) {
-                            loadProblems.add(where + "：variants 的每一項必須剛好有 name（字串）與 data");
+                        Object transition = vm.get("transition");
+                        int expected = vm.containsKey("transition") ? 3 : 2;
+                        if (!(name instanceof String) || !vm.containsKey("data") || vm.size() != expected) {
+                            loadProblems.add(where + "：variants 的每一項必須剛好有 name（字串）與 data，可以另有 transition");
                             continue;
+                        }
+                        if (vm.containsKey("transition")
+                                && !(transition instanceof String && ((String) transition).matches("D-\\d{3}"))) {
+                            loadProblems.add(where + "（" + name + "）：transition 必須是裁決編號（例如 D-094）");
+                            transition = null;
                         }
                         if (!variantNames.add((String) name)) {
                             loadProblems.add(where + "：重複的形狀名稱 " + name);
                         }
-                        variants.add(variant((String) name, vm.get("data"), where + "（" + name + "）", en));
+                        variants.add(variant((String) name, vm.get("data"), where + "（" + name + "）", en,
+                                transition instanceof String ? (String) transition : null));
                     }
                     if (variants.isEmpty()) continue;
                 }
@@ -306,13 +327,17 @@ public final class HttpContract {
     }
 
     private Variant variant(String name, Object shape, String where, Map<String, Set<String>> en) {
+        return variant(name, shape, where, en, null);
+    }
+
+    private Variant variant(String name, Object shape, String where, Map<String, Set<String>> en, String transition) {
         List<String> arrays = new ArrayList<>();
         List<String> nullables = new ArrayList<>();
         List<String> problems = new ArrayList<>();
         JsonShape.validate(shape, "$.data", en, false, problems, arrays, nullables);
         if (name != null) problems.forEach(p -> loadProblems.add(where + " " + p));
         else loadProblems.addAll(problems);
-        return new Variant(name, shape, arrays, nullables);
+        return new Variant(name, shape, arrays, nullables, transition);
     }
 
     private Map<?, ?> yaml(String name, String text, String kind) {

@@ -1167,7 +1167,7 @@ usecases:
         source: [{ decision: D-033 }, { decision: D-084 }]
       - id: RC-DTV-04
         when: 操作者是 SYSTEM_ADMIN
-        text: 只有 metadata 白名單：caseId、caseStatus、projectName、hospitalId、reviewerId、rereviewerId、updatedAt、latestRevisionSummary（目前固定 null）
+        text: 只有 metadata 白名單：caseId、caseStatus、projectName、hospitalId、reviewerId、rereviewerId、updatedAt（D-094 第 9 點移除 latestRevisionSummary）
         outcome: { result: SUCCESS }
         status: decided
         source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { decision: D-037 }, { rule: RC-INV-02 }]

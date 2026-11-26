@@ -90,6 +90,7 @@ final class HttpContractReport {
     private static final class Section {
         final List<String> observation = new ArrayList<>();
         final List<String> coverage = new ArrayList<>();
+        final List<String> transitions = new ArrayList<>();
         final StringBuilder summary = new StringBuilder();
     }
 
@@ -108,6 +109,7 @@ final class HttpContractReport {
             observations.forEach(evaluator::observe);
             s.observation.addAll(evaluator.observationProblems());
             s.coverage.addAll(evaluator.coverageProblems());
+            s.transitions.addAll(evaluator.transitions());
         } catch (RuntimeException e) {
             s.observation.addAll(contract.loadProblems());
             s.observation.add("比對中斷，本次結果不完整：" + e);
@@ -118,6 +120,9 @@ final class HttpContractReport {
             s.summary.append(String.format("  %-50s 成功 %4d  失敗 %4d%n", e.getKey(), e.getValue()[0], e.getValue()[1]));
         }
         s.summary.append("問題 ").append(s.observation.size() + s.coverage.size()).append('\n');
+        // D-094：沒有被評估的涵蓋要列出來，不能看起來像通過
+        s.summary.append("過渡中的形狀（涵蓋沒有評估） ").append(s.transitions.size()).append('\n');
+        for (String t : s.transitions) s.summary.append("  ~ ").append(t).append('\n');
         return s;
     }
 }
