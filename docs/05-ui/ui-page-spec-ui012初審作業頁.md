@@ -696,8 +696,7 @@ page_modes:
     "status": "SUBMITTED",
     "caseId": "RC-001",
     "caseStatus": "INITIAL_REVIEW_COMPLETED",
-    "totalScore": 88.5,
-    "rereviewRequired": true
+    "totalScore": 88.5
   }
 }
 ```
