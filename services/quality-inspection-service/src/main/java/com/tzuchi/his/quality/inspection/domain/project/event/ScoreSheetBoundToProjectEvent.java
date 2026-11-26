@@ -16,4 +16,7 @@ public class ScoreSheetBoundToProjectEvent extends DomainEvent {
     }
 
     public String getScoreSheetId() { return scoreSheetId; }
+    public String getProjectId() { return getEntityId(); }
+    /** D-090 第 4 點：detail 裡 scoreSheetId 的值，是評分表版本的 id。 */
+    public String getScoreSheetVersionId() { return scoreSheetId; }
 }

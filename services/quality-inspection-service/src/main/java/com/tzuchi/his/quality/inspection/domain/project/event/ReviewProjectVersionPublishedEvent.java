@@ -8,4 +8,6 @@ public class ReviewProjectVersionPublishedEvent extends DomainEvent {
         super(source, actorUserId, actorUserName,
               hospitalId, "ReviewProject", projectId, "VERSION_PUBLISHED", null);
     }
+
+    public String getProjectId() { return getEntityId(); }
 }
