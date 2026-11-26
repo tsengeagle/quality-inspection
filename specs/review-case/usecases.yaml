@@ -1425,6 +1425,12 @@ usecases:
         outcome: { result: SUCCESS }
         status: decided
         source: [{ decision: D-071 }]
+      - id: RC-LCY-05
+        when: 讀取成功
+        text: 每一筆紀錄的 occurredAt 是發出該事件的 use case 執行時注入的時鐘的時間，與該 use case 寫入 aggregate 的時間相同。依 occurredAt 遞增排列；同時間的紀錄依發出的順序
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-092 }]
     output:
       status: decided
       source: [{ doc: docs/03-contracts/api-spec.md, section: "§14.1" }, { decision: D-071 }]
@@ -1464,6 +1470,12 @@ usecases:
         outcome: { result: SUCCESS }
         status: decided
         source: [{ decision: D-071 }]
+      - id: RC-AUD-04
+        when: 讀取成功
+        text: occurredAt 與 RC-LCY-05 相同；同一支 use case 發出的多個事件 occurredAt 相同。依 occurredAt 遞減排列；同時間的紀錄依發出的相反順序
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-092 }, { rule: RC-LCY-05 }]
     output:
       status: decided
       source: [{ doc: docs/03-contracts/api-spec.md, section: "§14.2" }, { decision: D-071 }]

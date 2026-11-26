@@ -3747,3 +3747,38 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/build.gradle`
 - `services/quality-inspection-service/CLAUDE.md`、`services/quality-inspection-service/README.md`、`.github/copilot-instructions.md`、`.ai/project-context.yaml`
 - `docs/harness/25-topic-backlog.md`
+
+## D-092 — 事件的發生時間與 id 由 use case 決定
+
+### Status
+
+`accepted`（2026-11-26，負責人對 `docs/harness/42-event-occurred-at-draft.md` 的 O-1～O-6 全部照建議裁決；第 6 點的分批依起草後的查證補充，見該點）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 O-n）。
+
+1. **時間在哪裡決定（O-1 選 A）**：`DomainEvent` 的 `occurredAt` 由發出事件的 use case 傳入，取 use case 注入的 `Clock`。同一支 use case 以同一個時間寫入 aggregate 與事件。`domain` 不再取系統時間。
+2. **`eventId`（O-2 選 A）**：一起改，由 use case 以 `IdGenerator` 產生並傳入。範例不比對 `eventId`。
+3. **同時間的順序（O-3 選 A）**：稽核紀錄加寫入序號（`audit_trail.sequence_no`，由資料庫產生，Flyway migration）。`GetCaseLifecycle` 依 `occurredAt`、序號遞增；`ListAuditTrails` 依 `occurredAt`、序號遞減。同時間的紀錄依發出的順序（遞減時相反）。規則是 RC-LCY-05、RC-AUD-04。
+4. **範例（O-4 選 A）**：`review-case` 新增兩個範例：`lifecycle_records_when_each_event_occurred`（`advance` 之後的時間）、`audit_trails_share_the_time_of_one_use_case`（抽選一次發出的四個事件時間相同）。修法時是紅的，凍結在 `known-test-failures.txt`，建構 PR 解凍。範例比對清單不比順序，同時間的順序列進 `not_covered`，由建構 PR 的整合測試驗證，格式不改。`ListAuditTrails` 的 `from`、`to` 不在本裁決內。
+5. **儀表板的「現在」（O-5 選 A）**：逾期件數的「現在」改用注入的 `Clock`，不取資料庫的時間。逾期的規則仍不立法（D-087 第 5 點），`deferred_behaviors` 改寫現況。正式環境中「現在」從資料庫伺服器的時間變成應用程式伺服器的時間。
+6. **分批（O-6）**：
+   1. 修法 PR：本裁決、規格（RC-LCY-05、RC-AUD-04、範例、`not_covered`、`deferred_behaviors`）、`domain-events.md`、`known-test-failures.txt`、題目清單、草稿。
+   2. 建構 PR：`DomainEvent` 新的建構子與 32 個事件類別、use case 傳入時間與 id、稽核序號與 migration、排序、儀表板；整合測試；解凍範例。
+   3. **起草後的查證**：驗收範例執行器的測試 `AcceptanceWorldTest`（律法，gate）有一個測試用事件，呼叫 `DomainEvent` 原本的建構子。建構 PR 不能改律法（P4），所以原本的建構子在建構 PR 先保留、標為 `@Deprecated`，只給這個測試用；`main` 的程式全部改用新的建構子。之後再一組 PR：修法 PR 讓該測試改用新的建構子，建構 PR 刪除原本的建構子，並把 `DomainEvent` 的兩筆違規從 ARCH-02 基線移除。
+
+### Relationship / Evidence
+
+- **起因**：D-090 第 6 點；題目清單 2026-11-26 的順序。
+- **草案與實測**：`docs/harness/42-event-occurred-at-draft.md`（main = `49181ac`）。第二節第 1 項是實測的：範例時鐘下，稽核紀錄的 `occurredAt` 是系統時間，`detail` 的 `dueAt` 跟著範例時鐘。
+- **建構的本機驗證**（2026-11-26，JDK 21，分支 `build/d092-event-clock`）：`./gradlew test` 1788 個測試、0 個失敗；拿掉序號的排序後，順序的整合測試失敗。
+- **與既有裁決的關係**：延伸 D-065（範例時鐘）、D-075（時間是 `Instant`）；修正 D-087 第 5 點「現在取資料庫的時間」的現況。ARCH-02 的基線在第 6 點之 3 的建構 PR 才縮短。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（RC-LCY-05、RC-AUD-04）、`specs/review-case/examples.yaml`、`specs/review-case/model.yaml`（`deferred_behaviors`）
+- `docs/02-ddd/domain-events.md` 第二節第 8 點
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/harness/42-event-occurred-at-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續：建構 PR；之後的修法 PR 與建構 PR（第 6 點之 3）

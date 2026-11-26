@@ -1059,6 +1059,34 @@ examples:
       result: SUCCESS
       absent: ["content[*].detail"]
 
+  # D-092：事件的發生時間取注入的時鐘。設定檔的 clock_start 是 2026-11-19T09:00:00Z。
+  - name: lifecycle_records_when_each_event_occurred
+    basis: [RC-LCY-05]
+    given:
+      - use: case_in_SELECTED_PENDING_ASSIGNMENT
+      - advance: PT1H
+      - { run: AssignReviewCase, as: manager_h1, input: { caseId: "${c}", reviewerId: u-r1, dueAt: "2026-11-26T23:59:59Z" } }
+      - advance: PT2H
+      - { run: CancelReviewCase, as: manager_h1, input: { caseId: "${c}", reason: "病歷資料有誤" } }
+    when: { run: GetCaseLifecycle, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        "entries[action=ASSIGNED]": { occurredAt: "2026-11-19T10:00:00Z" }
+        "entries[action=CANCELLED]": { occurredAt: "2026-11-19T12:00:00Z" }
+
+  - name: audit_trails_share_the_time_of_one_use_case
+    basis: [RC-AUD-04]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListAuditTrails, as: manager_h1, input: { aggregateType: SamplingBatch, aggregateId: "${b}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[action=STARTED]": { occurredAt: "2026-11-19T09:00:00Z" }
+        "content[action=CANDIDATES_PREPARED]": { occurredAt: "2026-11-19T09:00:00Z" }
+        "content[action=CASES_SELECTED]": { occurredAt: "2026-11-19T09:00:00Z" }
+        "content[action=COMPLETED]": { occurredAt: "2026-11-19T09:00:00Z" }
+
   # D-078：ReviewSubmission 的 DRAFT_SAVED、SUBMITTED 以所屬案件判斷。
   # D-079：初審的 DRAFT_SAVED 帶院區，院區人員讀得到，所以兩種都檢查。
   - name: audit_trails_mask_submission_rows_before_rereview_for_an_auditor
@@ -2774,5 +2802,7 @@ not_covered:
     reason: 不存在的檢查與 RC-G-04 相同，固定初審已有範例。複審草稿只有開始複審時的那一份，改派只在複審開始前，所以做不出「是草稿但不是目前有效」（D-085）。RC-CLR-07 已有範例
   - rules: [RC-RPT-10, RC-RPT-13]
     reason: 複審指派歷史不完整的案件用 use case 做不出來（指派一定寫歷史）；讀取者紀錄與案件版本沒有查詢 use case 可以觀察。由既有的整合測試驗證（D-087 第 12 點）
+  - item: 稽核紀錄同時間時的順序（RC-LCY-05、RC-AUD-04 的排序部分）
+    reason: 範例比對清單時不比順序（specs/README.md 第四節）；由建構 PR 的整合測試驗證（D-092 第 4 點）
   - item: 逾期的件數與比率（overdueCases、overdueRate）
     reason: 沒有立法，列在 model.yaml 的 deferred_behaviors（D-087 第 5 點）
