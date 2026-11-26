@@ -52,7 +52,7 @@ class SaveInitialReviewDraftUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new SaveInitialReviewDraftUseCase(
-                submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, caseRepo, Clock.systemDefaultZone());
+                submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, caseRepo, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext reviewer() {
@@ -269,7 +269,7 @@ class SaveInitialReviewDraftUseCaseTest {
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
         SaveInitialReviewDraftUseCase saving = new SaveInitialReviewDraftUseCase(
-                selected, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), caseRepo, Clock.systemDefaultZone());
+                selected, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), caseRepo, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
         assertEquals(1, old.getRevisionNo());
         assertEquals(1, current.getRevisionNo());
         SaveDraftResult result = saving.execute(reviewer(), CASE_ID,

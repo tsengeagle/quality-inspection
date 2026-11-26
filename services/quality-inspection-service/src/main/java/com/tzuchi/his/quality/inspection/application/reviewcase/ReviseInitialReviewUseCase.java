@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.UUID;
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 @Transactional
@@ -36,13 +37,16 @@ public class ReviseInitialReviewUseCase {
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public ReviseInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                        ReviewSubmissionRepository submissionRepository,
                                        ScoreSheetRepository scoreSheetRepository,
                                        DomainEventPublisher eventPublisher,
                                        ScoreCalculationService scoreCalculationService,
-                                       Clock clock) {
+                                       Clock clock,
+                                      IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.scoreSheetRepository = scoreSheetRepository;
@@ -53,6 +57,7 @@ public class ReviseInitialReviewUseCase {
 
     public RevisionResult execute(ActorContext actor, String caseId, String submissionId,
                                    List<AnswerInput> answers, String comment) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REVIEWER);
 
         // Load and validate ReviewCase
@@ -116,7 +121,6 @@ public class ReviseInitialReviewUseCase {
 
         // Create new revision
         String newSubmissionId = UUID.randomUUID().toString();
-        Instant now = Instant.now(clock);
         ReviewSubmission newSubmission = ReviewSubmission.createRevision(
                 newSubmissionId, oldSubmission, result.getScoredAnswers(),
                 result.getTotalScore(), comment, now);
@@ -134,7 +138,7 @@ public class ReviseInitialReviewUseCase {
 
         // Publish event
         eventPublisher.publish(new ReviewSubmissionRevisedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 submissionId, newSubmissionId,
                 oldSubmission.getStage().name(), newSubmission.getRevisionNo()));

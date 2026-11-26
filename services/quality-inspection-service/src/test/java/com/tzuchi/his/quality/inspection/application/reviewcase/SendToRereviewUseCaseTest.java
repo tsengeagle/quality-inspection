@@ -29,7 +29,7 @@ class SendToRereviewUseCaseTest {
     void setUp() {
         caseRepository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new SendToRereviewUseCase(caseRepository, eventPublisher);
+        useCase = new SendToRereviewUseCase(caseRepository, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext managerActor() {

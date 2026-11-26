@@ -29,7 +29,7 @@ class DeactivateReviewProjectUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewProjectRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new DeactivateReviewProjectUseCase(repository, eventPublisher);
+        useCase = new DeactivateReviewProjectUseCase(repository, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     @Test

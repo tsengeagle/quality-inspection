@@ -68,6 +68,7 @@ public class ReviseRereviewUseCase {
     @Transactional
     public RevisionResult execute(ActorContext actor, String caseId, String submissionId,
                                    List<AnswerInput> answers, String comment) {
+        Instant now = Instant.now(clock);
         // D-083 第 7 點的檢查順序
         actor.requireRole(DomainRole.REREVIEWER);
 
@@ -120,7 +121,6 @@ public class ReviseRereviewUseCase {
 
         // D-083 第 6 點：新提交 ID 一律是 UUID
         String newSubmissionId = idGenerator.newId();
-        Instant now = Instant.now(clock);
         ReviewSubmission revision = ReviewSubmission.createRevision(
                 newSubmissionId, oldSubmission, result.getScoredAnswers(),
                 result.getTotalScore(), comment, now);
@@ -142,12 +142,12 @@ public class ReviseRereviewUseCase {
 
         // D-083 第 3 點：與修正初審對稱先發 ReviewSubmissionRevised（不帶分數），再發 RereviewRevised（帶分數，D-071 遮罩）
         eventPublisher.publish(new ReviewSubmissionRevisedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 submissionId, newSubmissionId,
                 ReviewStage.REREVIEW.name(), revision.getRevisionNo()));
         eventPublisher.publish(new RereviewRevisedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 submissionId, newSubmissionId,
                 result.getTotalScore(), reviewCase.getFinalScore()));

@@ -1,6 +1,7 @@
 package com.tzuchi.his.quality.inspection.domain.sampling.event;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
+import java.time.Instant;
 
 public class SamplingBatchCompletedEvent extends DomainEvent {
 
@@ -10,11 +11,11 @@ public class SamplingBatchCompletedEvent extends DomainEvent {
     private final int eligibleCount;
     private final int excludedCount;
 
-    public SamplingBatchCompletedEvent(Object source, String actorUserId, String actorUserName,
+    public SamplingBatchCompletedEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                         String hospitalId, String batchId, String projectId,
                                         int selectedCount, int populationCount,
                                         int eligibleCount, int excludedCount) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "SamplingBatch", batchId, "COMPLETED",
               // D-068 第 3 點：原有三個鍵的順序不變，兩個計數接在後面
               String.format("{\"projectId\":\"%s\",\"selectedCount\":%d,\"populationCount\":%d,"

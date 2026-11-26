@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 
 import java.util.Collections;
+import java.time.Instant;
 
 /**
  * Published when a case is cancelled.
@@ -16,9 +17,9 @@ public class ReviewCaseCancelledEvent extends DomainEvent {
 
     private final String reason;
 
-    public ReviewCaseCancelledEvent(Object source, String actorUserId, String actorUserName,
+    public ReviewCaseCancelledEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                     String hospitalId, String caseId, String reason) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "ReviewCase", caseId, "CANCELLED",
               reasonDetail(reason));
         this.reason = reason;

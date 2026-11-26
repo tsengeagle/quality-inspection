@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.Clock;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 @Transactional
@@ -20,16 +21,20 @@ public class AssignReviewCaseUseCase {
     private final ReviewCaseRepository repository;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public AssignReviewCaseUseCase(ReviewCaseRepository repository,
                                     DomainEventPublisher eventPublisher,
-                                    Clock clock) {
+                                    Clock clock,
+                                   IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.repository = repository;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
     public void execute(ActorContext actor, String caseId, String reviewerId, Instant dueAt) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
 
         ReviewCase reviewCase = repository.findById(caseId)
@@ -38,11 +43,11 @@ public class AssignReviewCaseUseCase {
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
 
-        reviewCase.assignReviewer(reviewerId, dueAt, Instant.now(clock));
+        reviewCase.assignReviewer(reviewerId, dueAt, now);
         repository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseAssignedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId, reviewerId, dueAt));
     }
 }

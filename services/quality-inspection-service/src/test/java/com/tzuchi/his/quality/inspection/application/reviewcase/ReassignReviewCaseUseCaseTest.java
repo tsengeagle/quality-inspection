@@ -34,7 +34,7 @@ class ReassignReviewCaseUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new ReassignReviewCaseUseCase(repository, eventPublisher, Clock.systemDefaultZone());
+        useCase = new ReassignReviewCaseUseCase(repository, eventPublisher, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ReviewCase createAssignedCase() {

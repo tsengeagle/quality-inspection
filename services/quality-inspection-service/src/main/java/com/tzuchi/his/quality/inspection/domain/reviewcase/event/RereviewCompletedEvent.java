@@ -3,6 +3,7 @@ package com.tzuchi.his.quality.inspection.domain.reviewcase.event;
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 /**
  * 複審提交完成（domain-events.md §6.8，D-070 第 3 點；D-069 第 4 點由 RereviewSubmittedEvent 改名，action 不變）。
@@ -15,7 +16,7 @@ public class RereviewCompletedEvent extends DomainEvent {
     private final BigDecimal rereviewScore;
     private final BigDecimal finalScore;
 
-    public RereviewCompletedEvent(Object source,
+    public RereviewCompletedEvent(Object source, String eventId, Instant occurredAt,
                                   String actorUserId,
                                   String actorUserName,
                                   String hospitalId,
@@ -24,7 +25,7 @@ public class RereviewCompletedEvent extends DomainEvent {
                                   String rereviewerId,
                                   BigDecimal rereviewScore,
                                   BigDecimal finalScore) {
-        super(source, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEW_SUBMITTED",
+        super(source, eventId, occurredAt, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEW_SUBMITTED",
                 String.format("{\"rereviewScore\":%s,\"finalScore\":%s}", rereviewScore, finalScore));
         this.submissionId = submissionId;
         this.rereviewerId = rereviewerId;

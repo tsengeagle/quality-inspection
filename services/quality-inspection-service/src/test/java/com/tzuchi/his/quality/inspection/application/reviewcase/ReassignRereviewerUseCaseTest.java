@@ -33,7 +33,7 @@ class ReassignRereviewerUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
         records = new InMemoryRereviewAccessRecords();
         useCase = new ReassignRereviewerUseCase(caseRepository, eventPublisher, records, records,
-                java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
+                java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext managerActor() {

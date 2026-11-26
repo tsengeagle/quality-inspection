@@ -54,6 +54,7 @@ public class ExecuteSamplingUseCase {
     }
 
     public String execute(ActorContext actor, String projectId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         String hospitalId = actor.requireHospitalId();
         ReviewProject project = projectRepository.findById(projectId)
@@ -79,7 +80,7 @@ public class ExecuteSamplingUseCase {
         );
 
         String batchId = idGenerator.newId();
-        SamplingBatch batch = SamplingBatch.start(batchId, projectId, ExecutionMode.MANUAL, snapshot, Instant.now(clock));
+        SamplingBatch batch = SamplingBatch.start(batchId, projectId, ExecutionMode.MANUAL, snapshot, now);
 
         List<MedicalRecordType> types = new ArrayList<>(project.getMedicalRecordTypes());
         List<SelectedCaseRef> candidates = candidateSource.queryCandidates(
@@ -91,7 +92,7 @@ public class ExecuteSamplingUseCase {
 
         batch.recordCandidateCount(populationCount, eligibleCount, excludedCount);
         batch.selectCases(candidates);
-        batch.complete(Instant.now(clock));
+        batch.complete(now);
 
         // Persist state before publishing events — listeners may query the batch
         batchRepository.save(batch);
@@ -109,15 +110,15 @@ public class ExecuteSamplingUseCase {
         caseRepository.saveAll(reviewCases);
 
         // Publish events after persistence — safe for any listener to query
-        eventPublisher.publish(new SamplingBatchStartedEvent(this,
+        eventPublisher.publish(new SamplingBatchStartedEvent(this, idGenerator.newId(), now,
                 actor.getUserId(), actor.getUserName(), hospitalId, batchId, projectId, "MANUAL"));
-        eventPublisher.publish(new SamplingCandidatesPreparedEvent(this,
+        eventPublisher.publish(new SamplingCandidatesPreparedEvent(this, idGenerator.newId(), now,
                 actor.getUserId(), actor.getUserName(), hospitalId, batchId,
                 populationCount, eligibleCount, excludedCount));
-        eventPublisher.publish(new ReviewCasesSelectedEvent(this,
+        eventPublisher.publish(new ReviewCasesSelectedEvent(this, idGenerator.newId(), now,
                 actor.getUserId(), actor.getUserName(), hospitalId, batchId,
                 batch.getSelectedCount()));
-        eventPublisher.publish(new SamplingBatchCompletedEvent(this,
+        eventPublisher.publish(new SamplingBatchCompletedEvent(this, idGenerator.newId(), now,
                 actor.getUserId(), actor.getUserName(), hospitalId, batchId, projectId,
                 batch.getSelectedCount(), populationCount, eligibleCount, excludedCount));
 

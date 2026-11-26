@@ -6,6 +6,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.time.Instant;
 
 /**
  * 已提交的初審或複審被修正（domain-events.md §8.1）。修正初審與修正複審都發出（D-083 第 3 點）。
@@ -20,11 +21,11 @@ public class ReviewSubmissionRevisedEvent extends DomainEvent {
     private final String stage;
     private final int revisionNo;
 
-    public ReviewSubmissionRevisedEvent(Object source, String actorUserId, String actorUserName,
+    public ReviewSubmissionRevisedEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                          String hospitalId, String caseId,
                                          String oldSubmissionId, String newSubmissionId,
                                          String stage, int revisionNo) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "ReviewSubmission", newSubmissionId, "REVISED",
               detail(caseId, oldSubmissionId, stage, revisionNo));
         this.caseId = caseId;

@@ -26,7 +26,7 @@ class RereviewSliceEventPropertiesTest {
 
     @Test
     void initialReviewFixed() {
-        InitialReviewFixedEvent e = new InitialReviewFixedEvent(SOURCE, "u1", "U1", "H001", "c1", "s1");
+        InitialReviewFixedEvent e = new InitialReviewFixedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "s1");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("s1", e.getSubmissionId()),
@@ -37,7 +37,7 @@ class RereviewSliceEventPropertiesTest {
     @Test
     void escalatedOnFix() {
         ReviewCaseEscalatedToRereviewEvent e = ReviewCaseEscalatedToRereviewEvent.onFix(
-                SOURCE, "u1", "U1", "H001", "c1", "p1", "s1", new BigDecimal("20"), new BigDecimal("5"));
+                SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "p1", "s1", new BigDecimal("20"), new BigDecimal("5"));
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("p1", e.getProjectId()),
@@ -51,7 +51,7 @@ class RereviewSliceEventPropertiesTest {
     @Test
     void escalatedManually() {
         ReviewCaseEscalatedToRereviewEvent e = ReviewCaseEscalatedToRereviewEvent.manual(
-                SOURCE, "u1", "U1", "H001", "c1", "p1", new BigDecimal("5"));
+                SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "p1", new BigDecimal("5"));
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("p1", e.getProjectId()),
@@ -63,7 +63,7 @@ class RereviewSliceEventPropertiesTest {
 
     @Test
     void rereviewerAssigned() {
-        RereviewerAssignedEvent e = new RereviewerAssignedEvent(SOURCE, "u1", "U1", "H001", "c1", "rr1", DUE_AT, false);
+        RereviewerAssignedEvent e = new RereviewerAssignedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "rr1", DUE_AT, false);
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("rr1", e.getRereviewerId()),
@@ -74,7 +74,7 @@ class RereviewSliceEventPropertiesTest {
 
     @Test
     void rereviewerReassigned() {
-        RereviewerAssignedEvent e = new RereviewerAssignedEvent(SOURCE, "u1", "U1", "H001", "c1", "rr2", DUE_AT, true);
+        RereviewerAssignedEvent e = new RereviewerAssignedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "rr2", DUE_AT, true);
         assertAll(
                 () -> assertEquals("rr2", e.getRereviewerId()),
                 () -> assertEquals("REREVIEWER_ASSIGNED", e.getAction()),
@@ -83,7 +83,7 @@ class RereviewSliceEventPropertiesTest {
 
     @Test
     void rereviewStarted() {
-        RereviewStartedEvent e = new RereviewStartedEvent(SOURCE, "u1", "U1", "H001", "c1", "s2", "rr1");
+        RereviewStartedEvent e = new RereviewStartedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "s2", "rr1");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("s2", e.getSubmissionId()),
@@ -94,7 +94,7 @@ class RereviewSliceEventPropertiesTest {
 
     @Test
     void rereviewCompleted() {
-        RereviewCompletedEvent e = new RereviewCompletedEvent(SOURCE, "u1", "U1", "H001", "c1", "s2", "rr1",
+        RereviewCompletedEvent e = new RereviewCompletedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "s2", "rr1",
                 new BigDecimal("15"), new BigDecimal("10.00"));
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
@@ -108,7 +108,7 @@ class RereviewSliceEventPropertiesTest {
 
     @Test
     void reviewCaseClosed() {
-        ReviewCaseClosedEvent e = new ReviewCaseClosedEvent(SOURCE, "u1", "U1", "H001", "c1", "s2");
+        ReviewCaseClosedEvent e = new ReviewCaseClosedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "s2");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("s2", e.getSubmissionId()),

@@ -14,6 +14,9 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetRepository;
 import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
+import java.time.Instant;
 
 /**
  * 把已發布的評分表版本綁定到專案目前的草稿版本（D-041；specs/review-project BindScoreSheetToProject）。
@@ -26,16 +29,23 @@ public class BindScoreSheetToProjectUseCase {
     private final ReviewProjectRepository repository;
     private final ScoreSheetRepository scoreSheetRepository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public BindScoreSheetToProjectUseCase(ReviewProjectRepository repository,
                                            ScoreSheetRepository scoreSheetRepository,
-                                           DomainEventPublisher eventPublisher) {
+                                           DomainEventPublisher eventPublisher,
+                                          Clock clock,
+                                          IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
+        this.clock = clock;
         this.repository = repository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
     }
 
     public void execute(ActorContext actor, String projectId, String scoreSheetVersionId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = repository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
@@ -59,7 +69,7 @@ public class BindScoreSheetToProjectUseCase {
 
         project.bindScoreSheet(scoreSheetVersionId);
         repository.save(project);
-        eventPublisher.publish(new ScoreSheetBoundToProjectEvent(this, actor.getUserId(), actor.getUserName(), projectId,
+        eventPublisher.publish(new ScoreSheetBoundToProjectEvent(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId(), scoreSheetVersionId));
     }
 }

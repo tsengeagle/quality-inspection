@@ -50,7 +50,7 @@ class ReviseInitialReviewUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new ReviseInitialReviewUseCase(
-                caseRepo, submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone());
+                caseRepo, submissionRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext reviewer() {

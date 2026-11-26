@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 @Transactional
@@ -43,6 +44,7 @@ public class SubmitInitialReviewUseCase {
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public SubmitInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                        ReviewSubmissionRepository submissionRepository,
@@ -50,7 +52,9 @@ public class SubmitInitialReviewUseCase {
                                        ScoreSheetRepository scoreSheetRepository,
                                        DomainEventPublisher eventPublisher,
                                        ScoreCalculationService scoreCalculationService,
-                                       Clock clock) {
+                                       Clock clock,
+                                      IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.projectRepository = projectRepository;
@@ -61,6 +65,7 @@ public class SubmitInitialReviewUseCase {
     }
 
     public SubmitInitialReviewResult execute(ActorContext actor, String caseId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REVIEWER);
 
         // Load case first to enforce hospital scope before touching submission data
@@ -144,7 +149,6 @@ public class SubmitInitialReviewUseCase {
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Update with final scores, then submit
-        Instant now = Instant.now(clock);
         submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), submission.getComment(), now);
         submission.submit(now);
         submissionRepository.save(submission);
@@ -155,11 +159,11 @@ public class SubmitInitialReviewUseCase {
 
         // Publish event
         eventPublisher.publish(new ReviewSubmissionSubmittedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 submission.getSubmissionId(), ReviewStage.INITIAL, result.getTotalScore(), actor.getUserId()));
         eventPublisher.publish(new InitialReviewCompletedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId, reviewCase.getProjectId(),
                 submission.getSubmissionId(), actor.getUserId(), result.getTotalScore(),
                 project.getCurrentVersion().getQualityThreshold()));

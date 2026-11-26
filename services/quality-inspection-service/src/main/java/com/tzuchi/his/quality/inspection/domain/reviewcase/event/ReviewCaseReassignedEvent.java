@@ -20,11 +20,11 @@ public class ReviewCaseReassignedEvent extends DomainEvent {
     private final String newReviewerId;
     private final Instant dueAt;
 
-    public ReviewCaseReassignedEvent(Object source, String actorUserId, String actorUserName,
+    public ReviewCaseReassignedEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                       String hospitalId, String caseId,
                                       String previousReviewerId, String newReviewerId,
                                       Instant dueAt) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "ReviewCase", caseId, "REASSIGNED",
               detail(previousReviewerId, newReviewerId, dueAt));
         this.previousReviewerId = previousReviewerId;

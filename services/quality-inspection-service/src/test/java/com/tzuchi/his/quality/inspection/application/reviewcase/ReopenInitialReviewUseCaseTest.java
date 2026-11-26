@@ -34,7 +34,7 @@ class ReopenInitialReviewUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new ReopenInitialReviewUseCase(repository, eventPublisher);
+        useCase = new ReopenInitialReviewUseCase(repository, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext hospitalManager() {

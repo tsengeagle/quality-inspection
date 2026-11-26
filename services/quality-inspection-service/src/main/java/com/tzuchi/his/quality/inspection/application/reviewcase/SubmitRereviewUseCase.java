@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 public class SubmitRereviewUseCase {
@@ -46,6 +47,7 @@ public class SubmitRereviewUseCase {
     private final DomainEventPublisher eventPublisher;
     private final ScoreCalculationService scoreCalculationService;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public SubmitRereviewUseCase(ReviewCaseRepository caseRepository,
                                   ReviewSubmissionRepository submissionRepository,
@@ -53,7 +55,9 @@ public class SubmitRereviewUseCase {
                                   ScoreSheetRepository scoreSheetRepository,
                                   DomainEventPublisher eventPublisher,
                                   ScoreCalculationService scoreCalculationService,
-                                  Clock clock) {
+                                  Clock clock,
+                                 IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.projectRepository = projectRepository;
@@ -66,6 +70,7 @@ public class SubmitRereviewUseCase {
     @Transactional
     public SubmitRereviewResult execute(ActorContext actor, String caseId, String submissionId,
                                         List<AnswerInput> answers, String comment) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REREVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(caseId)
@@ -149,7 +154,6 @@ public class SubmitRereviewUseCase {
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Update draft with scored answers, then submit
-        Instant now = Instant.now(clock);
         submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, now);
         submission.submit(now);
         submissionRepository.save(submission);
@@ -168,11 +172,11 @@ public class SubmitRereviewUseCase {
 
         // D-076 第 2 點：與提交初審對稱，先發 ReviewSubmissionSubmitted，再發 RereviewCompleted
         eventPublisher.publish(new ReviewSubmissionSubmittedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 submission.getSubmissionId(), ReviewStage.REREVIEW, result.getTotalScore(), actor.getUserId()));
         eventPublisher.publish(new RereviewCompletedEvent(
-                this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
                 reviewCase.getCaseId(), submission.getSubmissionId(), actor.getUserId(),
                 result.getTotalScore(), reviewCase.getFinalScore()));
 

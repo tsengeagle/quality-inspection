@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 @Transactional
@@ -20,16 +21,20 @@ public class CancelReviewCaseUseCase {
     private final ReviewCaseRepository repository;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public CancelReviewCaseUseCase(ReviewCaseRepository repository,
                                     DomainEventPublisher eventPublisher,
-                                    Clock clock) {
+                                    Clock clock,
+                                   IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.repository = repository;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
     }
 
     public void execute(ActorContext actor, String caseId, String reason) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
 
         if (reason == null || reason.isBlank()) {
@@ -42,11 +47,11 @@ public class CancelReviewCaseUseCase {
 
         actor.requireHospitalScope(reviewCase.getHospitalId());
 
-        reviewCase.cancel(reason, Instant.now(clock));
+        reviewCase.cancel(reason, now);
         repository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseCancelledEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId, reason));
     }
 }

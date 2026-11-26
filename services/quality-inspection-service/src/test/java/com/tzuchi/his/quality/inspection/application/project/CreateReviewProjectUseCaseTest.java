@@ -25,7 +25,7 @@ class CreateReviewProjectUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewProjectRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new CreateReviewProjectUseCase(repository, eventPublisher, () -> "p-" + (repository.store.size() + 1));
+        useCase = new CreateReviewProjectUseCase(repository, eventPublisher, () -> "p-" + (repository.store.size() + 1), java.time.Clock.systemUTC());
     }
 
     @Test

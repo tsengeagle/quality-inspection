@@ -13,10 +13,10 @@ public class ReviewCaseAssignedEvent extends DomainEvent {
 
     private final String assignedReviewerId;
 
-    public ReviewCaseAssignedEvent(Object source, String actorUserId, String actorUserName,
+    public ReviewCaseAssignedEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                     String hospitalId, String caseId,
                                     String reviewerId, Instant dueAt) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "ReviewCase", caseId, "ASSIGNED",
               String.format("{\"reviewerId\":\"%s\",\"dueAt\":\"%s\"}", reviewerId,
                       dueAt));

@@ -31,7 +31,7 @@ class CloseWithoutRereviewUseCaseTest {
     void setUp() {
         caseRepository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new CloseWithoutRereviewUseCase(caseRepository, eventPublisher, Clock.systemDefaultZone());
+        useCase = new CloseWithoutRereviewUseCase(caseRepository, eventPublisher, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext managerActor() {

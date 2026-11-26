@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 /**
  * 固定初審（D-031、DD-03、D-054）。檢查順序依 D-024：角色 → 載入 → 院區 → 領域規則；
@@ -36,12 +37,15 @@ public class FixInitialReviewUseCase {
     private final ReviewProjectRepository projectRepository;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public FixInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                    ReviewSubmissionRepository submissionRepository,
                                    ReviewProjectRepository projectRepository,
                                    DomainEventPublisher eventPublisher,
-                                   Clock clock) {
+                                   Clock clock,
+                                   IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.projectRepository = projectRepository;
@@ -51,6 +55,7 @@ public class FixInitialReviewUseCase {
 
     @Transactional
     public FixInitialReviewResult execute(ActorContext actor, String caseId, String submissionId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(caseId)
@@ -81,16 +86,16 @@ public class FixInitialReviewUseCase {
         ReviewProject project = projectRepository.findById(reviewCase.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
                         "Project not found: " + reviewCase.getProjectId()));
-        Instant fixedAt = Instant.now(clock).truncatedTo(ChronoUnit.MICROS);
+        Instant fixedAt = now.truncatedTo(ChronoUnit.MICROS);
 
         reviewCase.fixInitialReview(submission.getSubmissionId(), actor.getUserId(), fixedAt,
                 submission.getTotalScore(), project.getCurrentVersion().getQualityThreshold());
         caseRepository.save(reviewCase);
 
-        eventPublisher.publish(new InitialReviewFixedEvent(this, actor.getUserId(), actor.getUserName(),
+        eventPublisher.publish(new InitialReviewFixedEvent(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), reviewCase.getCaseId(), submission.getSubmissionId()));
         if (reviewCase.getStatus() == CaseStatus.PENDING_REREVIEW) {
-            eventPublisher.publish(ReviewCaseEscalatedToRereviewEvent.onFix(this, actor.getUserId(), actor.getUserName(),
+            eventPublisher.publish(ReviewCaseEscalatedToRereviewEvent.onFix(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                     reviewCase.getHospitalId(), reviewCase.getCaseId(), reviewCase.getProjectId(),
                     submission.getSubmissionId(), submission.getTotalScore(),
                     project.getCurrentVersion().getQualityThreshold()));

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 public class SaveRereviewDraftUseCase {
@@ -36,11 +37,14 @@ public class SaveRereviewDraftUseCase {
     private final ReviewSubmissionRepository submissionRepository;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public SaveRereviewDraftUseCase(ReviewCaseRepository caseRepository,
                                      ReviewSubmissionRepository submissionRepository,
                                      DomainEventPublisher eventPublisher,
-                                     Clock clock) {
+                                     Clock clock,
+                                    IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.eventPublisher = eventPublisher;
@@ -50,6 +54,7 @@ public class SaveRereviewDraftUseCase {
     @Transactional
     public SaveDraftResult execute(ActorContext actor, String caseId, String submissionId,
                                    List<AnswerInput> answers, String comment) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REREVIEWER);
         ReviewCase reviewCase = caseRepository.findById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
@@ -100,12 +105,12 @@ public class SaveRereviewDraftUseCase {
         }
 
         BigDecimal keptScore = submission.getTotalScore() != null ? submission.getTotalScore() : BigDecimal.ZERO;
-        submission.updateDraft(rawAnswers, keptScore, comment, Instant.now(clock));
+        submission.updateDraft(rawAnswers, keptScore, comment, now);
         submissionRepository.save(submission);
 
         // D-076 第 1 點：與初審一致發 ReviewDraftSaved；複審草稿沒有有意義的分數，detail 的 totalScore 寫 null
         eventPublisher.publish(new ReviewDraftSavedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId, submission.getSubmissionId(), null));
 
         return new SaveDraftResult(

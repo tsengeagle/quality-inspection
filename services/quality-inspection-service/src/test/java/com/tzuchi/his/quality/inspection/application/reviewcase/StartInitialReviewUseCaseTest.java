@@ -54,7 +54,7 @@ class StartInitialReviewUseCaseTest {
         submissionRepo = new InMemoryReviewSubmissionRepository();
         eventPublisher = new CapturingDomainEventPublisher();
         useCase = new StartInitialReviewUseCase(
-                caseRepo, projectRepo, scoreSheetRepo, submissionRepo, eventPublisher, Clock.systemDefaultZone());
+                caseRepo, projectRepo, scoreSheetRepo, submissionRepo, eventPublisher, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext reviewer() {

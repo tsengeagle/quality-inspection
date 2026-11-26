@@ -21,6 +21,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.time.Clock;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
+import java.time.Instant;
 
 /**
  * 以六個相位的命令修改評分表草稿（D-015、D-050 第 5 點）。輸入名稱與 specs/score-sheet/usecases.yaml 相同：
@@ -33,10 +36,16 @@ public class UpdateScoreSheetDraftUseCase {
     private final ScoreSheetRepository repository;
     private final HospitalIdResolver hospitalIdResolver;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public UpdateScoreSheetDraftUseCase(ScoreSheetRepository repository,
                                          HospitalIdResolver hospitalIdResolver,
-                                         DomainEventPublisher eventPublisher) {
+                                         DomainEventPublisher eventPublisher,
+                                        Clock clock,
+                                        IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
+        this.clock = clock;
         this.repository = repository;
         this.hospitalIdResolver = hospitalIdResolver;
         this.eventPublisher = eventPublisher;
@@ -49,6 +58,7 @@ public class UpdateScoreSheetDraftUseCase {
                         List<ItemInput> updateItems,
                         List<SectionInput> addSections,
                         List<ItemToSectionInput> addItems) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ScoreSheetDefinition scoreSheet = repository.findById(scoreSheetId)
                 .orElseThrow(() -> new ResourceNotFoundException("SCORE_SHEET_NOT_FOUND",
@@ -66,7 +76,7 @@ public class UpdateScoreSheetDraftUseCase {
 
         scoreSheet.updateDraft(command);
         repository.save(scoreSheet);
-        eventPublisher.publish(new ScoreSheetDraftUpdatedEvent(this, actor.getUserId(), actor.getUserName(), scoreSheetId,
+        eventPublisher.publish(new ScoreSheetDraftUpdatedEvent(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), scoreSheetId,
                 scoreSheet.getProjectId(), hospitalId));
     }
 
