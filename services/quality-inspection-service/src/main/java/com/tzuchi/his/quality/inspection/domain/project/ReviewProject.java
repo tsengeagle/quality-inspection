@@ -248,18 +248,6 @@ public class ReviewProject {
         this.currentVersion = this.currentVersion.publish();
     }
 
-    /**
-     * Prepare a new draft version for future edits.
-     * Can only be called when the current version is published.
-     */
-    public void prepareDraftVersion() {
-        if (!this.currentVersion.isPublished()) {
-            throw new DomainStateConflictException("INVALID_STATE_TRANSITION",
-                    "A draft version already exists");
-        }
-        this.currentVersion = this.currentVersion.nextDraft();
-    }
-
     public void updateName(String name) {
         requireDraft();
         validateName(name);

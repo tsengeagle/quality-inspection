@@ -25,8 +25,6 @@ public class CaseDetailMetadataView extends ReviewCaseDetailView {
         fields.put("rereviewerId", rereviewerId);
         // D-037: persisted UTC case time as ISO 8601 (e.g. 2026-11-16T10:00:00Z); legacy cases stay null.
         fields.put("updatedAt", updatedAt == null ? null : updatedAt.toString());
-        // latestRevisionSummary value contract remains UNKNOWN.
-        fields.put("latestRevisionSummary", null);
         this.metadata = Collections.unmodifiableMap(fields);
     }
 

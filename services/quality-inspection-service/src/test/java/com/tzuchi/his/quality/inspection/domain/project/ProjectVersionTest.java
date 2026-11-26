@@ -43,20 +43,6 @@ class ProjectVersionTest {
     }
 
     @Test
-    void nextDraft_shouldCarryOverScoringConfig() {
-        ProjectVersion published = new ProjectVersion(1, true,
-                new BigDecimal("80.00"),
-                new BigDecimal("0.6"),
-                new BigDecimal("0.4"));
-        ProjectVersion next = published.nextDraft();
-        assertEquals(2, next.getVersionNumber());
-        assertFalse(next.isPublished());
-        assertEquals(new BigDecimal("80.00"), next.getQualityThreshold());
-        assertEquals(new BigDecimal("0.6"), next.getInitialReviewWeight());
-        assertEquals(new BigDecimal("0.4"), next.getRereviewWeight());
-    }
-
-    @Test
     void validateWeights_sumNotOne_shouldThrow() {
         ProjectVersion pv = new ProjectVersion(1, false,
                 new BigDecimal("80.00"),

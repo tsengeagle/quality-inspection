@@ -84,11 +84,6 @@ public class ProjectVersion {
                 this.qualityThreshold, this.initialReviewWeight, this.rereviewWeight);
     }
 
-    public ProjectVersion nextDraft() {
-        return new ProjectVersion(this.versionNumber + 1, false,
-                this.qualityThreshold, this.initialReviewWeight, this.rereviewWeight);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
