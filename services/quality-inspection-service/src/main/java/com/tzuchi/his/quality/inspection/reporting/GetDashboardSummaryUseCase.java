@@ -70,14 +70,19 @@ public class GetDashboardSummaryUseCase {
         // 4 個數字以單一查詢一次算出：單一 SQL 敘述讀同一個時間點（Oracle READ COMMITTED 的敘述層級一致讀取），
         // 查詢之間提交的案件不會只算進其中幾個數字，比率的分子分母也來自同一個母體。
         // RC-DSH-07（D-087 第 4 點）：已取消的案件不計入任何件數。
-        // D-092 第 5 點：逾期的「現在」取注入的時鐘，不取資料庫的時間。逾期的規則仍未立法（D-087 第 5 點）。
+        // D-092 第 5 點：逾期的「現在」取注入的時鐘，不取資料庫的時間。
         params.add(Instant.now(clock));
         int nowIndex = params.size();
         String jpql = "SELECT COUNT(e),"
                 + " COALESCE(SUM(CASE WHEN e.status = 'CLOSED' THEN 1 ELSE 0 END), 0),"
                 + " COALESCE(SUM(CASE WHEN e.rereviewerId IS NOT NULL THEN 1 ELSE 0 END), 0),"
-                + " COALESCE(SUM(CASE WHEN e.dueAt < ?" + nowIndex
-                + " AND e.status <> 'CLOSED' THEN 1 ELSE 0 END), 0)"
+                // RC-DSH-09（D-095 第 1、2 點）：目前階段的期限早於現在。初審階段看初審期限；
+                // 複審階段在指派複審醫師之後看複審期限。其他狀態不算逾期。
+                + " COALESCE(SUM(CASE WHEN"
+                + " (e.status IN ('PENDING_INITIAL_REVIEW', 'INITIAL_REVIEW_IN_PROGRESS') AND e.dueAt < ?" + nowIndex + ")"
+                + " OR (e.status IN ('PENDING_REREVIEW', 'REREVIEW_IN_PROGRESS') AND e.rereviewerId IS NOT NULL"
+                + " AND e.rereviewerDueAt < ?" + nowIndex + ")"
+                + " THEN 1 ELSE 0 END), 0)"
                 + " FROM ReviewCaseEntity e WHERE e.status <> 'CANCELLED' " + where;
 
         Query q = em.createQuery(jpql);
