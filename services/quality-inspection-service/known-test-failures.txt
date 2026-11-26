@@ -6,9 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-# ---- D-095：逾期的定義。規格先立法，程式由建構 PR 配合（D-095 第 5、7 點）----
-# 現在的算法看初審期限、只排除 CLOSED：等管理者處理的狀態、複審階段都用初審期限算
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_overdue_by_state.INITIAL_REVIEW_COMPLETED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_overdue_by_state.PENDING_REREVIEW
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_overdue_by_state.RETURNED
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/dashboard_rereview_stage_ignores_the_initial_deadline
