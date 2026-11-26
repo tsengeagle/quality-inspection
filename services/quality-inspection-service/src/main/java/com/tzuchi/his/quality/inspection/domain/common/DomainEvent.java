@@ -3,7 +3,6 @@ package com.tzuchi.his.quality.inspection.domain.common;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.Instant;
-import java.util.UUID;
 
 /**
  * Abstract base class for all domain events.
@@ -53,20 +52,6 @@ public abstract class DomainEvent extends ApplicationEvent {
         this.entityId = entityId;
         this.action = action;
         this.detail = detail;
-    }
-
-    /**
-     * 取系統時間與隨機 id 的舊建構子（違反 ARCH-02，凍結在基線）。
-     *
-     * @deprecated D-092 第 6 點：只留給驗收範例執行器的測試（律法）使用；
-     *             該測試以修法改用新的建構子之後刪除，並把本建構子從 ARCH-02 基線移除。
-     */
-    @Deprecated
-    protected DomainEvent(Object source, String actorUserId, String actorUserName,
-                          String hospitalId, String entityType, String entityId,
-                          String action, String detail) {
-        this(source, UUID.randomUUID().toString(), Instant.now(), actorUserId, actorUserName,
-                hospitalId, entityType, entityId, action, detail);
     }
 
     public String getEventId() { return eventId; }
