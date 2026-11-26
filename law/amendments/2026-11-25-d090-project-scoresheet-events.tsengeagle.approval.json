@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-25-d090-project-scoresheet-events",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:d105daf16b0d83ac2a9f959b4c2dab11ffda27887e1aea8a5fcd8f4f2fe42bd6",
+  "reviewed_commit": "7586116e807a26e94c9e0e63b25969dec54e1602",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEDDpwIOxaIDrGxtE9o37Vk+bCzQWImltoAvrJeAsnSm2cjGgRTtGiJf\n4Uo2jpSJLKmfdjkqA+mUDWXGhiHqC/cHAQAAAMY=\n-----END SSH SIGNATURE-----\n"
+}
