@@ -227,4 +227,53 @@ P-5 的規則放哪裡：
 1. 事實 1 的分類是讀 controller 的方法簽章與 `http.yaml` 得到的，沒有逐一執行。
 2. 事實 2 的欄位數是用 `private` 欄位的行數估的，巢狀類別沒有逐一數。P-1 選 B 時要重新盤點。
 3. 稽核軌跡在前端的使用情形沒有查（事實 12）。P-5 選 B 時要查。
-4. P-2 的 ArchUnit 規則沒有試寫。`domain` 底下另有 5 個事件類別依賴 Jackson（`ReviewCaseReturnedEvent` 等，用的是 `ObjectMapper`，不是輸出形狀的標註；只看了其中一個檔案的 import）。那是另一種依賴，本草稿的 P-2 只談 `application`、`reporting`；`domain` 要不要一起凍結，建議另外裁決。
+4. P-2 的 ArchUnit 規則沒有試寫。範圍只有 `application`、`reporting`；`domain` 不在內，理由見第六節。
+
+## 六、附帶發現：domain 事件自己組稽核的 JSON 字串
+
+2026-11-26 負責人問「domain 適合直接依賴 Jackson 嗎」之後補查。**讀程式，沒有實測。** 本節不是本題的待裁決事項，已另列題目（題目清單「事件的 `detail` 改成結構化」）；寫在這裡是因為它決定了 P-2 的範圍。
+
+### 事實
+
+1. `DomainEvent`（`domain/common`）有一個 `String detail` 欄位，由每個事件的建構子產生 JSON 字串。`AuditTrailListener`（`infrastructure/audit`）原樣寫進稽核資料表。
+2. `domain` 底下有 33 個事件類別，產生 `detail` 的寫法有兩種：
+
+   | 寫法 | 事件類別數 | 例子 |
+   |---|---|---|
+   | `String.format` 拼字串 | 17 | `ReviewCaseClosedEvent`：`String.format("{\"submissionId\":\"%s\"}", submissionId)` |
+   | Jackson 的 `ObjectMapper` | 5 | `ReviewCaseReturnedEvent`、`ReviewCaseCancelledEvent`、`ReviewCaseReassignedEvent`、`RereviewRevisedEvent`、`ReviewSubmissionRevisedEvent` |
+
+   其餘 11 個沒有用這兩種寫法，起草時沒有逐一看它們怎麼給 `detail`。
+3. 用 Jackson 的 5 個來自 D-080 第 5 點：退回、取消的理由是自由文字，含引號、反斜線、換行時拼字串會產生不合法的 JSON。
+4. `detail` 的字串內容是律法：`specs/review-case/examples.yaml` 有 11 處直接比對，例如 `'{"rereviewScore":15,"finalScore":10.00}'`，鍵的順序與數字的格式都被釘住。
+5. 範例執行器沒有讀 `DomainEvent.getDetail()`，範例是透過稽核查詢的結果比對字串。`acceptance/AcceptanceWorldTest` 自己定義了一個測試用事件，呼叫基底建構子時 `detail` 傳 `null`。
+
+### 判斷
+
+- domain 不適合依賴 Jackson，但 Jackson 是症狀：真正放錯層的是「稽核紀錄怎麼序列化」這個決定，它是儲存格式，不是業務規則。
+- Jackson 本身的實際成本低（已在 classpath、沒有拖進 Spring）。比較大的風險在拼字串的 17 個：其中任何一個之後加了自由文字欄位，就會重演 D-080 第 5 點的缺陷，沒有閘門會擋。
+- 兩種寫法並存，新事件要用哪一種沒有規則。
+
+### 選項
+
+| 選項 | 作法 | 好處 | 代價 |
+|---|---|---|---|
+| A 凍結 | ArchUnit 規則：`domain` 不得新增 Jackson 依賴，現有 5 個列入凍結基線 | 一條規則 | 把新事件推回拼字串，風險反而變大 |
+| B 統一用 Jackson | 拼字串的 17 個也改用 `ObjectMapper`，明文允許 domain 事件依賴 Jackson | 消除跳脫字元的風險，寫法一致 | 正式承認 domain 依賴序列化函式庫；職責仍在錯的層 |
+| **C 結構化的 `detail`（建議）** | `DomainEvent.detail` 改成 `Map<String, Object>`，序列化移到 `AuditTrailListener` | domain 沒有 JSON、沒有 Jackson；跳脫由一個地方負責 | 動基底類別與 22 個事件類別；輸出的字串要與現在逐字相同 |
+| D domain 自己寫跳脫 | `domain/common` 放手寫的 JSON 編碼器 | 沒有函式庫依賴 | 手寫的跳脫邏輯本身就是缺陷來源 |
+
+建議 C，另立題目，不併進本題：
+
+- A 單獨做是負面的：擋掉安全的寫法，留下不安全的寫法。所以 P-2 的規則**不包含 `domain`**。
+- C 排不進來時，B 是合理的過渡。
+- C 的風險可以由現有的律法驗證：字串已被 11 個範例釘住（事實 4），改完跑 `./gradlew test` 就知道是否逐字相同。沒有被範例比對到的事件，要另外補比對（例如改之前先把每個事件的 `detail` 記下來）。
+- C 做完之後再加 A 的規則，那時凍結基線是空的。
+
+### C 動工前要確認的
+
+1. 沒有用上述兩種寫法的 11 個事件類別怎麼給 `detail`。
+2. 沒有範例比對 `detail` 的事件有哪些，改之前怎麼留下對照。
+3. `Map` 的鍵順序與數字格式（例如 `10.00`）交給 `AuditTrailListener` 序列化之後是否與現在相同。
+4. `acceptance/` 是律法（gate）。基底建構子的 `detail` 參數改型別時，`AcceptanceWorldTest` 傳的是 `null`，只留一個建構子就不用改它；若照 D-092 第 6 點之 3 的作法保留舊的建構子，`null` 會變成有歧義而編譯失敗，就要修法。
+5. 測試裡直接建構事件的檔案（粗估 22 個檔案出現 `Event(`）要不要改。

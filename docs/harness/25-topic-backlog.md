@@ -9,6 +9,7 @@
 ## 待辦（依序）
 
 1. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
+2. **事件的 `detail` 改成結構化**（負責人 2026-11-26 同意列入）：domain 事件不再自己組稽核的 JSON 字串（17 個拼字串、5 個用 Jackson），改帶結構化的資料，序列化移到 `AuditTrailListener`；做完後加上「`domain` 不得依賴 Jackson」的規則。事實、選項與動工前要確認的五件見 `45-response-dto-and-list-shape-draft.md` 第六節。尚未起草、尚未裁決。
 
 ## 已完成
 
