@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-26-d092-event-clock",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:0762adba8b2fae845d6b90b2ac98b60f0f2ed7b982a463d606effff95b4d2d32",
+  "reviewed_commit": "15a07cc84837bdfd26285a8be6f6a57d717e1771",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEAzBkQsMIOvhTy9n0OaAbDKHYveVkgC8R7nxwUH8gY7DLvwEUgAadnx\nVnlzdSOyp+GyVp4bqdHmD8VBwR9fXxMIAQAAANE=\n-----END SSH SIGNATURE-----\n"
+}
