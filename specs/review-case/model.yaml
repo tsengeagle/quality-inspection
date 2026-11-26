@@ -111,4 +111,3 @@ deferred_behaviors:
   - 永久盲審的讀取遮罩（D-033）：案件詳情、提交明細、修正歷史都已立法（RC-DTV-03、RC-SBV-01、RC-VIS-02）；複審醫師執行的命令不回傳初審分數與 finalScore（RC-SRR-S4、RC-CLR-S3）。稽核與匯出依 D-071、D-055 第 6 點
   - 必答規則 CONDITIONAL 與 conditionExpression 的求值：必答題的檢查只看 ALWAYS_REQUIRED（D-014 延後 visibilityRule，D-085 第 7 點）
   - updatedAt（D-037）：只有 SYSTEM_ADMIN 的案件詳情輸出它（RC-DTV-04）；其他查詢不輸出（D-084）
-  - 品質線與權重取自專案目前的版本，不是案件建立時的版本：與 D-068 第 4 點同一題，等專案版本管理立法（D-069）

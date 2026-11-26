@@ -155,9 +155,10 @@ specs/
    - `$data` 只能用在共用層的外殼，代表端點的 data 形狀。
    - 對應表的鍵結尾加 `?`（例如 `currentReviewer?: { userId: id }`）：這個欄位的值可以是 null，值可以是對應表、清單或純量；欄位名稱不含 `?`。不能與純量的 `?`、字面值、`$data` 一起用（D-088 第 5 點）。
    - 一個端點有幾種形狀時，`success` 用 `variants` 取代 `data`：至少兩項，每項有 `name` 與 `data`。每筆成功回應必須剛好符合其中一種（D-088 第 6 點）。
+   - 形狀可以另有 `transition: D-nnn`（D-094 第 10 點）：這種形狀在該裁決的過渡期間，不檢查涵蓋，但每筆回應仍要剛好符合其中一種形狀；報告列出過渡中的形狀與觀察次數。用在增刪回應欄位：修法 PR 加上新的形狀，新舊兩種都標 `transition`；建構 PR 改程式；下一個修法 PR 刪除舊的形狀、拿掉標記。過渡中的形狀要在建構 PR 合併後的修法 PR 裡收掉，不能一直留著。
 3. **錯誤回應。** 錯誤代碼先查 `transport_codes`，再查該 aggregate `usecases.yaml` 的 `error_codes`，以分類對應狀態碼。兩邊都找不到的代碼算違反。
 4. **比對（B-1 觀察）。** 測試期間經過 MockMvc 的每一個回應，都用契約比對；本文必須是單一 JSON 文件。比對器在 `services/quality-inspection-service/src/test/java/.../acceptance/http/`（律法，gate），以 `application-test.yml` 的 `context.initializer.classes` 掛進每個測試 context。
-5. **涵蓋。** 每個端點至少觀察到一次成功回應（有 `variants` 時每一種都要）；data 形狀裡的每個陣列至少觀察到一次非空；data 形狀裡可為 null 的欄位，null 與非 null 都要觀察到。有 `variants` 時依形狀分開計算。共用層的外殼不寫可為 null 的欄位（錯誤回應的 `message` 一律要有值）。
+5. **涵蓋。** 每個端點至少觀察到一次成功回應（有 `variants` 時每一種都要，標 `transition` 的除外）；data 形狀裡的每個陣列至少觀察到一次非空；data 形狀裡可為 null 的欄位，null 與非 null 都要觀察到。有 `variants` 時依形狀分開計算。共用層的外殼不寫可為 null 的欄位（錯誤回應的 `message` 一律要有值）。
 6. **閘門。** 報告寫在 `build/reports/http-contract/report.txt`，`build.gradle` 的 test 閘門讀它判決：
    - `specs/` 的契約有問題就未通過。
    - 完整執行時，報告必須是本次執行產生的。

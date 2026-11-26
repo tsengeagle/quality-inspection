@@ -722,8 +722,7 @@
   "hospitalId": "H001",
   "reviewerId": "DOC-1001",
   "rereviewerId": "DOC-2001",
-  "updatedAt": null,
-  "latestRevisionSummary": null
+  "updatedAt": null
 }
 ```
 
@@ -777,5 +776,7 @@
 UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
 
 `updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+> D-094 第 9 點更正：`latestRevisionSummary` 從白名單移除（值的內容從未定義、沒有使用者），SYSTEM_ADMIN 的 metadata 是七欄。
 
 既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。

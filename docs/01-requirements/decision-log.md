@@ -3811,3 +3811,53 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 
 - `docs/03-contracts/api-spec.md` §9.1～§9.4、§10（複審醫師的盲審投影）
 - `docs/harness/43-api-spec-gap-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+
+## D-094 — 不開放改版、多角色拒絕定案、移除 `latestRevisionSummary`（HTTP 契約的過渡形狀）
+
+### Status
+
+`accepted`（2026-11-26，負責人先定方向，再對 `docs/harness/44-versions-and-pending-draft.md` 的 V-1～V-3、M-1、L-1、L-2 與分批全部照建議裁決。同一份草稿的逾期（O-1～O-6）另由 D-095 立法）
+
+### Decision
+
+**專案版本管理（V-1～V-3）**
+
+1. **不開放改版**：專案與評分表發布之後不再改版；要改就建立新的專案。行為已由既有規則涵蓋（專案的更新、綁定、發布在已發布時拒絕；評分表的更新、發布在 `PUBLISHED` 時拒絕；一個專案只有一份評分表，只有 `DRAFT` 的專案能建立評分表），不加新規則。
+2. **評分表的三項待立法改成不做**：`freezeVersion`、`snapshotForSubmission`、建立新的草稿版本，從 `specs/score-sheet/model.yaml` 的 `deferred_behaviors` 移除。
+3. **品質線與權重取自目前的版本（D-069）改成定案**：發布後的版本不會再變，專案目前的版本就是案件建立時的版本，兩者沒有差別；從 `specs/review-case/model.yaml` 的 `deferred_behaviors` 移除。範例做不出差別，不加範例。
+4. **抽選的快照（V-3 選 A）**：快照不需要用來鎖定版本；快照的內容與保存方式仍等 D-011，留在 `specs/sampling-batch/model.yaml` 的 `deferred_behaviors`，改寫理由。
+5. **沒有被呼叫的程式（V-2 選 A）**：建構 PR 刪除 `ReviewProject.prepareDraftVersion()`、`ProjectVersion.nextDraft()` 與它們的單元測試。
+6. **D-068 第 4 點的未決事項**（啟用中的專案準備新版本之後，抽選要拒絕還是用最後一個已發布的版本）：不開放改版，這個情況不會發生。`ExecuteSamplingUseCase` 的版本未發布檢查保留為防線。
+
+**多角色的讀取授權（M-1）**
+
+7. **定案**：同時持有兩個以上角色的使用者，讀案件內容（案件詳情、提交明細、修正歷史）一律 `ACCESS_DENIED`。這是定案，不是暫時的作法；D-035 第 5 點「未定多角色合成不放寬」、D-055 第 7 點「未裁決」以本點更正。稽核的兩個查詢照 RC-LCY-01、RC-AUD-01 遮罩，不變。規格已經立法為拒絕，行為沒有變更，不加範例。
+8. **文件與程式訊息**：`permission-matrix.md`、`api-spec.md` 改寫「unknown」的說法；建構 PR 把程式的訊息改成不帶「pending」。
+
+**`latestRevisionSummary`（L-1、L-2）**
+
+9. **移除（L-1 選 A）**：從 SYSTEM_ADMIN 的案件詳情移除；metadata 白名單是七欄：`caseId`、`caseStatus`、`projectName`、`hospitalId`、`reviewerId`、`rereviewerId`、`updatedAt`。D-036、D-037 的八欄以本點更正。`RC-DTV-04`、`api-spec.md`、`permission-matrix.md`、UI-010 頁面規格一起改；範例 `admin_reads_case_metadata_only` 用 `only` 列出七欄。執行器把 null 與沒有欄位視為相同，這個範例移除前後都通過，欄位是否移除由 HTTP 契約判斷。
+10. **HTTP 契約的過渡形狀（L-2 選 A）**：閘門支援 `variants` 的形狀另有 `transition: D-nnn`。標記的形狀不檢查涵蓋，每筆回應仍要剛好符合一種形狀；報告列出過渡中的形狀與觀察次數（沒有評估的項目要列出，不算通過）。起因：契約是封閉的對應表、涵蓋要求每種形狀都被觀察到，增刪欄位沒有「修法 PR → 建構 PR」的路（草稿第四節的實測）。用法寫在 `specs/README.md` 第七節。
+
+**分批**
+
+11. **本題的順序**：
+    1. 修法 PR：本裁決、閘門（`acceptance/http/` 與測試）、`specs/README.md`、`http.yaml`（案件詳情的 `metadata-with-summary`、`metadata` 兩種形狀都標 `transition: D-094`）、`RC-DTV-04` 與範例、三個 `model.yaml`、文件、題目清單、草稿。
+    2. 建構 PR：第 5 點、第 8 點的程式訊息、移除 `latestRevisionSummary` 的輸出。
+    3. 修法 PR：刪除 `metadata-with-summary`，拿掉 `metadata` 的 `transition`。
+12. **題目清單**：本題的第一批標為進行中；逾期另列為 D-095。
+
+### Relationship / Evidence
+
+- **起因**：題目清單待辦第 1 題；負責人 2026-11-26 先定的方向。
+- **草案與實測**：`docs/harness/44-versions-and-pending-draft.md`（main = `8a5e26b`）。第四節的實測：在案件詳情加一種沒有這個欄位的形狀，完整執行時閘門擋下「沒有觀察到這種形狀的成功回應」。
+- **閘門的驗證**（本機）：`HttpContractEvaluatorTest` 新增 4 個測試（過渡中的形狀不檢查涵蓋但會列出、仍參與比對、其他形狀照常檢查涵蓋、`transition` 必須是裁決編號）；把「略過過渡中的形狀」拿掉之後，第一個測試失敗。
+- **與既有裁決的關係**：更正 D-035 第 5 點、D-036、D-037、D-055 第 7 點；結束 D-068 第 4 點、D-069 留下的版本問題；延伸 D-061、D-088（HTTP 契約）。
+
+### Mapping
+
+- `services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/`（`HttpContract`、`HttpContractEvaluator`、`HttpContractReport`、`HttpContractEvaluatorTest`）
+- `specs/README.md` 第七節、`specs/review-case/http.yaml`、`specs/review-case/usecases.yaml`（RC-DTV-04）、`specs/review-case/examples.yaml`、`specs/review-case/model.yaml`、`specs/score-sheet/model.yaml`、`specs/sampling-batch/model.yaml`
+- `docs/03-contracts/api-spec.md`、`docs/02-ddd/permission-matrix.md`、`docs/05-ui/ui-page-spec-ui010案件詳情頁.md`
+- `docs/harness/44-versions-and-pending-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續：建構 PR；第 11 點之 3 的修法 PR；D-095（逾期）

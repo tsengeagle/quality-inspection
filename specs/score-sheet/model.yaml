@@ -115,10 +115,8 @@ deferred_attributes:
   - name                      # persistence-model.md §5.4 有評分表名稱，領域模型沒有；D-050 第 5 點：本次不納入
   - displayOrder              # persistence-model.md §5.6、§5.7 有，領域模型沒有；D-050 第 5 點：順序以清單順序表示
   - checksum                  # persistence-model.md §5.5；發布時的 snapshot（D-011），屬於抽選與提交的規格
-deferred_behaviors:
-  - freezeVersion             # domain-model.md §5.2 與 domain-events.md §4.7；FROZEN 狀態未定義
-  - snapshotForSubmission     # domain-model.md §5.2；屬於提交的規格
-  - 建立新的草稿版本           # SS-INV-01 說發布後只能以新版本演進；D-050 第 1 點：未定
+# D-094 第 2 點：不開放改版，freezeVersion、snapshotForSubmission、建立新的草稿版本都不做（原本列在 deferred_behaviors）。
+deferred_behaviors: []
 
 enums:
   - name: ScoreSheetStatus

@@ -454,6 +454,47 @@ class HttpContractEvaluatorTest {
         assertProblem(e, "GET /things/{thingId}（full）：可為 null 的欄位 $.data.note 從未觀察到非 null 的值");
     }
 
+    // ---------- D-094：過渡中的形狀（transition）不檢查涵蓋，但回應仍要剛好符合一種 ----------
+
+    private static final String TRANSITION_HTTP = VARIANT_HTTP.replace(
+            "        - name: masked\n",
+            "        - name: masked\n          transition: D-094\n");
+
+    @Test
+    void aTransitionVariantIsNotRequiredToBeObservedButIsListed() {
+        HttpContract c = contract(TRANSITION_HTTP, USECASES);
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"secret\":\"s\",\"note\":null}")));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"secret\":\"s\",\"note\":\"n\"}")));
+        assertTrue(e.coverageProblems().isEmpty(), e.coverageProblems().toString());
+        assertEquals(List.of("GET /things/{thingId}（masked）：D-094 過渡中，涵蓋沒有評估（觀察到 0 次）"), e.transitions());
+    }
+
+    @Test
+    void aTransitionVariantStillTakesPartInMatching() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(TRANSITION_HTTP, USECASES));
+        e.observe(new HttpObservation("GET", "/things/T2", 200, ok("{\"thingId\":\"T2\",\"maskedFields\":[\"secret\"]}")));
+        e.observe(new HttpObservation("GET", "/things/T3", 200, ok("{\"thingId\":\"T3\",\"other\":1}")));
+        assertProblem(e, "不符合任何一種形狀");
+        assertTrue(e.transitions().get(0).endsWith("（觀察到 1 次）"), e.transitions().toString());
+    }
+
+    @Test
+    void theNonTransitionVariantsAreStillCovered() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(TRANSITION_HTTP, USECASES));
+        e.observe(new HttpObservation("GET", "/things/T2", 200, ok("{\"thingId\":\"T2\",\"maskedFields\":[\"secret\"]}")));
+        assertProblem(e, "GET /things/{thingId}（full）：沒有觀察到這種形狀的成功回應");
+    }
+
+    @Test
+    void aTransitionMustNameADecision() {
+        HttpContract c = contract(TRANSITION_HTTP.replace("transition: D-094", "transition: soon"), USECASES);
+        assertTrue(c.loadProblems().stream().anyMatch(p -> p.contains("transition 必須是裁決編號")), c.loadProblems().toString());
+        HttpContract extra = contract(TRANSITION_HTTP.replace("transition: D-094", "transition: D-094\n          note: x"), USECASES);
+        assertTrue(extra.loadProblems().stream().anyMatch(p -> p.contains("可以另有 transition")), extra.loadProblems().toString());
+    }
+
     @Test
     void ambiguousVariantsAreAProblem() {
         HttpContract c = contract(VARIANT_HTTP.replace("{ thingId: id, maskedFields: [ text ] }", "{ thingId: id, secret: text, note: 'text?' }"), USECASES);

@@ -157,6 +157,7 @@ public final class HttpContractEvaluator {
                 continue;
             }
             for (HttpContract.Variant v : e.variants()) {
+                if (v.transition() != null) continue;  // D-094：過渡中的形狀不檢查涵蓋，見 transitions()
                 String key = seenKey(e, v);
                 JsonShape.Seen s = seen.get(key);
                 if (v.name() != null && s.observed == 0) {
@@ -176,6 +177,19 @@ public final class HttpContractEvaluator {
                         all.add(key + "：可為 null 的欄位 " + field + " 從未觀察到 null");
                     }
                 }
+            }
+        }
+        return all;
+    }
+
+    /** D-094：過渡中的形狀（涵蓋沒有被評估），每項是「端點（形狀）：裁決編號，觀察到 n 次」。 */
+    public List<String> transitions() {
+        List<String> all = new ArrayList<>();
+        for (HttpContract.Endpoint e : contract.endpoints()) {
+            for (HttpContract.Variant v : e.variants()) {
+                if (v.transition() == null) continue;
+                String key = seenKey(e, v);
+                all.add(key + "：" + v.transition() + " 過渡中，涵蓋沒有評估（觀察到 " + seen.get(key).observed + " 次）");
             }
         }
         return all;

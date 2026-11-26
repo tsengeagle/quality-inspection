@@ -127,7 +127,10 @@ endpoints:
               initialSubmittedAt: 'text?'
               finalScore: 'decimal?'
             owner: boolean
-        - name: metadata
+        # D-094 第 10 點：過渡期間新舊兩種 metadata 形狀並存。建構 PR 移除 latestRevisionSummary 之後，
+        # 下一個修法 PR 刪除 metadata-with-summary，把 metadata 的 transition 拿掉。
+        - name: metadata-with-summary
+          transition: D-094
           data:
             caseId: id
             caseStatus: enum CaseStatus
@@ -137,6 +140,16 @@ endpoints:
             rereviewerId: 'id?'
             updatedAt: 'text?'
             latestRevisionSummary: 'null'
+        - name: metadata
+          transition: D-094
+          data:
+            caseId: id
+            caseStatus: enum CaseStatus
+            projectName: text
+            hospitalId: id
+            reviewerId: 'id?'
+            rereviewerId: 'id?'
+            updatedAt: 'text?'
 
   - usecase: GetCaseAssignmentContext
     method: GET

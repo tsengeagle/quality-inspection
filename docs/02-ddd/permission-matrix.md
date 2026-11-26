@@ -99,8 +99,6 @@ metadata_whitelist_strategy:
     UI-009:
       - batchId
       - dueAt
-    UI-010:
-      - latestRevisionSummary
     UI-014:
       - stage
       - revisionNo
@@ -182,7 +180,7 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 | CLOSED revision／reopen | 所有 actor 均禁止 |
 
 複審醫師所有階段皆不得取得初審答案、分數、評語，包含提交後、revision、固定後及 CLOSED。finalScore／preview／diff 等可反推初審資訊者亦不得提供；所有查詢、command ack、歷程／compare、報表／匯出與快取均適用，不能靠頁面隱藏代替 response 保護。
-其他角色存取政策不變；多角色 actor 的技術授權合成 unknown，不得以切換入口繞過同案盲審。
+其他角色存取政策不變；多角色 actor 讀案件內容（詳情、提交明細、修正歷史）一律拒絕，這是定案（D-094 第 7 點），不得以切換入口繞過同案盲審。
 
 
 ## D-035 歷史身份 Fail-closed 讀取契約
@@ -197,6 +195,8 @@ Legend: `Y` 可執行、`C` 條件式、`N` 不可
 UI-010 SYSTEM_ADMIN metadata-only 僅含 `caseId`, `caseStatus`, `projectName`, `hospitalId`, `reviewerId`, `rereviewerId`, `updatedAt`, `latestRevisionSummary`。`lifecycleLatestStage` 暫移除，JSON 必須不存在，不能回 null；目前狀態使用 `caseStatus`。
 
 `updatedAt`、`latestRevisionSummary` 的值契約與實作仍未完成（UNKNOWN），目前 null 不表示已完成。不得加入 FULL-only、敏感巢狀資訊或因新增 DTO getter 自動擴大白名單。
+
+> D-094 第 9 點更正：`latestRevisionSummary` 從白名單移除（值的內容從未定義、沒有使用者），SYSTEM_ADMIN 的 metadata 是七欄。
 
 既有 Lifecycle Query／API 與 EX-039／TS-TR-005 完整關鍵路徑需求保留；新增 Milestone／Latest Stage 投影延後，未取消需求。D-035 Fail-closed、D-033 永久盲審及既有 Role／Scope 不變。
 
