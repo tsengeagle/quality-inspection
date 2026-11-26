@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-26-d092-acceptance-world",
+  "decision": "D-092",
+  "reason": "D-092 第 6 點之 3：驗收範例執行器的測試 AcceptanceWorldTest 的測試用事件改用 DomainEvent 新的建構子（傳入 id 與發生時間），之後的建構 PR 才能刪除原本取系統時間的建構子；決策紀錄補上進度",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/AcceptanceWorldTest.java"
+  ]
+}

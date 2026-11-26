@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-26-d092-acceptance-world",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:b29c3378075f8af1c198c6aa1644db3216d4803fcd79ffcc9e432143737d27e3",
+  "reviewed_commit": "3e548bf5518232e1d33bf5754c0737a1139c518d",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEBTi3ObGnhEF0bLW8uarx44ooUA4ZIC/8j9ktRvvD4jzvyud6vNN7A7\nn9gtoHdBiGg3EpA/pPfRzSdFAIkwN9oDAQAAANQ=\n-----END SSH SIGNATURE-----\n"
+}

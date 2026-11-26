@@ -3782,3 +3782,4 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/harness/42-event-occurred-at-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續：建構 PR；之後的修法 PR 與建構 PR（第 6 點之 3）
+- 進度（2026-11-26）：修法 PR #182、建構 PR #183 已合併；第 6 點之 3 的修法 PR 改 `AcceptanceWorldTest` 的測試用事件，接著是刪除原本建構子的建構 PR

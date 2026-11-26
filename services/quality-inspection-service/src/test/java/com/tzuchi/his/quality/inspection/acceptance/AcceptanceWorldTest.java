@@ -186,7 +186,8 @@ class AcceptanceWorldTest {
         private final Instant renamedAt;
 
         ThingRenamedEvent(Object source, String thingId, Instant renamedAt) {
-            super(source, "u-1", "User", "H-01", "Thing", thingId, "RENAMED", null);
+            // D-092：事件的 id 與發生時間由發出者傳入
+            super(source, "e-" + thingId, renamedAt, "u-1", "User", "H-01", "Thing", thingId, "RENAMED", null);
             this.thingId = thingId;
             this.renamedAt = renamedAt;
         }
