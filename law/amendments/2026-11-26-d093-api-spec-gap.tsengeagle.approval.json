@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-26-d093-api-spec-gap",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:c8f9379d0b15f9a027713afa1aca57b6260ca6d6b6ed43235725e70e1cf9c8df",
+  "reviewed_commit": "c08a510400ca1b35441a8be873aa11e7f0273094",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEDd6vG4y9pzAdFxMOsMYWi8aMQlWHAni08tDEkROpJRxvXhdxrI8mUZ\npLaQPapO5OpOGC8nzzSmU8VFBjn2UlMOAQAAANo=\n-----END SSH SIGNATURE-----\n"
+}

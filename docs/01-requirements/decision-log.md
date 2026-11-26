@@ -3783,3 +3783,31 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/harness/42-event-occurred-at-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續：建構 PR；之後的修法 PR 與建構 PR（第 6 點之 3）
 - 進度（2026-11-26）：修法 PR #182、建構 PR #183 已合併；第 6 點之 3 的修法 PR 改 `AcceptanceWorldTest` 的測試用事件，接著是刪除原本建構子的建構 PR
+
+## D-093 — `api-spec.md` 照 HTTP 契約修正（抽選的回應與請求、一律 null 的欄位）
+
+### Status
+
+`accepted`（2026-11-26，負責人對 `docs/harness/43-api-spec-gap-draft.md` 的 G-1～G-7 全部照建議裁決）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 G-n）。本裁決只改文件，程式、前端、`http.yaml` 都不動；行為沒有變更。
+
+1. **執行抽選的回應（G-1 選 A）**：`api-spec.md` §9.3 照程式寫成 `201`、`{ batchId }`。成功代表批次已是 `COMPLETED`（D-086 第 1 點），件數從批次詳情讀取。
+2. **重跑的回應（G-2 選 A）**：§9.4 照程式寫成 `201`、`{ batchId }`（新批次的 id）；原批次從新批次的 `retryOfBatchId` 讀取。成功的重跑目前走不到，等母體來源的介接再檢視。
+3. **請求本文（G-3 選 A）**：§9.2、§9.3 刪除 `{ "mode": "MANUAL" }`，寫明不讀請求本文、執行模式一律是 `MANUAL`。排程抽選要做時另立題目。
+4. **`rereviewContext.initialReviewerName`（G-4 選 A）**：維持一律 null（`specs/review-case/http.yaml` 已寫成 `'null'`），`api-spec.md` 寫明改用 `initialReviewerId`。要從人員目錄取名稱時另立題目。
+5. **`previewReady`、`previewStats`（G-5 選 A）**：維持一律 `false`、null，§9.1 寫明預覽的結果是頁面自己的狀態（UI-006 頁面規格第三節）。
+6. **範圍（G-6 選 A）**：沒有回應 dto 的端點、`Page` 與 `{ items }` 的統一不在本裁決內，留在題目清單。
+7. **分批（G-7）**：一個修法 PR（本裁決、`api-spec.md`、題目清單、草稿）。沒有建構 PR，沒有新的範例。
+
+### Relationship / Evidence
+
+- **起因**：D-088 第 2 點（契約照程式，與 `api-spec.md` 不同的地方記在題目清單）。
+- **草案**：`docs/harness/43-api-spec-gap-draft.md`（main = `8e2a1c9`）。事實是讀程式與文件，沒有另外實測；HTTP 的實際回應由 D-088 的 `http.yaml` 範例驗證。前端（`sampling.service.ts`、複審頁、抽選執行頁）與程式一致。
+
+### Mapping
+
+- `docs/03-contracts/api-spec.md` §9.1～§9.4、§10（複審醫師的盲審投影）
+- `docs/harness/43-api-spec-gap-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
