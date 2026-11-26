@@ -101,19 +101,6 @@ class ReviewProjectTest {
     }
 
     @Test
-    void prepareDraftVersion_afterPublish_shouldCreateNextDraft() {
-        ReviewProject project = ReviewProject.create("p1", "h1", "Test",
-                null, EnumSet.of(MedicalRecordType.OUTPATIENT));
-        com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
-        project.publishNewVersion();
-
-        project.prepareDraftVersion();
-
-        assertEquals(2, project.getCurrentVersion().getVersionNumber());
-        assertFalse(project.getCurrentVersion().isPublished());
-    }
-
-    @Test
     void create_withBlankName_shouldThrow() {
         // D-040: 名稱空白是輸入格式問題，VALIDATION_ERROR（原本是 INVALID_PROJECT_NAME，不在規格的代碼表）
         com.tzuchi.his.quality.inspection.domain.common.DomainValidationException e = assertThrows(

@@ -24,16 +24,16 @@ class ReviewProjectIntegrationTest {
                 null, EnumSet.of(MedicalRecordType.OUTPATIENT));
         com.tzuchi.his.quality.inspection.testfixture.PublishableProjects.prepare(project);
         project.publishNewVersion();
-        project.prepareDraftVersion();
         projectRepository.save(project);
 
         ReviewProject loaded = projectRepository.findById("p-int-1")
                 .orElseThrow(() -> new AssertionError("Project not found after save"));
 
-        assertEquals(2, loaded.getCurrentVersion().getVersionNumber(),
-                "After publish + prepareDraft, version should be 2");
-        assertFalse(loaded.getCurrentVersion().isPublished(),
-                "New draft version should not be published");
+        // D-094：不開放改版，發布後的版本就是最後的版本
+        assertEquals(1, loaded.getCurrentVersion().getVersionNumber(),
+                "After publish, version should stay 1");
+        assertTrue(loaded.getCurrentVersion().isPublished(),
+                "Published version should survive round-trip");
         assertEquals(ProjectStatus.DRAFT, loaded.getStatus(),
                 "Status should remain DRAFT");
         assertEquals("Test Project", loaded.getName(),

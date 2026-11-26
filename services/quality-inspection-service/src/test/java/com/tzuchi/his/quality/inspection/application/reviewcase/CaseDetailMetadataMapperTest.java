@@ -14,7 +14,7 @@ import static org.mockito.Mockito.*;
 
 class CaseDetailMetadataMapperTest {
     private static final Set<String> ALLOWED = Set.of("caseId", "caseStatus", "projectName", "hospitalId",
-            "reviewerId", "rereviewerId", "updatedAt", "latestRevisionSummary");
+            "reviewerId", "rereviewerId", "updatedAt");  // D-094：七欄
 
     @Test
     void fullViewAndFuturePropertiesAreNeverSerializedThroughMetadataProjection() {

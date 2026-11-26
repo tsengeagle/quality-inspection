@@ -316,7 +316,7 @@ class PermanentBlindReviewReadApiTest {
         JsonNode data = read("/review-cases/c1", token("admin", "H001", "system_admin"));
         Set<String> fields = new HashSet<>(); data.fieldNames().forEachRemaining(fields::add);
         assertEquals(Set.of("caseId", "caseStatus", "projectName", "hospitalId", "reviewerId", "rereviewerId",
-                "updatedAt", "latestRevisionSummary"), fields);
+                "updatedAt"), fields);  // D-094：latestRevisionSummary 移除
         assertFalse(data.has("lifecycleLatestStage"));
         assertEquals("c1", data.path("caseId").asText());
         assertEquals("PENDING_REREVIEW", data.path("caseStatus").asText());
@@ -324,7 +324,7 @@ class PermanentBlindReviewReadApiTest {
         assertEquals("H001", data.path("hospitalId").asText());
         assertEquals("initial", data.path("reviewerId").asText());
         assertEquals("rr", data.path("rereviewerId").asText());
-        for (String unknown : List.of("updatedAt", "latestRevisionSummary")) {
+        for (String unknown : List.of("updatedAt")) {
             assertTrue(data.path(unknown).isNull(), "Do not invent values for unavailable/undefined metadata");
         }
         assertFalse(data.has("initialReviewContext")); assertFalse(data.has("rereviewContext"));

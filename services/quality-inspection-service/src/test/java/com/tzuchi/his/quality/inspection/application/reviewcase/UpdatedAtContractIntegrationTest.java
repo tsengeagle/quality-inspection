@@ -251,9 +251,9 @@ class UpdatedAtContractIntegrationTest {
 
 
     @Test
-    void legacyNullAndEightFieldWhitelistRemain() throws Exception {
+    void legacyNullAndSevenFieldWhitelistRemain() throws Exception {
         com.fasterxml.jackson.databind.JsonNode data = metadata(); Set<String> keys = new HashSet<>(); data.fieldNames().forEachRemaining(keys::add);
-        assertEquals(Set.of("caseId", "caseStatus", "projectName", "hospitalId", "reviewerId", "rereviewerId", "updatedAt", "latestRevisionSummary"), keys);
+        assertEquals(Set.of("caseId", "caseStatus", "projectName", "hospitalId", "reviewerId", "rereviewerId", "updatedAt"), keys);  // D-094：七欄
         assertTrue(data.path("updatedAt").isNull()); assertFalse(data.has("lifecycleLatestStage"));
     }
 
