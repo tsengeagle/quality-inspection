@@ -3862,3 +3862,39 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/harness/44-versions-and-pending-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續：建構 PR；第 11 點之 3 的修法 PR；D-095（逾期）
 - 進度（2026-11-26）：修法 PR #187、建構 PR #188；第 11 點之 3 的修法 PR 刪除 `metadata-with-summary`、拿掉 `transition`，`http.yaml` 不再有過渡中的形狀
+
+## D-095 — 逾期的定義
+
+### Status
+
+`accepted`（2026-11-26，負責人先定方向「重新定義後立法」，再對 `docs/harness/44-versions-and-pending-draft.md` 第二節的 O-1～O-6 全部照建議裁決）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 O-n）。規則是 `RC-DSH-09`。
+
+1. **定義（O-1 選 A）**：逾期 = 目前階段的期限早於現在。
+   - 初審階段（`PENDING_INITIAL_REVIEW`、`INITIAL_REVIEW_IN_PROGRESS`）看初審期限 `dueAt`。
+   - 複審階段（`PENDING_REREVIEW`、`REREVIEW_IN_PROGRESS`）在已指派複審醫師時看複審期限；還沒指派時不算。
+   - 其他狀態（`SELECTED_PENDING_ASSIGNMENT`、`RETURNED`、`INITIAL_REVIEW_COMPLETED`、`CLOSED`）不算逾期；`CANCELLED` 本來就不算進任何件數（D-087 第 4 點）。
+2. **邊界（O-2 選 A）**：期限早於現在才算，剛好等於不算。「現在」取注入的時鐘（D-092 第 5 點）。
+3. **重開後的期限（O-3 選 A）**：重開不改初審期限；期限已過的案件重開後立刻算逾期，管理者可以用改派給新的期限。
+4. **比率（O-4 選 A）**：`overdueRate` = 逾期件數 ÷ `totalCases`，`totalCases` 是 0 時是 0（RC-DSH-08，與 D-087 第 6 點相同）。
+5. **範例（O-5 選 A）**：`dashboard_overdue_by_state`（八種狀態在兩個期限都過了之後）、已指派複審的複審期限、複審階段不看初審期限、等於期限與晚一秒的邊界、重開後保留期限，共 13 個。現在的程式算錯的凍結在 `known-test-failures.txt`，建構 PR 解凍。
+6. **其他出口（O-6）**：逾期只出現在儀表板與匯出的 `summary`（RC-RPT-12 引用 RC-DSH-09）；案件清單、詳情不顯示逾期，本裁決不新增。
+7. **分批**：修法 PR（本裁決、規則、範例、`known-test-failures.txt`、`deferred_behaviors` 與 `not_covered`、`api-spec.md`、題目清單）→ 建構 PR（儀表板的查詢）。
+
+### Relationship / Evidence
+
+- **起因**：D-087 第 5 點（逾期不立法，等裁決）；D-094 的草稿第二節。
+- **事實**：草稿第二節，讀程式，沒有實測。現在的算法是「初審期限早於現在而且不是 `CLOSED`」，不看複審期限。
+- **建構的本機驗證**（2026-11-26，JDK 21，分支 `build/d095-overdue`）：新的查詢加上本裁決的 13 個範例全部通過；不加範例時 `./gradlew test` 0 個失敗。
+- **與既有裁決的關係**：結束 D-087 第 5 點；延伸 D-092 第 5 點（時鐘）。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（RC-DSH-09、RC-RPT-12 的引用）、`specs/review-case/examples.yaml`、`specs/review-case/model.yaml`（`deferred_behaviors`）
+- `docs/03-contracts/api-spec.md`（儀表板）
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/harness/25-topic-backlog.md`
+- 後續：建構 PR
