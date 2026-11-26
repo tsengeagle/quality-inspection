@@ -4,7 +4,7 @@
 
 ## 進行中
 
-1. **沒有回應 dto 的端點改成 dto（D-088 H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）**：D-093 第 6 點留下的兩件。草稿 `45-response-dto-and-list-shape-draft.md`（P-1～P-8），待裁決。
+1. **沒有回應 dto 的端點改成 dto（D-088 H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）**：D-093 第 6 點留下的兩件。草稿 `45-response-dto-and-list-shape-draft.md`（P-1～P-8）。負責人 2026-11-26 裁決全部照建議；下一步是修法 PR（裁決條文、P-2 的 ArchUnit 規則、`api-spec.md`），再來是建構 PR（P-4）。
 
 ## 待辦（依序）
 
