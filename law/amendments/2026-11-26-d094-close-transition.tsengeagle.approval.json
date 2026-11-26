@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-26-d094-close-transition",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:34d431ffe698daf117340fa4cb9ec34d20170b5a710325bc8db7061dc21a8e2d",
+  "reviewed_commit": "b080cb5cccea0ff25592b1884966f282cda6e7f6",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAECVC1MLjeMIpGE1eoqv/Fh38WAFpq5hMSWI9sAXEl01kYXqWNL34Rm2\narQnrx1B0A1aY2lC4lZ0hHdR4MStd/0JAQAAAOM=\n-----END SSH SIGNATURE-----\n"
+}

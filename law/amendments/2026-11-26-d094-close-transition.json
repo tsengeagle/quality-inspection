@@ -1,0 +1,10 @@
+{
+  "id": "2026-11-26-d094-close-transition",
+  "decision": "D-094",
+  "reason": "D-094 第 11 點之 3：建構 PR 移除 latestRevisionSummary 之後，刪除案件詳情的 metadata-with-summary 形狀，拿掉 metadata 的 transition；決策紀錄補上進度",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/http.yaml"
+  ]
+}
