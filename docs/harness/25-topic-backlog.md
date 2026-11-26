@@ -4,12 +4,11 @@
 
 ## 進行中
 
-1. **前端移除 `finalConclusion`、`rereviewRequired`**（D-084 第 9 點）：前端的型別（`cases.service.ts`）與案件詳情頁的 `finalConclusion` 顯示一併移除。建構 PR（不改律法）。
+1. **沒有回應 dto 的端點改成 dto（D-088 H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）**：D-093 第 6 點留下的兩件。草稿 `45-response-dto-and-list-shape-draft.md`（P-1～P-8），待裁決。
 
 ## 待辦（依序）
 
-1. **沒有回應 dto 的端點改成 dto（D-088 H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）**：D-093 第 6 點留下的兩件。
-2. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
+1. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
 
 ## 已完成
 
@@ -43,6 +42,7 @@
 | HTTP 回應與 `api-spec.md` 的落差（只改文件） | D-093 | #186 |
 | 不開放改版、多角色拒絕定案、移除 `latestRevisionSummary`（HTTP 契約的過渡形狀） | D-094 | #187、#188、#189 |
 | 逾期的定義（目前階段的期限早於現在） | D-095 | #190、#191 |
+| 前端移除 `finalConclusion`、`rereviewRequired`，並清掉文件裡殘留的 `rereviewRequired` | D-084 第 9 點 | #192 |
 | 問題側其餘的範圍（C、A、B、D、E、review-project 與 score-sheet 的請求端；專案版本管理與未裁決事項另列 D-094、D-095） | D-085～D-089 | #162～#178 |
 
 D-072 第 4 點的違憲清單到此全部修正完成（D-075 第 12 點）。
