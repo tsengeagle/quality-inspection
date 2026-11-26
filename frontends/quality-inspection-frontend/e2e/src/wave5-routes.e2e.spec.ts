@@ -299,8 +299,7 @@ async function mockRereviewCase(
             initialReviewerName: null,
             // D-033：後端若誤送這些值，頁面也不得顯示
             initialTotalScore: 79,
-            finalScore: 84,
-            finalConclusion: 'PASS'
+            finalScore: 84
           }
         }
       })

@@ -277,8 +277,7 @@ describe('CasesService', () => {
           initialReviewerName: 'Dr. Initial',
           initialTotalScore: 88,
           initialSubmittedAt: '2026-04-01T00:00:00Z',
-          finalScore: 91,
-          finalConclusion: 'PASS'
+          finalScore: 91
         }
       }
     });
@@ -297,7 +296,6 @@ describe('CasesService', () => {
       sourceCaseKey: 'SK-012',
       initialReviewScore: undefined,
       finalScore: undefined,
-      finalConclusion: undefined,
       createdAt: undefined,
       assignedAt: undefined,
       dueAt: undefined,
@@ -382,7 +380,7 @@ describe('CasesService', () => {
     });
     // D-033：複審頁的快取不得保留初審分數或可反推初審分數的值，即使後端回傳了也一樣。
     const rereviewContext = (actual as { rereviewContext: Record<string, unknown> }).rereviewContext;
-    for (const field of ['initialTotalScore', 'finalScore', 'finalConclusion', 'closedRevisionException']) {
+    for (const field of ['initialTotalScore', 'finalScore', 'closedRevisionException']) {
       expect(field in rereviewContext).withContext(field).toBeFalse();
     }
   });
@@ -469,8 +467,7 @@ describe('CasesService', () => {
         status: 'SUBMITTED',
         caseId: 'CASE-012',
         caseStatus: 'PENDING_REREVIEW',
-        totalScore: 91,
-        rereviewRequired: true
+        totalScore: 91
       }
     });
 
@@ -498,8 +495,7 @@ describe('CasesService', () => {
         caseId: 'CASE-012',
         caseStatus: 'PENDING_REREVIEW',
         status: 'SUBMITTED',
-        totalScore: 91,
-        rereviewRequired: true
+        totalScore: 91
       },
       {
         caseId: 'CASE-012',

@@ -197,6 +197,17 @@ describe('CaseDetailPageComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('案件指派');
   });
 
+  it('summarises a case without a rereview submission by its final score only (D-084 第 9 點)', () => {
+    render(buildDetail({ status: 'CLOSED', finalScore: 88 }));
+    expect(component.rereviewSummary).toBe('FINAL / 88');
+
+    component.caseDetail = buildDetail({ status: 'CLOSED', finalScore: 0 });
+    expect(component.rereviewSummary).toBe('FINAL / 0');
+
+    component.caseDetail = buildDetail({ status: 'PENDING_INITIAL_REVIEW' });
+    expect(component.rereviewSummary).toBeUndefined();
+  });
+
   it('shows rereview summary for role-limited rereviewer cases only', () => {
     render(buildDetail({
       status: 'REREVIEW_IN_PROGRESS',

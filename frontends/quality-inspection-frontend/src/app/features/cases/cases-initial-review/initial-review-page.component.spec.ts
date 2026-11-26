@@ -275,8 +275,7 @@ describe('InitialReviewPageComponent', () => {
       caseId: 'CASE-012',
       caseStatus: 'INITIAL_REVIEW_COMPLETED',
       status: 'SUBMITTED',
-      totalScore: 90,
-      rereviewRequired: false
+      totalScore: 90
     }));
 
     setInputValue('[data-testid="initial-review-answer-input-0"]', 'N');
@@ -318,8 +317,7 @@ describe('InitialReviewPageComponent', () => {
       caseId: 'CASE-012',
       caseStatus: 'INITIAL_REVIEW_COMPLETED',
       status: 'SUBMITTED',
-      totalScore: 90,
-      rereviewRequired: false
+      totalScore: 90
     }));
 
     setInputValue('[data-testid="initial-review-answer-input-0"]', 'N');

@@ -146,7 +146,6 @@ interface ReviewCaseDetailDto {
   sourceCaseKey: string;
   initialReviewScore?: number | null;
   finalScore?: number | null;
-  finalConclusion?: string | null;
   createdAt?: string | null;
   assignedAt?: string | null;
   dueAt?: string | null;
@@ -205,7 +204,6 @@ interface SubmitInitialReviewResponseDto {
   caseId: string;
   caseStatus: string;
   totalScore?: number | null;
-  rereviewRequired: boolean;
 }
 
 /** 不含 finalScore：回應複審醫師時不得回傳可反推初審分數的資訊（D-033、D-053）。 */
@@ -359,7 +357,7 @@ export interface InitialReviewBootstrapViewModel {
 }
 
 /**
- * 複審頁的 bootstrap。不含初審分數、finalScore、finalConclusion：這些值會洩漏或可反推初審分數（D-033），
+ * 複審頁的 bootstrap。不含初審分數、finalScore：這些值會洩漏或可反推初審分數（D-033），
  * 後端即使回傳也不映射，避免留在前端快取。closedRevisionException 與 REVISION_EXCEPTION_CLOSED 已隨 D-032 撤銷。
  */
 export interface RereviewBootstrapViewModel {
@@ -441,7 +439,6 @@ export interface CommandResultViewModel {
   revisionNo?: number;
   oldSubmissionId?: string;
   newSubmissionId?: string;
-  rereviewRequired?: boolean;
   /** 初審固定時間（UTC，D-054） */
   fixedAt?: string;
   /** 草稿內容沒有變更，後端未寫入（D-038 的 409 NO_CHANGES）；前端視為「已是最新」（D-044 第 5 點） */
@@ -463,7 +460,6 @@ export interface CaseDetailViewModel {
   sourceCaseKey: string;
   initialReviewScore?: number | null;
   finalScore?: number | null;
-  finalConclusion?: string | null;
   createdAt?: string | null;
   assignedAt?: string | null;
   dueAt?: string | null;
@@ -598,8 +594,7 @@ export class CasesService {
         caseId: response.data.caseId,
         caseStatus: response.data.caseStatus,
         status: response.data.status,
-        totalScore: response.data.totalScore,
-        rereviewRequired: response.data.rereviewRequired
+        totalScore: response.data.totalScore
       }))
     );
   }
@@ -737,7 +732,6 @@ export class CasesService {
       sourceCaseKey: item.sourceCaseKey,
       initialReviewScore: item.initialReviewScore,
       finalScore: item.finalScore,
-      finalConclusion: item.finalConclusion,
       createdAt: item.createdAt,
       assignedAt: item.assignedAt,
       dueAt: item.dueAt,

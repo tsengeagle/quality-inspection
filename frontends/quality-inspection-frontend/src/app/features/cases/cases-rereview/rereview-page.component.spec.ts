@@ -311,21 +311,19 @@ describe('RereviewPageComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain('最終分數');
   });
 
-  it('never renders initial score, final score or final conclusion even if the backend sends them (D-033)', () => {
+  it('never renders initial score or final score even if the backend sends them (D-033)', () => {
     render(buildDetail({
       status: 'REREVIEW_IN_PROGRESS',
       rereviewContext: {
         ...revisionContext(['REVISE_REREVIEW']),
         initialTotalScore: 79,
-        finalScore: 84,
-        finalConclusion: 'SECRET_CONCLUSION'
+        finalScore: 84
       } as unknown as CaseDetailViewModel['rereviewContext']
     }));
 
     const text: string = fixture.nativeElement.textContent;
     expect(text).not.toContain('79');
     expect(text).not.toContain('84');
-    expect(text).not.toContain('SECRET_CONCLUSION');
     expect(text).not.toContain('最終分數');
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-final-decision-summary"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="rereview-initial-summary-reference"]')).not.toBeNull();

@@ -76,8 +76,8 @@ export class CaseDetailPageComponent implements OnInit {
       ?? this.caseDetail?.submissions.find(item => item.stage === 'REREVIEW');
 
     if (!latestRereview) {
-      if (this.caseDetail?.finalConclusion || this.caseDetail?.finalScore != null) {
-        return `${this.caseDetail.finalConclusion ?? 'FINAL'} / ${this.caseDetail.finalScore ?? '—'}`;
+      if (this.caseDetail?.finalScore != null) {
+        return `FINAL / ${this.caseDetail.finalScore}`;
       }
       return undefined;
     }
