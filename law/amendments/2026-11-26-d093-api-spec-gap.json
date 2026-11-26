@@ -1,0 +1,9 @@
+{
+  "id": "2026-11-26-d093-api-spec-gap",
+  "decision": "D-093",
+  "reason": "api-spec.md 照 HTTP 契約修正：執行抽選與重跑的回應、預覽與執行不讀請求本文、initialReviewerName 與 previewReady/previewStats 一律的值；只改文件，程式不動；題目清單與草稿",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md"
+  ]
+}

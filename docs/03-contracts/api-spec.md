@@ -753,6 +753,8 @@ Accept: application/json
 }
 ```
 
+`previewReady` 一律是 `false`、`previewStats` 一律是 `null`（D-093 第 5 點）：預覽的結果是頁面自己的狀態（`docs/05-ui/ui-page-spec-ui006抽選執行頁.md` 第三節：`previewStats` 是 page-local session state），本端點不保存預覽。預覽狀態要不要由後端保存，等 UI-006 的狀態歸屬定案。
+
 ---
 
 ## 9.2 預估抽選母體
@@ -765,11 +767,7 @@ Accept: application/json
 
 #### Request
 
-```json
-{
-  "mode": "MANUAL"
-}
-```
+不讀請求本文（D-093 第 3 點）。
 
 #### Response
 
@@ -802,24 +800,22 @@ Accept: application/json
 
 #### Request
 
-```json
-{
-  "mode": "MANUAL"
-}
-```
+不讀請求本文；執行模式一律是 `MANUAL`（D-093 第 3 點）。排程抽選不在現行範圍。
 
 #### Response
+
+`201 Created`（D-093 第 1 點）：
 
 ```json
 {
   "success": true,
   "data": {
-    "batchId": "BATCH-001",
-    "status": "COMPLETED",
-    "selectedCount": 30
+    "batchId": "BATCH-001"
   }
 }
 ```
+
+抽選中途出錯時不留下批次（D-086 第 1 點），所以成功的回應代表批次已是 `COMPLETED`。抽中件數等批次資訊從批次詳情（§9.6）讀取。
 
 #### 業務限制
 
@@ -852,12 +848,13 @@ Accept: application/json
 
 #### Response
 
+`201 Created`（D-093 第 2 點）。`batchId` 是新批次的 id；原批次的 id 從新批次的詳情或清單的 `retryOfBatchId` 讀取：
+
 ```json
 {
   "success": true,
   "data": {
-    "newBatchId": "BATCH-002",
-    "retryOfBatchId": "BATCH-001"
+    "batchId": "BATCH-002"
   }
 }
 ```
@@ -996,7 +993,7 @@ Accept: application/json
 
 * 檢查順序：角色 → 案件存在 → 院區（SYSTEM_ADMIN 不限）→ 多角色（403 `ACCESS_DENIED`）→ 指派／提交範圍 → 歷史複審身分（D-035、D-055）。別院的雙角色使用者回 `HOSPITAL_SCOPE_MISMATCH`。
 * 完整投影（HOSPITAL_MANAGER、AUDITOR、REVIEWER）：`projectionType = FULL`，有 `initialReviewScore`、`finalScore`、每一筆提交的 `totalScore`；寫入初審讀取者紀錄（D-055 第 5 點）。初審醫師也看得到複審的分數與 `finalScore`。
-* 複審醫師的盲審投影：沒有 `initialReviewScore`、`finalScore`；初審提交的 `totalScore` 是 `null`；`rereviewContext` 沒有 `initialTotalScore`、`finalScore`。初審醫師的身分與初審提交的 ID、版本、提交時間可見。
+* 複審醫師的盲審投影：沒有 `initialReviewScore`、`finalScore`；初審提交的 `totalScore` 是 `null`；`rereviewContext` 沒有 `initialTotalScore`、`finalScore`。初審醫師的身分與初審提交的 ID、版本、提交時間可見。`rereviewContext.initialReviewerName` 目前一律是 `null`，請用 `rereviewContext.initialReviewerId`（D-093 第 4 點）。
 * SYSTEM_ADMIN：只有 `caseId`、`caseStatus`、`projectName`、`hospitalId`、`reviewerId`、`rereviewerId`、`updatedAt`、`latestRevisionSummary`（目前固定 `null`）。
 * 沒有 `rereviewRequired`、`finalConclusion`（D-084 第 9 點移除）。
 
