@@ -189,6 +189,8 @@ usecases:
       state:
         - { id: RP-BND-S1, text: currentVersion.scoreSheetVersionRef = scoreSheetVersionId；已綁定時由新的輸入取代, status: decided, source: [{ decision: D-041 }, { decision: D-050 }] }
         - { id: RP-BND-S2, text: status、currentVersion.versionNo、currentVersion.published 與其他版本內容不變, status: decided, source: [{ decision: D-050 }] }
+      emits:
+        - { event: ScoreSheetBoundToProject, source: [{ decision: D-090 }], status: decided }
 
   - name: PublishReviewProjectVersion
     kind: command

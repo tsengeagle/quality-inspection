@@ -83,7 +83,10 @@ examples:
       as: manager_h1
       input: { name: "門診品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT] }
       save: { p: projectId }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewProjectCreated, with: { projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -176,7 +179,10 @@ examples:
       run: UpdateReviewProjectDraft
       as: manager_h1
       input: { projectId: "${p}", name: "住院品質審查", description: "修訂", medicalRecordTypes: [INPATIENT, EMERGENCY] }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewProjectDraftUpdated, with: { projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -307,7 +313,10 @@ examples:
       run: BindScoreSheetToProject
       as: manager_h1
       input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ScoreSheetBoundToProject, with: { projectId: "${p}", scoreSheetVersionId: "${sv}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -405,7 +414,10 @@ examples:
       run: PublishReviewProjectVersion
       as: manager_h1
       input: { projectId: "${p}" }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewProjectVersionPublished, with: { projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -523,7 +535,10 @@ examples:
       run: ActivateReviewProject
       as: manager_h1
       input: { projectId: "${p}" }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewProjectActivated, with: { projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -539,7 +554,10 @@ examples:
       run: ActivateReviewProject
       as: manager_h1
       input: { projectId: "${p}" }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewProjectActivated, with: { projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -572,7 +590,10 @@ examples:
       run: DeactivateReviewProject
       as: manager_h1
       input: { projectId: "${p}" }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewProjectDeactivated, with: { projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -591,7 +612,10 @@ examples:
       run: DeactivateReviewProject
       as: manager_h1
       input: { projectId: "${p}" }
-    then: { result: SUCCESS }
+    then:
+      result: SUCCESS
+      emits:
+        - { event: ReviewProjectDeactivated, with: { projectId: "${p}", hospitalId: H-01 } }
     observe:
       - run: GetReviewProjectDetail
         as: manager_h1
@@ -858,10 +882,6 @@ examples:
     then: { result: SUCCESS, output: { "items[projectId=${p}]": { hospitalId: H-01 } } }
 
 not_covered:
-  - item: 事件
-    reason: >
-      範圍內沒有查詢看得到 event。要驗證 event，得透過稽核軌跡的查詢（不在本次範圍），
-      或由實作端的白箱測試負責
   - rules: [RP-INV-04]
     reason: 由抽選的 use case 執行，不在本次範圍
   - rules: [RP-BND-03]

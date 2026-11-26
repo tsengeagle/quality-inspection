@@ -3686,3 +3686,39 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `law/coverage.txt`（修法 PR 二）
 - `docs/harness/40-project-scoresheet-request-side-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續：建構 PR、修法 PR 二
+
+---
+
+## D-090 — review-project、score-sheet 的事件驗證
+
+### Status
+
+`accepted`（2026-11-25，負責人對 `docs/harness/41-project-scoresheet-events-draft.md` 的 E-1～E-7 全部照建議裁決）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 E-n）。
+
+1. **驗證到什麼程度（E-1 選 A）**：每支會發事件的 use case 至少一個成功的範例寫 `emits`，`with` 驗證事件屬於哪一筆資料、哪個院區。兩個目錄 `not_covered` 的「事件不由範例驗證」刪除。
+2. **事件的屬性（E-2 選 A）**：比照 review-case，事件類別補上規格詞彙的 getter，事件的內容與稽核紀錄不變。
+   - 專案的五個事件：`projectId`（即 `entityId`）。
+   - 評分表的三個事件：`scoreSheetId`（即 `entityId`）、`projectId`。
+3. **沒有變更的成功也發事件（E-3 選 A）**：照程式立法。啟用已啟用的專案、停用已停用的專案、空的評分表更新，都發出對應的事件；範例寫 `emits`。`no_change: true` 指的是資料沒有變更，不是不發事件。
+4. **綁定評分表的事件（E-4 選 A）**：`BindScoreSheetToProject` 的 `success.emits` 宣告 `ScoreSheetBoundToProject`。事件類別補上 `projectId`、`scoreSheetVersionId` 的 getter（後者是現在 `detail` 裡 `scoreSheetId` 的值）；`detail` 的鍵名照舊。
+5. **`domain-events.md`（E-5）**：補上 `ReviewProjectDraftUpdated`、`ScoreSheetBoundToProject` 兩節；九個事件的「最低必要欄位」照第 2、4 點寫。
+6. **`occurredAt`（E-6 選 A）**：本裁決不處理。所有事件的 `occurredAt` 取系統時間，範例的時鐘控制不到，跨所有 aggregate，另立題目。
+7. **分批與題目清單（E-7）**：修法 PR（規格、範例、`domain-events.md`；用到新 getter 的範例一開始是紅的，凍結）→ 建構 PR（getter）。題目清單：本題移到已完成，新增「事件的發生時間」。
+
+### Relationship / Evidence
+
+- **起因**：D-089 第 7 點。
+- **草案與實測**：`docs/harness/41-project-scoresheet-events-draft.md`（main = `cf2a0b6`）。第 1～3 點的事實是實測的：本機在 20 個成功的範例加上 `emits: []`，從失敗訊息讀出實際發出的事件。
+- **與既有裁決的關係**：延伸 D-065（`emits`）、D-089；第 3 點補充 `no_change` 的意思。沒有行為變更。
+
+### Mapping
+
+- `specs/review-project/usecases.yaml`（`BindScoreSheetToProject` 的 `success.emits`）、`specs/review-project/examples.yaml`、`specs/score-sheet/examples.yaml`
+- `docs/02-ddd/domain-events.md` §4
+- `services/quality-inspection-service/known-test-failures.txt`
+- `docs/harness/41-project-scoresheet-events-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續：建構 PR
