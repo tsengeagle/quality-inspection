@@ -25,7 +25,12 @@ public abstract class DomainEvent extends ApplicationEvent {
     private final String detail;
 
     /**
+     * D-092：事件的 id 與發生時間由 use case 決定並傳入。發生時間取 use case 注入的 {@link java.time.Clock}，
+     * 與同一支 use case 寫入 aggregate 的時間相同。
+     *
      * @param source        the object that published this event (typically the application service)
+     * @param eventId       事件 id（use case 用 IdGenerator 產生）
+     * @param occurredAt    發生時間（use case 的 Instant.now(clock)）
      * @param actorUserId   the authenticated user who triggered the action
      * @param actorUserName display name of the actor
      * @param hospitalId    hospital context (nullable — null for global operations)
@@ -34,12 +39,13 @@ public abstract class DomainEvent extends ApplicationEvent {
      * @param action        action name (e.g., "CREATED", "PUBLISHED")
      * @param detail        optional JSON detail (nullable)
      */
-    protected DomainEvent(Object source, String actorUserId, String actorUserName,
+    protected DomainEvent(Object source, String eventId, Instant occurredAt,
+                          String actorUserId, String actorUserName,
                           String hospitalId, String entityType, String entityId,
                           String action, String detail) {
         super(source);
-        this.eventId = UUID.randomUUID().toString();
-        this.occurredAt = Instant.now();
+        this.eventId = eventId;
+        this.occurredAt = occurredAt;
         this.actorUserId = actorUserId;
         this.actorUserName = actorUserName;
         this.hospitalId = hospitalId;
@@ -47,6 +53,20 @@ public abstract class DomainEvent extends ApplicationEvent {
         this.entityId = entityId;
         this.action = action;
         this.detail = detail;
+    }
+
+    /**
+     * 取系統時間與隨機 id 的舊建構子（違反 ARCH-02，凍結在基線）。
+     *
+     * @deprecated D-092 第 6 點：只留給驗收範例執行器的測試（律法）使用；
+     *             該測試以修法改用新的建構子之後刪除，並把本建構子從 ARCH-02 基線移除。
+     */
+    @Deprecated
+    protected DomainEvent(Object source, String actorUserId, String actorUserName,
+                          String hospitalId, String entityType, String entityId,
+                          String action, String detail) {
+        this(source, UUID.randomUUID().toString(), Instant.now(), actorUserId, actorUserName,
+                hospitalId, entityType, entityId, action, detail);
     }
 
     public String getEventId() { return eventId; }

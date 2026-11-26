@@ -9,6 +9,9 @@ import com.tzuchi.his.quality.inspection.domain.project.ReviewProjectRepository;
 import com.tzuchi.his.quality.inspection.domain.project.event.ReviewProjectVersionPublishedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Clock;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -16,14 +19,21 @@ public class PublishReviewProjectVersionUseCase {
 
     private final ReviewProjectRepository repository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public PublishReviewProjectVersionUseCase(ReviewProjectRepository repository,
-                                               DomainEventPublisher eventPublisher) {
+                                               DomainEventPublisher eventPublisher,
+                                              Clock clock,
+                                              IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
+        this.clock = clock;
         this.repository = repository;
         this.eventPublisher = eventPublisher;
     }
 
     public void execute(ActorContext actor, String projectId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = repository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
@@ -31,7 +41,7 @@ public class PublishReviewProjectVersionUseCase {
         actor.requireHospitalScope(project.getHospitalId());
         project.publishNewVersion();
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectVersionPublishedEvent(this, actor.getUserId(), actor.getUserName(), projectId,
+        eventPublisher.publish(new ReviewProjectVersionPublishedEvent(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId()));
     }
 }

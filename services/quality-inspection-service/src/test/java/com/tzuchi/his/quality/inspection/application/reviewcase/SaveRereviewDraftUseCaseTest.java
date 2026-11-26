@@ -36,7 +36,7 @@ class SaveRereviewDraftUseCaseTest {
         caseRepository = new InMemoryReviewCaseRepository();
         submissionRepository = new InMemoryReviewSubmissionRepository();
         useCase = new SaveRereviewDraftUseCase(caseRepository, submissionRepository,
-                new CapturingDomainEventPublisher(), Clock.systemDefaultZone());
+                new CapturingDomainEventPublisher(), Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext rereviewerActor() {

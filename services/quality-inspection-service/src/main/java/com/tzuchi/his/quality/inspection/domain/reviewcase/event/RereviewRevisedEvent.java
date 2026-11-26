@@ -7,6 +7,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.time.Instant;
 
 /**
  * 已提交、還沒結案的複審被修正（domain-events.md §8.2，D-083 第 5 點）。
@@ -21,7 +22,7 @@ public class RereviewRevisedEvent extends DomainEvent {
     private final BigDecimal rereviewScore;
     private final BigDecimal finalScore;
 
-    public RereviewRevisedEvent(Object source,
+    public RereviewRevisedEvent(Object source, String eventId, Instant occurredAt,
                                  String actorUserId,
                                  String actorUserName,
                                  String hospitalId,
@@ -30,7 +31,7 @@ public class RereviewRevisedEvent extends DomainEvent {
                                  String newSubmissionId,
                                  BigDecimal rereviewScore,
                                  BigDecimal finalScore) {
-        super(source, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEW_REVISED",
+        super(source, eventId, occurredAt, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEW_REVISED",
                 detail(newSubmissionId, oldSubmissionId, rereviewScore, finalScore));
         this.oldSubmissionId = oldSubmissionId;
         this.newSubmissionId = newSubmissionId;

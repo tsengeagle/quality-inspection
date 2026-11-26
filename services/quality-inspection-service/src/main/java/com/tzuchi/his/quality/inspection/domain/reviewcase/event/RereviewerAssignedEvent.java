@@ -14,7 +14,7 @@ public class RereviewerAssignedEvent extends DomainEvent {
     private final Instant dueAt;
     private final boolean reassignment;
 
-    public RereviewerAssignedEvent(Object source,
+    public RereviewerAssignedEvent(Object source, String eventId, Instant occurredAt,
                                    String actorUserId,
                                    String actorUserName,
                                    String hospitalId,
@@ -22,7 +22,7 @@ public class RereviewerAssignedEvent extends DomainEvent {
                                    String rereviewerId,
                                    Instant dueAt,
                                    boolean reassignment) {
-        super(source, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEWER_ASSIGNED",
+        super(source, eventId, occurredAt, actorUserId, actorUserName, hospitalId, "ReviewCase", caseId, "REREVIEWER_ASSIGNED",
                 reassignment
                         ? String.format("{\"rereviewerId\":\"%s\",\"reassignment\":true}", rereviewerId)
                         : String.format("{\"rereviewerId\":\"%s\"}", rereviewerId));

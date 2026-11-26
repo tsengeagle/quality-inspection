@@ -40,6 +40,7 @@ public class StartRereviewUseCase {
 
     @Transactional
     public String execute(ActorContext actor, String caseId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REREVIEWER);
         ReviewCase reviewCase = caseRepository.findById(caseId)
                 .orElseThrow(() -> new ResourceNotFoundException("CASE_NOT_FOUND", "ReviewCase not found: " + caseId));
@@ -54,11 +55,11 @@ public class StartRereviewUseCase {
         reviewCase.startRereview(actor.getUserId(), draftSubmissionId);
         ReviewSubmission rereviewDraft = ReviewSubmission.createRereviewDraft(
                 draftSubmissionId, caseId, actor.getUserId(),
-                reviewCase.getScoreSheetVersionRef(), Instant.now(clock));
+                reviewCase.getScoreSheetVersionRef(), now);
         submissionRepository.save(rereviewDraft);
         caseRepository.save(reviewCase);
         eventPublisher.publish(new RereviewStartedEvent(
-                this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
                 reviewCase.getCaseId(), rereviewDraft.getSubmissionId(), actor.getUserId()));
         return rereviewDraft.getSubmissionId();
     }

@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 /**
  * 複審的獨立結案（D-034、D-053）。
@@ -34,11 +35,14 @@ public class CloseRereviewUseCase {
     private final ReviewSubmissionRepository submissionRepository;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public CloseRereviewUseCase(ReviewCaseRepository caseRepository,
                                 ReviewSubmissionRepository submissionRepository,
                                 DomainEventPublisher eventPublisher,
-                                Clock clock) {
+                                Clock clock,
+                                IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.caseRepository = caseRepository;
         this.submissionRepository = submissionRepository;
         this.eventPublisher = eventPublisher;
@@ -47,6 +51,7 @@ public class CloseRereviewUseCase {
 
     @Transactional
     public CloseRereviewResult execute(ActorContext actor, String caseId, String submissionId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REREVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(caseId)
@@ -83,11 +88,11 @@ public class CloseRereviewUseCase {
                     "Submission is not the current rereview result");
         }
 
-        reviewCase.closeAfterRereview(Instant.now(clock));
+        reviewCase.closeAfterRereview(now);
         caseRepository.save(reviewCase);
 
         eventPublisher.publish(new ReviewCaseClosedEvent(
-                this, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), reviewCase.getHospitalId(),
                 reviewCase.getCaseId(), submission.getSubmissionId()));
 
         return new CloseRereviewResult(

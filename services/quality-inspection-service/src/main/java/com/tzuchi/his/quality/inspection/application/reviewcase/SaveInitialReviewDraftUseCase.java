@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 @Transactional
@@ -42,13 +43,16 @@ public class SaveInitialReviewDraftUseCase {
     private final ScoreCalculationService scoreCalculationService;
     private final ReviewCaseRepository caseRepository;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public SaveInitialReviewDraftUseCase(ReviewSubmissionRepository submissionRepository,
                                           ScoreSheetRepository scoreSheetRepository,
                                           DomainEventPublisher eventPublisher,
                                           ScoreCalculationService scoreCalculationService,
                                           ReviewCaseRepository caseRepository,
-                                          Clock clock) {
+                                          Clock clock,
+                                         IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.submissionRepository = submissionRepository;
         this.scoreSheetRepository = scoreSheetRepository;
         this.eventPublisher = eventPublisher;
@@ -62,6 +66,7 @@ public class SaveInitialReviewDraftUseCase {
      */
     public SaveDraftResult execute(ActorContext actor, String caseId,
                                List<AnswerInput> answers, String comment) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(caseId)
@@ -108,11 +113,11 @@ public class SaveInitialReviewDraftUseCase {
         // If no answers, update with empty + zero
         if (answers.isEmpty()) {
             rejectIfUnchanged(Collections.emptyList(), comment, submission);
-            submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment, Instant.now(clock));
+            submission.updateDraft(Collections.emptyList(), BigDecimal.ZERO, comment, now);
             submissionRepository.save(submission);
 
             eventPublisher.publish(new ReviewDraftSavedEvent(
-                    this, actor.getUserId(), actor.getUserName(),
+                    this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                     reviewCase.getHospitalId(), caseId, submission.getSubmissionId(), BigDecimal.ZERO));
 
             return new SaveDraftResult(
@@ -138,12 +143,12 @@ public class SaveInitialReviewDraftUseCase {
         rejectIfUnchanged(result.getScoredAnswers(), comment, submission);
 
         // Update draft
-        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, Instant.now(clock));
+        submission.updateDraft(result.getScoredAnswers(), result.getTotalScore(), comment, now);
         submissionRepository.save(submission);
 
         // Publish event
         eventPublisher.publish(new ReviewDraftSavedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId, submission.getSubmissionId(), result.getTotalScore()));
 
         return new SaveDraftResult(

@@ -28,7 +28,7 @@ class UpdateReviewProjectDraftUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewProjectRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new UpdateReviewProjectDraftUseCase(repository, eventPublisher);
+        useCase = new UpdateReviewProjectDraftUseCase(repository, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     @Test

@@ -1,15 +1,16 @@
 package com.tzuchi.his.quality.inspection.domain.scoresheet.event;
 
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
+import java.time.Instant;
 
 public class ScoreSheetVersionPublishedEvent extends DomainEvent {
 
     private final String projectId;
 
-    public ScoreSheetVersionPublishedEvent(Object source, String actorUserId, String actorUserName,
+    public ScoreSheetVersionPublishedEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                             String scoreSheetId, String projectId,
                                             String hospitalId) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "ScoreSheetDefinition", scoreSheetId, "VERSION_PUBLISHED",
               "{\"projectId\":\"" + projectId + "\"}");
         this.projectId = projectId;

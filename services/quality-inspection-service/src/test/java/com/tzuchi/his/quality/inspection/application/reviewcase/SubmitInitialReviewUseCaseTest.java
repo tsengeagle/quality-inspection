@@ -60,7 +60,7 @@ class SubmitInitialReviewUseCaseTest {
         eventPublisher = new CapturingDomainEventPublisher();
         ScoreCalculationService scoreCalcService = new ScoreCalculationService();
         useCase = new SubmitInitialReviewUseCase(
-                caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone());
+                caseRepo, submissionRepo, projectRepo, scoreSheetRepo, eventPublisher, scoreCalcService, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
         
         // Seed project with threshold 80 (score 17.5 won't escalate)
         seedProject(new BigDecimal("80"));
@@ -313,7 +313,7 @@ class SubmitInitialReviewUseCaseTest {
         InMemoryReviewSubmissionRepository selected = spy(submissionRepo);
         doReturn(Optional.of(old)).when(selected).findLatestByCaseIdAndStage(CASE_ID, ReviewStage.INITIAL);
         SubmitInitialReviewUseCase submitting = new SubmitInitialReviewUseCase(
-                caseRepo, selected, projectRepo, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), Clock.systemDefaultZone());
+                caseRepo, selected, projectRepo, scoreSheetRepo, eventPublisher, new ScoreCalculationService(), Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
         assertEquals(1, old.getRevisionNo());
         assertEquals(1, current.getRevisionNo());
         SubmitInitialReviewResult result = submitting.execute(reviewer(), CASE_ID);

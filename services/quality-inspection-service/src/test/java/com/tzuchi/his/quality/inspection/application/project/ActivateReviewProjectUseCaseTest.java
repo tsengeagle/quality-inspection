@@ -30,7 +30,7 @@ class ActivateReviewProjectUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewProjectRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new ActivateReviewProjectUseCase(repository, eventPublisher);
+        useCase = new ActivateReviewProjectUseCase(repository, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     @Test

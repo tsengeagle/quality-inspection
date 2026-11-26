@@ -14,10 +14,10 @@ public class ReviewCaseReopenedEvent extends DomainEvent {
     private final String reviewerId;
     private final Instant dueAt;
 
-    public ReviewCaseReopenedEvent(Object source, String actorUserId, String actorUserName,
+    public ReviewCaseReopenedEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                     String hospitalId, String caseId,
                                     String reviewerId, Instant dueAt) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "ReviewCase", caseId, "REOPENED",
               String.format("{\"reviewerId\":\"%s\",\"dueAt\":\"%s\"}", reviewerId, dueAt));
         this.reviewerId = reviewerId;

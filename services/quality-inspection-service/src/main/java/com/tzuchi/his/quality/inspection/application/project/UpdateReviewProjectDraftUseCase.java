@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Set;
+import java.time.Clock;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -21,9 +24,15 @@ public class UpdateReviewProjectDraftUseCase {
 
     private final ReviewProjectRepository repository;
     private final DomainEventPublisher eventPublisher;
+    private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public UpdateReviewProjectDraftUseCase(ReviewProjectRepository repository,
-                                            DomainEventPublisher eventPublisher) {
+                                            DomainEventPublisher eventPublisher,
+                                           Clock clock,
+                                           IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
+        this.clock = clock;
         this.repository = repository;
         this.eventPublisher = eventPublisher;
     }
@@ -32,6 +41,7 @@ public class UpdateReviewProjectDraftUseCase {
                         String description, Set<String> medicalRecordTypes,
                         BigDecimal qualityThreshold, BigDecimal initialReviewWeight,
                         BigDecimal rereviewWeight) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         ReviewProject project = repository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("PROJECT_NOT_FOUND",
@@ -41,7 +51,7 @@ public class UpdateReviewProjectDraftUseCase {
         project.updateDraft(name, description, types,
                 qualityThreshold, initialReviewWeight, rereviewWeight);
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectDraftUpdatedEvent(this, actor.getUserId(), actor.getUserName(), projectId,
+        eventPublisher.publish(new ReviewProjectDraftUpdatedEvent(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), projectId,
                 project.getHospitalId()));
     }
 }

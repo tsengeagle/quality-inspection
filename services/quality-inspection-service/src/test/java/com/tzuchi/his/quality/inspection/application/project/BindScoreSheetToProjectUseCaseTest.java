@@ -42,7 +42,7 @@ class BindScoreSheetToProjectUseCaseTest {
         repository = new InMemoryReviewProjectRepository();
         scoreSheets = new InMemoryScoreSheetRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new BindScoreSheetToProjectUseCase(repository, scoreSheets, eventPublisher);
+        useCase = new BindScoreSheetToProjectUseCase(repository, scoreSheets, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private static ActorContext manager(String hospitalId) {

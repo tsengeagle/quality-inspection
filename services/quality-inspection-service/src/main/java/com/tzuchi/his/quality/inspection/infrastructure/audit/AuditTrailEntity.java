@@ -44,6 +44,12 @@ public class AuditTrailEntity {
     @Column
     private String detail;
 
+    /** D-092 第 3 點：寫入序號，由資料庫產生；同時間的紀錄以它排序。 */
+    @Column(name = "sequence_no", insertable = false, updatable = false)
+    private Long sequenceNo;
+
+    public Long getSequenceNo() { return sequenceNo; }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

@@ -34,7 +34,7 @@ class CancelReviewCaseUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new CancelReviewCaseUseCase(repository, eventPublisher, Clock.systemDefaultZone());
+        useCase = new CancelReviewCaseUseCase(repository, eventPublisher, Clock.systemDefaultZone(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext hospitalManager() {

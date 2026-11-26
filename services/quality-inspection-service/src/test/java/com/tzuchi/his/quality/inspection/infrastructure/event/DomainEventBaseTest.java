@@ -3,19 +3,23 @@ package com.tzuchi.his.quality.inspection.infrastructure.event;
 import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class DomainEventBaseTest {
 
+    private static final Instant AT = Instant.parse("2026-11-19T09:00:00Z");
+
+    /** D-092：事件的 id 與發生時間由 use case 傳入，原樣保留。 */
     @Test
-    void domainEvent_shouldAutoGenerateEventIdAndTimestamp() {
+    void domainEvent_keepsTheGivenEventIdAndOccurredAt() {
         TestDomainEvent event = new TestDomainEvent(
-                this, "u-001", "Test User", "H001",
+                this, "e-001", AT, "u-001", "Test User", "H001",
                 "ReviewProject", "p-001", "CREATED", null);
 
-        assertNotNull(event.getEventId());
-        assertFalse(event.getEventId().isBlank());
-        assertNotNull(event.getOccurredAt());
+        assertEquals("e-001", event.getEventId());
+        assertEquals(AT, event.getOccurredAt());
         assertEquals("u-001", event.getActorUserId());
         assertEquals("Test User", event.getActorUserName());
         assertEquals("H001", event.getHospitalId());
@@ -26,22 +30,10 @@ class DomainEventBaseTest {
     }
 
     @Test
-    void domainEvent_twoInstances_shouldHaveDifferentEventIds() {
-        TestDomainEvent e1 = new TestDomainEvent(
-                this, "u-001", "User", null,
-                "SamplingBatch", "b-001", "EXECUTED", null);
-        TestDomainEvent e2 = new TestDomainEvent(
-                this, "u-001", "User", null,
-                "SamplingBatch", "b-002", "EXECUTED", null);
-
-        assertNotEquals(e1.getEventId(), e2.getEventId());
-    }
-
-    @Test
     void domainEvent_withDetail_shouldReturnDetail() {
         String detail = "{\"version\":1}";
         TestDomainEvent event = new TestDomainEvent(
-                this, "u-001", "User", "H001",
+                this, "e-001", AT, "u-001", "User", "H001",
                 "ReviewProject", "p-001", "PUBLISHED", detail);
 
         assertEquals(detail, event.getDetail());
@@ -50,7 +42,7 @@ class DomainEventBaseTest {
     @Test
     void domainEvent_withNullHospitalId_shouldAccept() {
         TestDomainEvent event = new TestDomainEvent(
-                this, "u-001", "User", null,
+                this, "e-001", AT, "u-001", "User", null,
                 "ScoreSheet", "s-001", "CREATED", null);
 
         assertNull(event.getHospitalId());
@@ -58,10 +50,10 @@ class DomainEventBaseTest {
 
     /** Concrete subclass for testing the abstract base class. */
     static class TestDomainEvent extends DomainEvent {
-        TestDomainEvent(Object source, String actorUserId, String actorUserName,
+        TestDomainEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                         String hospitalId, String entityType, String entityId,
                         String action, String detail) {
-            super(source, actorUserId, actorUserName, hospitalId,
+            super(source, eventId, occurredAt, actorUserId, actorUserName, hospitalId,
                     entityType, entityId, action, detail);
         }
     }

@@ -27,7 +27,7 @@ class PublishReviewProjectVersionUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewProjectRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new PublishReviewProjectVersionUseCase(repository, eventPublisher);
+        useCase = new PublishReviewProjectVersionUseCase(repository, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     @Test

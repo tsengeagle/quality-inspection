@@ -35,7 +35,7 @@ public class AuditTrailQueryAdapter implements AuditTrailQueryPort {
         CriteriaQuery<AuditTrailEntity> dataQuery = cb.createQuery(AuditTrailEntity.class);
         Root<AuditTrailEntity> dataRoot = dataQuery.from(AuditTrailEntity.class);
         dataQuery.where(buildPredicates(cb, dataRoot, criteria).toArray(new Predicate[0]));
-        dataQuery.orderBy(cb.desc(dataRoot.get("occurredAt")));
+        dataQuery.orderBy(cb.desc(dataRoot.get("occurredAt")), cb.desc(dataRoot.get("sequenceNo")));
 
         TypedQuery<AuditTrailEntity> typedQuery = em.createQuery(dataQuery);
         typedQuery.setFirstResult(criteria.getPage() * criteria.getSize());
@@ -51,7 +51,7 @@ public class AuditTrailQueryAdapter implements AuditTrailQueryPort {
     @Override
     public List<AuditTrailEntry> findLifecycleByEntityId(String entityType, String entityId) {
         TypedQuery<AuditTrailEntity> q = em.createQuery(
-                "SELECT a FROM AuditTrailEntity a WHERE a.entityType = :entityType AND a.entityId = :entityId ORDER BY a.occurredAt ASC",
+                "SELECT a FROM AuditTrailEntity a WHERE a.entityType = :entityType AND a.entityId = :entityId ORDER BY a.occurredAt ASC, a.sequenceNo ASC",
                 AuditTrailEntity.class);
         q.setParameter("entityType", entityType);
         q.setParameter("entityId", entityId);

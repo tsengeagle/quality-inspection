@@ -30,7 +30,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void samplingBatchStarted() {
-        SamplingBatchStartedEvent e = new SamplingBatchStartedEvent(SOURCE, "u1", "U1", "H001", "b1", "p1", "MANUAL");
+        SamplingBatchStartedEvent e = new SamplingBatchStartedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "b1", "p1", "MANUAL");
         assertAll(
                 () -> assertEquals("b1", e.getBatchId()),
                 () -> assertEquals("p1", e.getProjectId()),
@@ -39,7 +39,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void samplingCandidatesPrepared() {
-        SamplingCandidatesPreparedEvent e = new SamplingCandidatesPreparedEvent(SOURCE, "u1", "U1", "H001", "b1", 3, 2, 1);
+        SamplingCandidatesPreparedEvent e = new SamplingCandidatesPreparedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "b1", 3, 2, 1);
         assertAll(
                 () -> assertEquals("b1", e.getBatchId()),
                 () -> assertEquals(3, e.getPopulationCount()),
@@ -50,7 +50,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void reviewCasesSelected() {
-        ReviewCasesSelectedEvent e = new ReviewCasesSelectedEvent(SOURCE, "u1", "U1", "H001", "b1", 2);
+        ReviewCasesSelectedEvent e = new ReviewCasesSelectedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "b1", 2);
         assertAll(
                 () -> assertEquals("b1", e.getBatchId()),
                 () -> assertEquals(2, e.getSelectedCount()),
@@ -59,7 +59,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void samplingBatchCompleted() {
-        SamplingBatchCompletedEvent e = new SamplingBatchCompletedEvent(SOURCE, "u1", "U1", "H001", "b1", "p1", 2, 3, 2, 1);
+        SamplingBatchCompletedEvent e = new SamplingBatchCompletedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "b1", "p1", 2, 3, 2, 1);
         assertAll(
                 () -> assertEquals("b1", e.getBatchId()),
                 () -> assertEquals("p1", e.getProjectId()),
@@ -73,7 +73,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void reviewCaseAssigned() {
-        ReviewCaseAssignedEvent e = new ReviewCaseAssignedEvent(SOURCE, "u1", "U1", "H001", "c1", "r1",
+        ReviewCaseAssignedEvent e = new ReviewCaseAssignedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "u1", "U1", "H001", "c1", "r1",
                 Instant.parse("2026-12-01T09:00:00Z"));
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
@@ -83,7 +83,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void initialReviewStarted() {
-        InitialReviewStartedEvent e = new InitialReviewStartedEvent(SOURCE, "r1", "R1", "H001", "c1", "r1", "s1");
+        InitialReviewStartedEvent e = new InitialReviewStartedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "r1", "R1", "H001", "c1", "r1", "s1");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
                 () -> assertEquals("s1", e.getSubmissionId()),
@@ -93,7 +93,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void reviewDraftSaved() {
-        ReviewDraftSavedEvent e = new ReviewDraftSavedEvent(SOURCE, "r1", "R1", "H001", "c1", "s1", new BigDecimal("85.50"));
+        ReviewDraftSavedEvent e = new ReviewDraftSavedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "r1", "R1", "H001", "c1", "s1", new BigDecimal("85.50"));
         assertAll(
                 () -> assertEquals("s1", e.getSubmissionId()),
                 () -> assertEquals("c1", e.getCaseId()),
@@ -102,7 +102,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void reviewSubmissionSubmitted() {
-        ReviewSubmissionSubmittedEvent e = new ReviewSubmissionSubmittedEvent(SOURCE, "r1", "R1", "H001", "c1", "s1",
+        ReviewSubmissionSubmittedEvent e = new ReviewSubmissionSubmittedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "r1", "R1", "H001", "c1", "s1",
                 ReviewStage.REREVIEW, new BigDecimal("85.50"), "r1");
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),
@@ -113,7 +113,7 @@ class SliceEventPropertiesTest {
 
     @Test
     void initialReviewCompleted() {
-        InitialReviewCompletedEvent e = new InitialReviewCompletedEvent(SOURCE, "r1", "R1", "H001", "c1", "p1", "s1", "r1",
+        InitialReviewCompletedEvent e = new InitialReviewCompletedEvent(SOURCE, "e-1", java.time.Instant.EPOCH, "r1", "R1", "H001", "c1", "p1", "s1", "r1",
                 new BigDecimal("85.50"), null);
         assertAll(
                 () -> assertEquals("c1", e.getCaseId()),

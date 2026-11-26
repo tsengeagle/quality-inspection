@@ -67,7 +67,7 @@ class CloseRereviewUseCaseTest {
         projectRepo = new InMemoryReviewProjectRepository();
         scoreSheetRepo = new InMemoryScoreSheetRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new CloseRereviewUseCase(caseRepo, submissionRepo, eventPublisher, Clock.fixed(NOW, ZONE));
+        useCase = new CloseRereviewUseCase(caseRepo, submissionRepo, eventPublisher, Clock.fixed(NOW, ZONE), () -> java.util.UUID.randomUUID().toString());
     }
 
     private static ActorContext rereviewer(String userId, String hospitalId) {

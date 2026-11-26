@@ -31,7 +31,7 @@ class GetDashboardSummaryUseCaseTest {
 
     @Test
     void reviewer_shouldThrowUnauthorized() {
-        GetDashboardSummaryUseCase service = new GetDashboardSummaryUseCase(null);
+        GetDashboardSummaryUseCase service = new GetDashboardSummaryUseCase(null, java.time.Clock.systemUTC());
         ActorContext actor = new ActorContext("r1", "Reviewer", EnumSet.of(DomainRole.REVIEWER), Optional.of("H001"));
 
         assertThrows(RoleDeniedException.class, () -> service.execute(actor, null, null, null, null));
@@ -43,7 +43,7 @@ class GetDashboardSummaryUseCaseTest {
     @Test
     void rangeChecks_areBadRequest() {
         // RC-DSH-01、RC-DSH-02
-        GetDashboardSummaryUseCase service = new GetDashboardSummaryUseCase(null);
+        GetDashboardSummaryUseCase service = new GetDashboardSummaryUseCase(null, java.time.Clock.systemUTC());
         ActorContext actor = new ActorContext("u1", "Manager", EnumSet.of(DomainRole.HOSPITAL_MANAGER), Optional.of("H001"));
         java.time.Instant t = java.time.Instant.parse("2026-04-01T00:00:00Z");
 

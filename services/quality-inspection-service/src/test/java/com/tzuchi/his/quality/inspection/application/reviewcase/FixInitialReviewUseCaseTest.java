@@ -53,7 +53,7 @@ class FixInitialReviewUseCaseTest {
         submissions = new InMemoryReviewSubmissionRepository();
         projects = new InMemoryReviewProjectRepository();
         events = new CapturingDomainEventPublisher();
-        useCase = new FixInitialReviewUseCase(cases, submissions, projects, events, Clock.fixed(NOW, ZoneOffset.UTC));
+        useCase = new FixInitialReviewUseCase(cases, submissions, projects, events, Clock.fixed(NOW, ZoneOffset.UTC), () -> java.util.UUID.randomUUID().toString());
         project(new BigDecimal("8"));
         completedCase(CaseStatus.INITIAL_REVIEW_COMPLETED, "i1");
         submission("i1", ReviewStage.INITIAL, "doctor", SubmissionStatus.SUBMITTED, new BigDecimal("7"));

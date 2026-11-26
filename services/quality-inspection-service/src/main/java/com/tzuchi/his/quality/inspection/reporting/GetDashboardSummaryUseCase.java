@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +21,10 @@ import java.util.List;
 public class GetDashboardSummaryUseCase {
 
     private final EntityManager em;
+    private final Clock clock;
 
-    public GetDashboardSummaryUseCase(EntityManager em) {
+    public GetDashboardSummaryUseCase(EntityManager em, Clock clock) {
+        this.clock = clock;
         this.em = em;
     }
 
@@ -67,10 +70,13 @@ public class GetDashboardSummaryUseCase {
         // 4 個數字以單一查詢一次算出：單一 SQL 敘述讀同一個時間點（Oracle READ COMMITTED 的敘述層級一致讀取），
         // 查詢之間提交的案件不會只算進其中幾個數字，比率的分子分母也來自同一個母體。
         // RC-DSH-07（D-087 第 4 點）：已取消的案件不計入任何件數。
+        // D-092 第 5 點：逾期的「現在」取注入的時鐘，不取資料庫的時間。逾期的規則仍未立法（D-087 第 5 點）。
+        params.add(Instant.now(clock));
+        int nowIndex = params.size();
         String jpql = "SELECT COUNT(e),"
                 + " COALESCE(SUM(CASE WHEN e.status = 'CLOSED' THEN 1 ELSE 0 END), 0),"
                 + " COALESCE(SUM(CASE WHEN e.rereviewerId IS NOT NULL THEN 1 ELSE 0 END), 0),"
-                + " COALESCE(SUM(CASE WHEN e.dueAt < CURRENT_TIMESTAMP"
+                + " COALESCE(SUM(CASE WHEN e.dueAt < ?" + nowIndex
                 + " AND e.status <> 'CLOSED' THEN 1 ELSE 0 END), 0)"
                 + " FROM ReviewCaseEntity e WHERE e.status <> 'CANCELLED' " + where;
 

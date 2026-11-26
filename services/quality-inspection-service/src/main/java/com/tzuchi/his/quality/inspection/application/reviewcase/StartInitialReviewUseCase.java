@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import java.time.Clock;
 import java.time.Instant;
+import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 
 @Service
 @Transactional
@@ -34,13 +35,16 @@ public class StartInitialReviewUseCase {
     private final ReviewSubmissionRepository submissionRepository;
     private final DomainEventPublisher eventPublisher;
     private final Clock clock;
+    private final IdGenerator idGenerator;
 
     public StartInitialReviewUseCase(ReviewCaseRepository caseRepository,
                                       ReviewProjectRepository projectRepository,
                                       ScoreSheetRepository scoreSheetRepository,
                                       ReviewSubmissionRepository submissionRepository,
                                       DomainEventPublisher eventPublisher,
-                                      Clock clock) {
+                                      Clock clock,
+                                     IdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.caseRepository = caseRepository;
         this.projectRepository = projectRepository;
         this.scoreSheetRepository = scoreSheetRepository;
@@ -55,6 +59,7 @@ public class StartInitialReviewUseCase {
      * @return 初審提交 ID（新建，或退回後重開時沿用的 DRAFT）
      */
     public StartInitialReviewResult execute(ActorContext actor, String caseId) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.REVIEWER);
 
         ReviewCase reviewCase = caseRepository.findById(caseId)
@@ -107,7 +112,7 @@ public class StartInitialReviewUseCase {
             // Create draft submission
             submissionId = UUID.randomUUID().toString();
             submissionRepository.save(ReviewSubmission.createInitialDraft(
-                    submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, Instant.now(clock)));
+                    submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, now));
         }
 
         // Transition case
@@ -116,7 +121,7 @@ public class StartInitialReviewUseCase {
 
         // Publish event
         eventPublisher.publish(new InitialReviewStartedEvent(
-                this, actor.getUserId(), actor.getUserName(),
+                this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(),
                 reviewCase.getHospitalId(), caseId,
                 actor.getUserId(), submissionId));
 

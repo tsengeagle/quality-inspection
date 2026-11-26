@@ -4,6 +4,7 @@ import com.tzuchi.his.quality.inspection.domain.common.DomainEvent;
 import com.tzuchi.his.quality.inspection.domain.reviewcase.submission.ReviewStage;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 
 /**
  * Published when a reviewer submits the initial review or a rereviewer submits the rereview.
@@ -14,11 +15,11 @@ public class ReviewSubmissionSubmittedEvent extends DomainEvent {
     private final String caseId;
     private final ReviewStage stage;
 
-    public ReviewSubmissionSubmittedEvent(Object source, String actorUserId, String actorUserName,
+    public ReviewSubmissionSubmittedEvent(Object source, String eventId, Instant occurredAt, String actorUserId, String actorUserName,
                                            String hospitalId, String caseId,
                                            String submissionId, ReviewStage stage,
                                            BigDecimal totalScore, String reviewerId) {
-        super(source, actorUserId, actorUserName,
+        super(source, eventId, occurredAt, actorUserId, actorUserName,
               hospitalId, "ReviewSubmission", submissionId, "SUBMITTED",
               String.format("{\"caseId\":\"%s\",\"totalScore\":%s,\"reviewerId\":\"%s\"}",
                       caseId, totalScore, reviewerId));

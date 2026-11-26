@@ -27,7 +27,7 @@ class CreateScoreSheetDraftUseCaseTest {
         repository = new InMemoryScoreSheetRepository();
         eventPublisher = new CapturingDomainEventPublisher();
         HospitalIdResolver resolver = projectId -> "H001";
-        useCase = new CreateScoreSheetDraftUseCase(repository, resolver, eventPublisher);
+        useCase = new CreateScoreSheetDraftUseCase(repository, resolver, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     @Test

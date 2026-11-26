@@ -35,7 +35,7 @@ class ReturnInitialReviewUseCaseTest {
     void setUp() {
         repository = new InMemoryReviewCaseRepository();
         eventPublisher = new CapturingDomainEventPublisher();
-        useCase = new ReturnInitialReviewUseCase(repository, eventPublisher);
+        useCase = new ReturnInitialReviewUseCase(repository, eventPublisher, java.time.Clock.systemUTC(), () -> java.util.UUID.randomUUID().toString());
     }
 
     private ActorContext hospitalManager() {

@@ -14,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Set;
+import java.time.Clock;
+import java.time.Instant;
 
 @Service
 @Transactional
@@ -22,10 +24,13 @@ public class CreateReviewProjectUseCase {
     private final ReviewProjectRepository repository;
     private final DomainEventPublisher eventPublisher;
     private final IdGenerator idGenerator;
+    private final Clock clock;
 
     public CreateReviewProjectUseCase(ReviewProjectRepository repository,
                                        DomainEventPublisher eventPublisher,
-                                       IdGenerator idGenerator) {
+                                       IdGenerator idGenerator,
+                                      Clock clock) {
+        this.clock = clock;
         this.repository = repository;
         this.eventPublisher = eventPublisher;
         this.idGenerator = idGenerator;
@@ -34,6 +39,7 @@ public class CreateReviewProjectUseCase {
     public String execute(ActorContext actor, String name, String description,
                           Set<String> medicalRecordTypes, BigDecimal qualityThreshold,
                           BigDecimal initialReviewWeight, BigDecimal rereviewWeight) {
+        Instant now = Instant.now(clock);
         actor.requireRole(DomainRole.HOSPITAL_MANAGER);
         String hospitalId = actor.requireHospitalId();
         Set<MedicalRecordType> types = parseMedicalRecordTypes(medicalRecordTypes);
@@ -41,7 +47,7 @@ public class CreateReviewProjectUseCase {
         ReviewProject project = ReviewProject.create(projectId, hospitalId, name,
                 description, types, qualityThreshold, initialReviewWeight, rereviewWeight);
         repository.save(project);
-        eventPublisher.publish(new ReviewProjectCreatedEvent(this, actor.getUserId(), actor.getUserName(), projectId, hospitalId));
+        eventPublisher.publish(new ReviewProjectCreatedEvent(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), projectId, hospitalId));
         return projectId;
     }
 
