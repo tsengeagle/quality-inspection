@@ -653,7 +653,7 @@ Close Command 依目前有效合法 REREVIEW submission 驗證結案資格；不
 
 ## D-035 歷史身份 Fail-closed 讀取契約
 
-D-035 是 application/query 授權條件，不是新增 aggregate invariant 或持久化狀態。不得從目前 assignment、submission、case 狀態或 rereviewRequired 推定完整身份歷史。Domain 原始結果、分數及 append-only revision 語意不變。
+D-035 是 application/query 授權條件，不是新增 aggregate invariant 或持久化狀態。不得從目前 assignment、submission 或 case 狀態推定完整身份歷史。Domain 原始結果、分數及 append-only revision 語意不變。
 
 
 ## D-037 — updatedAt 契約

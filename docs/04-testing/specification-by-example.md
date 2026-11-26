@@ -113,7 +113,7 @@ example_template:
 
 ### Then
 
-未固定保持初審完成，不產生升級事件；固定後依規則進 PENDING_REREVIEW、rereviewRequired=true，產生 ReviewCaseEscalatedToRereview。固定僅由目前有效初審結果的合法提交醫師執行（DD-03）；API UNKNOWN。
+未固定保持初審完成，不產生升級事件；固定後依規則進 PENDING_REREVIEW（D-084 第 9 點移除 `rereviewRequired`，是否進複審由狀態表示），產生 ReviewCaseEscalatedToRereview。固定僅由目前有效初審結果的合法提交醫師執行（DD-03）；API UNKNOWN。
 
 ### Mapping
 

@@ -261,8 +261,7 @@
 
 ### 建議顯示內容
 
-* 是否已進複審
-* rereviewRequired
+* 是否已進複審（由案件狀態判斷；D-084 第 9 點移除 `rereviewRequired`）
 * latest rereview submissionId
 * 複審 submission status
 * finalScore
