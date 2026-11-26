@@ -8,4 +8,6 @@ public class ReviewProjectActivatedEvent extends DomainEvent {
         super(source, actorUserId, actorUserName,
               hospitalId, "ReviewProject", projectId, "ACTIVATED", null);
     }
+
+    public String getProjectId() { return getEntityId(); }
 }

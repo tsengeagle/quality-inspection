@@ -6,17 +6,3 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
-# ---- D-090：review-project、score-sheet 的事件驗證。規格先立法，程式由建構 PR 配合（D-090 第 2、4、7 點）----
-# 事件類別還沒有 projectId、scoreSheetId、scoreSheetVersionId 的 getter
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/creates_a_draft_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/updates_a_draft_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/binding_a_published_score_sheet_allows_publishing
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/publishes_the_draft_version
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activates_a_published_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/activating_an_active_project_changes_nothing
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/deactivates_an_active_project
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-project/deactivating_a_deactivated_project_changes_nothing
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/creates_a_blank_draft
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/adds_a_section_with_an_item
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/accepts_an_empty_update
-com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#score-sheet/publishes_a_version_with_items
