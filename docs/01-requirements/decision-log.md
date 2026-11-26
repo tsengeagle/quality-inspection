@@ -3861,3 +3861,4 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/03-contracts/api-spec.md`、`docs/02-ddd/permission-matrix.md`、`docs/05-ui/ui-page-spec-ui010案件詳情頁.md`
 - `docs/harness/44-versions-and-pending-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續：建構 PR；第 11 點之 3 的修法 PR；D-095（逾期）
+- 進度（2026-11-26）：修法 PR #187、建構 PR #188；第 11 點之 3 的修法 PR 刪除 `metadata-with-summary`、拿掉 `transition`，`http.yaml` 不再有過渡中的形狀
