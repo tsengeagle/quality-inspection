@@ -6,12 +6,18 @@ plugins {
 
 group = 'com.tzuchi.his.quality'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
+// D-091：後端定為 Java 17（與 CI 一致）。release 讓用較新的 JDK 編譯時，
+// 也不能用到 17 以後才有的 API。
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
 
 // 原始碼一律是 UTF-8。不指定的話，JDK 17 在 Windows 會用系統編碼編譯，
 // 中文字串（包含架構規則的描述，它是凍結基線的索引鍵）會被讀錯。
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = 17
     // 驗收範例的執行器依參數名稱把規格的輸入對到 use case 的 execute 參數（不維護對照表），
     // 所以位元組碼要保留參數名稱。
     options.compilerArgs << '-parameters'

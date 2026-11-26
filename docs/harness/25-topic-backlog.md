@@ -1,19 +1,18 @@
 # 題目清單
 
-負責人核准的立法題目與順序（2026-11-22 起）。本文件不是律法，只是工作順序；每一題仍要照「草稿 → 裁決 → 修法 PR → 建構 PR」的流程。負責人可以隨時調整順序。
+負責人核准的立法題目與順序（2026-11-22 起）。2026-11-26 負責人定的順序：後端 Java 17 → 事件的發生時間 → HTTP 與 `api-spec.md` 的落差 → 專案版本管理與未裁決事項 → 前端移除 `finalConclusion`；母體來源的介接等到上線前再處理；之後訂定本專案 harness 的有界主張，並更新義務對照表。本文件不是律法，只是工作順序；每一題仍要照「草稿 → 裁決 → 修法 PR → 建構 PR」的流程。負責人可以隨時調整順序。
 
 ## 進行中
 
-1. **review-project、score-sheet 的事件驗證**（D-090）：修法 PR → 建構 PR（事件類別的 getter）。
+1. **後端定為 Java 17**（D-091）：修法 PR（`build.gradle` 與文件；程式不用改，沒有建構 PR）。
 
 ## 待辦（依序）
 
-1. **問題側其餘的範圍**（`law/coverage.txt` 的 `grandfathered`）。負責人 2026-11-25 同意的順序：C `ReviewSubmission` 與計分（已完成，D-085）→ A SamplingBatch 其餘部分（已完成，D-086）→ B 報表與儀表板（已完成，D-087）→ D、E HTTP 介面與共用元件（已完成，D-088）→ review-project、score-sheet 的請求端（已完成，D-089）。問題側已沒有暫准的範圍 → 專案版本管理（score-sheet 的 `freezeVersion` 等、品質線與權重取自目前的版本）與未裁決事項（逾期、多角色的讀取授權、`latestRevisionSummary`），要負責人先定方向。逾期的現況（D-087 第 5 點）：儀表板的 `overdueCases` 只看初審期限、不看複審期限；初審準時提交但期限已過且還沒結案也算；「現在」取資料庫的時間，範例的時鐘控制不到。ReviewCase 的五個切片已完成（D-080～D-084）
-2. **前端移除 `finalConclusion`、`rereviewRequired`**（D-084 第 9 點）：後端的建構 PR 移除欄位之後，前端的型別（`cases.service.ts`）與案件詳情頁的 `finalConclusion` 顯示一併移除。前端任務從 `.ai/governance/repo-governance-instruction.md` 進入。
-3. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
-4. **HTTP 回應與 `api-spec.md` 的落差**（D-088 第 2 點，契約照程式）：執行抽選的回應只有 `batchId`（§9.3 寫 `batchId`、`status`、`selectedCount`）；重跑的回應是 `batchId`（§9.4 寫 `newBatchId`、`retryOfBatchId`）；預覽、執行的請求本文 `mode` 沒有讀取。程式一律輸出 null 的欄位：`rereviewContext.initialReviewerName`、執行頁的 `previewStats`（`previewReady` 一律是 false）。另外兩件之後再做：沒有回應 dto 的端點改成 dto（H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）。
-5. **事件的發生時間改用注入的時鐘**（D-090 第 6 點）：所有事件的 `occurredAt` 取系統時間（`DomainEvent` 的 `Instant.now()`），範例的 `clock`、`advance` 控制不到；跨所有 aggregate，與 D-087 第 5 點的資料庫時間一起看。
-6. **後端 JDK 定為 17**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗。負責人已決定與 CI 一致，定為 17（含 CLAUDE.md、`.github/copilot-instructions.md` 等文件）。
+1. **事件的發生時間改用注入的時鐘**（D-090 第 6 點）：所有事件的 `occurredAt` 取系統時間（`DomainEvent` 的 `Instant.now()`），範例的 `clock`、`advance` 控制不到；跨所有 aggregate，與 D-087 第 5 點的資料庫時間一起看。
+2. **HTTP 回應與 `api-spec.md` 的落差**（D-088 第 2 點，契約照程式）：執行抽選的回應只有 `batchId`（§9.3 寫 `batchId`、`status`、`selectedCount`）；重跑的回應是 `batchId`（§9.4 寫 `newBatchId`、`retryOfBatchId`）；預覽、執行的請求本文 `mode` 沒有讀取。程式一律輸出 null 的欄位：`rereviewContext.initialReviewerName`、執行頁的 `previewStats`（`previewReady` 一律是 false）。另外兩件之後再做：沒有回應 dto 的端點改成 dto（H-3 B）、統一 `Page` 與 `{ items }`（D-088 第 9 點）。
+3. **問題側其餘的範圍**（`law/coverage.txt` 的 `grandfathered`）。負責人 2026-11-25 同意的順序：C `ReviewSubmission` 與計分（已完成，D-085）→ A SamplingBatch 其餘部分（已完成，D-086）→ B 報表與儀表板（已完成，D-087）→ D、E HTTP 介面與共用元件（已完成，D-088）→ review-project、score-sheet 的請求端（已完成，D-089）。問題側已沒有暫准的範圍 → 專案版本管理（score-sheet 的 `freezeVersion` 等、品質線與權重取自目前的版本）與未裁決事項（逾期、多角色的讀取授權、`latestRevisionSummary`），要負責人先定方向。逾期的現況（D-087 第 5 點）：儀表板的 `overdueCases` 只看初審期限、不看複審期限；初審準時提交但期限已過且還沒結案也算；「現在」取資料庫的時間，範例的時鐘控制不到。ReviewCase 的五個切片已完成（D-080～D-084）
+4. **前端移除 `finalConclusion`、`rereviewRequired`**（D-084 第 9 點）：後端的建構 PR 移除欄位之後，前端的型別（`cases.service.ts`）與案件詳情頁的 `finalConclusion` 顯示一併移除。前端任務從 `.ai/governance/repo-governance-instruction.md` 進入。
+5. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
 
 ## 已完成
 
@@ -41,5 +40,6 @@
 | 切片 B：報表與儀表板（入口改成 use case、件數不含已取消的案件、匯出的規則與遮罩） | D-087 | #166、#167 |
 | 切片 D、E：HTTP 介面與共用元件（回應契約、請求端、共用元件的登記） | D-088 | #168～#175 |
 | review-project、score-sheet 的格式 v2 與請求端；問題側不再有暫准的範圍 | D-089 | #176、#177、#178 |
+| review-project、score-sheet 的事件驗證 | D-090 | #179、#180 |
 
 D-072 第 4 點的違憲清單到此全部修正完成（D-075 第 12 點）。
