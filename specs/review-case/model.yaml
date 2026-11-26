@@ -107,7 +107,7 @@ invariants:
     source: [{ doc: docs/02-ddd/permission-matrix.md, section: "§5、§5.1" }]
 
 deferred_behaviors:
-  - 逾期：儀表板與匯出摘要的 overdueCases、overdueRate 保留在輸出，沒有立法。現況只看初審期限（不看複審期限）、初審準時提交但期限已過且還沒結案也算、「現在」取資料庫的時間；等逾期的規則裁決（D-087 第 5 點）
+  - 逾期：儀表板與匯出摘要的 overdueCases、overdueRate 保留在輸出，沒有立法。現況只看初審期限（不看複審期限）、初審準時提交但期限已過且還沒結案也算、「現在」取注入的時鐘（D-092 第 5 點，原本取資料庫的時間）；等逾期的規則裁決（D-087 第 5 點）
   - 永久盲審的讀取遮罩（D-033）：案件詳情、提交明細、修正歷史都已立法（RC-DTV-03、RC-SBV-01、RC-VIS-02）；複審醫師執行的命令不回傳初審分數與 finalScore（RC-SRR-S4、RC-CLR-S3）。稽核與匯出依 D-071、D-055 第 6 點
   - 必答規則 CONDITIONAL 與 conditionExpression 的求值：必答題的檢查只看 ALWAYS_REQUIRED（D-014 延後 visibilityRule，D-085 第 7 點）
   - updatedAt（D-037）：只有 SYSTEM_ADMIN 的案件詳情輸出它（RC-DTV-04）；其他查詢不輸出（D-084）

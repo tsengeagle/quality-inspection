@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-26-d092-event-clock",
+  "decision": "D-092",
+  "reason": "事件的發生時間與 id 由 use case 決定：RC-LCY-05、RC-AUD-04 與兩個範例（凍結，建構 PR 解凍）；同時間的順序列進 not_covered；儀表板的「現在」改寫 deferred_behaviors；domain-events.md 補設計原則；題目清單與草稿",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "docs/harness/",
+    "docs/02-ddd/domain-events.md"
+  ]
+}

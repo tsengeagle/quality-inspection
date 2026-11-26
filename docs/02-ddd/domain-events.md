@@ -33,6 +33,7 @@
 5. `ReviewCaseClosed` 發生後，不應再有新的 `ReviewSubmissionRevised` event。
 6. domain event 不等於 integration event；是否對外通知，由 application layer 或 outbox 決定。
 7. event catalog 應與 domain model、state machine、一致。
+8. 事件的 `eventId` 與 `occurredAt` 由發出事件的 use case 決定（D-092）：`eventId` 取 `IdGenerator`，`occurredAt` 取 use case 注入的時鐘，與同一支 use case 寫入 aggregate 的時間相同。同一支 use case 發出的多個事件 `occurredAt` 相同；稽核紀錄另有寫入序號，同時間的紀錄依發出的順序排列。
 
 ---
 
