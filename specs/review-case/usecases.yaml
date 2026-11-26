@@ -1541,6 +1541,12 @@ usecases:
         outcome: { result: SUCCESS }
         status: decided
         source: [{ decision: D-087 }]
+      - id: RC-DSH-09
+        when: 任何查詢
+        text: overdueCases 是目前階段的期限早於現在的案件數。初審階段（PENDING_INITIAL_REVIEW、INITIAL_REVIEW_IN_PROGRESS）看初審期限 dueAt；複審階段（PENDING_REREVIEW、REREVIEW_IN_PROGRESS）在已指派複審醫師時看複審期限。其他狀態都不算逾期。期限等於現在不算。重開不改初審期限
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-095 }]
     output:
       status: decided
       source: [{ doc: docs/03-contracts/api-spec.md, section: "§15.1" }, { decision: D-087 }]
@@ -1631,10 +1637,10 @@ usecases:
         source: [{ decision: D-055 }]
       - id: RC-RPT-12
         when: 任何匯出
-        text: summary 是同一個院區範圍與時間區間的儀表板摘要（RC-DSH-07、RC-DSH-08），不受分頁影響。已取消的案件在 rows 與 totalElements 裡，不在 summary 的件數裡
+        text: summary 是同一個院區範圍與時間區間的儀表板摘要（RC-DSH-07、RC-DSH-08、RC-DSH-09），不受分頁影響。已取消的案件在 rows 與 totalElements 裡，不在 summary 的件數裡
         outcome: { result: SUCCESS }
         status: decided
-        source: [{ decision: D-057 }, { decision: D-087 }, { rule: RC-DSH-07 }]
+        source: [{ decision: D-057 }, { decision: D-087 }, { rule: RC-DSH-07 }, { rule: RC-DSH-09 }]
       - id: RC-RPT-13
         when: 匯出成功
         text: 不寫入初審讀取者紀錄，不遞增案件版本，不發事件

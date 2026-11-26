@@ -1,0 +1,13 @@
+{
+  "id": "2026-11-26-d095-overdue",
+  "decision": "D-095",
+  "reason": "逾期的定義：RC-DSH-09（目前階段的期限早於現在）與 13 個範例，現在的程式算錯的 4 個凍結；RC-RPT-12 引用；deferred_behaviors 與 not_covered 移除逾期；api-spec 儀表板；題目清單",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "docs/03-contracts/api-spec.md",
+    "docs/harness/25-topic-backlog.md"
+  ]
+}

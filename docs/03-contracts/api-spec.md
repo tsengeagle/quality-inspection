@@ -1752,7 +1752,7 @@ SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白
 * `from`
 * `to`
 
-件數不包含已取消（`CANCELLED`）的案件（D-087 第 4 點）：`totalCases` 是範圍內其餘案件的數目，`closedCases`、`rereviewedCases` 也只算其中的案件。`overdueCases`、`overdueRate` 的規則尚未立法（D-087 第 5 點）。
+件數不包含已取消（`CANCELLED`）的案件（D-087 第 4 點）：`totalCases` 是範圍內其餘案件的數目，`closedCases`、`rereviewedCases` 也只算其中的案件。`overdueCases` 是目前階段的期限早於現在的案件數（D-095）：初審階段（`PENDING_INITIAL_REVIEW`、`INITIAL_REVIEW_IN_PROGRESS`）看初審期限，複審階段（`PENDING_REREVIEW`、`REREVIEW_IN_PROGRESS`）在已指派複審醫師時看複審期限，其他狀態不算；期限等於現在不算；重開不改初審期限。`overdueRate` = `overdueCases` ÷ `totalCases`。匯出的 `summary` 相同。
 
 檢查的順序是角色 → 輸入（D-087 第 2 點）：沒有權限的角色一律回 `403 ROLE_DENIED`。
 

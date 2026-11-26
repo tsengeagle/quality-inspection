@@ -1,0 +1,8 @@
+{
+  "amendment": "2026-11-26-d095-overdue",
+  "scheme": "ssh",
+  "signer": "tsengeagle",
+  "digest": "sha256:14dd25c1f9b6061d6ccc306ee30e0add29fc77ec54bc7f0491fac375a2d2fc89",
+  "reviewed_commit": "19dcfae72f47a805781e07666e33920df8abf273",
+  "signature": "-----BEGIN SSH SIGNATURE-----\nU1NIU0lHAAAAAQAAAFcAAAAac2stc3NoLWVkMjU1MTlAb3BlbnNzaC5jb20AAAAgUyr/qs\n365QDqUxDRnj6eWloCyxUn/wRRq+ehJewU8PcAAAARc3NoOmxhdy1hbWVuZG1lbnQAAAAN\nbGF3LWFtZW5kbWVudAAAAAAAAAAGc2hhNTEyAAAAZwAAABpzay1zc2gtZWQyNTUxOUBvcG\nVuc3NoLmNvbQAAAEC4G7bhOQVVebKObI5xv/QxPFJyuGsCJbe/cKwqLGzwhPncjQ6Li5fZ\nGKIwbpchgnltewGJXyXdGfQCNJA+W6cCAQAAAOk=\n-----END SSH SIGNATURE-----\n"
+}

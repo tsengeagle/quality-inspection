@@ -2165,6 +2165,63 @@ examples:
     when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
     then: { result: SUCCESS, output: { totalCases: 0, closedCases: 0, rereviewedCases: 0, completionRate: 0, rereviewRate: 0, overdueRate: 0 } }
 
+  # ---------- 逾期（D-095）。clock_start 是 2026-11-19T09:00:00Z；fixture 的初審期限 2026-11-26T23:59:59Z、複審期限 2026-12-03T23:59:59Z ----------
+
+  # 兩個期限都過了之後，只有初審階段與已指派複審的複審階段算逾期。
+  - name: dashboard_overdue_by_state
+    basis: [RC-DSH-09]
+    matrix:
+      columns: [state, overdue]
+      key: [state]
+      rows:
+        - [SELECTED_PENDING_ASSIGNMENT, 0]
+        - [PENDING_INITIAL_REVIEW,      1]
+        - [INITIAL_REVIEW_IN_PROGRESS,  1]
+        - [INITIAL_REVIEW_COMPLETED,    0]
+        - [RETURNED,                    0]
+        - [PENDING_REREVIEW,            0]
+        - [REREVIEW_IN_PROGRESS,        1]
+        - [CLOSED,                      0]
+    given: [{ use: "case_in_${state}" }, { advance: P15D }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 1, overdueCases: "${overdue}" } }
+
+  - name: dashboard_overdue_after_the_rereview_deadline_once_assigned
+    basis: [RC-DSH-09]
+    given: [{ use: rereviewer_assigned }, { advance: P15D }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 1, overdueCases: 1, overdueRate: 1 } }
+
+  # 複審階段看複審期限：初審期限已過、複審期限未到，不算逾期。
+  - name: dashboard_rereview_stage_ignores_the_initial_deadline
+    basis: [RC-DSH-09]
+    given: [{ use: rereviewer_assigned }, { advance: P8D }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { totalCases: 1, overdueCases: 0, overdueRate: 0 } }
+
+  # 邊界（D-095 第 2 點）：期限等於現在不算，早於現在才算。
+  - name: dashboard_not_overdue_at_the_deadline
+    basis: [RC-DSH-09]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }, { advance: PT182H59M59S }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { overdueCases: 0 } }
+
+  - name: dashboard_overdue_one_second_after_the_deadline
+    basis: [RC-DSH-09]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }, { advance: PT183H }]
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { overdueCases: 1 } }
+
+  # 重開不改期限（D-095 第 3 點）：期限過後重開，立刻算逾期。
+  - name: dashboard_reopened_case_keeps_its_deadline
+    basis: [RC-DSH-09]
+    given:
+      - use: case_in_RETURNED
+      - advance: P8D
+      - { run: ReopenInitialReview, as: manager_h1, input: { caseId: "${c}" } }
+    when: { run: GetDashboardSummary, as: manager_h1, input: { projectId: "${p}" } }
+    then: { result: SUCCESS, output: { overdueCases: 1 } }
+
   - name: dashboard_does_not_take_the_requested_hospital
     basis: [RC-DSH-03]
     given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
@@ -2782,8 +2839,8 @@ not_covered:
   - item: 修正時提交不存在、不是目前有效的結果、操作者不是受指派的複審醫師或不是提交者（RC-RVI-02、RC-RVI-06、RC-RVR-02、RC-RVR-03、RC-RVR-05、RC-RVR-07）
     # D-085：修正過之後，舊的提交是 SUPERSEDED，先被 SUBMISSION_NOT_SUBMITTED 擋下；「已提交但不是目前有效」仍做不出來
     reason: 不存在與身分的檢查與既有的提交、固定、結案相同（RC-SRR、RC-CLR、RC-FIX 已有範例）；已被取代的提交先被 SUBMISSION_NOT_SUBMITTED 擋下，要做出「已提交但不是目前有效」的提交需要直接改資料（D-083）
-  - item: 逾期
-    reason: 權威文件沒有已裁決的逾期規則（api-spec §10.3：期限的檢核尚未定稿），也沒有輸出欄位表示逾期
+  - item: 案件清單、詳情的逾期
+    reason: 逾期只出現在儀表板與匯出的摘要（D-095 第 6 點），其他查詢沒有輸出欄位表示逾期
   - item: 準備步驟的操作者讀過完整初審
     reason: 矩陣與觀察步驟裡 manager_h1、auditor_h1、reviewer_h1 的讀取會留下讀取者紀錄（D-055 第 5 點）。受派的複審醫師只有 u-rr1，它在準備步驟裡沒有讀過初審，所以不影響結果
   - item: 分派頁的候選人（RC-ACD-01～04）
@@ -2806,5 +2863,3 @@ not_covered:
     reason: 複審指派歷史不完整的案件用 use case 做不出來（指派一定寫歷史）；讀取者紀錄與案件版本沒有查詢 use case 可以觀察。由既有的整合測試驗證（D-087 第 12 點）
   - item: 稽核紀錄同時間時的順序（RC-LCY-05、RC-AUD-04 的排序部分）
     reason: 範例比對清單時不比順序（specs/README.md 第四節）；由建構 PR 的整合測試驗證（D-092 第 4 點）
-  - item: 逾期的件數與比率（overdueCases、overdueRate）
-    reason: 沒有立法，列在 model.yaml 的 deferred_behaviors（D-087 第 5 點）
