@@ -51,7 +51,7 @@ reporting/       # read model / query projection / report support
 
 ## Build / test / lint
 
-Backend tech stack 已確認為 Java 11 + Spring Boot 2.7.18 + Gradle 7.6.4 (Groovy DSL)。
+Backend tech stack 已確認為 Java 17 + Spring Boot 2.7.18 + Gradle 7.6.4 (Groovy DSL)。
 Integration baseline 為 organization existing api-gateway。
 Formal API base path: `/api/quality-inspection/**`，required auth header: `api-key`。
 開發期可使用 local dev proxy 模擬 api-gateway（須模擬 api-key header），upstream service 不足時可採 adapter-level stub。

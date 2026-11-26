@@ -66,7 +66,7 @@ Copilot Chat 會自動讀取此檔作為所有對話的背景指引。
 
 | 項目 | 值 |
 |------|---|
-| Language | Java 11 |
+| Language | Java 17 |
 | Framework | Spring Boot 2.7.18 |
 | Build tool | Gradle 7.6.4 (Groovy DSL) |
 | Package root | `com.tzuchi.his.quality.inspection` |

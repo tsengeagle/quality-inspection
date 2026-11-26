@@ -537,7 +537,7 @@ assumptions_and_pending_confirmation:
       QualityInspectionApplicationTests.java (context loads smoke test)
     current_value: >
       com.tzuchi.his.quality.inspection with layers: domain, application, interfaces, infrastructure, reporting.
-      Spring Boot 2.7.18, Java 11, Gradle 7.6.4.
+      Spring Boot 2.7.18, Java 17, Gradle 7.6.4.
 
   - id: PC-009
     category: source_tree

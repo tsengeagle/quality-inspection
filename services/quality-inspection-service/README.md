@@ -158,7 +158,7 @@ services/quality-inspection-service
 │  └─ test/
 │     └─ java/com/example/qualityinspection/
 │        └─ QualityInspectionApplicationTests.java  # context loads smoke test
-├─ build.gradle                 # Spring Boot 2.7.18, Java 11
+├─ build.gradle                 # Spring Boot 2.7.18, Java 17
 ├─ settings.gradle
 ├─ gradle/wrapper/gradle-wrapper.properties  # Gradle 7.6.4
 └─ README.md

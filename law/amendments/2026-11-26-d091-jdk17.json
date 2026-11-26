@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-26-d091-jdk17",
+  "decision": "D-091",
+  "reason": "後端定為 Java 17，與 CI 一致：build.gradle 宣告 17 並以 release 17 編譯；CLAUDE.md、copilot-instructions、project-context 的版本一併更新；題目清單更新順序",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "services/quality-inspection-service/build.gradle",
+    "services/quality-inspection-service/CLAUDE.md",
+    "services/quality-inspection-service/README.md",
+    ".github/copilot-instructions.md",
+    ".ai/project-context.yaml",
+    "docs/harness/25-topic-backlog.md"
+  ]
+}

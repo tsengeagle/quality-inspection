@@ -3722,3 +3722,28 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/harness/41-project-scoresheet-events-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續：建構 PR
+
+## D-091 — 後端定為 Java 17
+
+### Status
+
+`accepted`（2026-11-26，負責人先前已決定與 CI 一致，定為 17，見 `docs/harness/25-topic-backlog.md` 待辦第 6 題；2026-11-26 排為下一題）
+
+### Decision
+
+1. **版本**：後端的原始碼與位元組碼定為 Java 17，與 CI（`.github/workflows/backend-check.yml` 的 `java-version: '17'`）一致。
+2. **寫法**：`build.gradle` 以 `java { sourceCompatibility, targetCompatibility }` 宣告 17，編譯參數加 `release 17`。用較新的 JDK（例如本機的 21）編譯時，也不能用到 17 以後才有的 API。不使用 Gradle toolchain，不要求本機另裝 JDK 17。
+3. **文件**：`services/quality-inspection-service/CLAUDE.md`、`README.md`、`.github/copilot-instructions.md`、`.ai/project-context.yaml` 的 Java 版本改成 17。`docs/superpowers/plans/`、`docs/handoffs/` 是歷史紀錄，不改。
+4. **不在本裁決內**：Spring Boot、Gradle、Flyway 的版本不變。D-045 第 2 點提到「Flyway 10 以上需要 Java 17」，升級 Flyway 主版本另立題目。
+
+### Relationship / Evidence
+
+- **起因**：`build.gradle` 宣告 `sourceCompatibility = '11'`，但 D-075 之後 `Instant` 解析 `+08:00` 需要 JDK 12 以上，JDK 11 上 `assigns_a_reviewer` 失敗；CI 與本機都已經用 JDK 17 以上。
+- **驗證**（2026-11-26，本機 Windows，JDK 21）：`./gradlew clean test` 1788 個測試、0 個失敗；`QualityInspectionApplication.class` 的 major version 是 61（Java 17）。
+- 沒有行為變更，程式不用改，不需要建構 PR。
+
+### Mapping
+
+- `services/quality-inspection-service/build.gradle`
+- `services/quality-inspection-service/CLAUDE.md`、`services/quality-inspection-service/README.md`、`.github/copilot-instructions.md`、`.ai/project-context.yaml`
+- `docs/harness/25-topic-backlog.md`
