@@ -61,6 +61,7 @@
 | `35-read-draft.md` | ReviewCase 切片 E：讀取（V-1～V-11，已由 D-084 裁決）：實測、多角色與院區的順序、初審醫師看複審、複審醫師看初審醫師身分、SYSTEM_ADMIN 白名單、退回案件的分派頁、讀過初審的候選人、讀取者紀錄的範例、輸出欄位、沒有被寫入的欄位、登記範圍 |
 | `36-review-submission-draft.md` | 切片 C：`ReviewSubmission` 本體、計分，以及 ReviewCase 的收尾（T-1～T-14，已由 D-085 裁決）：實測、RANGE 的錯誤作答與上限、小數位數、未知題目、重複作答、三種題目的計分、狀態轉移與不變式、草稿的分數、評分表版本、附件、修正歷史的可見規則、補範例、登記範圍 |
 | `37-sampling-batch-draft.md` | 切片 A：SamplingBatch 其餘部分（S-1～S-16，已由 D-086 裁決）：失敗的批次、D-013 與重跑、母體 0 筆、重複、抽樣與排除、不變式、規則快照、預覽、執行頁、列表、`SYSTEM_ADMIN` 的詳情、匯出、架構基線、登記範圍 |
+| `46-build-after-ruling-draft.md` | 建構不得先於它依據的裁決併入主線（B-1～B-8，草稿，待裁決）：缺口、現在擋得到與擋不到的情況、建構 PR 宣告依據的裁決、沒有裁決的建構、啟用與分批、做完之後仍然擋不到的 |
 | `45-response-dto-and-list-shape-draft.md` | 回應 dto 與列表的形狀（P-1～P-8，負責人 2026-11-26 裁決全部照建議，條文待修法 PR 寫入）：直接輸出 application 物件的 13 個端點、`Map` 回應、application 的 Jackson 標註、`Page` 與 `{ items }`、匯出與裸陣列、分批；第六節是附帶發現：domain 事件自己組稽核的 JSON 字串 |
 | `44-versions-and-pending-draft.md` | 專案版本管理與未裁決事項（已由 D-094、D-095 裁決）：不開放改版、逾期的定義、多角色拒絕定案、`latestRevisionSummary` 的移除與 HTTP 契約的過渡形狀 |
 | `43-api-spec-gap-draft.md` | HTTP 回應與 `api-spec.md` 的落差（G-1～G-7，已由 D-093 裁決）：執行與重跑的回應、請求本文的 `mode`、一律 null 的欄位、範圍、分批 |
