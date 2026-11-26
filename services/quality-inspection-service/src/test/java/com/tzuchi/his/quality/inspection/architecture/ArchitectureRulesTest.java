@@ -26,4 +26,9 @@ class ArchitectureRulesTest {
     @ArchTest
     static final ArchRule arch05ReportingUsesOnlyApplicationCommon =
             ArchitectureRules.ARCH_05_REPORTING_USES_ONLY_APPLICATION_COMMON;
+
+    /** D-096 第 2 點：既有的三個讀取模型凍結在基線，只擋新增。 */
+    @ArchTest
+    static final ArchRule arch06NoJacksonInApplicationOrReporting =
+            freeze(ArchitectureRules.ARCH_06_NO_JACKSON_IN_APPLICATION_OR_REPORTING);
 }

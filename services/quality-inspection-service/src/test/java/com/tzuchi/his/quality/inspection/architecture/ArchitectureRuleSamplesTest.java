@@ -64,6 +64,17 @@ class ArchitectureRuleSamplesTest {
         assertNotReported(violations, "AllowedReportingUsesApplicationCommon");
     }
 
+    @Test
+    void arch06_detectsJacksonInApplicationAndReporting() {
+        List<String> violations = violations("jackson", ArchitectureRules::noJacksonInApplicationOrReporting);
+
+        assertReported(violations, "ApplicationViewUsesJsonIgnore");
+        assertReported(violations, "ApplicationViewUsesJsonIgnoreProperties");
+        assertReported(violations, "ReportingUsesObjectMapper");
+        assertNotReported(violations, "AllowedPlainView");
+        assertNotReported(violations, "AllowedDomainEventUsesObjectMapper");
+    }
+
     private static List<String> violations(String sample, Function<String, ArchRule> rule) {
         String root = SAMPLES + "." + sample;
         JavaClasses classes = new ClassFileImporter().importPackages(root);
@@ -74,11 +85,16 @@ class ArchitectureRuleSamplesTest {
 
     private static void assertReported(List<String> violations, String sampleClass) {
         assertThat(violations).as("規則應報出違規樣本 %s", sampleClass)
-                .anyMatch(detail -> detail.contains("." + sampleClass + "."));
+                .anyMatch(detail -> mentions(detail, sampleClass));
     }
 
     private static void assertNotReported(List<String> violations, String sampleClass) {
         assertThat(violations).as("規則不應報出合規對照 %s", sampleClass)
-                .noneMatch(detail -> detail.contains("." + sampleClass + "."));
+                .noneMatch(detail -> mentions(detail, sampleClass));
+    }
+
+    /** 成員的違規寫成「…類別.成員」，類別本身的違規（例如類別上的標註）寫成「…類別>」。 */
+    private static boolean mentions(String detail, String sampleClass) {
+        return detail.contains("." + sampleClass + ".") || detail.contains("." + sampleClass + ">");
     }
 }
