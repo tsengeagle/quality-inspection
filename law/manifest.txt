@@ -17,6 +17,8 @@
 @amendments law/amendments/
 # 問題側涵蓋清單：問題側的新範圍要先立法（D-060）。判決程式讀 base 上的版本
 @coverage law/coverage.txt
+# 建構 PR 要宣告依據的裁決，而且裁決已經在 base 的決策紀錄生效（D-097）。寫法見 harness-core/README.md「建構依據的裁決」
+@build-ruling required
 # 修法 PR 除了律法路徑之外，還可以一起改的路徑（P4：修法與建構不混在同一個 PR）
 @allowed-with-amendment docs/**
 @allowed-with-amendment **/*.md

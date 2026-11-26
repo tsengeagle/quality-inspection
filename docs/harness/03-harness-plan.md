@@ -81,7 +81,7 @@
 | P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋。2026-11-18：`check` 是 `main` 的必要檢查；#87 在 PR 上手寫分層違規，`check` 失敗（ARCH-01、ARCH-04），PR 無法合併 |
 | P2 manifestation | 每條架構規則配一個故意違規的樣本 | 2026-11-13：ARCH-01 到 ARCH-04 都有違規樣本與合規對照；把四條規則改成永遠通過後，樣本測試全部失敗。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄 |
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
-| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ `harness-core/law_check.py` 會擋修法 PR 夾帶程式修改；`law-check` 已在 GitHub 上判決過建構 PR（#10）與修法 PR（#11、#15）。2026-11-18 起是必要檢查，紅燈不能合併（#88） |
+| P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ `harness-core/law_check.py` 會擋修法 PR 夾帶程式修改；`law-check` 已在 GitHub 上判決過建構 PR（#10）與修法 PR（#11、#15）。2026-11-18 起是必要檢查，紅燈不能合併（#88）。2026-11-26（D-097）：建構 PR 要宣告依據的裁決，裁決還沒進 `main` 時 `law-check` 擋下；本機回放 53 個已合併的 PR 驗證過，**還沒有在 GitHub 上判決過** |
 | P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
 | P6 tradition-bearer | 修法要有負責人的簽章；核准者清單讀合併目標分支上的版本 | ⚠️ 2026-11-14 啟用並驗收：沒有簽章的修法被 `law-check` 擋下，負責人用 YubiKey 簽章後通過（PR #15）。2026-11-18：`law-check` 是必要檢查；#88 的修法紀錄完整但沒有簽章，`law-check` 只有簽章一項未通過，PR 無法合併。核准者登記了兩支實體金鑰上的三把金鑰（第二支尚未在 GitHub 上簽過修法）。限制：簽章只證明持有金鑰的人同意，不證明看過內容。CODEOWNERS 只保留形式（`07-github-settings.md` 第二節） |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
