@@ -42,6 +42,12 @@
   (filterChange)="onFilterChange($event)">
 </app-case-work-queue-filter-bar>
 
+<!-- 套用中的批次篩選（UI-009 §4.3：顯示目前套用中的 filter） -->
+<div *ngIf="uiState.batchId" class="case-list-applied-filters">
+  <span class="applied-filter" data-testid="case-list-batch-filter">批次：{{ uiState.batchId }}</span>
+  <button type="button" class="applied-filter-clear" data-testid="case-list-batch-filter-clear" (click)="clearBatchFilter()">清除</button>
+</div>
+
 <!-- C06 Table -->
 <app-case-work-queue-table
   [cases]="cases"

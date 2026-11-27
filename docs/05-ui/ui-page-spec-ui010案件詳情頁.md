@@ -218,7 +218,7 @@
 ### 建議操作
 
 * 點 project version / batchId 可導向對應詳情頁
-* system admin 在這區仍可看 metadata
+* system admin 不顯示這一區。白名單的七欄裡，屬於來源的只有 `projectName`、`hospitalId`，改在「案件 metadata」區塊顯示（§5.5）
 
 ---
 
@@ -244,7 +244,7 @@
 * manager / auditor：可看摘要
 * reviewer：可看自己的摘要與操作入口
 * rereviewer：僅可看不洩漏初審答案／分數／評語的流程 metadata（D-033）
-* system admin：metadata only，不顯示完整答案內容
+* system admin：不顯示這一區。白名單的七欄沒有任何提交的資訊；要看各版本的 metadata，從 revision 歷程頁（UI-014）
 
 ### 建議操作
 
@@ -274,6 +274,7 @@
 * 若案件尚未進複審，可顯示「尚未進入複審」
 * 若案件已進複審，顯示完整摘要
 * 若案件已結案，需清楚顯示 final score 來源
+* system admin 不顯示這一區（理由同 §4.4）
 
 ### 建議操作
 
@@ -447,26 +448,43 @@
 
 ## 5.5 SYSTEM_ADMIN 視角
 
-### 可看
+依 D-036、D-094 第 9 點：`SYSTEM_ADMIN` 的案件詳情**只有七欄**，後端不會給其他欄位（`specs/review-case/http.yaml` 的 `metadata` 形狀）。本節 2026-11-27 依負責人的裁決改寫（核對見 `docs/review/f2-system-admin-metadata-reconciliation-2026-11-27.md`）；改寫之前的版本寫的是「看得到 status、actor ids、timestamps、batch／project／version 參照」，比白名單多。
 
-* metadata
-* status
-* actor ids
-* timestamps
-* batch / project / version 參照
-* lifecycle metadata
+### 可看（七欄）
+
+| 欄位 | 顯示在哪裡 |
+|---|---|
+| `caseId` | 頁首 |
+| `caseStatus` | 頁首的狀態、生命週期區 |
+| `projectName` | 案件 metadata 區塊 |
+| `hospitalId` | 案件 metadata 區塊 |
+| `reviewerId` | 案件 metadata 區塊；沒有指派時顯示「—」 |
+| `rereviewerId` | 案件 metadata 區塊；沒有指派時顯示「—」 |
+| `updatedAt` | 案件 metadata 區塊，台北時間；沒有值時顯示「—」 |
 
 ### 不可看
 
-* 完整 answers
-* full comments
-* attachment content
-* full detail review content
+* 七欄以外的一切：`projectId`、`batchId`、版本參照、`updatedAt` 以外的時間、病歷的來源鍵與類型
+* 任何提交的資訊：答案、分數、評語、附件、提交的 id 與狀態（各版本的 metadata 在 UI-014）
+
+### 版面
+
+1. 頁首：`caseId`、`caseStatus`，附 metadata-only 的投影提示
+2. 模式列：「控制中心（Metadata）」
+3. 導覽：只有「Revision 歷程」
+4. 案件 metadata 區塊：上表的五欄
+5. 生命週期區：以 `caseStatus` 表示目前的階段
+
+不顯示：來源與追溯區（§4.3）、初審摘要區（§4.4）、複審摘要區（§4.5）。
+
+### 怎麼判斷是這個視角
+
+以**回應的形狀**判斷：回應有 `caseStatus`、沒有 `status` 時是 metadata 形狀。不以目前登入的角色判斷（角色來自 shell，切換身分的中間狀態可能與回應不一致）。回應既不是完整形狀、也不是 metadata 形狀時，頁面要明確顯示載入失敗，不可以當成其中一種。
 
 ### 可做
 
 * 無業務操作
-* 僅 metadata 層追蹤與導航
+* 導覽到 revision 歷程頁
 
 ---
 
@@ -609,8 +627,8 @@
 ### 9.4 Metadata-only View
 
 * 顯示 metadata banner
-* 隱藏 answers / full comments / attachment content
-* 仍可顯示 status / ids / timestamps / actor ids
+* 只顯示白名單的七欄，版面見 §5.5
+* 不顯示來源與追溯區、初審摘要區、複審摘要區
 
 ---
 
