@@ -5,6 +5,7 @@ import { BehaviorSubject, of } from 'rxjs';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CasesService } from '../services/cases.service';
+import { CASE_STATUSES } from '../models/case-status';
 import { CaseListPageComponent } from './case-list-page.component';
 
 class ActivatedRouteStub {
@@ -128,4 +129,58 @@ describe('CaseListPageComponent', () => {
       queryParamsHandling: 'merge'
     });
   });
+
+  // 抽選執行頁、批次清單導覽過來時網址帶 batchId；原本列表頁沒有把它交給查詢
+  it('passes the batchId query param to the list query and shows it as an applied filter', () => {
+    actorContextService.setRole('HOSPITAL_MANAGER');
+    activatedRoute.setQueryParams({ batchId: 'BATCH-007' });
+
+    fixture.detectChanges();
+
+    expect(component.uiState.batchId).toBe('BATCH-007');
+    expect(casesService.getCases).toHaveBeenCalledWith(jasmine.objectContaining({ batchId: 'BATCH-007' }));
+    const chip = (fixture.nativeElement as HTMLElement).querySelector('[data-testid="case-list-batch-filter"]');
+    expect(chip?.textContent).toContain('BATCH-007');
+  });
+
+  it('does not send a batchId and shows no batch filter when the query param is absent', () => {
+    activatedRoute.setQueryParams({});
+
+    fixture.detectChanges();
+
+    expect(component.uiState.batchId).toBeUndefined();
+    expect(casesService.getCases.calls.mostRecent().args[0].batchId).toBeUndefined();
+    expect((fixture.nativeElement as HTMLElement).querySelector('[data-testid="case-list-batch-filter"]')).toBeNull();
+  });
+
+  it('clears the batch filter by removing the query param', () => {
+    activatedRoute.setQueryParams({ batchId: 'BATCH-007' });
+    fixture.detectChanges();
+
+    component.clearBatchFilter();
+
+    expect(router.navigate).toHaveBeenCalledWith([], {
+      relativeTo: activatedRoute as unknown as ActivatedRoute,
+      queryParams: { batchId: null },
+      queryParamsHandling: 'merge'
+    });
+  });
+
+  it('never sends a status the backend rejects, whatever the tab', () => {
+    for (const role of ['REVIEWER', 'REREVIEWER', 'HOSPITAL_MANAGER', 'AUDITOR', 'SYSTEM_ADMIN']) {
+      for (const tab of ['MY_QUEUE', 'ALL_CASES', 'MY_MANAGED_PROJECTS']) {
+        actorContextService.setRole(role);
+        casesService.getCases.calls.reset();
+        fixture = TestBed.createComponent(CaseListPageComponent);
+        activatedRoute.setQueryParams({ tab });
+        fixture.detectChanges();
+
+        const status = casesService.getCases.calls.mostRecent().args[0].status;
+        if (status !== undefined) {
+          expect(CASE_STATUSES as readonly string[]).withContext(`${role} ${tab}`).toContain(status);
+        }
+      }
+    }
+  });
 });
+

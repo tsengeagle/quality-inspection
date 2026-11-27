@@ -328,4 +328,55 @@ test.describe('frontend smoke baseline', () => {
     await expect(page).toHaveURL(/\/cases\/CASE-020\/revisions$/);
     await expect(page.getByText('Metadata 歷程')).toBeVisible();
   });
+
+  // 假的列表端點照後端的行為：status 不是 CaseStatus 的值時回 400 BAD_REQUEST（RC-LST-02）。
+  // 原本的假回應不看查詢參數，所以篩選列送出後端不認得的值、batchId 沒有被送出，都不會被發現。
+  test('case list filters only send what the backend accepts, and carry the batchId from the URL', async ({ page }) => {
+    const caseStatuses = ['SELECTED_PENDING_ASSIGNMENT', 'PENDING_INITIAL_REVIEW', 'INITIAL_REVIEW_IN_PROGRESS',
+      'INITIAL_REVIEW_COMPLETED', 'PENDING_REREVIEW', 'REREVIEW_IN_PROGRESS', 'RETURNED', 'CLOSED', 'CANCELLED'];
+    const requests: URL[] = [];
+    const rejected: string[] = [];
+
+    await page.route('**/api/quality-inspection/review-cases?*', async route => {
+      const url = new URL(route.request().url());
+      requests.push(url);
+      const status = url.searchParams.get('status');
+      if (status !== null && !caseStatuses.includes(status)) {
+        rejected.push(status);
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, data: null, meta: null, error: { code: 'BAD_REQUEST', message: 'status' } })
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 } })
+      });
+    });
+
+    await page.goto('/cases?batchId=BATCH-007');
+
+    await expect(page.getByTestId('case-list-batch-filter')).toHaveText('批次：BATCH-007');
+    await expect.poll(() => requests.length).toBeGreaterThan(0);
+    expect(requests[requests.length - 1].searchParams.get('batchId')).toBe('BATCH-007');
+
+    const chips = page.locator('.filter-chip');
+    const count = await chips.count();
+    expect(count).toBe(7);
+    for (let i = 0; i < count; i++) {
+      const before = requests.length;
+      await chips.nth(i).click();
+      await expect.poll(() => requests.length).toBeGreaterThan(before);
+      // 換篩選條件之後，批次的篩選仍然帶著
+      expect(requests[requests.length - 1].searchParams.get('batchId')).toBe('BATCH-007');
+    }
+    expect(rejected).toEqual([]);
+
+    await page.getByTestId('case-list-batch-filter-clear').click();
+    await expect(page.getByTestId('case-list-batch-filter')).toHaveCount(0);
+    await expect.poll(() => requests[requests.length - 1].searchParams.has('batchId')).toBe(false);
+  });
 });
