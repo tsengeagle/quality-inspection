@@ -495,6 +495,69 @@ class HttpContractEvaluatorTest {
         assertTrue(extra.loadProblems().stream().anyMatch(p -> p.contains("可以另有 transition")), extra.loadProblems().toString());
     }
 
+    // ---------- D-100：幾種形狀只差在陣列的項目時，空的陣列兩種都符合，不算違反 ----------
+
+    private static String listVariants(String full, String meta) {
+        return String.join("\n",
+                "spec_version: 1",
+                "kind: http",
+                "endpoints:",
+                "  - usecase: GetThing",
+                "    method: GET",
+                "    path: /things/{thingId}",
+                "    success:",
+                "      status: 200",
+                "      variants:",
+                "        - name: full",
+                "          data: " + full,
+                "        - name: meta",
+                "          data: " + meta);
+    }
+
+    private static final String LIST_VARIANT_HTTP = listVariants(
+            "{ items: [ { id: id, secret: text } ], total: int }",
+            "{ items: [ { id: id } ], total: int }");
+
+    @Test
+    void anEmptyArrayMatchingSeveralVariantsIsNotAViolationAndCountsForNone() {
+        HttpContract c = contract(LIST_VARIANT_HTTP, USECASES);
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[],\"total\":0}")));
+        assertTrue(e.problems().stream().noneMatch(p -> p.contains("同時符合")), e.problems().toString());
+        assertProblem(e, "GET /things/{thingId}（full）：沒有觀察到這種形狀的成功回應");
+        assertProblem(e, "GET /things/{thingId}（meta）：沒有觀察到這種形狀的成功回應");
+    }
+
+    @Test
+    void aNonEmptyArrayIsStillMatchedToExactlyOneVariant() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(LIST_VARIANT_HTTP, USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[],\"total\":0}")));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[{\"id\":\"a\"}],\"total\":1}")));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[{\"id\":\"a\",\"secret\":\"s\"}],\"total\":1}")));
+        assertTrue(problemsOf(e, "GET /things/{thingId}").isEmpty(), e.problems().toString());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[{\"id\":\"a\",\"other\":1}],\"total\":1}")));
+        assertProblem(e, "不符合任何一種形狀");
+    }
+
+    @Test
+    void anEmptyArrayDoesNotExcuseVariantsThatAlsoDifferElsewhere() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(listVariants(
+                "{ items: [ { id: id, secret: text } ], note: text }",
+                "{ items: [ { id: id } ], note: 'text?' }"), USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[],\"note\":\"n\"}")));
+        assertProblem(e, "同時符合不只一種形狀（full、meta）");
+    }
+
+    @Test
+    void anEmptyArrayInsideAnArrayItemIsNotExcused() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(listVariants(
+                "{ groups: [ { items: [ { id: id, secret: text } ] } ] }",
+                "{ groups: [ { items: [ { id: id } ] } ] }"), USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"groups\":[{\"items\":[]}]}")));
+        assertProblem(e, "同時符合不只一種形狀（full、meta）");
+    }
+
     @Test
     void ambiguousVariantsAreAProblem() {
         HttpContract c = contract(VARIANT_HTTP.replace("{ thingId: id, maskedFields: [ text ] }", "{ thingId: id, secret: text, note: 'text?' }"), USECASES);

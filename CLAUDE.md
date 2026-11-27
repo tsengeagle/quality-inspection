@@ -32,6 +32,7 @@
 - 一般 wireframe / prototype 任務可直接執行；若涉及 Figma / Figma MCP、付費能力，或遇到額度 / 權限 / API / MCP / 方案限制，必須先回報；免費 / 本地優先
 - specification-by-example 與 test-scenarios 分工不可混淆
 - 核心規則要變時，先更新 decision-log，不直接改實作
+- 改到程式的 PR，提交標題要寫出依據的裁決（例如 `build: D-095 …`）；沒有裁決可指時在提交訊息寫 `Ruling: none — <理由>`。裁決要已在 `main` 的 decision-log 生效，`law-check` 會擋（D-097，寫法見 `AGENTS.md` §5.0.1）
 - 動到後端問題側（`domain`、`application`、`interfaces`、`reporting`）之前，先查 `law/coverage.txt`（D-060）。範圍是 `grandfathered` 或不在清單內時，先停下來向負責人說明「這裡沒有可執行的律法」，請負責人決定：先立法、以修法列為暫准，或在暫准範圍內照現有權威文件實作。不在清單內的新範圍，`law-check` 會判為未通過
 
 ## Implementation areas

@@ -229,6 +229,12 @@ expectations:
   metadata_only:
     result: SUCCESS
     absent: ["entries[*].totalScore", "entries[*].comment"]
+  listed:
+    result: SUCCESS
+    output: { "content[caseId=${c}]": { hospitalId: H-01 } }
+  not_listed:
+    result: SUCCESS
+    output: { content: [] }
   denied:
     result: REJECTED
     code: ACCESS_DENIED
@@ -244,6 +250,72 @@ examples:
     then:
       result: SUCCESS
       output: { content: [] }
+
+  # ---------- ListReviewCases：SYSTEM_ADMIN（D-100） ----------
+
+  # 白名單（D-036、權限矩陣 §5.1）：只刪減，不補 projectName、updatedAt。
+  - name: admin_list_is_a_whitelist
+    basis: [RC-LST-03]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: ListReviewCases, as: admin, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output:
+        "content[caseId=${c}]": { batchId: "${b}", hospitalId: H-01, status: CLOSED, reviewerId: u-r1, rereviewerId: u-rr1, projectionType: METADATA_ONLY }
+      only:
+        "content[*]": [caseId, batchId, hospitalId, status, reviewerId, rereviewerId, dueAt, projectionType]
+
+  # admin 的院區是 H-09，案件在 H-01。
+  - name: admin_lists_cases_of_every_hospital
+    basis: [RC-LST-04]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: admin, input: { batchId: "${b}" } }
+    then:
+      result: SUCCESS
+      output: { "content[caseId=${c}]": { hospitalId: H-01, status: SELECTED_PENDING_ASSIGNMENT } }
+
+  - name: admin_list_narrows_to_a_hospital
+    basis: [RC-LST-04]
+    matrix:
+      columns: [hospital, expect]
+      key: [hospital]
+      rows:
+        - [H-01, listed]
+        - [H-02, not_listed]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: admin, input: { batchId: "${b}", hospitalId: "${hospital}" } }
+    then: { use_expect: "${expect}" }
+
+  # 案件的病歷類型是 OUTPATIENT。SYSTEM_ADMIN 帶別的類型，照樣列出（條件不採用）。
+  - name: admin_list_does_not_take_the_medical_record_type
+    basis: [RC-LST-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: admin, input: { batchId: "${b}", medicalRecordType: INPATIENT } }
+    then: { use_expect: listed }
+
+  - name: other_roles_filter_by_the_medical_record_type
+    basis: [RC-LST-05]
+    matrix:
+      columns: [type, expect]
+      key: [type]
+      rows:
+        - [OUTPATIENT, listed]
+        - [INPATIENT,  not_listed]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: manager_h1, input: { batchId: "${b}", medicalRecordType: "${type}" } }
+    then: { use_expect: "${expect}" }
+
+  - name: admin_list_filters_by_project
+    basis: [RC-LST-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: admin, input: { projectId: "${p}" } }
+    then: { use_expect: listed }
+
+  - name: admin_list_of_another_project_is_empty
+    basis: [RC-LST-05]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when: { run: ListReviewCases, as: admin, input: { projectId: missing-project } }
+    then: { use_expect: not_listed }
 
   # ---------- AssignReviewCase ----------
 
@@ -2322,7 +2394,9 @@ examples:
     when: { run: ExportReport, as: admin, input: { reportType: REVIEW_COMPLETION, hospitalId: H-01, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" } }
     then:
       result: SUCCESS
-      output: { rows: [{ caseId: "${c}", status: CLOSED, maskedFields: [initialScore, finalScore] }] }
+      output: { rows: [{ caseId: "${c}", hospitalId: H-01, status: CLOSED, reviewerId: u-r1, rereviewerId: u-rr1, createdAt: "2026-11-19T09:00:00Z" }] }
+      only:
+        "rows[*]": [caseId, hospitalId, status, reviewerId, rereviewerId, createdAt, closedAt]
       absent: ["rows[*].initialScore", "rows[*].finalScore"]
 
   - name: system_admin_export_narrows_to_a_hospital
@@ -2479,7 +2553,72 @@ examples:
         path: /reports/export
         body: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" }
       as: admin
-    then: { result: SUCCESS, output: { "rows[caseId=${c}]": { maskedFields: [initialScore, finalScore] } } }
+    then:
+      result: SUCCESS
+      output: { "rows[caseId=${c}]": { status: CLOSED, reviewerId: u-r1, rereviewerId: u-rr1 } }
+      only:
+        "rows[*]": [caseId, hospitalId, status, reviewerId, rereviewerId, createdAt, closedAt]
+
+  # metadata 形狀裡可為 null 的欄位（reviewerId、rereviewerId、closedAt）：這個案件都還沒有。
+  - name: exports_an_unassigned_case_for_a_system_admin_over_http
+    basis: [RC-RPT-07]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http:
+        method: POST
+        path: /reports/export
+        body: { reportType: REVIEW_COMPLETION, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" }
+      as: admin
+    then:
+      result: SUCCESS
+      output: { "rows[caseId=${c}]": { status: SELECTED_PENDING_ASSIGNMENT } }
+      only:
+        "rows[*]": [caseId, hospitalId, status, createdAt]
+
+  # 空的列表同時符合 full 與 metadata 兩種形狀，不算違反（D-100 第 10 點，specs/README.md 第七節）。
+  - name: lists_nothing_for_another_hospital_over_http
+    basis: [RC-LST-01]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http: { method: GET, path: /review-cases, query: { batchId: "${b}" } }
+      as: manager_h2
+    then: { result: SUCCESS, output: { content: [], totalElements: 0 } }
+
+  - name: exports_nothing_for_another_hospital_over_http
+    basis: [RC-RPT-05]
+    given: [{ use: case_in_CLOSED }]
+    when:
+      http:
+        method: POST
+        path: /reports/export
+        body: { reportType: REVIEW_COMPLETION, hospitalId: H-02, from: "2026-11-19T00:00:00Z", to: "2026-11-20T00:00:00Z" }
+      as: admin
+    then: { result: SUCCESS, output: { rows: [], totalElements: 0 } }
+
+  # 列表的 metadata 形狀（D-100）：一個三個可為 null 的欄位都有值，一個都沒有。
+  - name: lists_a_closed_case_for_a_system_admin_over_http
+    basis: [RC-LST-03]
+    given: [{ use: case_in_CLOSED }]
+    when:
+      http: { method: GET, path: /review-cases, query: { batchId: "${b}" } }
+      as: admin
+    then:
+      result: SUCCESS
+      output: { "content[caseId=${c}]": { status: CLOSED, reviewerId: u-r1, rereviewerId: u-rr1, projectionType: METADATA_ONLY } }
+      only:
+        "content[*]": [caseId, batchId, hospitalId, status, reviewerId, rereviewerId, dueAt, projectionType]
+
+  - name: lists_an_unassigned_case_for_a_system_admin_over_http
+    basis: [RC-LST-03]
+    given: [{ use: case_in_SELECTED_PENDING_ASSIGNMENT }]
+    when:
+      http: { method: GET, path: /review-cases, query: { batchId: "${b}" } }
+      as: admin
+    then:
+      result: SUCCESS
+      output: { "content[caseId=${c}]": { status: SELECTED_PENDING_ASSIGNMENT, projectionType: METADATA_ONLY } }
+      only:
+        "content[*]": [caseId, batchId, hospitalId, status, projectionType]
 
   # ---------- 必填的輸入（D-088 第 11 點，H-6） ----------
   # 請求 dto 的必填檢查交給 use case：這些範例直接呼叫 use case，確認沒有 dto 也會拒絕。

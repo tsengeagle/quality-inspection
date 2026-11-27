@@ -100,7 +100,7 @@ E-04、E-05 與 E-03 是同一類：兩個各自有測試的部分，中間的�
 
 | # | 缺陷 | 當時的律法 | 為什麼沒被擋下 | 修正 | 對 harness 的回應 |
 |---|---|---|---|---|---|
-| E-10 | `SYSTEM_ADMIN` 的案件列表拿到的欄位比白名單多。白名單（`permission-matrix.md` §5.1、api-spec §3.6）是 shared base 加上 `batchId`、`dueAt`；程式（`ListReviewCasesUseCase`）對 `SYSTEM_ADMIN` 只把 `projectionType` 設成 `METADATA_ONLY`，欄位沒有刪減，所以列表多了 `projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt` | `ListReviewCases` 已立法（D-066）；`http.yaml` 的列表只有一種形狀，所有角色共用（D-088 照程式立法） | **律法照著有缺陷的程式寫**：D-088 第 2 點「回應形狀照程式」把現況寫進契約，沒有對照權限矩陣的白名單。規格也沒有「`SYSTEM_ADMIN` 的列表有哪些欄位」的規則。案件詳情（D-036、D-084）照白名單收斂了，列表沒有 | 還沒有修。要修法：`http.yaml` 的列表要有 `SYSTEM_ADMIN` 的形狀，規格要補規則與範例；再加建構 | 待裁決，見下方 |
+| E-10 | `SYSTEM_ADMIN` 的案件列表拿到的欄位比白名單多。白名單（`permission-matrix.md` §5.1、api-spec §3.6）是 shared base 加上 `batchId`、`dueAt`；程式（`ListReviewCasesUseCase`）對 `SYSTEM_ADMIN` 只把 `projectionType` 設成 `METADATA_ONLY`，欄位沒有刪減，所以列表多了 `projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt` | `ListReviewCases` 已立法（D-066）；`http.yaml` 的列表只有一種形狀，所有角色共用（D-088 照程式立法） | **律法照著有缺陷的程式寫**：D-088 第 2 點「回應形狀照程式」把現況寫進契約，沒有對照權限矩陣的白名單。規格也沒有「`SYSTEM_ADMIN` 的列表有哪些欄位」的規則。案件詳情（D-036、D-084）照白名單收斂了，列表沒有 | 還沒有修。修法 PR 一是 D-100（規則 RC-LST-03～05、`metadata` 形狀、7 個凍結的範例）；接著是建構 PR、修法 PR 二 | 待裁決，見下方 |
 
 ### 回應（待裁決）
 
@@ -115,7 +115,7 @@ E-04、E-05 與 E-03 是同一類：兩個各自有測試的部分，中間的�
 
 | # | 缺陷 | 當時的律法 | 為什麼沒被擋下 | 修正 | 對 harness 的回應 |
 |---|---|---|---|---|---|
-| E-11 | `SYSTEM_ADMIN` 的匯出（`POST /reports/export`）每一列有白名單以外的 `projectId`、`createdAt`、`closedAt`。對 `SYSTEM_ADMIN` 只把 `initialScore`、`finalScore` 設成 null（RC-RPT-07） | `ExportReport` 已立法（D-087）；匯出的欄位與遮罩由 D-055、D-056、D-057 逐項裁決 | 白名單（`permission-matrix.md` §5.1）的頁面延伸只列了 UI-009、UI-014，沒有匯出頁；匯出的裁決只處理了分數的遮罩，沒有對照白名單。規格有「分數是 null」的規則與範例，沒有「只有哪些欄位」的規則 | 還沒有修。要修法（規格、`http.yaml`）加建構，前端的 CSV 欄位跟著改 | 與 E-10 相同，見 E-10 的回應 |
+| E-11 | `SYSTEM_ADMIN` 的匯出（`POST /reports/export`）每一列有白名單以外的 `projectId`、`createdAt`、`closedAt`。對 `SYSTEM_ADMIN` 只把 `initialScore`、`finalScore` 設成 null（RC-RPT-07） | `ExportReport` 已立法（D-087）；匯出的欄位與遮罩由 D-055、D-056、D-057 逐項裁決 | 白名單（`permission-matrix.md` §5.1）的頁面延伸只列了 UI-009、UI-014，沒有匯出頁；匯出的裁決只處理了分數的遮罩，沒有對照白名單。規格有「分數是 null」的規則與範例，沒有「只有哪些欄位」的規則 | 還沒有修。與 E-10 同一個裁決 D-100（RC-RPT-07 改寫、`metadata` 形狀）；接著是建構 PR（前端的 CSV 欄位跟著改）、修法 PR 二 | 與 E-10 相同，見 E-10 的回應 |
 
 E-10、E-11 加起來，指出同一件事：白名單是一張表，但「哪些端點要套用它」沒有清單。每個端點各自裁決遮罩時，沒有人回頭對照。草稿 49 第五節建議的檢查（`SYSTEM_ADMIN` 讀得到的查詢必須有以 `SYSTEM_ADMIN` 身分、用 `only` 封閉的範例）可以把這件事變成閘門。
 

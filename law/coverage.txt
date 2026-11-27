@@ -253,3 +253,9 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/ScoreSheetController.java  legislated  specs/score-sheet/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/CreateScoreSheetDraftRequest.java  legislated  specs/score-sheet/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/interfaces/rest/dto/UpdateScoreSheetDraftRequest.java  legislated  specs/score-sheet/
+# ---- 已立法：SYSTEM_ADMIN 的案件列表與匯出照白名單收斂（D-100 第 14 點）。檔案由建構 PR 建立 ----
+# 前兩列是 metadata 形狀的類別；後兩列是兩種形狀共用的介面，建構沒有用到的在收尾的修法 PR 刪掉。
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseMetadataSummary.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportMetadataRow.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseListItem.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportRowView.java  legislated  specs/review-case/
