@@ -250,7 +250,7 @@ E-10 的兩個候選回應（`12-escaped-defects.md`），本草稿的看法：
 
 負責人 2026-11-27 判斷：匯出的每一列對 `SYSTEM_ADMIN` 有白名單以外的 `projectId`、`createdAt`、`closedAt`，是缺陷。已記成 `12-escaped-defects.md` 的 E-11，題目清單另列一題。
 
-修正之前要裁決的（還沒有起草）：
+修正之前要裁決的（已起草成 `51-admin-export-whitelist-draft.md`，題號在那裡重新編成 X-1～X-8；下表是起草前的預告）：
 
 | 題 | 內容 |
 |---|---|
