@@ -61,7 +61,6 @@
 | `35-read-draft.md` | ReviewCase 切片 E：讀取（V-1～V-11，已由 D-084 裁決）：實測、多角色與院區的順序、初審醫師看複審、複審醫師看初審醫師身分、SYSTEM_ADMIN 白名單、退回案件的分派頁、讀過初審的候選人、讀取者紀錄的範例、輸出欄位、沒有被寫入的欄位、登記範圍 |
 | `36-review-submission-draft.md` | 切片 C：`ReviewSubmission` 本體、計分，以及 ReviewCase 的收尾（T-1～T-14，已由 D-085 裁決）：實測、RANGE 的錯誤作答與上限、小數位數、未知題目、重複作答、三種題目的計分、狀態轉移與不變式、草稿的分數、評分表版本、附件、修正歷史的可見規則、補範例、登記範圍 |
 | `37-sampling-batch-draft.md` | 切片 A：SamplingBatch 其餘部分（S-1～S-16，已由 D-086 裁決）：失敗的批次、D-013 與重跑、母體 0 筆、重複、抽樣與排除、不變式、規則快照、預覽、執行頁、列表、`SYSTEM_ADMIN` 的詳情、匯出、架構基線、登記範圍 |
-| `47-event-detail-draft.md` | 事件的 `detail` 改成結構化（E-1～E-8，負責人 2026-11-27 裁決全部照建議、E-6 動工前再確定範圍，條文待修法 PR 寫入）：32 個事件怎麼產生 `detail`、`SamplingBatchFailedEvent` 的潛在缺陷、誰讀 `detail`、範例與測試釘住了什麼；型別、逐字相同、特徵測試、序列化、基底建構子、閘門、分批 |
 | `45-response-dto-and-list-shape-draft.md` | 回應 dto 與列表的形狀（P-1～P-8，負責人 2026-11-26 裁決全部照建議，條文待修法 PR 寫入）：直接輸出 application 物件的 13 個端點、`Map` 回應、application 的 Jackson 標註、`Page` 與 `{ items }`、匯出與裸陣列、分批；第六節是附帶發現：domain 事件自己組稽核的 JSON 字串 |
 | `44-versions-and-pending-draft.md` | 專案版本管理與未裁決事項（已由 D-094、D-095 裁決）：不開放改版、逾期的定義、多角色拒絕定案、`latestRevisionSummary` 的移除與 HTTP 契約的過渡形狀 |
 | `43-api-spec-gap-draft.md` | HTTP 回應與 `api-spec.md` 的落差（G-1～G-7，已由 D-093 裁決）：執行與重跑的回應、請求本文的 `mode`、一律 null 的欄位、範圍、分批 |
@@ -71,6 +70,7 @@
 | `39-http-interfaces-common-draft.md` | 切片 D、E：HTTP 介面與共用元件（H-1～H-12，已由 D-088 裁決）：分批、回應契約照程式、涵蓋缺口、請求端的檢查、沒有外殼的 400、操作者的傳遞、共用元件的登記；第九節是 D-1 的實測 |
 | `38-reporting-draft.md` | 切片 B：報表與儀表板（R-1～R-10，已由 D-087 裁決）：入口與範例、時間區間的檢查與錯誤代碼、規格的位置、件數的定義（已取消的案件）、逾期、比率、篩選與院區、匯出的規則與遮罩、匯出的稽核紀錄、登記範圍 |
 | `26-datetime-instant-draft.md` | 違憲清單第 3～6 項：時間改成 `Instant`（N-1～N-8，已由 D-075 裁決）：順序、`ReviewSubmission` 的時間、既有資料與時鐘、前端顯示、匯出、`local_time_zone`、文件範例、未立法範圍 |
+| `47-event-detail-draft.md` | 事件的 `detail` 改成結構化（E-1～E-8，負責人 2026-11-27 裁決全部照建議、E-6 動工前再確定範圍，條文待修法 PR 寫入）：32 個事件怎麼產生 `detail`、`SamplingBatchFailedEvent` 的潛在缺陷、誰讀 `detail`、範例與測試釘住了什麼；型別、逐字相同、特徵測試、序列化、基底建構子、閘門、分批 |
 | `samples/card-v2-trial/` | 格式樣本（不是律法）：白板 V10 照格式 v2 草案的試寫、暫時的檢查 `v2check.py`；v2.1 的回歸樣本 |
 | `samples/reviewcase-v2-trial/` | 格式樣本（不是律法）：ReviewCase 照格式 v2 草案 B 組的試寫。`round-1/` 是薄切片與 12 個缺口；`round-2/` 是直向切片，用草案第十三節 Q-10～Q-20 建議的寫法重寫 |
 | `references/` | 原文的本機副本。**受著作權保護，已列入 `.gitignore`，不進 repo** |
