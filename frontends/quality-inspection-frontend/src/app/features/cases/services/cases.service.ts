@@ -155,7 +155,8 @@ interface ReviewCaseDetailDto {
   latestRereviewSubmissionId?: string | null;
   projectionType: ProjectionType;
   actorRole: string;
-  isOwner: boolean;
+  /** 後端的 getter 是 isOwner()，JSON 的鍵是 owner（specs/review-case/http.yaml 的 full 形狀）。 */
+  owner: boolean;
   initialReviewContext?: InitialReviewBootstrapDto | null;
   rereviewContext?: RereviewBootstrapDto | null;
 }
@@ -723,7 +724,7 @@ export class CasesService {
       status: item.status,
       projectionType: item.projectionType,
       actorRole: item.actorRole,
-      isOwner: item.isOwner,
+      isOwner: item.owner,
       batchId: item.batchId,
       hospitalId: item.hospitalId,
       reviewerId: item.reviewerId,

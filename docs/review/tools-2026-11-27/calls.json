@@ -1,0 +1,168 @@
+[
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "GET",
+  "path": "/review-cases",
+  "type": "ReviewCaseSummaryDto",
+  "page": true
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "GET",
+  "path": "/review-cases/{caseId}/assignment-context",
+  "type": "AssignmentBootstrapDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "GET",
+  "path": "/review-cases/{caseId}/assignment-candidates",
+  "type": "AssignmentCandidateDto",
+  "array": true
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "GET",
+  "path": "/review-cases/{caseId}/revision-history",
+  "type": "RevisionHistoryResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "GET",
+  "path": "/review-submissions/{submissionId}",
+  "type": "SubmissionDetailDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/initial-review/start",
+  "type": "StartInitialReviewResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/initial-review/draft",
+  "type": "SaveDraftResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/initial-review/submit",
+  "type": "SubmitInitialReviewResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/initial-review/submissions/{submissionId}/fix",
+  "type": "FixInitialReviewResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/initial-review/submissions/{submissionId}/revise",
+  "type": "RevisionResultResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/start-rereview",
+  "type": "unknown"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/rereview/draft",
+  "type": "SaveDraftResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/rereview/submit",
+  "type": "SubmitRereviewResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/rereview/submissions/{submissionId}/close",
+  "type": "CloseRereviewResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/rereview/submissions/{submissionId}/revise",
+  "type": "RevisionResultResponseDto"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/assign-reviewer",
+  "type": "unknown"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/reassign-reviewer",
+  "type": "unknown"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/assign-rereviewer",
+  "type": "unknown"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "POST",
+  "path": "/review-cases/{caseId}/reassign-rereviewer",
+  "type": "unknown"
+ },
+ {
+  "file": "cases/services/cases.service.ts",
+  "method": "GET",
+  "path": "/review-cases/{caseId}",
+  "type": "ReviewCaseDetailDto"
+ },
+ {
+  "file": "reports/services/report-export.service.ts",
+  "method": "POST",
+  "path": "/reports/export",
+  "type": "ExportResultDto"
+ },
+ {
+  "file": "reports/services/report-export.service.ts",
+  "method": "GET",
+  "path": "/reports/dashboard-summary",
+  "type": "ExportSummary",
+  "note": "DashboardSummary 是 ExportSummary 的別名"
+ },
+ {
+  "file": "sampling/services/sampling.service.ts",
+  "method": "GET",
+  "path": "/sampling-batches",
+  "type": "SamplingBatchSummaryDto",
+  "page": true
+ },
+ {
+  "file": "sampling/services/sampling.service.ts",
+  "method": "POST",
+  "path": "/review-projects/{projectId}/sampling/preview",
+  "inline": "populationCount: number; eligibleCount: number; excludedCount: number;"
+ },
+ {
+  "file": "sampling/services/sampling.service.ts",
+  "method": "POST",
+  "path": "/review-projects/{projectId}/sampling/execute",
+  "inline": "batchId: string;"
+ },
+ {
+  "file": "sampling/services/sampling.service.ts",
+  "method": "POST",
+  "path": "/sampling-batches/{batchId}/retry",
+  "inline": "batchId: string;"
+ },
+ {
+  "file": "sampling/services/sampling.service.ts",
+  "method": "GET",
+  "path": "/review-projects/{projectId}/sampling/execute-context",
+  "type": "SamplingExecuteContextDto"
+ }
+]

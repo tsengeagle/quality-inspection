@@ -173,7 +173,7 @@ async function mockInitialReviewCase(
           latestRereviewSubmissionId: null,
           projectionType: 'FULL',
           actorRole: 'REVIEWER',
-          isOwner: true,
+          owner: true,
           initialReviewContext: {
             pageMode: 'REVISION',
             hasDraft: false,
@@ -278,7 +278,7 @@ async function mockRereviewCase(
           latestRereviewSubmissionId: 'SUB-REREVIEW-002',
           projectionType: 'FULL',
           actorRole: 'REREVIEWER',
-          isOwner: true,
+          owner: true,
           rereviewContext: {
             pageMode: 'REVISION',
             hasDraft: false,

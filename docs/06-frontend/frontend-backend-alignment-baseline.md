@@ -110,7 +110,7 @@
 |---|---|---|
 | UI-007 抽選批次列表頁 | ✅ REAL（列表 / retry） | Frontend Access Formalization Wave pilot：page-level guard 正式化、directive skeleton 已落地；其餘 legacy hardcoded role 仍 grandfathered |
 | UI-009 案件列表頁 | ✅ REAL（含 `projectionType`） | 仍有 I-002：worklist role hardcoded |
-| UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供 |
+| UI-010 案件詳情頁 | ✅ REAL | `actorRole`、`projectionType`、`isOwner` 均由 backend 提供。`isOwner` 在 JSON 裡的鍵是 `owner`（`specs/review-case/http.yaml`）；前端在 `cases.service.ts` 對應成 view model 的 `isOwner`。`SYSTEM_ADMIN` 拿到的是七個欄位的 metadata 形狀，沒有這三個欄位（2026-11-27 核對，見 `docs/review/frontend-http-contract-reconciliation-2026-11-27.md` 的 F-2，尚未處理） |
 | UI-011 案件分派頁 | ✅ REAL（limited source replacement） | 命令與 query contract 維持不變；candidate lookup 已改走 persisted staff directory source |
 | UI-012 初審作業頁 | ✅ REAL | bootstrap context 已嵌入 case detail |
 | UI-013 複審作業頁 | ✅ REAL | CLOSED 一律唯讀，沒有例外修正（D-032；PR #39 落地）。原歷史實作的 CLOSED revision exception 已移除 |
