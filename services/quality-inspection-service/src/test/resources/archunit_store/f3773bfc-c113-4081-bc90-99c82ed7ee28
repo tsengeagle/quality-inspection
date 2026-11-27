@@ -1,1 +1,0 @@
-Constructor <com.tzuchi.his.quality.inspection.domain.project.ProjectVersion.<init>(int, boolean, java.math.BigDecimal, java.math.BigDecimal, java.math.BigDecimal)> calls constructor <java.lang.IllegalArgumentException.<init>(java.lang.String)> in (ProjectVersion.java:29)

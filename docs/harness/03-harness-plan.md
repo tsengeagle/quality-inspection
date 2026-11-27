@@ -74,20 +74,20 @@
 
 ## 三、十條義務對照
 
-現況欄是 2026-11-12 的狀況；P1、P4、P6、P9、P10 於 2026-11-18 更新（必要檢查生效、及格線在 PR 上驗證，見第六節「及格線的驗證紀錄」）。
+現況欄是 2026-11-12 的狀況；P1、P4、P6、P9、P10 於 2026-11-18 更新（必要檢查生效、及格線在 PR 上驗證，見第六節「及格線的驗證紀錄」）；P1、P2、P5、P6、P8、P10 於 2026-11-26 補上現況（`main` = `5d1f462`，數字的來源見第六節「2026-11-26 的核對」）。P4 的 2026-11-26 現況來自 D-097。
 
 | 義務 | 在本專案用什麼落實 | 現況 |
 |---|---|---|
-| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋。2026-11-18：`check` 是 `main` 的必要檢查；#87 在 PR 上手寫分層違規，`check` 失敗（ARCH-01、ARCH-04），PR 無法合併 |
-| P2 manifestation | 每條架構規則配一個故意違規的樣本 | 2026-11-13：ARCH-01 到 ARCH-04 都有違規樣本與合規對照；把四條規則改成永遠通過後，樣本測試全部失敗。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄 |
+| P1 negative fit | `./gradlew check`（編譯、測試、ArchUnit）在 CI 必過 | 2026-11-13：閘門與 CI 已建立，本機驗證過會擋。2026-11-18：`check` 是 `main` 的必要檢查；#87 在 PR 上手寫分層違規，`check` 失敗（ARCH-01、ARCH-04），PR 無法合併。2026-11-26：架構規則 ARCH-01～ARCH-05；範例執行器與 HTTP 契約的比對也在 `check` 裡；已知失敗清單為空 |
+| P2 manifestation | 每條架構規則配一個故意違規的樣本 | 2026-11-13：ARCH-01 到 ARCH-04 都有違規樣本與合規對照；把四條規則改成永遠通過後，樣本測試全部失敗。已知失敗清單的閘門沒有樣本，只有手動弄壞的驗證紀錄。2026-11-26：ARCH-05 也有違規樣本與合規對照（`samples/layering/reporting/`）；ARCH-06 與它的樣本在 #194，還沒合併。範例執行器、HTTP 契約比對器、判決程式各有自己的測試，但「把偵測器改成永遠通過，測試會不會失敗」只對 ARCH-01～04 做過 |
 | P3 viscosity | 分層規則寫成 ArchUnit；慣例寫成 pattern 文件 | 只有文件（`AGENTS.md`、`repo-hard-rules.md`） |
 | P4 stable context | 修程式的 PR 不得同時改 law，由 CI 檢查 | ⚠️ `harness-core/law_check.py` 會擋修法 PR 夾帶程式修改；`law-check` 已在 GitHub 上判決過建構 PR（#10）與修法 PR（#11、#15）。2026-11-18 起是必要檢查，紅燈不能合併（#88）。2026-11-26（D-097）：建構 PR 要宣告依據的裁決，裁決還沒進 `main` 時 `law-check` 擋下；本機回放 53 個已合併的 PR 驗證過，**還沒有在 GitHub 上判決過** |
-| P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制 |
-| P6 tradition-bearer | 修法要有負責人的簽章；核准者清單讀合併目標分支上的版本 | ⚠️ 2026-11-14 啟用並驗收：沒有簽章的修法被 `law-check` 擋下，負責人用 YubiKey 簽章後通過（PR #15）。2026-11-18：`law-check` 是必要檢查；#88 的修法紀錄完整但沒有簽章，`law-check` 只有簽章一項未通過，PR 無法合併。核准者登記了兩支實體金鑰上的三把金鑰（第二支尚未在 GitHub 上簽過修法）。限制：簽章只證明持有金鑰的人同意，不證明看過內容。CODEOWNERS 只保留形式（`07-github-settings.md` 第二節） |
+| P5 repair locality | 四層套件加依賴方向規則；每次都跑全套測試 | 有分層，未強制。2026-11-26：分層方向由 ARCH-01、ARCH-04 強制（凍結基線各剩 1、2 筆舊違規）；問題側的新檔案要先登記進涵蓋清單（D-060、D-089）。「改了不相干的測試」仍然沒有偵測 |
+| P6 tradition-bearer | 修法要有負責人的簽章；核准者清單讀合併目標分支上的版本 | ⚠️ 2026-11-14 啟用並驗收：沒有簽章的修法被 `law-check` 擋下，負責人用 YubiKey 簽章後通過（PR #15）。2026-11-18：`law-check` 是必要檢查；#88 的修法紀錄完整但沒有簽章，`law-check` 只有簽章一項未通過，PR 無法合併。核准者登記了兩支實體金鑰上的三把金鑰（第二支尚未在 GitHub 上簽過修法）。限制：簽章只證明持有金鑰的人同意，不證明看過內容。CODEOWNERS 只保留形式（`07-github-settings.md` 第二節）。2026-11-26：`law/amendments/` 有 86 筆修法紀錄、83 個核准檔 |
 | P7 detection cost | 本機跑單元測試，CI 跑全套，人審決策 | 無分級 |
-| P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有 |
+| P8 residue of judgment | `spec-draft/` 的 `OPEN-QUESTIONS.md` 和 `proposed` 標記 | 已有。2026-11-26：規格的規則有 `status`（`decided`／`proposed`），`proposed` 的規則要指向 `OPEN-QUESTIONS.md` 的題目；未裁決的題目與順序記在 `25-topic-backlog.md`。各 `OPEN-QUESTIONS.md` 目前還有幾題，這次沒有數 |
 | P9 scaffolding | CI 檢查設為必要，不可跳過 | 2026-11-18：ruleset `main*` 生效，`check`、`law-check`、`law-selftest`、`frontend-check` 為必要檢查，分支須與 `main` 同步，只允許 merge commit；紅燈時 repo 管理員也不能合併（#77 驗證 `frontend-check`；#87、#88、#89 由 API 看到 `mergeable_state: blocked`）。閘門內部：被跳過的測試、沒有測試原始碼的執行都會失敗 |
-| P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | ⚠️ 範例可執行（`11-example-runner.md`）：2026-11-18 共 74 個（review-project 38、score-sheet 36），全部通過；#89 新增規則與範例、不改程式，`check` 失敗。只涵蓋 2 個 aggregate，且只執行到 use case 層，HTTP 回應格式不在範例內（見 `12-escaped-defects.md`） |
+| P10 formal picture | 驗收範例實際執行；規則編號可追到測試 | ⚠️ 範例可執行（`11-example-runner.md`）：2026-11-18 共 74 個（review-project 38、score-sheet 36），全部通過；#89 新增規則與範例、不改程式，`check` 失敗。只涵蓋 2 個 aggregate，且只執行到 use case 層，HTTP 回應格式不在範例內（見 `12-escaped-defects.md`）。2026-11-26：範例 438 個（review-case 291、review-project 55、sampling-batch 50、score-sheet 42），全部通過；規格的規則 384 條，其中 35 條沒有任何範例涵蓋（`spec_lint.py` 列出，不擋）。HTTP 回應由契約涵蓋：4 份 `http.yaml` 共 52 個端點，封閉的形狀，每種形狀都要被觀察到（D-061、D-088）。後端問題側 254 個檔案，涵蓋清單 198 列全部是已立法，沒有暫准的範圍（D-089）。仍然沒有的：前端規格未納入（D-060 第 2 點）；前後端各自持有的 API 契約沒有互相比對 |
 
 之後每加一個機制就更新這張表。寫不出證據的列標 ⚠️，照實留著。
 
@@ -144,7 +144,7 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 ## 六、分期與進度
 
-狀態欄是 2026-11-14 傍晚的狀況（PR #15 合併之後），第 2、4 期與下方兩張表於 2026-11-18 更新。之後每完成一期就更新這張表。
+狀態欄是 2026-11-14 傍晚的狀況（PR #15 合併之後），第 2、4 期與下方兩張表於 2026-11-18 更新；第 4、5 期與「不在 7 期裡」的表於 2026-11-26 更新（見本節最後的「2026-11-26 的核對」）。**立法題目的即時進度不在這張表，在 `25-topic-backlog.md`。**
 
 主線共 7 期。先做 P1、P6、P2，其他義務都建立在它們上面。第 2 期原本是「CODEOWNERS 加 branch protection」；單人 repo 無法自我核准（見 `07-github-settings.md` 第二節），改由修法機制取代，拆成 4 個子期（設計見 `08-legislation-design.md`）。
 
@@ -157,8 +157,8 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 | 2-3 | GitLab 接法（以 GitLab.com 為起點） | | 未動工。要先查證怎麼防止合併請求改掉判決程式 |
 | 2-4 | 各工具的告知文字與本機提醒（Copilot、Codex、Kiro、Claude Code） | | 未動工 |
 | 3 | 每條規則配一組違規樣本 | P2 | 完成，已進 `main`（PR #7、#8） |
-| 4 | 讓 `specs/*/examples.yaml` 變成可執行的測試 | P10 | 執行器完成（2026-11-15，`11-example-runner.md`）。2026-11-18：74 個範例全部通過，已知失敗清單為空。未涵蓋的 aggregate（ReviewCase、抽選、稽核、報表）沒有範例 |
-| 5 | 維護義務對照表（本文件第三節） | 全部 | 持續進行 |
+| 4 | 讓 `specs/*/examples.yaml` 變成可執行的測試 | P10 | 執行器完成（2026-11-15，`11-example-runner.md`）。2026-11-18：74 個範例，只涵蓋 2 個 aggregate。2026-11-26：438 個範例全部通過，已知失敗清單為空；規格有 review-project、score-sheet、sampling-batch、review-case、review-submission 五個目錄；格式到 v2.1（請求端的範例，D-074）；HTTP 契約 52 個端點；後端問題側沒有暫准的範圍（D-089）。未涵蓋：35 條規則沒有範例；前端 |
+| 5 | 維護義務對照表（本文件第三節） | 全部 | 持續進行。2026-11-26 更新過一次；題目清單把「訂定本專案 harness 的有界主張並更新義務對照表」排在目前的題目之後 |
 | 6 | 把在地傳統寫成模式語言：先挑一支範本 use case，為它涉及的每個模式補齊準則、範本、禁則 | P3 | 未動工。D-048 的 CQRS 閘門規則屬於這一期。這是 P3 的主體，不是可有可無的便利功能 |
 | 7 | 「AI 依規格逐步產生程式」的工作流程（相當於 `/execute-uc`） | — | 未動工，排在最後。論文把工作流程歸在律法，它決定生成的順序；harness 只負責在閘門沒過時不讓它結束 |
 
@@ -166,9 +166,9 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 1. 把 `check`、`law-check`、`law-selftest` 設為必要檢查：已完成（2026-11-18，另加 `frontend-check`）。
 2. 登記備援金鑰：已完成（2026-11-15 同一支金鑰上的 resident 金鑰；2026-11-18 第二支實體金鑰，PR #74）。
-3. 盤點律法清冊：已盤點（`09-law-inventory.md`），缺口尚未補進清冊。2026-11-14 裁決：測試與規格要列為律法，但要等 `/specs` 格式完整、問題側規格穩定之後才生效。
+3. 盤點律法清冊：已盤點（`09-law-inventory.md`）。2026-11-14 裁決：測試與規格要列為律法，但要等 `/specs` 格式完整、問題側規格穩定之後才生效。2026-11-26：`specs/`、`spec-draft/`、架構規則的測試（`architecture/`）與驗收範例的執行器（`acceptance/`）已在清冊裡；其餘的測試還沒有列入，`09-law-inventory.md` 的其他缺口這次沒有逐一核對。
 4. 把 `harness-core/` 拆成獨立的 repo，接著做 2-3（GitLab）。
-5. 第 4 期：讓驗收範例可以執行。
+5. 第 4 期：讓驗收範例可以執行。已完成（見上表第 4 期）。
 
 不在這 7 期裡、但已經提到的工作：
 
@@ -176,8 +176,8 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 |---|---|
 | 合併 PR #6、PR #7 | 完成（2026-11-14）。PR #7 當時合併進了 `harness/p1-gate` 而不是 `main`，由 PR #8 補進；PR #9 是三項修正 |
 | GitHub 設定：把 `check`、`law-check`、`law-selftest` 設為必要檢查，不留繞過權限，禁止 force push | 已完成（2026-11-18，#75、#78、#79；另加 `frontend-check`）。步驟在 `07-github-settings.md` 第一節；檢查本身壞掉時的處置在第四節 |
-| `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 格式 v1 已定（2026-11-15，`specs/README.md`，決定見 `10-spec-format.md`），由 `spec-check` 機械檢查。ReviewProject 2026-11-15 升格到 `specs/review-project/`（裁決 D-049） |
-| `reporting` 搬進 `application` 的查詢側（D-048） | 未動工 |
+| `/specs` 的格式與 `spec-draft/` 的升格（本文件第二節） | 格式 v1 已定（2026-11-15，`specs/README.md`，決定見 `10-spec-format.md`），由 `spec-check` 機械檢查。ReviewProject 2026-11-15 升格到 `specs/review-project/`（裁決 D-049）。2026-11-26：格式 v1.1（D-063）、v2（D-065）、v2.1（D-074）、HTTP 契約（D-061、D-088、D-094 的 `transition`）；五個規格目錄都在 `specs/` |
+| `reporting` 搬進 `application` 的查詢側（D-048） | 未搬。2026-11-26：`reporting` 套件還在；入口已改成 use case 並立法（D-087），ARCH-05 限制它對 `application` 只能依賴 `application.common` |
 | 測試分級：本機跑快的，CI 跑全套 | P7，未排期 |
 | 一組不交給建構者的獨立測試 | 未排期 |
 | 正式資料庫與 migration 工具 | 未決定。卡住樂觀鎖（D-045）與「測試跑真實資料庫」 |
@@ -198,6 +198,33 @@ Claude Code 的 hook 只管得到 Claude Code。本 repo 同時有 `.github/copi
 
 - 合併狀態是由 GitHub API 讀到的 `mergeable_state`，沒有另外開 PR 頁面看合併按鈕。#77 曾在頁面上確認紅燈時按鈕無法使用。
 - 及格線只證明「最小可用」。之後的指標是漏網率（`04-definition-of-enough.md` 第二節），漏網紀錄見 `12-escaped-defects.md`。
+
+### 2026-11-26 的核對
+
+`main` = `5d1f462`（PR #196 合併後）。下面是這次實際執行或查詢的結果；沒有重新核對的項目照實寫出。
+
+| 項目 | 結果 | 怎麼得到的 |
+|---|---|---|
+| 後端測試 | `./gradlew test` 通過，已知失敗清單為空 | 本機 JDK 17，分支 `claude/build-shrink-arch-baseline`（`main` 加 #198 的兩個提交） |
+| 驗收範例 | 438 個，失敗 0、跳過 0：review-case 291、review-project 55、sampling-batch 50、score-sheet 42 | 同一次執行的測試結果檔 |
+| 規格的規則 | 384 條：review-case 249、review-project 47、score-sheet 39、sampling-batch 37、review-submission 12；沒有範例涵蓋的 35 條 | `spec_lint.py`，結果通過 |
+| HTTP 契約 | 52 個端點：review-case 29、review-project 9、sampling-batch 7、score-sheet 7 | 數 `specs/*/http.yaml` 的 `usecase:` |
+| 涵蓋清單 | 198 列，全部 `legislated`，`grandfathered` 0 列；問題側 254 個 `.java` 檔 | 讀 `law/coverage.txt`、數檔案。沒有逐檔比對「每個檔案都對得到一列」，那由 `law-check` 在每個 PR 上判 |
+| 修法紀錄 | 86 筆，核准檔 83 個；裁決到 D-095 | 數 `law/amendments/` |
+| 判決程式的測試 | 203 個通過 | `python3 -m unittest discover -s harness-core/tests`（本機裝了 `ssh-keygen` 之後） |
+| 前端 | typecheck 通過；單元測試 236 個通過；E2E 18 個通過、3 個略過 | 本機，2026-11-26 在 #192 的分支上（已合併）。之後沒有再跑 |
+| 凍結基線 | ARCH-01：1 筆；ARCH-02：3 筆；ARCH-03：1 筆；ARCH-04：2 筆 | 讀 `main` 上的基線檔。#198 把 ARCH-02、ARCH-03 清空，還沒合併 |
+| CI 的檢查 | `backend-check`、`frontend-check`、`law-check`、`law-selftest`、`spec-check` 五個 workflow | 讀 `.github/workflows/`。哪些是必要檢查，沿用 2026-11-18 的紀錄，這次沒有查 GitHub 的設定 |
+
+這次沒有重新核對的：
+
+- 第 2 期的 2-2 欄（簽章方案、備援金鑰、第二支金鑰有沒有在 GitHub 上簽過）。
+- 第六節「及格線的驗證紀錄」。2026-11-18 之後新增的偵測器（範例執行器的 v2、HTTP 契約比對器、涵蓋清單、ARCH-05）沒有重做一次及格線的四項。
+- 漏網紀錄（`12-escaped-defects.md`）停在 2026-11-18 的 E-01～E-03。之後有沒有新的漏網，這次沒有查。
+- `05-current-state.md` 的更新範圍，見該檔的說明。
+
+2026-11-26 還在等簽章、沒有合併的：D-096（#194，ARCH-06）、D-097（#197，建構要宣告依據的裁決）。這兩項的現況等合併後再寫進上面的表。
+
 
 ### 已裁決：未立法的問題側先停下來（D-060，2026-11-18）
 

@@ -10,7 +10,6 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.event.ScoreSheetDraft
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
 import java.time.Clock;
 import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
 import java.time.Instant;
@@ -43,7 +42,7 @@ public class CreateScoreSheetDraftUseCase {
         String hospitalId = hospitalIdResolver.resolveByProjectId(projectId);
         actor.requireHospitalScope(hospitalId);
 
-        String scoreSheetId = UUID.randomUUID().toString();
+        String scoreSheetId = idGenerator.newId();
         ScoreSheetDefinition scoreSheet = ScoreSheetDefinition.createDraft(scoreSheetId, projectId);
         repository.save(scoreSheet);
         eventPublisher.publish(new ScoreSheetDraftCreatedEvent(this, idGenerator.newId(), now, actor.getUserId(), actor.getUserName(), scoreSheetId,
