@@ -3898,3 +3898,51 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/harness/25-topic-backlog.md`
 - 後續：建構 PR
+
+---
+
+## D-096 — 回應 dto 與列表的形狀（維持現況、寫成規則，ARCH-06）
+
+### Status
+
+`accepted`（2026-11-26，負責人對 `docs/harness/45-response-dto-and-list-shape-draft.md` 的 P-1～P-8 全部照建議裁決）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 P-n）。本裁決結束 D-093 第 6 點留下的兩件。HTTP 的行為沒有變更，`specs/` 的 HTTP 契約不動。
+
+1. **直接輸出 application 物件的端點（P-1 選 A）**：13 個端點維持現況，不改成回應 dto。形狀由封閉的 HTTP 契約保護（D-088 第 8 點）。之後有「application 要演進、HTTP 要凍結」的實際需求時，只做受影響的端點。
+2. **application 與 reporting 不得依賴 Jackson（P-2 選 A）**：新增架構規則 ARCH-06，範圍是 `application`、`reporting` 對 `com.fasterxml.jackson` 的任何依賴（標註、`ObjectMapper` 都算）。既有的 3 個讀取模型共 4 處標註凍結在基線，只擋新增：
+   - `ReviewCaseDetailView`：`getUpdatedAt()`、`isInitialReviewFixed()` 的 `@JsonIgnore`。
+   - `CaseDetailMetadataView`：`metadata()` 的 `@JsonValue`。
+   - `WhitelistedSubmissionDetailView`：類別上的 `@JsonIgnoreProperties`。
+
+   `domain` 不在範圍內：事件用 `ObjectMapper` 產生稽核的 `detail`（D-080 第 5 點），現在凍結會把新事件推回拼字串。等題目清單的「事件的 `detail` 改成結構化」做完，再把 `domain` 納入。
+3. **用 `Map` 組回應的端點（P-3 選 A）**：7 個端點維持現況。
+4. **`ScoreSheetController` 的回傳型別（P-4 選 A）**：7 個方法的 `ResponseEntity<?>` 改成具體的 `ResponseEntity<ApiResponse<…>>`。不新增類別，HTTP 的行為不變。由建構 PR 處理。
+5. **列表的形狀（P-5 選 A）**：`Page` 與 `{ items }` 不統一。規則：
+   - **有分頁的列表**：`data` 是 `{ content, page, size, totalElements, totalPages }`。`page` 從 0 起算。目前是 `GET /review-cases`、`GET /sampling-batches`、`GET /audit-trails`。
+   - **沒有分頁的列表**：`data` 是 `{ items }`，一次回全部。目前是 `GET /review-projects`（D-062 第 1 點）、`GET /score-sheets`（D-050 第 7 點）。
+   - 新的列表端點依有沒有分頁選其中一種，不新增第三種寫法。
+6. **例外（P-6 選 A）**：下列維持現況，是第 5 點的已知例外，不作為新端點的先例。
+   - `POST /reports/export`：`{ reportType, rows, summary, page, size, totalElements, totalPages }`。它是報表的回應，不是一般的列表。
+   - `GET /review-cases/{caseId}/assignment-candidates`、`GET /review-cases/{caseId}/lifecycle`：`data` 直接是陣列。
+7. **契約的寫法（P-7 選 A）**：`Page` 的形狀在各 `http.yaml` 維持各寫一次，不擴充共用形狀的格式。
+8. **分批（P-8）**：
+   1. 修法 PR：本裁決、ARCH-06（規則、違規樣本、凍結基線）、`api-spec.md` §3.7 與 §9.5、§10.1、§14.2 的回應說明、題目清單、草稿。
+   2. 建構 PR：第 4 點。
+
+### Relationship / Evidence
+
+- **起因**：D-088 第 8、9 點（程式不動、兩種列表並存，要不要改另立題目）；D-093 第 6 點（留在題目清單）。
+- **草案**：`docs/harness/45-response-dto-and-list-shape-draft.md`（main = `1244182`）。事實是讀程式、契約與文件，沒有實測；HTTP 的實際回應由 `http.yaml` 的比對閘門驗證。
+- **ARCH-06 的本機驗證**（2026-11-26，JDK 17）：違規樣本測試通過（3 個違規樣本被報出，2 個合規對照沒有）；基線建立後 `./gradlew test` 通過；暫時在 `SamplingPreviewResult` 加上 `@JsonInclude`，`ArchitectureRulesTest#arch06NoJacksonInApplicationOrReporting` 失敗，還原後通過。
+- **與既有裁決的關係**：結束 D-093 第 6 點；延伸 D-088 第 8、9 點；D-050 第 7 點、D-062 第 1 點不變。
+
+### Mapping
+
+- `services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/`（`ArchitectureRules`、`ArchitectureRulesTest`、`ArchitectureRuleSamplesTest`、`samples/jackson/`）
+- `services/quality-inspection-service/src/test/resources/archunit_store/`（ARCH-06 的基線）
+- `docs/03-contracts/api-spec.md` §3.7、§9.5、§10.1、§14.2
+- `docs/harness/45-response-dto-and-list-shape-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續：建構 PR（第 4 點）；題目清單「事件的 `detail` 改成結構化」
