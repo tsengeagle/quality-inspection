@@ -4110,3 +4110,83 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `law/manifest.txt`
 - `docs/harness/50-frontend-contract-gate-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`、`docs/harness/03-harness-plan.md` 第三節
 - 後續：批 1～批 4；打真實後端的 E2E（另立題目）
+
+---
+
+## D-100 — `SYSTEM_ADMIN` 的案件列表與匯出照白名單收斂
+
+### Status
+
+`accepted`（2026-11-27，負責人對 `docs/harness/49-admin-case-list-whitelist-draft.md` 的 W-1～W-6、W-9 照建議、W-7 照修正後的建議、W-8 判斷匯出也是缺陷；對 `docs/harness/51-admin-export-whitelist-draft.md` 的 X-1 選 B、其餘照建議裁決。依 X-8 併成同一個裁決）
+
+**第 10 點的後兩項不在草稿裡，是寫條文時才發現的，負責人沒有裁決過，簽章前請特別看。**
+
+### Decision
+
+1. **白名單以誰為準（W-1）**：`permission-matrix.md` §5.1（D-036）。它是上限：端點可以只給其中一部分，不可以給清單以外的案件欄位。
+2. **案件列表的欄位（W-2）**：操作者是 `SYSTEM_ADMIN` 時，每一筆只有 `caseId`、`batchId`、`hospitalId`、`status`、`reviewerId`、`rereviewerId`、`dueAt`，加上第 4 點的標記。拿掉 `projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt`。只刪減：白名單允許的 `projectName`、`updatedAt` 這次不補。
+3. **狀態的名稱（W-3）**：列表與匯出都叫 `status`，兩種形狀同名；它就是白名單的 `caseStatus`。
+4. **視角的標記（W-4）**：列表的兩種形狀都保留 `projectionType`（`FULL`、`METADATA_ONLY`）。它不是案件的資料，不受白名單管。
+5. **列表的篩選（W-7，修正後）**：`SYSTEM_ADMIN` 帶 `medicalRecordType` 時不採用（當成沒有給）。`projectId` 照常採用：它是參照，而且 `projectName` 本來就在白名單裡。畫面上讓使用者用名稱選專案是另一題（題目清單「專案的選擇器」）。
+6. **列表的院區（W-6）**：`SYSTEM_ADMIN` 列出所有院區的案件；輸入有 `hospitalId` 時只列出那個院區的（D-047）。程式原本就是這樣，這次補上規則與範例。
+7. **匯出的欄位（X-1 選 B、X-2）**：操作者是 `SYSTEM_ADMIN` 時，每一列只有 `caseId`、`hospitalId`、`status`、`reviewerId`、`rereviewerId`、`createdAt`、`closedAt`。
+   - 拿掉 `projectId`。
+   - 分數的處理改了：原本是 `initialScore`、`finalScore` 輸出 null、`maskedFields` 列出它們（D-055 第 6 點、D-087 第 8 點的 RC-RPT-07）；現在這三個欄位都不輸出。RC-RPT-08～11 不適用於 `SYSTEM_ADMIN`。
+   - 白名單新增 UI-017 的頁面延伸：`createdAt`、`closedAt`。
+8. **規格的輸入**：`ListReviewCases` 的輸入照程式補齊（原本只寫了 `batchId`、`status`，程式另外收七個）。`page`、`size` 的預設值與上限這次沒有寫成規則。
+9. **統計摘要（X-3）**：匯出的 `summary` 不變，與儀表板相同，不在收斂的範圍。
+10. **契約的寫法（W-5、X-4）**：`GET /review-cases`、`POST /reports/export` 改用 `variants`，兩種形狀 `full`、`metadata`。
+    - `full` 是原本的形狀，一個字都沒有改。
+    - **只有新的 `metadata` 標 `transition: D-100`**（草稿寫的是新舊都標）。舊的形狀沒有要刪，其他角色的回應一直符合它，沒有理由停掉它的涵蓋檢查。**這一項不在草稿裡。**
+    - **空的陣列（這一項不在草稿裡）**：兩種形狀只差在陣列的項目，空的一頁（`content: []`、`rows: []`）會同時符合兩種。比對器原本把「同時符合不只一種形狀」一律判為違反（D-088 第 6 點），照草稿寫的契約會讓每一個空的列表回應都失敗。修正比對器：符合的幾種形狀只差在這筆回應裡是空的陣列的項目時，不算違反，也不計入任何一種形狀的觀察。只認物件欄位底下的陣列；形狀完全相同的兩種、或除了空的陣列以外還有別處分不出來的，仍然算違反。寫進 `specs/README.md` 第七節。
+    - 沒有採用的作法：在分頁的外殼加一個標記讓空的一頁也分得出來（會動到 D-096 第 5 點的列表形狀，而且是對所有角色加欄位）；在契約的格式加上「陣列項目層的 `variants`」（比對器與 D-099 的產生器都要懂，改動大得多）。
+11. **規則與範例（W-6、X-5）**：
+    - 新增 RC-LST-03（欄位）、RC-LST-04（院區）、RC-LST-05（篩選）。
+    - RC-RPT-07 改寫成第 7 點。草稿 X-5 另列的新規則併進 RC-RPT-07，因為兩條的條件相同。
+    - 範例：列表新增 10 個（use case 層 7 個，其中 2 個是各展開成兩列的矩陣；`http` 步驟 3 個）；匯出改寫 2 個、新增 2 個 `http` 步驟的。欄位的範例以 `admin` 身分、用 `only` 封閉每一筆。兩個 `http` 步驟的範例回空的列表，讓真實的回應走到第 10 點的比對規則。
+    - 現在的程式會讓其中 7 個失敗（列表 4 個、匯出 3 個），凍結在 `known-test-failures.txt`，建構 PR 解凍。其餘的現在就是綠的（院區、`projectId` 的篩選、其他角色的 `medicalRecordType`）。
+12. **權限矩陣（X-7）**：§4 的頁面進入表補上 UI-015、UI-017；§5.1 補上 UI-017 的延伸與五點說明（白名單是上限、各端點的規則在哪裡、`status` 的名稱、視角的標記、篩選）。
+13. **前端（X-6、W-9）**：由建構 PR 處理。
+    - 案件列表頁：metadata 模式的表格沒有來源案件、病歷類型兩欄；不顯示病歷類型的篩選。
+    - 匯出頁：表格與 CSV 依回應的形狀決定欄位，metadata 形狀沒有「專案」「初審分數」「最終分數」三欄（原本是顯示「已遮罩」）。
+    - 頁面規格 UI-009 §4.3、§4.4、§11.2 與 UI-017 §1、§3.4、§5.2、§7、§8 已在本修法 PR 改好。
+14. **問題側的新類別**：`law/coverage.txt` 登記四個還不存在的檔案。`ReviewCaseMetadataSummary`、`ExportMetadataRow` 是 metadata 形狀的類別；`ReviewCaseListItem`、`ExportRowView` 是兩種形狀共用的介面，建構沒有用到的在第 15 點的修法 PR 二刪掉。新類別不得依賴 Jackson（D-096 的 ARCH-06）。類別怎麼寫沒有試寫過。
+15. **分批（W-9、X-8）**：
+    1. 修法 PR 一（本 PR）。
+    2. 建構 PR：後端的列表與匯出；解凍 7 個範例；前端（第 13 點）。
+    3. 修法 PR 二：`http.yaml` 拿掉兩個 `transition`；`law/coverage.txt` 刪掉沒有用到的介面。
+16. **前端的落後清單（D-099 第 4 點）**：這次改了兩個端點的契約，依 D-099 應該在同一個 PR 登記進 `contract-lag.txt`。那個檔案與比對的程式都還不存在（D-099 批 4），這次沒有建立；批 4 建立清單時要包含 `GET /review-cases metadata D-100`、`POST /reports/export metadata D-100`（建構 PR 已經讓前端跟上的話就不用）。
+
+### 這次的規則與範例擋不到的
+
+1. use case 層的 `only` 與 `absent` 把 null 與「沒有這個欄位」視為相同。「欄位不存在」要靠 HTTP 契約封閉的 `metadata` 形狀證明；它在過渡期間不檢查涵蓋，到修法 PR 二才算數。
+2. 空的陣列不計入任何一種形狀：一個端點若只回過空的列表，兩種形狀都不會被觀察到，涵蓋的檢查會指出來，但這筆回應本身不會被擋。
+3. 白名單允許、端點沒有給的欄位（`projectName`、`updatedAt`）：之後有人加上，`only` 與契約會擋，要再修法。這是刻意的。
+4. `SYSTEM_ADMIN` 讀得到、但這次沒有回頭核對的端點：草稿 49 事實 12 是依規格的 `actor.roles` 列的，沒有對照 controller。
+
+### Relationship / Evidence
+
+- **起因**：漏網紀錄 E-10（列表）、E-11（匯出）。D-088 把 HTTP 契約「照程式」立法時，把多給欄位的現況寫成了律法；D-055、D-056、D-057、D-087 只裁決了分數的遮罩。
+- **草案**：`docs/harness/49-admin-case-list-whitelist-draft.md`、`docs/harness/51-admin-export-whitelist-draft.md`（main = `98d97ab`）。事實是讀程式、規格、契約與文件得到的，沒有對執行中的系統實測。
+- **本機驗證**（2026-11-27，JDK 17，`./gradlew test`）：
+  - 本修法 PR 的內容：1825 個測試，失敗的 7 個與 `known-test-failures.txt` 相同，建置成功；HTTP 契約的報告沒有問題，兩個 `metadata` 形狀列為過渡中（觀察到 0 次）。
+  - 7 個失敗的範例，訊息都只有預期的那幾項：列表是「有清單以外的屬性 `projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt`」（還沒指派的案件沒有 `assignedAt`），篩選是「選不到任何一筆」，匯出是「有清單以外的屬性 `projectId`、`maskedFields`」。範例裡其他的斷言在現在的程式上都成立。
+  - 第 10 點的比對規則，先寫測試：加上 4 個單元測試後有 2 個失敗（空的陣列被判為違反），改比對器後全過；原有的「兩種形狀完全相同」仍然被擋。
+  - 對照實驗：暫時停用新的比對規則再跑全部的測試，HTTP 契約的報告多出 2 個擋下的問題，就是那兩個回空列表的範例（`GET /review-cases`、`POST /reports/export`「同時符合不只一種形狀（full、metadata）」）；還原後消失。在加上這兩個範例之前，測試裡沒有任何空的列表經過 HTTP，停用規則時報告是乾淨的，也就是原本的測試測不到這件事。
+  - `spec_lint.py` 通過。
+- **沒有驗證的**：建構怎麼寫（第 14 點的四個類別）；前端；對執行中的系統的行為。
+- **與既有裁決的關係**：
+  - 落實 D-036 的白名單；延伸它的頁面延伸（UI-017）。
+  - **改動 D-055 第 6 點、D-087 第 8 點**對 `SYSTEM_ADMIN` 的作法（分數從「null 加 `maskedFields`」改成「欄位不輸出」）；其他角色不變。
+  - **修正 D-088 第 6 點**的比對規則（空的陣列）；照 D-094 第 10 點用 `transition`，但只標新的形狀。
+  - D-042、D-047（院區）、D-096 第 5 點（列表的形狀）不變。
+  - 依 D-097：建構 PR 要等本裁決併入主線。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（`ListReviewCases`、`ExportReport`、`output_types`）、`specs/review-case/examples.yaml`、`specs/review-case/http.yaml`、`specs/README.md` 第七節
+- `services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/`（`HttpContractEvaluator`、`JsonShape`、`HttpContractEvaluatorTest`）
+- `services/quality-inspection-service/known-test-failures.txt`、`law/coverage.txt`
+- `docs/02-ddd/permission-matrix.md` §4、§5.1；`docs/03-contracts/api-spec.md` §3.6、§10.1、§15.2；`docs/05-ui/` 的 UI-009、UI-017
+- `docs/harness/12-escaped-defects.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`、兩份草稿
+- 後續：建構 PR、修法 PR 二；題目清單「專案的選擇器」「`SYSTEM_ADMIN` 讀得到的查詢必須有封閉的範例（`spec_lint.py`）」

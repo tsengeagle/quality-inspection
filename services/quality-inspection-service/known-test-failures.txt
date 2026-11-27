@@ -6,3 +6,13 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+# ---- D-100：SYSTEM_ADMIN 的案件列表與匯出照白名單收斂。規格先立法，程式由建構 PR 配合（D-100 第 11、15 點）----
+# 現在的列表對 SYSTEM_ADMIN 多給 projectId、medicalRecordType、sourceCaseKey、createdAt、assignedAt，並採用 medicalRecordType 的篩選
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/admin_list_is_a_whitelist
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/admin_list_does_not_take_the_medical_record_type
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lists_a_closed_case_for_a_system_admin_over_http
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lists_an_unassigned_case_for_a_system_admin_over_http
+# 現在的匯出對 SYSTEM_ADMIN 多給 projectId、maskedFields
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/system_admin_export_has_no_scores
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/exports_masked_scores_for_a_system_admin_over_http
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/exports_an_unassigned_case_for_a_system_admin_over_http

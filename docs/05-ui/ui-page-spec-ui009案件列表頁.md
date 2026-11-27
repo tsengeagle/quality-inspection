@@ -274,7 +274,7 @@ tab_filters:
 ### 角色差異
 
 * reviewer / rereviewer 不一定需要全部篩選欄位
-* system admin 不應顯示內容導向篩選，只保留 metadata 導向欄位即可
+* system admin 不應顯示內容導向篩選，只保留 metadata 導向欄位即可。病歷類型是內容導向的：後端對 `SYSTEM_ADMIN` 不採用這個條件（D-100，RC-LST-05），畫面不顯示它
 
 ### 篩選區操作
 
@@ -310,7 +310,7 @@ tab_filters:
 
 ### 顯示規則補充
 
-* `SYSTEM_ADMIN` 不顯示完整內容相關欄位
+* `SYSTEM_ADMIN` 不顯示完整內容相關欄位。回應裡只有 §11.2 的欄位（D-100），所以表格在 metadata 模式沒有來源案件、病歷類型、專案、建立時間、指派時間等欄
 * `REVIEWER` / `REREVIEWER` 只需看到與自己任務相關欄位
 * `AUDITOR` 可依授權範圍看完整清單資訊，但不顯示修改按鈕
 
@@ -583,19 +583,22 @@ query_params:
 
 ### 11.2 Metadata-only Row DTO
 
+`SYSTEM_ADMIN` 的每一筆（D-100；以 `specs/review-case/http.yaml` 的 `metadata` 形狀為準）：
+
 ```json id="7xvghr"
 {
   "caseId": "RC-001",
-  "projectId": "RP-001",
   "batchId": "BATCH-001",
-  "caseStatus": "PENDING_REREVIEW",
+  "hospitalId": "H-01",
+  "status": "PENDING_REREVIEW",
   "reviewerId": "DOC-1001",
   "rereviewerId": "DOC-2001",
   "dueAt": "2026-04-10T15:59:59Z",
-  "updatedAt": "2026-04-02T06:10:00Z",
-  "viewMode": "METADATA_ONLY"
+  "projectionType": "METADATA_ONLY"
 }
 ```
+
+沒有 `projectId`、`projectName`、`updatedAt`：白名單（權限矩陣 §5.1）允許 `projectName`、`updatedAt`，這個端點目前不輸出。
 
 ---
 

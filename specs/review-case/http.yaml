@@ -11,27 +11,46 @@ endpoints:
   - usecase: ListReviewCases
     method: GET
     path: /review-cases
+    # D-100：SYSTEM_ADMIN 是 metadata 形狀（RC-LST-03）。空的一頁兩種形狀都符合，不算違反（specs/README.md 第七節）。
     success:
       status: 200
-      data:
-        content:
-          - caseId: id
-            projectId: id
-            batchId: id
-            hospitalId: id
-            status: enum CaseStatus
-            reviewerId: 'id?'
-            rereviewerId: 'id?'
-            medicalRecordType: text
-            sourceCaseKey: text
-            createdAt: 'text?'
-            assignedAt: 'text?'
-            dueAt: 'text?'
-            projectionType: text
-        page: int
-        size: int
-        totalElements: int
-        totalPages: int
+      variants:
+        - name: full
+          data:
+            content:
+              - caseId: id
+                projectId: id
+                batchId: id
+                hospitalId: id
+                status: enum CaseStatus
+                reviewerId: 'id?'
+                rereviewerId: 'id?'
+                medicalRecordType: text
+                sourceCaseKey: text
+                createdAt: 'text?'
+                assignedAt: 'text?'
+                dueAt: 'text?'
+                projectionType: text
+            page: int
+            size: int
+            totalElements: int
+            totalPages: int
+        - name: metadata
+          transition: D-100
+          data:
+            content:
+              - caseId: id
+                batchId: id
+                hospitalId: id
+                status: enum CaseStatus
+                reviewerId: 'id?'
+                rereviewerId: 'id?'
+                dueAt: 'text?'
+                projectionType: text
+            page: int
+            size: int
+            totalElements: int
+            totalPages: int
 
   - usecase: GetReviewCaseDetail
     method: GET
@@ -478,31 +497,58 @@ endpoints:
   - usecase: ExportReport
     method: POST
     path: /reports/export
+    # D-100：SYSTEM_ADMIN 是 metadata 形狀（RC-RPT-07）；兩種形狀只差在 rows 的項目。沒有資料列時兩種都符合，不算違反。
     success:
       status: 200
-      data:
-        reportType: text
-        rows:
-          - caseId: id
-            projectId: id
-            hospitalId: id
-            status: enum CaseStatus
-            reviewerId: 'id?'
-            rereviewerId: 'id?'
-            initialScore: 'decimal?'
-            finalScore: 'decimal?'
-            createdAt: text
-            closedAt: 'text?'
-            maskedFields: [ text ]
-        summary:
-          totalCases: int
-          closedCases: int
-          rereviewedCases: int
-          overdueCases: int
-          completionRate: decimal
-          rereviewRate: decimal
-          overdueRate: decimal
-        page: int
-        size: int
-        totalElements: int
-        totalPages: int
+      variants:
+        - name: full
+          data:
+            reportType: text
+            rows:
+              - caseId: id
+                projectId: id
+                hospitalId: id
+                status: enum CaseStatus
+                reviewerId: 'id?'
+                rereviewerId: 'id?'
+                initialScore: 'decimal?'
+                finalScore: 'decimal?'
+                createdAt: text
+                closedAt: 'text?'
+                maskedFields: [ text ]
+            summary:
+              totalCases: int
+              closedCases: int
+              rereviewedCases: int
+              overdueCases: int
+              completionRate: decimal
+              rereviewRate: decimal
+              overdueRate: decimal
+            page: int
+            size: int
+            totalElements: int
+            totalPages: int
+        - name: metadata
+          transition: D-100
+          data:
+            reportType: text
+            rows:
+              - caseId: id
+                hospitalId: id
+                status: enum CaseStatus
+                reviewerId: 'id?'
+                rereviewerId: 'id?'
+                createdAt: text
+                closedAt: 'text?'
+            summary:
+              totalCases: int
+              closedCases: int
+              rereviewedCases: int
+              overdueCases: int
+              completionRate: decimal
+              rereviewRate: decimal
+              overdueRate: decimal
+            page: int
+            size: int
+            totalElements: int
+            totalPages: int

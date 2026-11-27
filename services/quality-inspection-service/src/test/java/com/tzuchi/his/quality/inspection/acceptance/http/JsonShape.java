@@ -228,6 +228,31 @@ final class JsonShape {
         }
     }
 
+    /** {@link #eraseEmptyArrays} 用來取代「這筆回應裡是空的陣列」的標記；不是合法的形狀字串。 */
+    private static final String EMPTY_ARRAY = "[]";
+
+    /**
+     * D-100：回傳形狀的副本，其中「這筆回應裡是空的陣列」換成標記，不帶項目的形狀。
+     * 兩種形狀換過之後相同，表示它們只差在這筆回應沒有用到的項目形狀。
+     * 只看物件欄位底下的陣列；陣列項目裡面的陣列不換（同一個位置可能有的空、有的不空）。
+     */
+    static Object eraseEmptyArrays(Object shape, JsonNode node, Object dataShape) {
+        if (DATA.equals(shape)) {
+            return eraseEmptyArrays(dataShape, node, null);
+        }
+        if (shape instanceof Map && node != null && node.isObject()) {
+            Map<Object, Object> copy = new java.util.LinkedHashMap<>();
+            for (Map.Entry<?, ?> e : ((Map<?, ?>) shape).entrySet()) {
+                copy.put(e.getKey(), eraseEmptyArrays(e.getValue(), node.get(fieldName(String.valueOf(e.getKey()))), dataShape));
+            }
+            return copy;
+        }
+        if (shape instanceof List && node != null && node.isArray() && node.size() == 0) {
+            return EMPTY_ARRAY;
+        }
+        return shape;
+    }
+
     /** 對應表的鍵結尾是 ?：這個欄位的值可以是 null（D-088）。 */
     static boolean isNullableKey(String key) {
         return key.length() > 1 && key.endsWith("?");
