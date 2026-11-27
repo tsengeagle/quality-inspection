@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CasesService, CaseDetailViewModel } from '../services/cases.service';
+import { CasesService, CaseDetailViewModel, CaseMetadataViewModel, isCaseMetadata } from '../services/cases.service';
 
 import { ActorContextService } from '@core/actor-context/actor-context.service';
 import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
+import { formatTaipeiDateTime } from '@shared/time/taipei-time';
 
 /** C-03 CaseDetailPage mode 列舉 */
 export type CaseDetailMode =
@@ -25,6 +26,11 @@ export class CaseDetailPageComponent implements OnInit {
 
   caseId = '';
   caseDetail: CaseDetailViewModel | null = null;
+
+  /** SYSTEM_ADMIN 的七欄（UI-010 §5.5）。有值時 caseDetail 是 null。 */
+  caseMetadata: CaseMetadataViewModel | null = null;
+
+  readonly displayTime = formatTaipeiDateTime;
 
   /** 4-mode resolution 結果 */
   mode: CaseDetailMode = 'READONLY_TERMINAL';
@@ -57,8 +63,13 @@ export class CaseDetailPageComponent implements OnInit {
     return '案件詳情';
   }
 
+  /** 頁首與生命週期用的案件狀態：完整形狀的 status，或 metadata 形狀的 caseStatus。 */
+  get caseStatus(): string {
+    return this.caseDetail?.status ?? this.caseMetadata?.status ?? '';
+  }
+
   get stageLabel(): string {
-    return this.caseDetail?.status ?? '';
+    return this.caseStatus;
   }
 
   get initialSummary(): string | undefined {
@@ -98,8 +109,9 @@ export class CaseDetailPageComponent implements OnInit {
   }
 
   get showRereviewSummary(): boolean {
+    // UI-010 §5.5：七欄沒有任何提交的資訊，metadata 模式不顯示摘要區
     if (this.mode === 'METADATA_CONTROL_CENTER') {
-      return true;
+      return false;
     }
 
     if (this.mode === 'ROLE_LIMITED') {
@@ -122,7 +134,15 @@ export class CaseDetailPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.caseId = this.route.snapshot.paramMap.get('caseId') ?? '';
-    this.casesService.getCaseDetail(this.caseId).subscribe(detail => {
+    this.casesService.getCaseDetailOrMetadata(this.caseId).subscribe(detail => {
+      if (isCaseMetadata(detail)) {
+        this.caseDetail = null;
+        this.caseMetadata = detail;
+        this.mode = 'METADATA_CONTROL_CENTER';
+        this._applyMode();
+        return;
+      }
+      this.caseMetadata = null;
       this.caseDetail = detail;
       this._resolveMode();
     });
@@ -139,9 +159,8 @@ export class CaseDetailPageComponent implements OnInit {
 
     const isTerminalState = ['CLOSED', 'CANCELLED'].includes(d.status);
 
-    if (d.projectionType === 'METADATA_ONLY') {
-      this.mode = 'METADATA_CONTROL_CENTER';
-    } else if (isTerminalState) {
+    // metadata 模式由回應的形狀決定（ngOnInit），不在這裡判斷：完整形狀的 projectionType 一律是 FULL
+    if (isTerminalState) {
       this.mode = 'READONLY_TERMINAL';
     } else if (this.actorContextService.isManagementRole(d.actorRole)) {
       this.mode = 'FULL_CONTROL_CENTER';

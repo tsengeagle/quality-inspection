@@ -265,4 +265,67 @@ test.describe('frontend smoke baseline', () => {
     await expect(page.locator('app-revision-nav-action-zone')).toHaveCount(0);
     await expect(page.getByText('前往複審修正')).toHaveCount(0);
   });
+
+  // D-036、D-094 第 9 點：SYSTEM_ADMIN 的案件詳情只有七欄（UI-010 §5.5）。假回應照 specs/review-case/http.yaml 的 metadata 形狀。
+  test('shows the seven-field metadata view and reaches the metadata revision history', async ({ page }) => {
+    await page.route('**/api/quality-inspection/review-cases/CASE-020', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            caseId: 'CASE-020',
+            caseStatus: 'REREVIEW_IN_PROGRESS',
+            projectName: '品質審查專案',
+            hospitalId: 'H001',
+            reviewerId: 'reviewer-1',
+            rereviewerId: null,
+            updatedAt: '2026-11-19T09:00:00Z'
+          }
+        })
+      });
+    });
+    await page.route('**/api/quality-inspection/review-cases/CASE-020/revision-history', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            caseId: 'CASE-020',
+            submissions: [
+              {
+                submissionId: 'SUB-020-1',
+                stage: 'INITIAL',
+                reviewerId: 'reviewer-1',
+                status: 'SUBMITTED',
+                revisionNo: 1,
+                totalScore: null,
+                comment: null,
+                submittedAt: '2026-11-19T08:00:00Z',
+                supersededBySubmissionId: null
+              }
+            ]
+          }
+        })
+      });
+    });
+
+    await page.goto('/cases/CASE-020');
+
+    await expect(page.getByText('控制中心（Metadata）')).toBeVisible();
+    await expect(page.getByTestId('case-metadata-block')).toBeVisible();
+    await expect(page.getByTestId('case-metadata-project-name')).toHaveText('品質審查專案');
+    await expect(page.getByTestId('case-metadata-rereviewer-id')).toHaveText('—');
+    await expect(page.getByTestId('case-metadata-updated-at')).toHaveText('2026-11-19 17:00');
+    await expect(page.locator('app-initial-summary-region')).toHaveCount(0);
+    await expect(page.locator('app-rereview-summary-region')).toHaveCount(0);
+    await expect(page.locator('.control-center-nav button')).toHaveCount(1);
+
+    await page.locator('.control-center-nav button', { hasText: 'Revision 歷程' }).click();
+
+    await expect(page).toHaveURL(/\/cases\/CASE-020\/revisions$/);
+    await expect(page.getByText('Metadata 歷程')).toBeVisible();
+  });
 });
