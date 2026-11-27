@@ -4049,3 +4049,64 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/harness/47-event-detail-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續（建構 PR）：`domain/common/DomainEvent.java`、`domain/**/event/`、`application/reviewcase/CloseWithoutRereviewUseCase.java`、`infrastructure/audit/AuditTrailListener.java`、`docs/02-ddd/domain-events.md`
 - 後續（修法 PR 二）：`architecture/ArchitectureRules.java` 的 ARCH-06、違規樣本
+
+---
+
+## D-099 — 前端與 HTTP 契約之間的閘門；前端閘門的設定列為律法
+
+### Status
+
+`accepted`（2026-11-27，負責人對 `docs/harness/50-frontend-contract-gate-draft.md` 的 G-1～G-10 全部照建議裁決；指示第 9 點先做）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 G-n）。本裁決的修法 PR 只做第 9 點（批 0）；其餘各點是之後各批的依據。
+
+1. **作法（G-1 選 A）**：前端的回應型別由 HTTP 契約（`specs/*/http.yaml`）產生，檢查放在編譯期。不另外寫執行期的形狀比對器（後端已經有一個，同一份律法不要有兩個實作）。打真實後端的 E2E 另立題目（第 8 點）。
+2. **產生器（G-2 選 A）**：放在前端（`frontends/quality-inspection-frontend/tools/contract/`），用 Node 寫，讀 repo 根目錄的 `specs/`。產生器是閘門的一部分，列為律法（第 9 點）。它要有自己的測試。
+3. **產生的型別（G-3 選 A）**：每個端點一個型別；有 `variants` 的端點是各形狀的聯集，每一種形狀另有名稱。可為 null 的欄位是 `T | null`；字面值 `'null'` 是 `null`；列舉取自 `model.yaml`。
+4. **契約改了之後前端什麼時候跟上（G-4 選 A）**：
+   - 產生的型別檔提交進 repo，代表前端目前跟上的契約版本。型別檔不是律法：建構 PR 重新產生它。
+   - 另有一份**落後清單** `frontends/quality-inspection-frontend/contract-lag.txt`，列出型別檔與現行契約不同的端點。類別是 `baseline`：新增或改寫行要修法紀錄與簽章，只刪除行免修法。
+   - 閘門的規則：實際落後的端點必須與清單完全相同。契約改了卻沒有登記、前端已經跟上卻沒有刪掉那一行，都不通過。
+   - 修法 PR 改 `http.yaml` 時，在同一個 PR 加上受影響的端點；建構 PR 重新產生型別、修好前端之後刪掉。
+   - 清單的格式：一行一個端點，`方法 路徑`，可以加上形狀的名稱與造成落後的裁決；`#` 開頭是註解。
+5. **假回應（G-5 選 A）**：測試的假回應經過一個有型別的輔助函式，型別由端點與形狀決定；多一個欄位或少一個必填的欄位，編譯就失敗。前提是 E2E 的檔案要有型別檢查（現在沒有）。
+6. **涵蓋（G-6 選 A）**：前端呼叫的端點，契約的每一種形狀至少要有一個假回應。先只列出沒有的，清空之後改成擋下。
+7. **請求這一邊（G-7 選 A）**：這一輪只做列舉（由 `model.yaml` 產生）。查詢參數與請求本文的型別另外處理。
+8. **打真實後端的 E2E（G-8 選 A）**：另立題目。先把既有的三頁流程放進 CI，再擴充角色與情境。
+9. **前端閘門的設定列為律法（G-9 選 A，先做）**：`frontend-check` 執行的是 PR 帶來的 `package.json` 裡的指令；原本前端只有 `CLAUDE.md` 是律法，把指令換成空殼就能讓檢查直接通過。`law/manifest.txt` 新增：
+   - `gate`：`package.json`、`package-lock.json`、`angular.json`、`tsconfig*.json`、`karma.conf.js`、`playwright.config.ts`、`webpack.config.js`、`src/test.ts`、`e2e/tsconfig.json`（第 5 點會新增）、`tools/contract/`（第 2 點的產生器）。
+   - `baseline`：`contract-lag.txt`（第 4 點）。
+   - 後三項的檔案現在還不存在，先登記路徑。
+   - 代價：之後新增或升級前端的相依套件、改 npm 指令，都要修法紀錄與簽章。與後端的 `build.gradle` 相同。
+10. **分批（G-10）**：
+    - 批 0：本裁決與第 9 點的清冊（本修法 PR）。
+    - 批 1：E2E 的型別檢查（`e2e/tsconfig.json`、檢查的指令）。批 0 合併之後它改到律法路徑，是修法 PR。
+    - 批 2：產生器與測試；產生列舉與回應的型別。修法 PR（產生器是 gate）。
+    - 批 3：service 的回應型別換成產生的型別；有型別的輔助函式；既有的假回應改寫。建構 PR。
+    - 批 4：落後清單與比對、涵蓋的清單，接進 `frontend-check`。修法 PR。
+
+### 這個機制擋不到的
+
+1. 前端自己的行為錯誤（導覽、少送參數）：要靠執行得到的測試。
+2. 假回應的型別對、但值在那個情境不合理。
+3. 契約本身是錯的（漏網紀錄 E-10、E-11：契約照著有缺陷的程式立法）。前端會忠實地跟著。
+4. 落後清單裡的端點：清掉之前，前端編譯在舊的契約上。
+5. 請求的參數與本文（第 7 點）。
+
+### Relationship / Evidence
+
+- **起因**：漏網紀錄 E-04、E-05。2026-11-27 一天之內在前端找到六個同一類的缺陷（前端的測試用自己寫的假回應，全綠；對真實的後端行為不對），都是人工讀程式找到的。
+- **草案**：`docs/harness/50-frontend-contract-gate-draft.md`（main = `98d97ab`）。
+- **第 9 點的實驗**（2026-11-27，本機，沒有推送）：
+  - 修法之前：一個提交把 `package.json` 的 `typecheck`、`test:unit:ci`、`test:e2e` 改成 `echo skipped`。`law_check.py --base origin/main` 判為建構 PR，通過。
+  - 修法之後（以本修法 PR 的提交為 base）：同樣的提交判為修法 PR，未通過（沒有修法紀錄）。
+- **沒有驗證的**：「指令換成空殼之後 `frontend-check` 會是綠的」是從 workflow 的內容推得的，沒有真的開 PR。產生器沒有試寫。
+- **與既有裁決的關係**：延伸 D-061、D-088（後端的 HTTP 契約）到前端；第 4 點比照已知失敗清單（D-066 第 5 點）；依 D-097 的順序。對應 MGD 的 P10、P6。
+
+### Mapping
+
+- `law/manifest.txt`
+- `docs/harness/50-frontend-contract-gate-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`、`docs/harness/03-harness-plan.md` 第三節
+- 後續：批 1～批 4；打真實後端的 E2E（另立題目）

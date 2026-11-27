@@ -71,10 +71,25 @@ services/quality-inspection-service/*.gradle            gate
 .github/actions/                        gate
 .github/java-upgrade/hooks/             gate
 
+# 閘門：前端的建置與測試設定（D-099 第 9 點）。frontend-check 執行的是 PR 帶來的 npm 指令與設定，
+# 把指令換成空殼（例如 "typecheck": "echo skipped"）就能讓檢查直接通過；2026-11-27 以 law_check 實測過。
+frontends/quality-inspection-frontend/package.json            gate
+frontends/quality-inspection-frontend/package-lock.json       gate
+frontends/quality-inspection-frontend/angular.json            gate
+frontends/quality-inspection-frontend/tsconfig*.json          gate
+frontends/quality-inspection-frontend/karma.conf.js           gate
+frontends/quality-inspection-frontend/playwright.config.ts    gate
+frontends/quality-inspection-frontend/webpack.config.js       gate
+frontends/quality-inspection-frontend/src/test.ts             gate
+# 下面兩項現在不存在，先登記路徑：E2E 的型別檢查（D-099 第 5 點）、由 HTTP 契約產生前端型別的產生器（D-099 第 2 點）
+frontends/quality-inspection-frontend/e2e/tsconfig.json       gate
+frontends/quality-inspection-frontend/tools/contract/         gate
 # 凍結基線
 services/quality-inspection-service/known-test-failures.txt                         baseline
 services/quality-inspection-service/src/test/resources/archunit_store/              baseline
 services/quality-inspection-service/src/test/resources/layer-import-baseline.txt    baseline
+# 前端落後清單（D-099 第 4 點）：前端的型別還沒有跟上的契約端點。現在不存在，由之後的修法 PR 建立
+frontends/quality-inspection-frontend/contract-lag.txt                              baseline
 
 # 給 AI 的指示
 AGENTS.md                               tradition

@@ -1,0 +1,14 @@
+{
+  "id": "2026-11-27-d099-frontend-gate",
+  "decision": "D-099",
+  "reason": "前端與 HTTP 契約之間的閘門（G-1～G-10）；批 0：前端閘門的設定列為律法。清冊新增 package.json、package-lock.json、angular.json、tsconfig*.json、karma.conf.js、playwright.config.ts、webpack.config.js、src/test.ts 為 gate，並先登記還不存在的 e2e/tsconfig.json、tools/contract/（gate）與 contract-lag.txt（baseline）。起因：frontend-check 執行 PR 帶來的 npm 指令，把指令換成空殼時 law_check 判為建構 PR、通過",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "law/manifest.txt",
+    "docs/harness/50-frontend-contract-gate-draft.md",
+    "docs/harness/25-topic-backlog.md",
+    "docs/harness/README.md",
+    "docs/harness/03-harness-plan.md"
+  ]
+}
