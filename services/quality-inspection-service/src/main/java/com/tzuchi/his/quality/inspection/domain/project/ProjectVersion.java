@@ -28,7 +28,8 @@ public class ProjectVersion {
                           BigDecimal initialReviewWeight,
                           BigDecimal rereviewWeight) {
         if (versionNumber < 1) {
-            throw new IllegalArgumentException("Version number must be >= 1");
+            // 版本號不來自使用者輸入（常數 1、既有的版本、資料庫讀回的值），小於 1 是內部狀態出錯，不是輸入錯誤。
+            throw new IllegalStateException("Version number must be >= 1");
         }
         this.versionNumber = versionNumber;
         this.published = published;
