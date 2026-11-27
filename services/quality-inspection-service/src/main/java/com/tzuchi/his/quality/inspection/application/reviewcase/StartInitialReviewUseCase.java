@@ -20,7 +20,6 @@ import com.tzuchi.his.quality.inspection.domain.scoresheet.ScoreSheetStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
 import java.time.Clock;
 import java.time.Instant;
 import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
@@ -110,7 +109,7 @@ public class StartInitialReviewUseCase {
             submissionId = existingDraft.getSubmissionId();
         } else {
             // Create draft submission
-            submissionId = UUID.randomUUID().toString();
+            submissionId = idGenerator.newId();
             submissionRepository.save(ReviewSubmission.createInitialDraft(
                     submissionId, caseId, actor.getUserId(), scoreSheetVersionRef, now));
         }
