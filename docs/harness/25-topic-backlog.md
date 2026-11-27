@@ -13,7 +13,7 @@
    - 擋得到的情況：建構需要先改律法才會綠（規格的範例凍結在 `known-test-failures.txt`、新檔案要先登記進 `coverage.txt`、HTTP 契約要先改）。擋不到的是「行為不變、不需要新規格」的建構，以及搶在規格之前改行為但沒有範例會紅的建構。
    - 要裁決的：要不要擋；怎麼表達建構依據哪一個裁決（例如提交訊息或 PR 帶裁決編號，由 `law-check` 檢查該編號已在 base 的 `decision-log.md`）；沒有對應裁決的建構（純重構、修缺陷）怎麼處理。尚未起草。
 2. **母體來源的介接**（D-086 第 1、2、6 點延後的部分）：抽選失敗怎麼記錄（`FAILED`、`SamplingBatchFailed`）、重跑的成功路徑（D-013）、抽樣比例與排除條件。要等真正的母體來源定案。
-3. **事件的 `detail` 改成結構化**（負責人 2026-11-26 同意列入）：domain 事件不再自己組稽核的 JSON 字串（17 個拼字串、5 個用 Jackson），改帶結構化的資料，序列化移到 `AuditTrailListener`；做完後加上「`domain` 不得依賴 Jackson」的規則。起因見 `45-response-dto-and-list-shape-draft.md` 第六節；草稿 `47-event-detail-draft.md`（E-1～E-8），待裁決。草稿查到一個潛在的缺陷：`SamplingBatchFailedEvent` 用拼字串帶入自由文字的 `failureReason`，母體來源介接之後會寫出不合法的 JSON。
+3. **事件的 `detail` 改成結構化**（負責人 2026-11-26 同意列入）：domain 事件不再自己組稽核的 JSON 字串（17 個拼字串、5 個用 Jackson），改帶結構化的資料，序列化移到 `AuditTrailListener`；做完後加上「`domain` 不得依賴 Jackson」的規則。起因見 `45-response-dto-and-list-shape-draft.md` 第六節；草稿 `47-event-detail-draft.md`（E-1～E-8）。負責人 2026-11-27 裁決全部照建議，E-6 動工前再確定範圍；條文待修法 PR 寫入。草稿查到一個潛在的缺陷：`SamplingBatchFailedEvent` 用拼字串帶入自由文字的 `failureReason`，母體來源介接之後會寫出不合法的 JSON。
 
 ## 已完成
 
