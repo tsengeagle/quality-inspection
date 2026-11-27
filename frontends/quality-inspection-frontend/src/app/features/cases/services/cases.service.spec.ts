@@ -110,7 +110,7 @@ describe('CasesService', () => {
         latestRereviewSubmissionId: 'SUB-002',
         projectionType: 'FULL',
         actorRole: 'REREVIEWER',
-        isOwner: true
+        owner: true
       }
     });
 
@@ -214,7 +214,7 @@ describe('CasesService', () => {
         latestRereviewSubmissionId: 'SUB-REREVIEW-001',
         projectionType: 'FULL',
         actorRole: 'REREVIEWER',
-        isOwner: true,
+        owner: true,
         initialReviewContext: {
           pageMode: 'REVISION',
           hasDraft: false,
