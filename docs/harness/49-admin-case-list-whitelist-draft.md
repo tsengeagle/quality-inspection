@@ -1,6 +1,6 @@
 # `SYSTEM_ADMIN` 的案件列表照白名單收斂
 
-狀態：**草稿，待裁決**（2026-11-27 起草，main = `98d97ab`）。本文件不是律法；題號 W-1～W-9 只在本文件使用。
+狀態：**部分裁決，條文尚未寫入**（2026-11-27）。負責人裁決：W-1～W-6、W-9 照建議；W-8 匯出也是缺陷（記成漏網紀錄的 E-11，後續見第七節）；**W-7 還沒有裁決**，負責人問「使用者很難記住 `projectId`，用它篩選有意義嗎」，補查的結果與修正後的建議在第七節。條文要由修法 PR 寫進 `decision-log.md` 才生效。下面第一到第六節是起草時的版本（main = `98d97ab`）。本文件不是律法；題號 W-1～W-9 只在本文件使用。
 
 題目清單「`SYSTEM_ADMIN` 的案件列表照白名單收斂」。負責人 2026-11-27 判斷它是缺陷（漏網紀錄的 E-10）。發現的經過在 `docs/review/f2-system-admin-metadata-reconciliation-2026-11-27.md` 的 S-1。
 
@@ -212,3 +212,65 @@ E-10 的兩個候選回應（`12-escaped-defects.md`），本草稿的看法：
 4. 列表的 `SYSTEM_ADMIN` 回傳另一個類別時，`Page<T>` 的型別、查詢埠的介面要怎麼改，沒有試寫。
 5. 事實 12 的表是依規格的 `actor.roles` 列的，沒有對照 controller 確認沒有漏掉的端點。
 6. 匯出的事實（事實 13）是讀契約得到的，沒有回頭讀 D-055～D-057 的全文確認當時有沒有討論過 `projectId`、`createdAt`、`closedAt`。
+
+## 七、裁決之後的補充（2026-11-27）
+
+### W-7 的補查：`projectId` 的篩選有沒有意義
+
+負責人的問題：使用者很難記住 `projectId`，用它篩選有意義嗎？
+
+補查前端實際怎麼讓使用者指定專案（讀程式，沒有執行）：
+
+| 頁面 | 現況 |
+|---|---|
+| 案件列表頁（UI-009） | **沒有專案的篩選**。篩選列只有四個狀態的按鈕；頁面送給後端的條件只有 `status`、`page`、`size`。`cases.service.ts` 的 `getCases` 支援 `projectId`、`batchId`、`hospitalId`，但列表頁沒有傳 |
+| 儀表板（UI-015） | 一個**文字框**，標籤是「專案（留空為全部專案）」，要使用者自己輸入 `projectId` |
+| 匯出頁（UI-017） | 起草時沒有看到專案的輸入欄位，沒有細查 |
+| 從抽選的頁面導覽到案件列表 | 網址帶 `batchId`（見下方「另外看到的」） |
+
+所以負責人的直覺是對的：**以「使用者輸入」來說，`projectId` 的篩選沒有意義**，儀表板現在就是這個狀況。人認得的是專案的名稱。
+
+但 `projectId` 當篩選條件仍然有用，前提是它由畫面帶入，不是由人輸入：
+
+- 從專案的清單點進「這個專案的案件」，網址帶 `projectId`。
+- 下拉選單顯示名稱、送出 `projectId`。`GET /review-projects` 每一筆有 id 與名稱，`SYSTEM_ADMIN` 可以讀（D-062）。
+
+修正後的建議，分成兩件：
+
+| | 建議 |
+|---|---|
+| **API（本題）** | `SYSTEM_ADMIN` 的 `projectId` 篩選維持可用；`medicalRecordType` 的篩選不採用（原本的 W-7 A）。理由：`projectId` 是參照，不是案件的內容；用它篩選透露的是「這個案件屬於哪個專案」，而 `projectName` 本來就在白名單裡 |
+| **畫面（另立一題）** | 「專案的選擇器」：儀表板、匯出頁、案件列表要指定專案時，用下拉選單顯示名稱，不讓使用者輸入 id。這是所有角色的問題，不只 `SYSTEM_ADMIN`。目前專案的管理頁（UI-001～005）還沒有做，沒有任何畫面能讓使用者查到 `projectId` |
+
+這也讓 W-2 值得再看一次：白名單有 `projectName`，而人靠名稱認專案。`SYSTEM_ADMIN` 跨院區看列表時，沒有專案名稱的列表不容易用。W-2 已裁決照建議（只刪減、不補 `projectName`），若負責人想改成補上，要在修法之前說。
+
+**W-7 待負責人確認**：API 的部分照上表；畫面的部分另立一題。
+
+### W-8：匯出也是缺陷（E-11）
+
+負責人 2026-11-27 判斷：匯出的每一列對 `SYSTEM_ADMIN` 有白名單以外的 `projectId`、`createdAt`、`closedAt`，是缺陷。已記成 `12-escaped-defects.md` 的 E-11，題目清單另列一題。
+
+修正之前要裁決的（還沒有起草）：
+
+| 題 | 內容 |
+|---|---|
+| X-1 | `SYSTEM_ADMIN` 匯出的每一列有哪些欄位。白名單的 shared base 裡，匯出現在有 `caseId`、狀態、`hospitalId`、`reviewerId`、`rereviewerId`，沒有 `projectName`、`updatedAt`。只刪減的話是這五欄加上 `maskedFields` |
+| X-2 | 兩個分數現在是 null 加上 `maskedFields`（RC-RPT-07，D-055）。收斂之後是維持 null，還是連欄位都不輸出 |
+| X-3 | 匯出的 `summary`（統計數字）對 `SYSTEM_ADMIN` 照給（與儀表板相同），確認不在收斂的範圍 |
+| X-4 | 白名單的頁面延伸要不要加上匯出頁（UI-017），讓它成為明文 |
+| X-5 | 匯出下載成 CSV 的欄位由前端組，前端的欄位要跟著改 |
+| X-6 | 與列表併成同一個修法 PR，還是分開 |
+
+建議 X-6 併在一起：兩件是同一類缺陷、同一張白名單，而且修法 PR 已經排了四個。
+
+### 起草時另外看到的（前端，都還沒有處理）
+
+補查 W-7 時讀案件列表頁的程式看到的。**讀程式得到的，沒有執行。**
+
+| # | 事情 | 依據 |
+|---|---|---|
+| N-1 | 篩選列的「待處理」「進行中」送出的 `status` 是 `PENDING`、`IN_PROGRESS`，不是後端的狀態值（後端是 `PENDING_INITIAL_REVIEW` 等九個）。依 RC-LST-02，後端會回 400 `BAD_REQUEST`。「已結案」「已取消」送的是 `CLOSED`、`CANCELLED`，是合法的值。頁面預設的狀態（依頁籤）是合法的值，所以進頁面不受影響，按這兩個按鈕才會 | `case-work-queue-filter-bar.component.ts`、`ListReviewCasesUseCase.parseStatus` |
+| N-2 | 從抽選執行頁、批次清單導覽到案件列表時，網址帶 `batchId`，但列表頁組查詢條件時沒有讀它，列出來的不是那個批次的案件 | `sampling-execute-page.component.ts`、`sampling-batch-list-page.component.ts`、`case-list-page.component.ts` 的 `_loadCases` |
+
+這兩件與 E-04、E-05 是同一類：前端的測試用自己的假回應，全綠；對真實的後端行為不對。
+
