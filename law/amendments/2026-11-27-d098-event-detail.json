@@ -1,0 +1,12 @@
+{
+  "id": "2026-11-27-d098-event-detail",
+  "decision": "D-098",
+  "reason": "事件的 detail 改成結構化：domain 事件帶 Map，序列化移到 AuditTrailListener，輸出逐字相同，特徵測試先行；基底建構子的範圍動工前再確定；建構完成後 ARCH-06 加上 domain（另案修法）。本次只有裁決，沒有規格、範例、閘門的修改；題目清單與草稿",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "docs/harness/47-event-detail-draft.md",
+    "docs/harness/25-topic-backlog.md",
+    "docs/harness/README.md"
+  ]
+}

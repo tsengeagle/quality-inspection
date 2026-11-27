@@ -4005,3 +4005,47 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `AGENTS.md` §5.0.1、`CLAUDE.md`
 - `docs/harness/03-harness-plan.md` 第三節、`docs/harness/46-build-after-ruling-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
 - 後續：其他工具的指示檔（2-4 期）；訂定 harness 的有界主張時引用「擋不到的」五項
+
+---
+
+## D-098 — 事件的 `detail` 改成結構化，序列化移到稽核的寫入端
+
+### Status
+
+`accepted`（2026-11-27，負責人對 `docs/harness/47-event-detail-draft.md` 的 E-1～E-8 全部照建議裁決；第 6 點的範圍在動工前再確定）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 E-n）。本裁決不改變任何對外的行為：稽核資料表、稽核查詢的回應、HTTP 契約、前端都不動；`specs/` 的規格與範例不動。
+
+1. **範圍（E-1 選 A）**：有 `detail` 的事件全部改成帶結構化的資料，不再自己產生 JSON 字串；序列化移到 `AuditTrailListener`。做完後 `domain` 不依賴 Jackson。起草時數到的是 27 個事件（17 個 `String.format`、4 個字串相加、5 個 `ObjectMapper`、1 個由 use case 組好字串傳入），以動工時的盤點為準。
+2. **型別（E-2 選 A）**：`DomainEvent` 的 `detail` 是 `Map<String, Object>`，保留建立的順序，基底存成不可變的副本。
+   - 「哪些資料進稽核紀錄、鍵叫什麼」留在 domain 的事件（D-070、D-071 裁決過的內容不變）；「怎麼變成字串」是 infrastructure 的事。
+   - 允許的值：字串、整數、`BigDecimal`、布林、`null`。不開放巢狀結構，需要時另外裁決。
+3. **輸出逐字相同（E-3 選 A）**：寫進稽核表的字串與現在逐字相同，包含鍵的順序、數字的格式（例如 `10.00`）、跳脫的寫法。唯一的例外：原本會寫出不合法 JSON 的情況（值裡有引號、反斜線、換行而沒有跳脫），改為合法的 JSON；這是修正。
+4. **特徵測試（E-4 選 A）**：動工前先補測試，對每一個有 `detail` 的事件建一個實例，把現在的 `detail` 字串寫成預期值；要包含有小數的分數、整數的分數、`null`、含引號與換行的文字。測試先在現在的程式上全綠，重構之後仍然全綠（第 3 點的例外另外寫明）。放在律法以外的測試目錄。
+5. **序列化（E-5 選 A）**：`AuditTrailListener` 用專屬的、設定固定的 `ObjectMapper`，不用 Spring 容器裡共用的那一個。稽核的格式不受 HTTP 輸出設定的影響。
+6. **基底建構子（E-6 選 A，範圍待定）**：方向是直接把參數的型別從 `String` 換成 `Map<String, Object>`，只留一個建構子，這樣律法裡的 `acceptance/AcceptanceWorldTest`（傳 `null`）不用改。**是否一次改完全部事件、PR 怎麼切，負責人 2026-11-27 指示在真的動工前再確定**；動工前由建構者提出範圍，負責人確認後才開始。若確認的範圍需要新舊建構子並存，`AcceptanceWorldTest` 要先以修法修改（D-092 第 6 點之 3 的作法）。
+   - `CaseClosedWithoutRereviewEvent` 改成由事件自己從 `finalScore` 建立 `detail`，不再由 `CloseWithoutRereviewUseCase` 傳字串。
+7. **閘門（E-7 選 A）**：建構完成後，ARCH-06（D-096）的範圍加上 `domain`：`domain`、`application`、`reporting` 都不得依賴 Jackson。另以修法 PR 處理。
+8. **分批（E-8）**：
+   1. 修法 PR 一：本裁決（`decision-log.md`、題目清單、草稿）。沒有規格、範例、閘門的修改。
+   2. 建構 PR：第 4 點的特徵測試先行；基底、事件、`CloseWithoutRereviewUseCase`、`AuditTrailListener`、受影響的測試；`docs/02-ddd/domain-events.md` 的說明。依 D-097，要等修法 PR 一合併。
+   3. 修法 PR 二：第 7 點。
+
+### 查到的潛在缺陷
+
+`SamplingBatchFailedEvent` 以 `String.format("{\"failureReason\":\"%s\"}", failureReason)` 產生 `detail`，`failureReason` 是自由文字，內容有引號、反斜線或換行時會寫出不合法的 JSON。目前沒有任何行為會產生失敗的批次（D-086 第 1、2 點），走不到；母體來源的介接之後會走到。負責人 2026-11-27 決定不另外止血，由本裁決的建構一併修正（第 3 點的例外）。**母體來源的介接若先於本裁決的建構，要先修這一處。**
+
+### Relationship / Evidence
+
+- **起因**：D-096 起草時查到 `domain` 有 5 個事件依賴 Jackson（`45-response-dto-and-list-shape-draft.md` 第六節）；D-096 第 2 點因此把 `domain` 留在 ARCH-06 的範圍之外。
+- **草案**：`docs/harness/47-event-detail-draft.md`（main = `5d1f462`）。事實是讀程式、規格與測試，沒有實測；事件的分類用字串樣式掃過，只打開看了其中 11 個檔案。沒有確認的項目在草稿第七節，動工時要確認。
+- **律法現況**：`specs/review-case/examples.yaml` 有 11 處直接比對 `detail` 的字串，涵蓋 8 種 action（`ASSIGNED`、`REOPENED`、`REASSIGNED`、`SUBMITTED`、`REREVIEW_SUBMITTED`、`CASE_CLOSED_WITHOUT_REREVIEW`、`RETURNED`、`CANCELLED`）。這些範例不動，重構後必須照常通過。
+- **與既有裁決的關係**：延伸 D-080 第 5 點（`detail` 以 JSON 序列化產生）；D-070、D-071、D-078 的 `detail` 內容與遮罩不變；第 7 點延伸 D-096 第 2 點；依 D-097 的順序（修法在前）。
+
+### Mapping
+
+- `docs/harness/47-event-detail-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續（建構 PR）：`domain/common/DomainEvent.java`、`domain/**/event/`、`application/reviewcase/CloseWithoutRereviewUseCase.java`、`infrastructure/audit/AuditTrailListener.java`、`docs/02-ddd/domain-events.md`
+- 後續（修法 PR 二）：`architecture/ArchitectureRules.java` 的 ARCH-06、違規樣本
