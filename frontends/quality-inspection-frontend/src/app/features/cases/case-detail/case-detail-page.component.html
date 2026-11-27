@@ -4,7 +4,7 @@
 <app-case-summary-header
   [caseId]="caseId"
   [caseTitle]="caseTitle"
-  [status]="caseDetail?.status ?? ''"
+  [status]="caseStatus"
   [stageLabel]="stageLabel"
   [showProjectionNotice]="showProjectionNotice">
 </app-case-summary-header>
@@ -30,6 +30,23 @@
     (navigate)="navigateTo($event)">
   </app-case-control-center-nav>
 
+  <!-- 案件 metadata 區塊（UI-010 §5.5）：SYSTEM_ADMIN 的七欄裡，頁首以外的五欄 -->
+  <section *ngIf="caseMetadata as meta" class="case-metadata-block" data-testid="case-metadata-block">
+    <h3 class="case-metadata-block__title">案件 metadata</h3>
+    <dl class="case-metadata-block__list">
+      <dt>專案</dt>
+      <dd data-testid="case-metadata-project-name">{{ meta.projectName }}</dd>
+      <dt>院區</dt>
+      <dd data-testid="case-metadata-hospital-id">{{ meta.hospitalId }}</dd>
+      <dt>初審醫師</dt>
+      <dd data-testid="case-metadata-reviewer-id">{{ meta.reviewerId || '—' }}</dd>
+      <dt>複審醫師</dt>
+      <dd data-testid="case-metadata-rereviewer-id">{{ meta.rereviewerId || '—' }}</dd>
+      <dt>最後更新（台北時間）</dt>
+      <dd data-testid="case-metadata-updated-at">{{ displayTime(meta.updatedAt) }}</dd>
+    </dl>
+  </section>
+
   <!-- C09 InitialSummaryRegion -->
   <app-initial-summary-region
     *ngIf="showInitialSummary"
@@ -46,7 +63,7 @@
   <!-- C11 LifecycleProgressRegion -->
   <app-lifecycle-progress-region
     *ngIf="showLifecycleProgress"
-    [currentStage]="caseDetail?.status ?? ''">
+    [currentStage]="caseStatus">
   </app-lifecycle-progress-region>
 
   <!-- PH-08: RevisionHistoryJumpEntry slot -->
