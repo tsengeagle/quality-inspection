@@ -8,7 +8,10 @@ import { CanonicalActorRole } from '@core/actor-context/actor-context.model';
 /** C-01 CaseListPage UI state */
 export interface CaseListUIState {
   tab: string;
-  status: string;
+  /** 後端的 CaseStatus；沒有套用狀態的篩選時是 undefined */
+  status?: string;
+  /** 從抽選的頁面導覽過來時帶的批次（網址的 batchId） */
+  batchId?: string;
   page: number;
   size: number;
 }
@@ -31,7 +34,7 @@ export class CaseListPageComponent implements OnInit {
   projectionType?: 'FULL' | 'METADATA_ONLY';
 
   /** 當前 UI state（驅動 filter/tab） */
-  uiState: CaseListUIState = { tab: 'MY_QUEUE', status: 'PENDING', page: 0, size: 20 };
+  uiState: CaseListUIState = { tab: 'MY_QUEUE', page: 0, size: 20 };
 
   /** mode 決定是否顯示 business commands（metadata-only → hidden） */
   showBusinessCommands = true;
@@ -65,6 +68,7 @@ export class CaseListPageComponent implements OnInit {
       this.uiState = {
         tab: params['tab'] ?? this._defaultTab(),
         status: params['status'] ?? this._defaultStatus(params['tab'] ?? this._defaultTab()),
+        batchId: params['batchId'] || undefined,
         page: parseInt(params['page'] ?? '0', 10),
         size: parseInt(params['size'] ?? '20', 10)
       };
@@ -116,6 +120,7 @@ export class CaseListPageComponent implements OnInit {
     const criteria: CasesQueryCriteria = {
       role: this.role,
       status: this.uiState.status,
+      batchId: this.uiState.batchId,
       page: this.uiState.page,
       size: this.uiState.size
     };
@@ -141,6 +146,15 @@ export class CaseListPageComponent implements OnInit {
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { status, tab: this.uiState.tab },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  /** 拿掉批次的篩選（網址的 batchId） */
+  clearBatchFilter(): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { batchId: null },
       queryParamsHandling: 'merge'
     });
   }

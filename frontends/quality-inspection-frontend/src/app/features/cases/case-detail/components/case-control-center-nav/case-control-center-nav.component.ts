@@ -29,7 +29,7 @@ import { CaseDetailMode } from '../../case-detail-page.component';
       </button>
 
       <!-- 歷程查看 -->
-      <button type="button" class="nav-btn" (click)="navigate.emit('revision-history')">Revision 歷程</button>
+      <button type="button" class="nav-btn" (click)="navigate.emit('revisions')">Revision 歷程</button>
     </nav>
   `,
   styles: [`

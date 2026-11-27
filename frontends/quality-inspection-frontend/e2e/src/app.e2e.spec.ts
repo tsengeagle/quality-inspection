@@ -265,4 +265,118 @@ test.describe('frontend smoke baseline', () => {
     await expect(page.locator('app-revision-nav-action-zone')).toHaveCount(0);
     await expect(page.getByText('前往複審修正')).toHaveCount(0);
   });
+
+  // D-036、D-094 第 9 點：SYSTEM_ADMIN 的案件詳情只有七欄（UI-010 §5.5）。假回應照 specs/review-case/http.yaml 的 metadata 形狀。
+  test('shows the seven-field metadata view and reaches the metadata revision history', async ({ page }) => {
+    await page.route('**/api/quality-inspection/review-cases/CASE-020', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            caseId: 'CASE-020',
+            caseStatus: 'REREVIEW_IN_PROGRESS',
+            projectName: '品質審查專案',
+            hospitalId: 'H001',
+            reviewerId: 'reviewer-1',
+            rereviewerId: null,
+            updatedAt: '2026-11-19T09:00:00Z'
+          }
+        })
+      });
+    });
+    await page.route('**/api/quality-inspection/review-cases/CASE-020/revision-history', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            caseId: 'CASE-020',
+            submissions: [
+              {
+                submissionId: 'SUB-020-1',
+                stage: 'INITIAL',
+                reviewerId: 'reviewer-1',
+                status: 'SUBMITTED',
+                revisionNo: 1,
+                totalScore: null,
+                comment: null,
+                submittedAt: '2026-11-19T08:00:00Z',
+                supersededBySubmissionId: null
+              }
+            ]
+          }
+        })
+      });
+    });
+
+    await page.goto('/cases/CASE-020');
+
+    await expect(page.getByText('控制中心（Metadata）')).toBeVisible();
+    await expect(page.getByTestId('case-metadata-block')).toBeVisible();
+    await expect(page.getByTestId('case-metadata-project-name')).toHaveText('品質審查專案');
+    await expect(page.getByTestId('case-metadata-rereviewer-id')).toHaveText('—');
+    await expect(page.getByTestId('case-metadata-updated-at')).toHaveText('2026-11-19 17:00');
+    await expect(page.locator('app-initial-summary-region')).toHaveCount(0);
+    await expect(page.locator('app-rereview-summary-region')).toHaveCount(0);
+    await expect(page.locator('.control-center-nav button')).toHaveCount(1);
+
+    await page.locator('.control-center-nav button', { hasText: 'Revision 歷程' }).click();
+
+    await expect(page).toHaveURL(/\/cases\/CASE-020\/revisions$/);
+    await expect(page.getByText('Metadata 歷程')).toBeVisible();
+  });
+
+  // 假的列表端點照後端的行為：status 不是 CaseStatus 的值時回 400 BAD_REQUEST（RC-LST-02）。
+  // 原本的假回應不看查詢參數，所以篩選列送出後端不認得的值、batchId 沒有被送出，都不會被發現。
+  test('case list filters only send what the backend accepts, and carry the batchId from the URL', async ({ page }) => {
+    const caseStatuses = ['SELECTED_PENDING_ASSIGNMENT', 'PENDING_INITIAL_REVIEW', 'INITIAL_REVIEW_IN_PROGRESS',
+      'INITIAL_REVIEW_COMPLETED', 'PENDING_REREVIEW', 'REREVIEW_IN_PROGRESS', 'RETURNED', 'CLOSED', 'CANCELLED'];
+    const requests: URL[] = [];
+    const rejected: string[] = [];
+
+    await page.route('**/api/quality-inspection/review-cases?*', async route => {
+      const url = new URL(route.request().url());
+      requests.push(url);
+      const status = url.searchParams.get('status');
+      if (status !== null && !caseStatuses.includes(status)) {
+        rejected.push(status);
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: false, data: null, meta: null, error: { code: 'BAD_REQUEST', message: 'status' } })
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, data: { content: [], page: 0, size: 20, totalElements: 0, totalPages: 0 } })
+      });
+    });
+
+    await page.goto('/cases?batchId=BATCH-007');
+
+    await expect(page.getByTestId('case-list-batch-filter')).toHaveText('批次：BATCH-007');
+    await expect.poll(() => requests.length).toBeGreaterThan(0);
+    expect(requests[requests.length - 1].searchParams.get('batchId')).toBe('BATCH-007');
+
+    const chips = page.locator('.filter-chip');
+    const count = await chips.count();
+    expect(count).toBe(7);
+    for (let i = 0; i < count; i++) {
+      const before = requests.length;
+      await chips.nth(i).click();
+      await expect.poll(() => requests.length).toBeGreaterThan(before);
+      // 換篩選條件之後，批次的篩選仍然帶著
+      expect(requests[requests.length - 1].searchParams.get('batchId')).toBe('BATCH-007');
+    }
+    expect(rejected).toEqual([]);
+
+    await page.getByTestId('case-list-batch-filter-clear').click();
+    await expect(page.getByTestId('case-list-batch-filter')).toHaveCount(0);
+    await expect.poll(() => requests[requests.length - 1].searchParams.has('batchId')).toBe(false);
+  });
 });
