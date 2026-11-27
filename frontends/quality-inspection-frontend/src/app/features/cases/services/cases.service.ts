@@ -161,6 +161,20 @@ interface ReviewCaseDetailDto {
   rereviewContext?: RereviewBootstrapDto | null;
 }
 
+/**
+ * SYSTEM_ADMIN 的案件詳情（D-036、D-094 第 9 點）：只有白名單的七欄，
+ * 即 specs/review-case/http.yaml 的 metadata 形狀。狀態叫 caseStatus，沒有 status。
+ */
+interface ReviewCaseMetadataDto {
+  caseId: string;
+  caseStatus: string;
+  projectName: string;
+  hospitalId: string;
+  reviewerId?: string | null;
+  rereviewerId?: string | null;
+  updatedAt?: string | null;
+}
+
 interface RevisionHistoryResponseDto {
   caseId: string;
   submissions: SubmissionSummaryDto[];
@@ -472,6 +486,27 @@ export interface CaseDetailViewModel {
   rereviewContext?: RereviewBootstrapViewModel;
 }
 
+/**
+ * SYSTEM_ADMIN 看到的案件詳情（UI-010 §5.5）。projectionType 是 service 依回應的形狀定出來的，
+ * 不是後端的欄位：metadata 形狀沒有 projectionType。
+ */
+export interface CaseMetadataViewModel {
+  projectionType: 'METADATA_ONLY';
+  caseId: string;
+  /** 來自回應的 caseStatus */
+  status: string;
+  projectName: string;
+  hospitalId: string;
+  reviewerId?: string | null;
+  rereviewerId?: string | null;
+  updatedAt?: string | null;
+}
+
+/** 案件詳情的回應是 metadata 形狀時為 true。 */
+export function isCaseMetadata(detail: CaseDetailViewModel | CaseMetadataViewModel): detail is CaseMetadataViewModel {
+  return detail.projectionType === 'METADATA_ONLY' && !('submissions' in detail);
+}
+
 /** Revision 歷史條目 */
 export type RevisionHistoryItem = SubmissionSummaryItem;
 
@@ -528,7 +563,23 @@ export class CasesService {
   }
 
   /** GET /review-cases/{caseId} */
+  /**
+   * 需要完整案件資料的頁面（初審、複審作業頁）用。回應是 metadata 形狀時明確失敗：
+   * 那些頁面不對 SYSTEM_ADMIN 開放，拿到七欄代表進錯了頁面。
+   */
   getCaseDetail(caseId: string): Observable<CaseDetailViewModel> {
+    return this.fetchCaseDetail(caseId).pipe(
+      map(detail => {
+        if (isCaseMetadata(detail)) {
+          throw new Error('案件詳情的回應是 metadata 形狀，這個頁面需要完整的案件資料');
+        }
+        return detail;
+      })
+    );
+  }
+
+  /** 案件詳情頁、revision 歷程頁用：完整形狀或 SYSTEM_ADMIN 的 metadata 形狀（UI-010 §5.5）。 */
+  getCaseDetailOrMetadata(caseId: string): Observable<CaseDetailViewModel | CaseMetadataViewModel> {
     return this.fetchCaseDetail(caseId);
   }
 
@@ -560,7 +611,8 @@ export class CasesService {
       map(({ detail, history }) => ({
         caseId: history.data.caseId,
         status: detail.status,
-        actorRole: detail.actorRole,
+        // metadata 形狀沒有 actorRole；歷程頁只用它決定預設的頁籤，空字串時顯示全部
+        actorRole: isCaseMetadata(detail) ? '' : detail.actorRole,
         projectionType: detail.projectionType,
         revisions: history.data.submissions.map(item => this.mapSubmission(item))
       }))
@@ -695,10 +747,35 @@ export class CasesService {
     );
   }
 
-  private fetchCaseDetail(caseId: string): Observable<CaseDetailViewModel> {
-    return this.http.get<ApiResponse<ReviewCaseDetailDto>>(`${this.baseUrl}/${caseId}`).pipe(
-      map(response => this.mapCaseDetail(response.data))
+  private fetchCaseDetail(caseId: string): Observable<CaseDetailViewModel | CaseMetadataViewModel> {
+    return this.http.get<ApiResponse<ReviewCaseDetailDto | ReviewCaseMetadataDto>>(`${this.baseUrl}/${caseId}`).pipe(
+      map(response => this.mapCaseDetailResponse(response.data))
     );
+  }
+
+  /**
+   * 以回應的形狀分辨（UI-010 §5.5）：有 caseStatus、沒有 status 是 metadata；有 status 與 submissions 是完整形狀。
+   * 兩種都不是時明確失敗，不當成其中一種。
+   */
+  private mapCaseDetailResponse(data: ReviewCaseDetailDto | ReviewCaseMetadataDto): CaseDetailViewModel | CaseMetadataViewModel {
+    const raw = (data ?? {}) as unknown as Record<string, unknown>;
+    if (typeof raw['caseStatus'] === 'string' && !('status' in raw)) {
+      const item = data as ReviewCaseMetadataDto;
+      return {
+        projectionType: 'METADATA_ONLY',
+        caseId: item.caseId,
+        status: item.caseStatus,
+        projectName: item.projectName,
+        hospitalId: item.hospitalId,
+        reviewerId: item.reviewerId,
+        rereviewerId: item.rereviewerId,
+        updatedAt: item.updatedAt
+      };
+    }
+    if (typeof raw['status'] === 'string' && Array.isArray(raw['submissions'])) {
+      return this.mapCaseDetail(data as ReviewCaseDetailDto);
+    }
+    throw new Error('案件詳情的回應既不是完整形狀，也不是 metadata 形狀');
   }
 
   private mapCaseSummary(item: ReviewCaseSummaryDto): CaseSummaryItem {
