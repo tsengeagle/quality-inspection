@@ -17,7 +17,7 @@ import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
  * <p>出處：{@code docs/harness/03-harness-plan.md} 第六節「第一批 ArchUnit 規則」、
  * {@code design-implementation-gap-2026-11-11.md} §3.7、
  * {@code services/quality-inspection-service/README.md} §6.1；
- * 依賴方向與 ARCH-05 的依據是 {@code decision-log.md} 的 D-048。
+ * 依賴方向與 ARCH-05 的依據是 {@code decision-log.md} 的 D-048；ARCH-06 的依據是 D-096。
  *
  * <p>規則的描述文字（{@code as(...)}）是凍結基線的索引鍵，改動後要重建該規則的基線。
  */
@@ -32,6 +32,8 @@ public final class ArchitectureRules {
     public static final ArchRule ARCH_03_NO_ILLEGAL_ARGUMENT_EXCEPTION = noIllegalArgumentException(ROOT);
 
     public static final ArchRule ARCH_05_REPORTING_USES_ONLY_APPLICATION_COMMON = reportingUsesOnlyApplicationCommon(ROOT);
+
+    public static final ArchRule ARCH_06_NO_JACKSON_IN_APPLICATION_OR_REPORTING = noJacksonInApplicationOrReporting(ROOT);
 
     /**
      * 允許的依賴方向：
@@ -88,6 +90,22 @@ public final class ArchitectureRules {
                                         JavaClass.Predicates.resideInAPackage(root + ".application.common.."))))
                 .as("ARCH-05 reporting 對 application 只能依賴 application.common")
                 .because("D-048：報表不得呼叫命令 use case；reporting 之後會併入 application 的查詢側");
+    }
+
+    /**
+     * D-096 第 2 點：application 與 reporting 不得依賴 Jackson。
+     *
+     * <p>HTTP 的輸出形狀由 interfaces 與 {@code specs/} 的 HTTP 契約決定。既有的三個讀取模型
+     * （D-084、D-088 立法時加的標註）凍結在基線，只擋新增。
+     * domain 不在範圍內：事件用 ObjectMapper 產生稽核的 detail（D-080 第 5 點），
+     * 等「事件的 detail 改成結構化」做完再納入。
+     */
+    public static ArchRule noJacksonInApplicationOrReporting(String root) {
+        return noClasses()
+                .that().resideInAnyPackage(root + ".application..", root + ".reporting..")
+                .should().dependOnClassesThat().resideInAPackage("com.fasterxml.jackson..")
+                .as("ARCH-06 application 與 reporting 不得依賴 Jackson")
+                .because("D-096：HTTP 的輸出形狀由 interfaces 與 HTTP 契約決定，不由 application 的標註決定");
     }
 
     // 兩個判斷式都看「存取」而不只看「呼叫」，方法參考（UUID::randomUUID、IllegalArgumentException::new）也算。

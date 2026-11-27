@@ -102,6 +102,35 @@ Accept: application/json
 }
 ```
 
+### 3.7 列表的形狀（D-096）
+
+列表端點的 `data` 依有沒有分頁，只有兩種寫法：
+
+| 列表 | `data` 的形狀 | 端點 |
+|---|---|---|
+| 有分頁 | `{ content, page, size, totalElements, totalPages }` | `GET /review-cases`、`GET /sampling-batches`、`GET /audit-trails` |
+| 沒有分頁 | `{ items }`，一次回全部 | `GET /review-projects`、`GET /score-sheets` |
+
+有分頁的列表：
+
+```json
+{
+  "success": true,
+  "data": {
+    "content": [],
+    "page": 0,
+    "size": 20,
+    "totalElements": 0,
+    "totalPages": 0
+  }
+}
+```
+
+* `page` 從 0 起算；`content` 是當頁的資料，每一項的欄位見各端點。
+* 新的列表端點依有沒有分頁選其中一種，不新增第三種寫法。
+* 已知的例外（維持現況，不作為新端點的先例）：`POST /reports/export` 的 `rows` 與 `summary`（§15）；`GET /review-cases/{caseId}/assignment-candidates`、`GET /review-cases/{caseId}/lifecycle` 的 `data` 直接是陣列。
+* 欄位的權威在 `specs/*/http.yaml`。
+
 ---
 
 ## 4. 錯誤碼模型
@@ -899,6 +928,8 @@ Accept: application/json
 
 不是 `SYSTEM_ADMIN` 只看得到本院的批次，`hospitalId` 不採用；`SYSTEM_ADMIN` 可用 `hospitalId` 縮小範圍。依開始時間由新到舊；`size` 預設 20、上限 100。
 
+回應是有分頁的列表（§3.7）。
+
 規格：`specs/sampling-batch/`。
 
 ---
@@ -967,6 +998,8 @@ Accept: application/json
 * `medicalRecordType`
 * `page`
 * `size`
+
+回應是有分頁的列表（§3.7）。
 
 ---
 
@@ -1723,6 +1756,8 @@ SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白
 * `to`
 * `page`
 * `size`
+
+回應是有分頁的列表（§3.7）。
 
 #### `detail` 遮罩（D-071）
 
