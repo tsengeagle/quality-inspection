@@ -976,5 +976,247 @@ class CoverageTest(RepoCase):
         self.assertIn("src/domain/case/Case.java", out.getvalue())
 
 
+BUILD_RULING_MANIFEST = MANIFEST + "@build-ruling required\n"
+
+BUILD_RULING_LOG = """\
+# 決策
+
+## D-001 — 第一條
+
+### Status
+
+`accepted`（2026-01-01）
+
+內容
+
+## D-002 — 被取代的
+
+### Status
+`superseded`
+
+內容
+
+## D-004 — 沒有寫狀態
+
+內容
+"""
+
+
+class BuildRulingTest(RepoCase):
+    """建構 PR 要宣告依據的裁決，而且裁決已經在 base 生效。"""
+
+    def setUp(self):
+        super().setUp()
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": BUILD_RULING_MANIFEST, "docs/decision-log.md": BUILD_RULING_LOG})
+        self.base = self.commit("build-ruling base")
+        self.git("checkout", "-q", "-B", "change")
+
+    def change(self, message, files=None):
+        self.write(files if files is not None else {"src/App.java": "class App { int x; }\n"})
+        return self.commit(message)
+
+    def verdict(self, head=None):
+        passed, report = check.evaluate(self.repo, self.base, head or "HEAD")
+        return passed, "\n".join(report)
+
+    def test_ruling_in_the_commit_subject_that_exists_on_base_passes(self):
+        self.change("build: D-001 調整 App")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertIn("建構 PR", report)
+        self.assertIn("[通過] 建構宣告了依據的裁決", report)
+        self.assertIn("[通過] 宣告的裁決已在 base 生效", report)
+
+    def test_ruling_that_is_not_on_base_fails(self):
+        self.change("build: D-003 依據還沒合併的裁決")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("[未通過] 宣告的裁決已在 base 生效", report)
+        self.assertIn("D-003 不在 base", report)
+
+    def test_build_passes_once_its_ruling_reaches_base(self):
+        """同一個建構提交：裁決還沒進 base 時未通過；修法合併、base 前進之後通過。"""
+        self.change("build: D-003 依據還沒合併的裁決")
+        self.assertFalse(self.verdict()[0])
+        self.git("checkout", "-q", "main")
+        self.write({"docs/decision-log.md": BUILD_RULING_LOG + "\n## D-003 — 新的裁決\n\n### Status\n\n`accepted`\n"})
+        self.base = self.commit("law: D-003")
+        self.git("checkout", "-q", "change")
+        self.git("merge", "-q", "--no-edit", "main")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+
+    def test_token_with_a_different_width_is_not_a_declaration(self):
+        """位數與決策紀錄的編號不同的代號不是裁決：D-0010、D-1 都不算宣告。"""
+        for subject in ("build: D-0010 編號只是前幾碼相同", "build: D-1 第一批"):
+            with self.subTest(subject=subject):
+                self.git("checkout", "-q", "-B", "change", self.base)
+                self.change(subject)
+                passed, report = self.verdict()
+                self.assertFalse(passed, report)
+                self.assertIn("[未通過] 建構宣告了依據的裁決", report)
+
+    def test_batch_label_next_to_a_ruling_is_ignored(self):
+        """回放歷史時遇到的寫法：「D-001 D-1 回應契約」的 D-1 是批次，不是裁決。"""
+        self.change("build: D-001 D-1 回應契約")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertNotIn("D-1 不在 base", report)
+
+    def test_superseded_ruling_fails(self):
+        self.change("build: D-002 依據已被取代的裁決")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("D-002 的狀態是 superseded", report)
+
+    def test_ruling_without_a_readable_status_fails(self):
+        self.change("build: D-004 裁決沒有寫狀態")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("D-004 讀不到狀態", report)
+
+    def test_no_declaration_fails(self):
+        self.change("調整 App")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("[未通過] 建構宣告了依據的裁決", report)
+
+    def test_ruling_mentioned_only_in_the_body_is_not_a_declaration(self):
+        self.change("調整 App\n\n順便提到 D-001，但標題沒有寫")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("[未通過] 建構宣告了依據的裁決", report)
+
+    def test_ruling_none_with_a_reason_passes_with_a_notice(self):
+        head = self.change("build: 刪除沒有使用的類別\n\nRuling: none — 清理，沒有行為變更")
+        passed, report, _, notices = check.evaluate_details(self.repo, self.base, head)
+        text = "\n".join(report)
+        self.assertTrue(passed, text)
+        self.assertIn("沒有對應裁決的建構", text)
+        self.assertIn("清理，沒有行為變更", text)
+        self.assertEqual(len(notices), 1)
+        self.assertEqual(notices[0][0], "沒有對應裁決的建構")
+        self.assertIn(head[:12], notices[0][1])
+
+    def test_ruling_none_accepts_a_plain_hyphen_or_colon_before_the_reason(self):
+        for separator in ("-", "--", ":", "："):
+            with self.subTest(separator=separator):
+                self.git("checkout", "-q", "-B", "change", self.base)
+                self.change("tidy\n\nRuling: none %s 清理" % separator)
+                passed, report = self.verdict()
+                self.assertTrue(passed, report)
+
+    def test_ruling_none_without_a_reason_fails(self):
+        self.change("build: 刪除沒有使用的類別\n\nRuling: none")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("Ruling: none 沒有寫理由", report)
+
+    def test_declarations_are_combined_across_the_commits_of_a_pr(self):
+        self.change("build: D-001 調整 App")
+        self.change("補測試", {"src/AppTest.java": "class AppTest {}\n"})
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+
+    def test_one_missing_ruling_among_several_fails(self):
+        self.change("build: D-001、D-003 兩個裁決")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("D-003 不在 base", report)
+        self.assertNotIn("D-001 不在 base", report)
+
+    def test_ruling_and_none_together_pass_with_a_notice(self):
+        self.change("build: D-001 調整 App")
+        head = self.change("tidy\n\nRuling: none — 順手清理", {"src/Other.java": "class Other {}\n"})
+        passed, report, _, notices = check.evaluate_details(self.repo, self.base, head)
+        self.assertTrue(passed, "\n".join(report))
+        self.assertEqual(len(notices), 1)
+
+    def test_merge_commits_do_not_declare(self):
+        """merge 提交的訊息不算宣告：程式的提交自己沒有宣告時仍然未通過。"""
+        self.change("調整 App")
+        self.git("checkout", "-q", "main")
+        self.write({"docs/guide.md": "說明（更新）\n"})
+        self.base = self.commit("docs")
+        self.git("checkout", "-q", "change")
+        self.git("merge", "-q", "--no-ff", "-m", "Merge main: D-001", "main")
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+        self.assertIn("[未通過] 建構宣告了依據的裁決", report)
+
+    def test_documentation_only_change_needs_no_declaration(self):
+        self.change("docs: 更新說明", {"docs/guide.md": "說明（更新）\n"})
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertNotIn("建構宣告了依據的裁決", report)
+
+    def test_shrinking_a_baseline_alone_needs_no_declaration(self):
+        self.change("縮短基線", {"baseline.txt": "violation-a\nviolation-b\n"})
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertNotIn("建構宣告了依據的裁決", report)
+
+    def test_amendment_pr_is_not_asked_for_a_declaration(self):
+        path, content = record()
+        self.change("調整規則", {"rules/Rule.java": "class Rule { boolean strict = false; }\n", path: content})
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertIn("修法 PR", report)
+        self.assertNotIn("建構宣告了依據的裁決", report)
+
+    def test_without_the_directive_nothing_changes(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": MANIFEST})
+        self.base = self.commit("no directive")
+        self.git("checkout", "-q", "-B", "change")
+        self.change("調整 App")
+        passed, report = self.verdict()
+        self.assertTrue(passed, report)
+        self.assertNotIn("建構宣告了依據的裁決", report)
+
+    def test_directive_is_read_from_base_not_from_the_pr(self):
+        """PR 把指示從清冊拿掉也沒有用：清冊讀 base；而且改清冊本身就是修法。"""
+        self.change("調整 App", {"src/App.java": "class App { int x; }\n", "law/manifest.txt": MANIFEST})
+        passed, report = self.verdict()
+        self.assertFalse(passed, report)
+
+    def test_unknown_directive_value_is_not_evaluated(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": MANIFEST + "@build-ruling optional\n"})
+        self.base = self.commit("bad directive")
+        self.git("checkout", "-q", "-B", "change")
+        self.change("build: D-001 調整 App")
+        with self.assertRaises(check.NotEvaluated):
+            check.evaluate(self.repo, self.base, "HEAD")
+
+    def test_directive_without_a_decision_log_is_not_evaluated(self):
+        self.git("checkout", "-q", "main")
+        self.write({"law/manifest.txt": BUILD_RULING_MANIFEST.replace("@decision-log docs/decision-log.md\n", "")})
+        self.base = self.commit("no decision log")
+        self.git("checkout", "-q", "-B", "change")
+        self.change("build: D-001 調整 App")
+        with self.assertRaises(check.NotEvaluated):
+            check.evaluate(self.repo, self.base, "HEAD")
+
+    def test_notices_become_github_warnings_on_actions(self):
+        import contextlib
+        import io
+        head = self.change("tidy\n\nRuling: none — 清理")
+        out = io.StringIO()
+        old = os.environ.get("GITHUB_ACTIONS")
+        os.environ["GITHUB_ACTIONS"] = "true"
+        try:
+            with contextlib.redirect_stdout(out):
+                code = check.main(["--repo", self.repo, "--base", self.base, "--head", head])
+        finally:
+            if old is None:
+                del os.environ["GITHUB_ACTIONS"]
+            else:
+                os.environ["GITHUB_ACTIONS"] = old
+        self.assertEqual(code, check.EXIT_PASS, out.getvalue())
+        self.assertIn("::warning title=沒有對應裁決的建構::", out.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

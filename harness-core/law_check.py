@@ -80,6 +80,7 @@ class Manifest:
         self.approvers = {}             # 方案 -> 核准者清單在 repo 裡的路徑
         self.approvals_required = 1
         self.coverage = None            # 問題側涵蓋清單在 repo 裡的路徑；None 代表不檢查
+        self.build_ruling = False       # 建構 PR 是否要宣告依據的裁決
         for number, raw in enumerate(text.splitlines(), 1):
             line = raw.strip()
             if not line or line.startswith("#"):
@@ -104,6 +105,10 @@ class Manifest:
                 self.approvals_required = int(value)
             elif key == "@coverage":
                 self.coverage = value
+            elif key == "@build-ruling":
+                if value != "required":
+                    raise NotEvaluated("清冊第 %d 行：@build-ruling 只接受 required" % number)
+                self.build_ruling = True
             elif key.startswith("@"):
                 raise NotEvaluated("清冊第 %d 行有不認得的指示：%s" % (number, key))
             elif value not in CLASSES:
@@ -114,6 +119,8 @@ class Manifest:
             raise NotEvaluated("清冊沒有列出任何律法路徑")
         if not self.amendments_dir:
             raise NotEvaluated("清冊沒有 @amendments 指示")
+        if self.build_ruling and not self.decision_log:
+            raise NotEvaluated("清冊有 @build-ruling，卻沒有 @decision-log 指出決策紀錄")
         for scheme in self.approval_schemes:
             if scheme not in VERIFIERS:
                 raise NotEvaluated("清冊要求的簽章方案 %s 這個版本不支援" % scheme)
@@ -205,6 +212,76 @@ def judge_coverage(repo, base, start, head, coverage_path):
                "不在清單內：%s。這是未立法的新範圍：先立法，或以修法把它列進 %s" % ("、".join(outside), coverage_path)),
               ("已立法範圍指向的規格存在", not missing_specs, "base 上沒有：" + "、".join(missing_specs))]
     return checks, reminders
+
+
+RULING_ID = re.compile(r"(?<![A-Za-z0-9-])D-\d+(?![A-Za-z0-9])")
+RULING_NONE = re.compile(r"(?im)^Ruling:[ \t]*none\b(.*)$")
+RULING_IN_EFFECT = "accepted"
+
+
+def decision_status(log_text, decision):
+    """決策紀錄裡某個裁決的狀態。找不到裁決回傳 None；有裁決但讀不到狀態回傳空字串。
+
+    裁決是一個標題（#、## …）開頭含編號的段落，到下一個同層或更高層的標題為止。
+    狀態是段落裡「Status」標題之後第一個非空行開頭、用反引號括起來的那個字。
+    """
+    heading = re.search(r"(?m)^(#+)[ \t]*%s\b.*$" % re.escape(decision), log_text)
+    if heading is None:
+        return None
+    rest = log_text[heading.end():]
+    following = re.search(r"(?m)^#{1,%d}[ \t]" % len(heading.group(1)), rest)
+    section = rest[:following.start()] if following else rest
+    status = re.search(r"(?m)^#+[ \t]*Status[ \t]*$\s*^`([^`\n]+)`", section)
+    return status.group(1).strip() if status else ""
+
+
+def judge_build_ruling(repo, base, start, head, decision_log_path):
+    """建構 PR 依據的裁決。回傳 (檢查項目清單, 提醒清單)；提醒是 (標題, 內容)。
+
+    宣告寫在提交訊息：標題裡的 D-<編號> 都算；沒有裁決可指時，訊息裡寫一行「Ruling: none — 理由」。
+    以 PR 為單位：範圍內所有非 merge 提交的宣告合起來看。
+    決策紀錄讀 base 上的版本：修法還沒合併時，它新增的裁決不在 base，依據它的建構就過不了。
+    """
+    log_text = show(repo, base, decision_log_path)
+    if log_text is None:
+        raise NotEvaluated("base（%s）上沒有 %s" % (base[:12], decision_log_path))
+    # 只有長得像本專案裁決編號的才算宣告：位數要與決策紀錄裡的編號相同。
+    # 標題裡常有別的代號（例如批次「D-1」），位數不同就不是裁決。
+    widths = {len(known) for known in re.findall(r"(?m)^#+[ \t]*(D-\d+)\b", log_text)}
+    out = git(repo, "log", "--no-merges", "--format=%H%x00%s%x00%B%x1e", "%s..%s" % (start, head))
+    decisions, nones, problems = [], [], []
+    for entry in out.stdout.decode("utf-8", "replace").split("\x1e"):
+        entry = entry.strip("\n")
+        if not entry:
+            continue
+        sha, subject, body = entry.split("\x00", 2)
+        for decision in RULING_ID.findall(subject):
+            if len(decision) in widths and decision not in decisions:
+                decisions.append(decision)
+        for match in RULING_NONE.finditer(body):
+            reason = match.group(1).strip().lstrip("—–-:：").strip()
+            if reason:
+                nones.append((sha, reason))
+            else:
+                problems.append("%s 的 Ruling: none 沒有寫理由" % sha[:12])
+    declared = bool(decisions or nones)
+    if not declared and not problems:
+        problems.append("範圍內的提交都沒有宣告。在提交的標題寫出依據的裁決（D-<編號>）；"
+                        "沒有裁決可指時，在提交訊息寫一行「Ruling: none — 理由」")
+    checks = [("建構宣告了依據的裁決", declared and not problems, "；".join(problems))]
+
+    not_in_effect = []
+    for decision in decisions:
+        status = decision_status(log_text, decision)
+        if status is None:
+            not_in_effect.append("%s 不在 base 的 %s（依據的修法還沒合併？）" % (decision, decision_log_path))
+        elif status == "":
+            not_in_effect.append("%s 讀不到狀態" % decision)
+        elif status != RULING_IN_EFFECT:
+            not_in_effect.append("%s 的狀態是 %s" % (decision, status))
+    checks.append(("宣告的裁決已在 base 生效", not not_in_effect, "；".join(not_in_effect)))
+    notices = [("沒有對應裁決的建構", "%s：%s" % (sha[:12], reason)) for sha, reason in nones]
+    return checks, notices
 
 
 def changed_files(repo, start, head):
@@ -393,6 +470,12 @@ def evaluate(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
 
 def evaluate_with_reminders(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
     """回傳 (是否通過, 報告行的清單, 未立法範圍的提醒清單 [(說明, 路徑)])。"""
+    passed, report, reminders, _ = evaluate_details(repo, base, head, manifest_path)
+    return passed, report, reminders
+
+
+def evaluate_details(repo, base, head, manifest_path=DEFAULT_MANIFEST_PATH):
+    """回傳 (是否通過, 報告行的清單, 未立法範圍的提醒清單 [(說明, 路徑)], 其他提醒 [(標題, 內容)])。"""
     report = []
     manifest_text = show(repo, base, manifest_path)
     if manifest_text is None:
@@ -448,15 +531,23 @@ def evaluate_with_reminders(repo, base, head, manifest_path=DEFAULT_MANIFEST_PAT
 
     if not needs_amendment and not records and not approvals:
         report.append("分類：建構 PR（沒有需要修法紀錄的律法修改）")
-        failed = [(name, detail) for name, ok, detail in coverage_checks if not ok]
-        if coverage_checks:
+        build_checks, notices = list(coverage_checks), []
+        if manifest.build_ruling and program:
+            # 只改文件、只縮短基線的 PR 沒有程式修改，不需要宣告
+            ruling_checks, notices = judge_build_ruling(repo, base, start, head_sha, manifest.decision_log)
+            build_checks += ruling_checks
+        if notices:
+            report.append("沒有對應裁決的建構（提醒：這些修改沒有裁決可以對照，合併前請確認）：")
+            report.extend("  - %s" % content for _, content in notices)
+        failed = [(name, detail) for name, ok, detail in build_checks if not ok]
+        if build_checks:
             report.append("")
             report.append("檢查項目：")
-            for name, ok, detail in coverage_checks:
+            for name, ok, detail in build_checks:
                 report.append("  [%s] %s%s" % ("通過" if ok else "未通過", name, "" if ok else "　— " + detail))
             report.append("")
         report.append("結果：%s" % ("未通過" if failed else "通過"))
-        return not failed, report, reminders
+        return not failed, report, reminders, notices
 
     report.append("分類：修法 PR")
     if needs_amendment:
@@ -559,7 +650,7 @@ def evaluate_with_reminders(repo, base, head, manifest_path=DEFAULT_MANIFEST_PAT
         report.append("")
     passed = all(ok for _, ok, _ in checks)
     report.append("結果：%s" % ("未通過" if not passed else "通過（結構檢查）" if not_evaluated else "通過"))
-    return passed, report, reminders
+    return passed, report, reminders, []
 
 
 def use_utf8_output():
@@ -582,7 +673,7 @@ def main(argv=None):
                         help="律法清冊在 repo 裡的路徑（預設：%s）" % DEFAULT_MANIFEST_PATH)
     args = parser.parse_args(argv)
     try:
-        passed, report, reminders = evaluate_with_reminders(args.repo, args.base, args.head, args.manifest)
+        passed, report, reminders, notices = evaluate_details(args.repo, args.base, args.head, args.manifest)
     except NotEvaluated as error:
         print("修法檢查：無法評估 — %s" % error)
         print("無法評估不算通過。")
@@ -593,6 +684,8 @@ def main(argv=None):
         # 讓提醒出現在 PR 的檢查結果頁，不必打開記錄才看得到
         for label, path in reminders:
             print("::warning title=未立法範圍::%s：%s" % (label, path))
+        for title, content in notices:
+            print("::warning title=%s::%s" % (title, content))
     return EXIT_PASS if passed else EXIT_FAIL
 
 

@@ -1,0 +1,15 @@
+{
+  "id": "2026-11-26-d096-response-dto-and-list-shape",
+  "decision": "D-096",
+  "reason": "回應 dto 與列表的形狀：維持現況並寫成規則（有分頁用 Page、沒有分頁用 { items }）；新增 ARCH-06（application 與 reporting 不得依賴 Jackson），違規樣本，既有 3 個讀取模型的 4 處標註凍結進基線；ArchitectureRuleSamplesTest 的比對認得類別本身的違規；api-spec §3.7 與三個分頁列表的回應說明；題目清單與草稿",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/",
+    "services/quality-inspection-service/src/test/resources/archunit_store/",
+    "docs/03-contracts/api-spec.md",
+    "docs/harness/45-response-dto-and-list-shape-draft.md",
+    "docs/harness/25-topic-backlog.md",
+    "docs/harness/README.md"
+  ]
+}
