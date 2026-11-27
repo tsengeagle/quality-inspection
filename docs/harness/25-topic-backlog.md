@@ -19,6 +19,7 @@
 6. **漏網紀錄的維護**（負責人 2026-11-26 列入）：`12-escaped-defects.md` 停在 2026-11-18 的 E-01～E-03，之後有沒有新的漏網沒有人記。漏網率是「harness 夠不夠」的主要指標（`04-definition-of-enough.md` 第二節）。要裁決的：什麼算漏網、誰在什麼時候記、要不要回頭盤點 2026-11-18 之後修掉的缺陷（例如 D-080 第 5 點的不合法 JSON、D-081 重開後改派卡住）。2026-11-27：負責人對草稿 `48-escaped-defects-inventory-draft.md` 的 L-1～L-5 全部照建議裁決，已照做（`12-escaped-defects.md` 到 E-09、「之後怎麼記」）。剩下的：把記的時間點寫進給 AI 的指示（要簽章）；E-04～E-09 偵測器的回應各自待裁決。
 7. **植入測試**（負責人 2026-11-27 列入，草稿 48 的 L-5）：`04-definition-of-enough.md` 第二節的另一個數字。設計 10 個有代表性的錯（分層違規、漏掉前置條件、跨院區讀取、少遮罩一個欄位、回應多一個欄位、事件少一個屬性、時間不帶時區、狀態轉移錯、錯誤代碼錯、前端讀錯欄位），放進程式，看閘門擋下幾個。驅動腳本可以沿用及格線實驗的 `docs/review/tools-2026-11-27/gate_mutations.py`。尚未起草。
 8. **文件的衝突標記與過期**（負責人 2026-11-27 列入，草稿 48 的 L-3）：(1) 帶著合併衝突標記的文件被推上 PR（#201 的 `14f1e93`），沒有任何檢查會擋；(2) `03-harness-plan.md`、`05-current-state.md` 的現況過期八天沒有人發現。要裁決的：要不要加一個檢查擋衝突標記；現況文件要不要訂更新的時間點，或裁決不處理。尚未起草。
+9. **`SYSTEM_ADMIN` 的案件列表照白名單收斂**（負責人 2026-11-27 判斷是缺陷，`12-escaped-defects.md` 的 E-10）：列表對 `SYSTEM_ADMIN` 多給了 `projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt`。要裁決的：`SYSTEM_ADMIN` 的列表有哪些欄位（白名單是 shared base 加 `batchId`、`dueAt`，其中 `projectName`、`updatedAt` 列表目前沒有；狀態叫 `status` 還是 `caseStatus`）、契約用兩種形狀還是可為 null 的欄位、前端的列表頁怎麼配合。要修法（規格、`http.yaml`）加建構。尚未起草。
 
 ## 已完成
 
