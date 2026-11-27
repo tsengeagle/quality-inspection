@@ -22,7 +22,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 import java.time.Clock;
 import java.time.Instant;
 import com.tzuchi.his.quality.inspection.application.common.IdGenerator;
@@ -120,7 +119,7 @@ public class ReviseInitialReviewUseCase {
         ScoreResult result = scoreCalculationService.calculate(rawItems, scoreSheet);
 
         // Create new revision
-        String newSubmissionId = UUID.randomUUID().toString();
+        String newSubmissionId = idGenerator.newId();
         ReviewSubmission newSubmission = ReviewSubmission.createRevision(
                 newSubmissionId, oldSubmission, result.getScoredAnswers(),
                 result.getTotalScore(), comment, now);
