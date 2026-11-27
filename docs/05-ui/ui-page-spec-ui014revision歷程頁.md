@@ -664,6 +664,16 @@ detail_modes:
 }
 ```
 
+這個範例是頁面的 view model，不是 API 的回應。API（`GET /review-cases/{caseId}/revision-history`，RC-VIS-05）給 `SYSTEM_ADMIN` 的每一筆是 `submissionId`、`stage`、`revisionNo`、`status`、`submittedAt`、`reviewerId`、`supersededBySubmissionId`（`totalScore`、`comment` 是 null）。對應：
+
+| view model | 來源 |
+|---|---|
+| `submittedBy` | `reviewerId` |
+| `isCurrent` | `status` 是 `SUBMITTED` 而且 `supersededBySubmissionId` 沒有值 |
+| `viewMode` | 案件詳情的回應是 metadata 形狀（UI-010 §5.5） |
+
+案件的狀態取自案件詳情的 `caseStatus`（metadata 形狀沒有 `status`）。
+
 ---
 
 ## 13. 頁面測試重點

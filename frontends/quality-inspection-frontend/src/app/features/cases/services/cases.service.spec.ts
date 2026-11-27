@@ -85,6 +85,126 @@ describe('CasesService', () => {
     });
   });
 
+  // D-036、D-094 第 9 點：SYSTEM_ADMIN 的案件詳情只有七欄（specs/review-case/http.yaml 的 metadata 形狀）
+  const metadataDetailResponse = {
+    success: true,
+    data: {
+      caseId: 'CASE-020',
+      caseStatus: 'REREVIEW_IN_PROGRESS',
+      projectName: '品質審查專案',
+      hospitalId: 'H001',
+      reviewerId: 'reviewer-1',
+      rereviewerId: null,
+      updatedAt: '2026-11-19T09:00:00Z'
+    }
+  };
+
+  it('maps the seven-field metadata response to a metadata view model', () => {
+    let actual: unknown;
+
+    service.getCaseDetailOrMetadata('CASE-020').subscribe(result => {
+      actual = result;
+    });
+
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-020`).flush(metadataDetailResponse);
+
+    expect(actual).toEqual({
+      projectionType: 'METADATA_ONLY',
+      caseId: 'CASE-020',
+      status: 'REREVIEW_IN_PROGRESS',
+      projectName: '品質審查專案',
+      hospitalId: 'H001',
+      reviewerId: 'reviewer-1',
+      rereviewerId: null,
+      updatedAt: '2026-11-19T09:00:00Z'
+    });
+  });
+
+  it('fails explicitly when a page that needs the full case detail gets the metadata response', () => {
+    let error: unknown;
+    let emitted = false;
+
+    service.getCaseDetail('CASE-020').subscribe({
+      next: () => { emitted = true; },
+      error: e => { error = e; }
+    });
+
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-020`).flush(metadataDetailResponse);
+
+    expect(emitted).toBeFalse();
+    expect(error instanceof Error).toBeTrue();
+    expect((error as Error).message).toContain('metadata');
+  });
+
+  it('fails explicitly when the case detail response is neither the full nor the metadata shape', () => {
+    let error: unknown;
+    let emitted = false;
+
+    service.getCaseDetailOrMetadata('CASE-021').subscribe({
+      next: () => { emitted = true; },
+      error: e => { error = e; }
+    });
+
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-021`).flush({
+      success: true,
+      data: { caseId: 'CASE-021', hospitalId: 'H001' }
+    });
+
+    expect(emitted).toBeFalse();
+    expect(error instanceof Error).toBeTrue();
+  });
+
+  it('builds the revision history of a metadata case from caseStatus (UI-014 metadata history)', () => {
+    let actual: unknown;
+
+    service.getRevisionHistory('CASE-020').subscribe(result => {
+      actual = result;
+    });
+
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-020`).flush(metadataDetailResponse);
+    // RC-VIS-03、RC-VIS-05：SYSTEM_ADMIN 的歷程沒有分數與評語
+    httpMock.expectOne(`${environment.apiBasePath}/review-cases/CASE-020/revision-history`).flush({
+      success: true,
+      data: {
+        caseId: 'CASE-020',
+        submissions: [
+          {
+            submissionId: 'SUB-001',
+            stage: 'INITIAL',
+            reviewerId: 'reviewer-1',
+            status: 'SUBMITTED',
+            revisionNo: 1,
+            totalScore: null,
+            comment: null,
+            submittedAt: '2026-11-19T08:00:00Z',
+            supersededBySubmissionId: null
+          }
+        ]
+      }
+    });
+
+    expect(actual).toEqual({
+      caseId: 'CASE-020',
+      status: 'REREVIEW_IN_PROGRESS',
+      actorRole: '',
+      projectionType: 'METADATA_ONLY',
+      revisions: [
+        {
+          submissionId: 'SUB-001',
+          stage: 'INITIAL',
+          reviewerId: 'reviewer-1',
+          status: 'SUBMITTED',
+          revisionNo: 1,
+          totalScore: null,
+          comment: null,
+          submittedAt: '2026-11-19T08:00:00Z',
+          supersededBySubmissionId: null,
+          isCurrentEffective: true
+        }
+      ]
+    });
+  });
+
   it('merges case detail truth and revision history truth for UI-014', () => {
     let actual: unknown;
 
