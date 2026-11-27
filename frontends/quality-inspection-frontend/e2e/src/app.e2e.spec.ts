@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
-async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Promise<void> {
+async function mockWave3CasesApi(page: Page): Promise<void> {
   await page.route('**/api/quality-inspection/review-cases?*', async route => {
     await route.fulfill({
       status: 200,
@@ -139,7 +139,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
   });
 }
 
-async function mockSamplingApi(page: Parameters<typeof test>[0]['page']): Promise<void> {
+async function mockSamplingApi(page: Page): Promise<void> {
   await page.route('**/api/quality-inspection/sampling-batches?*', async route => {
     await route.fulfill({
       status: 200,
