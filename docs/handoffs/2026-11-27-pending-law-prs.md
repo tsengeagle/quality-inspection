@@ -4,7 +4,7 @@
 > 事實的權威來源依序是：`docs/01-requirements/decision-log.md`、GitHub PR 與 CI 紀錄、`docs/harness/25-topic-backlog.md`。本文件與它們衝突時，以它們為準。
 > **2026-11-27 稍晚補充**：交接文件寫完之後又做了兩件不需要簽章的工作（及格線對新的偵測器重做、前端回應型別與 HTTP 契約的核對，#203）。結果在第 E-5、E-6 節；剩下還能做的事整理在第 J 節。第 A、D、E-3、H、I 節已跟著更新。
 > **第二次補充**：修了 F-1（#204），做了漏網紀錄的盤點（#205）。第 A、D-2、E-3、E-6、H、J 節已跟著更新；新增第 E-7 節。
-> **第三次補充（2026-11-28 台北時間，另一個 session 接手時寫）**：#202～#212、#214 都已合併，`main` = `02811a3`。等簽章的鏈多了兩個修法 PR：#213（D-099）、#215（D-100）。第 A、B、C、F、H、I、J 節已改成現況；第 D-1、D-2、E-3、E-6、E-7 節補上後續；新增第 E-8、E-9 節。第 D-3、E-1、E-2、E-4、E-5、G 節沒有動，內容仍是 2026-11-27 的版本。這次補充的依據是 GitHub 的 PR 清單與各 PR 的說明、`main` 上的文件，加上一次本機的 `law_check`（第 B 節）；**沒有重跑測試，沒有查 CI**。
+> **第三次補充（2026-11-28 台北時間，另一個 session 接手時寫）**：#202～#212、#214 都已合併，`main` = `02811a3`。等簽章的鏈多了兩個修法 PR：#213（D-099）、#215（D-100）。第 A、B、C、F、H、I、J 節已改成現況；第 D-1、D-2、E-3、E-6、E-7 節補上後續；新增第 E-8、E-9 節。第 D-3、E-1、E-2、E-4、E-5、G 節沒有動，內容仍是 2026-11-27 的版本。這次補充起初只依據 GitHub 的 PR 清單與各 PR 的說明；之後負責人要求核對 #205～#215，結果在第 D-1c 節（本機重跑了前後端的測試、重算了雜湊、查了 CI）。核對之後 #194 的分支已併入 `main`（`3d0fead`）。
 > **還沒有簽章合併的裁決（D-096～D-100）不在 `main` 的 `decision-log.md` 裡（`main` 停在 D-095），尚未生效。** 本文件引用它們的地方，內容以各自 PR 的分支為準。
 
 ---
@@ -16,11 +16,11 @@
 | `main` | `02811a3`（PR #214 合併後，2026-11-28 07:02 台北時間） |
 | 卡住的原因 | 負責人暫時無法用實體金鑰簽章。五個修法 PR 排成一條鏈，都在等簽章 |
 | 開著的 PR | 6 個，全部在等簽章的鏈上：#194（D-096 修法）、#195（D-096 建構，draft）、#197（D-097 修法，draft）、#201（D-098 修法，draft）、#213（D-099 修法，批 0，draft）、#215（D-100 修法一，draft）。不需要簽章的 PR 都已合併 |
-| 下一個動作 | #194 的分支併入 `main`（落後 47 個提交）→ 負責人簽 #194 並合併。之後的每一步見第 C 節 |
+| 下一個動作 | **負責人簽 #194（提交 `3d0fead`）並合併。** 分支已與 `main` 同步。之後的每一步見第 C 節 |
 | 不需要簽章的工作 | #191～#193、#196、#198～#200、#202～#212、#214 都已合併。還能做的列在第 J 節 |
 | 使用者會遇到的缺陷 | F-1、F-2、案件列表頁的 N-1、N-2 都已修好並合併（只有前端的測試，**沒有對真實的後端執行**）。還沒有修的：`SYSTEM_ADMIN` 的案件列表與匯出比白名單多（E-10、E-11），要等 #215 簽章合併之後才能建構 |
 | 等負責人裁決的 | E-04～E-10 各筆「對 harness 的回應」裡還標著待裁決的（`12-escaped-defects.md`）；第 J-1 節的幾項小修 |
-| `main` 的閘門 | **這次沒有重跑，也沒有查 CI。** 最近的本機紀錄：#214 的說明（typecheck 通過、單元測試 250 個、E2E 20 通過 3 略過）；後端是 #215 的說明（在它的分支上，不是 `main`） |
+| `main` 的閘門 | 2026-11-28 在 `02811a3` 上本機重跑（JDK 17）：後端 `./gradlew test` 1805 個測試、失敗 0、`BUILD SUCCESSFUL`；前端 typecheck 通過、單元測試 250 個、E2E 20 通過 3 略過；`spec_lint` 通過。CI 上 `02811a3` 的 `law-check`、`spec-check`、`frontend-check`、`law-selftest`、`backend-check` 都成功 |
 
 ---
 
@@ -40,28 +40,28 @@ graph LR
 
 | PR | 分支 | 提交 | 落後 `main` | 內容 | 卡在哪裡 |
 |---|---|---|---:|---|---|
-| #194 | `claude/happy-tesla-zdfi5t` | `60b5f19` | 47 | D-096：回應 dto 與列表的形狀維持現況、寫成規則；新增 ARCH-06（`application`、`reporting` 不得依賴 Jackson）；`api-spec.md` §3.7 | 併入 `main` → **負責人的簽章** |
+| #194 | `claude/happy-tesla-zdfi5t` | `3d0fead` | 0 | D-096：回應 dto 與列表的形狀維持現況、寫成規則；新增 ARCH-06（`application`、`reporting` 不得依賴 Jackson）；`api-spec.md` §3.7 | **負責人的簽章**。2026-11-28 已與 `main`（`02811a3`）同步 |
 | #195（draft） | `claude/build-d096-scoresheet-return-types` | `ca7c4af` | 47 | D-096 第 4 點：`ScoreSheetController` 7 個方法的回傳型別寫明。行為不變 | #194 合併。不需要簽章 |
 | #197（draft） | `claude/law-d097-build-after-ruling` | `c502d55` | 47 | D-097：建構 PR 要宣告依據的裁決，裁決要已在 base 生效。`law_check.py` 0.9.0、測試 24 個、清冊加 `@build-ruling required`、`AGENTS.md` §5.0.1、`CLAUDE.md` | #194 合併 → 更新分支 → **負責人的簽章** |
 | #201（draft） | `claude/law-d098-event-detail` | `c936ba3` | 47 | D-098：事件的 `detail` 改成結構化（只有裁決，沒有規格、範例、閘門、程式的修改） | #197 合併 → 更新分支 → **負責人的簽章** |
 | #213（draft） | `claude/law-d099-frontend-gate` | `6954210` | 3 | D-099：前端與 HTTP 契約之間的閘門（草稿 50 的 G-1～G-10）。批 0：前端閘門的設定列為律法（`law/manifest.txt`）。沒有程式的修改 | #201 合併 → 更新分支 → **負責人的簽章** |
 | #215（draft） | `claude/law-d100-admin-whitelist` | `2c2a0e3` | 22 | D-100：`SYSTEM_ADMIN` 的案件列表與匯出照白名單收斂（草稿 49、51）。規格、範例、`http.yaml`、比對器、`coverage.txt`、權限矩陣、`api-spec.md`、頁面規格；7 個新範例凍結在已知失敗清單。程式沒有改 | #213 合併 → 更新分支 → **負責人的簽章** |
 
-「落後 `main`」是 2026-11-28 以 `git rev-list --count <分支>..origin/main` 算的。
+「落後 `main`」是 2026-11-28 以 `git rev-list --count <分支>..origin/main` 算的。同一天以 `git merge-tree` 模擬把 `main` 併入各分支：#195、#213、#215 沒有衝突；#197、#201 在 `docs/harness/25-topic-backlog.md` 衝突（只有這一個檔案，不是律法）。
 
 ### 內容雜湊
 
 | PR | 內容雜湊 | 怎麼算的 |
 |---|---|---|
-| #194 | `sha256:68c0fa83dd5db9d8fb8c1d2b8a40225e791efd8ddde016060741b0bba6fb367c` | `law_check.py --base origin/main --head 60b5f19`。**2026-11-28 再驗一次**：本機把 `60b5f19` 併入 `main`（`02811a3`），沒有衝突（`25-topic-backlog.md`、`docs/harness/README.md` 自動合併），雜湊相同，12 項中只有核准簽章未通過。這個合併沒有推送 |
+| #194 | `sha256:68c0fa83dd5db9d8fb8c1d2b8a40225e791efd8ddde016060741b0bba6fb367c` | `law_check.py --base origin/main --head 3d0fead`（2026-11-28，併入 `02811a3` 之後）。與併入之前的 `60b5f19` 相同；12 項中只有核准簽章未通過。合併沒有衝突，沒有殘留的衝突標記 |
 | #197 | `sha256:63444bbf5fd3641215aa4833170d945985f04b120e2ae66c7038600f1f0107b7` | 以 #194 的分支為 base 模擬。**僅供對照**，輪到它時要重算 |
 | #201 | `sha256:accd8d0cbd90a639cb444d2cd37282e95caceb8115eba80e01e8c2fd22f27dc9` | 以 #197 的分支為 base 模擬。**僅供對照**，輪到它時要重算 |
-| #213 | `sha256:31bcad914a1ce35b07638aee10f4549fdf91b6a5367bde2ca7cf13d17e252b51` | 抄自 PR 的說明（以本分支的前一個提交為 base 模擬）。**僅供對照** |
-| #215 | `sha256:ce17f1dc56fb64c6abc454b3134fe7e3f318d46665aa439b7eb34c702c01b46c` | 抄自 PR 的說明（以 #213 的提交為 base 模擬）。**僅供對照** |
+| #213 | `sha256:31bcad914a1ce35b07638aee10f4549fdf91b6a5367bde2ca7cf13d17e252b51` | 2026-11-28 重算相同：`law_check.py --base 4388283 --head 32692ed`（分支併入 `main` 之前的那一段；`6954210` 是之後併入 `main` 的 merge 提交）。**僅供對照**，輪到它時要重算 |
+| #215 | `sha256:ce17f1dc56fb64c6abc454b3134fe7e3f318d46665aa439b7eb34c702c01b46c` | 2026-11-28 重算相同：`law_check.py --base 6954210 --head 2c2a0e3`。**僅供對照**，輪到它時要重算 |
 
 ### CI
 
-下面是 #194、#195、#197、#201 在 2026-11-27 00:27～00:32 UTC 的執行，四個 PR 的結果相同。**之後沒有再查；#213、#215 的 CI 沒有查過。**
+下面是 #194、#195、#197、#201 在 2026-11-27 00:27～00:32 UTC 的執行，四個 PR 的結果相同。2026-11-28 查了 #213（`6954210`）、#215（`2c2a0e3`）：結果也相同。**#194 推上 `3d0fead` 之後的 CI 還沒有看。**
 
 | 檢查 | 結果 |
 |---|---|
@@ -77,7 +77,7 @@ graph LR
 - #195：分類為修法 PR，夾帶程式、沒有簽章。這是刻意的，見第 E-1 節。
 - #197：差異裡有 2 筆修法紀錄（含 #194 的）。
 - #201：差異裡有 3 筆修法紀錄。
-- #213、#215：依 PR 的說明，差異裡分別有 4 筆、5 筆修法紀錄（沒有在本機重算）。
+- #213、#215：差異裡分別有 4 筆、5 筆修法紀錄（2026-11-28 本機重算確認）。
 
 ---
 
@@ -85,7 +85,7 @@ graph LR
 
 | 步驟 | 動作 | 誰 | 備註 |
 |---|---|---|---|
-| 0 | #194 的分支併入 `main`，回報新的提交與內容雜湊 | 接手的 session | 本機模擬過：沒有衝突，雜湊不變（第 B 節） |
+| 0 | #194 的分支併入 `main`，回報新的提交與內容雜湊 | 接手的 session | **已做（2026-11-28）**：提交 `3d0fead`，雜湊不變（第 B 節）。`main` 若再前進要重做 |
 | 1 | 簽 #194、合併 | 負責人 | 指令見下方 |
 | 2 | #195 的分支併入新的 `main`，確認 `law-check` 轉為通過（分類為建構 PR），轉成 Ready、合併 | 接手的 session 確認，負責人合併 | 本機已模擬通過；CI 上還沒看過 |
 | 3 | #197 的分支併入新的 `main`，重算內容雜湊並回報 | 接手的 session | **`25-topic-backlog.md` 會衝突**（#206、#209 的說明已預告：待辦的編號）。該檔不是律法，不影響雜湊 |
@@ -131,7 +131,7 @@ python3 -I harness-core/law_approve.py --head origin/$BRANCH --signer tsengeagle
 
 ### D-1b 2026-11-27 之後合併的（第三次補充）
 
-依各 PR 的說明整理，**這次沒有重跑**。#206～#215 是前一個 session（`session_017vFJAepcmWYhdbKadsUUxb`）做的。
+依各 PR 的說明整理；核對的結果在第 D-1c 節。#206～#215 是前一個 session（`session_017vFJAepcmWYhdbKadsUUxb`）做的。
 
 | PR | 內容 | 狀態 | 證據（PR 的說明） |
 |---|---|---|---|
@@ -147,6 +147,35 @@ python3 -I harness-core/law_approve.py --head origin/$BRANCH --signer tsengeagle
 | #211 | 文件：草稿 51（`SYSTEM_ADMIN` 的匯出） | — | 只有文件 |
 | #212 | 文件：草稿 50（前端與 HTTP 契約之間的閘門） | — | 只有文件；一次本機的 `law_check` 實驗 |
 | #214 | 建構：E2E 的檔案加上型別檢查，接進 `typecheck`（D-099 的批 1）。提交寫 `Ruling: none` | VERIFIED（本機） | typecheck 通過；暫時寫錯型別時 `typecheck:e2e` 失敗；單元測試 250 個、E2E 20 通過 3 略過。`demo-flow.ts` 的 14 處修改只有編譯過 |
+
+### D-1c #205～#215 的核對（2026-11-28）
+
+負責人要求核對。本機 JDK 17、Node 22，在獨立的 worktree 上執行，沒有修改任何分支。
+
+| 核對的項目 | 方法 | 結果 |
+|---|---|---|
+| #205～#212、#214 已合併、改動的範圍 | `main` 上的合併提交，逐一看改到的檔案 | 九個都在 `main`。#205、#206、#209、#211、#212 只動 `docs/harness/`；#207 只動 `docs/review/`；#208 動前端與兩份頁面規格；#210 只動前端；#214 動 `e2e/` 與 `package.json` |
+| `main`（`02811a3`）後端 | `./gradlew test` | 1805 個測試、失敗 0、`BUILD SUCCESSFUL` |
+| `main` 前端（#208、#210、#214 的說明） | `npm ci`、`npm run typecheck`、單元測試、E2E | typecheck 通過（含 `tsc -p e2e/tsconfig.json`）；單元測試 250 個通過；E2E 20 通過、3 略過。與 #210、#214 的說明相同 |
+| #204：前端讀 `owner` | 讀 `cases.service.ts` | `owner: boolean`，對應到 view model 的 `isOwner` |
+| #210：`case-status.ts` 的九個值 | 與 `specs/review-case/model.yaml` 的列舉比對 | 九個值完全相同 |
+| #214：`typecheck` 接上 E2E | 讀 `package.json` | `typecheck` 是 `ng build` 之後接 `typecheck:e2e` |
+| `main` 的 CI | GitHub Actions，`02811a3` 的 push | 五個 workflow 都成功。#214 的 PR 檢查八項：七項成功、`law-check (post-merge)` 略過 |
+| #213 的內容雜湊 | `law_check.py --base 4388283 --head 32692ed` | 與 PR 的說明相同 |
+| #213 的清冊 | `law/manifest.txt` 的差異 | 與 PR 說明的表相同（11 個 gate 路徑、1 個 baseline） |
+| #215 的內容雜湊 | `law_check.py --base 6954210 --head 2c2a0e3` | 與 PR 的說明相同 |
+| #215 後端 | `./gradlew test`（`2c2a0e3`） | 1825 個測試、失敗 7、`BUILD SUCCESSFUL`。失敗的 7 個與 `known-test-failures.txt` 的 7 筆逐一相同 |
+| #213、#215 的 `harness-core/tests` | `python3 -m unittest discover` | 各 227 個通過 |
+| `main`、#213、#215 的 `spec_lint.py` | 用 CI 的參數（`--design-docs docs/02-ddd --testing-docs docs/04-testing --report-only spec-draft`） | 通過。**不帶參數執行會得到「未通過」**，那不是 CI 的用法 |
+| #213、#215 的 CI | PR 的檢查 | `check`、`check (windows)`、`frontend-check`、`spec-check`、`law-selftest`、`law-selftest (windows)` 成功；`law-check` 失敗（預期） |
+
+核對時看到的：
+
+- #213 的分支在寫完 PR 說明之後又併入過 `main`（`6954210` 是 merge 提交）。說明裡「以本分支的前一個提交為 base」指的是 `4388283`，不是現在的 `HEAD~1`。
+- #215 的分支沒有包含 #208、#210、#214（落後 22 個提交）。直接拿它與 #213 的 `6954210` 比，會看到前端的檔案被「刪除」，那是落後造成的；#215 自己的修改是 `32692ed..2c2a0e3` 的 20 個檔案，沒有前端的程式。
+- 第一次跑 `./gradlew test` 時 Maven Central 回 429（Too Many Requests），重跑就通過。
+
+**沒有核對的**：#205～#212 各文件裡的事實（它們自己也寫明是讀程式得到的）；#215 的對照實驗與比對器的單元測試沒有單獨重做（含在 `./gradlew test` 裡）；#213「指令換成空殼之後 `frontend-check` 會是綠的」；所有前端的修正仍然**沒有對真實的後端執行**；#206～#212 各 PR 當時的 CI 沒有逐一查。
 
 ### D-2 還沒合併（第 B 節）
 
