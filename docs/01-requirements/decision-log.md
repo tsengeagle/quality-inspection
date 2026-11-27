@@ -3898,3 +3898,154 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `services/quality-inspection-service/known-test-failures.txt`
 - `docs/harness/25-topic-backlog.md`
 - 後續：建構 PR
+
+---
+
+## D-096 — 回應 dto 與列表的形狀（維持現況、寫成規則，ARCH-06）
+
+### Status
+
+`accepted`（2026-11-26，負責人對 `docs/harness/45-response-dto-and-list-shape-draft.md` 的 P-1～P-8 全部照建議裁決）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 P-n）。本裁決結束 D-093 第 6 點留下的兩件。HTTP 的行為沒有變更，`specs/` 的 HTTP 契約不動。
+
+1. **直接輸出 application 物件的端點（P-1 選 A）**：13 個端點維持現況，不改成回應 dto。形狀由封閉的 HTTP 契約保護（D-088 第 8 點）。之後有「application 要演進、HTTP 要凍結」的實際需求時，只做受影響的端點。
+2. **application 與 reporting 不得依賴 Jackson（P-2 選 A）**：新增架構規則 ARCH-06，範圍是 `application`、`reporting` 對 `com.fasterxml.jackson` 的任何依賴（標註、`ObjectMapper` 都算）。既有的 3 個讀取模型共 4 處標註凍結在基線，只擋新增：
+   - `ReviewCaseDetailView`：`getUpdatedAt()`、`isInitialReviewFixed()` 的 `@JsonIgnore`。
+   - `CaseDetailMetadataView`：`metadata()` 的 `@JsonValue`。
+   - `WhitelistedSubmissionDetailView`：類別上的 `@JsonIgnoreProperties`。
+
+   `domain` 不在範圍內：事件用 `ObjectMapper` 產生稽核的 `detail`（D-080 第 5 點），現在凍結會把新事件推回拼字串。等題目清單的「事件的 `detail` 改成結構化」做完，再把 `domain` 納入。
+3. **用 `Map` 組回應的端點（P-3 選 A）**：7 個端點維持現況。
+4. **`ScoreSheetController` 的回傳型別（P-4 選 A）**：7 個方法的 `ResponseEntity<?>` 改成具體的 `ResponseEntity<ApiResponse<…>>`。不新增類別，HTTP 的行為不變。由建構 PR 處理。
+5. **列表的形狀（P-5 選 A）**：`Page` 與 `{ items }` 不統一。規則：
+   - **有分頁的列表**：`data` 是 `{ content, page, size, totalElements, totalPages }`。`page` 從 0 起算。目前是 `GET /review-cases`、`GET /sampling-batches`、`GET /audit-trails`。
+   - **沒有分頁的列表**：`data` 是 `{ items }`，一次回全部。目前是 `GET /review-projects`（D-062 第 1 點）、`GET /score-sheets`（D-050 第 7 點）。
+   - 新的列表端點依有沒有分頁選其中一種，不新增第三種寫法。
+6. **例外（P-6 選 A）**：下列維持現況，是第 5 點的已知例外，不作為新端點的先例。
+   - `POST /reports/export`：`{ reportType, rows, summary, page, size, totalElements, totalPages }`。它是報表的回應，不是一般的列表。
+   - `GET /review-cases/{caseId}/assignment-candidates`、`GET /review-cases/{caseId}/lifecycle`：`data` 直接是陣列。
+7. **契約的寫法（P-7 選 A）**：`Page` 的形狀在各 `http.yaml` 維持各寫一次，不擴充共用形狀的格式。
+8. **分批（P-8）**：
+   1. 修法 PR：本裁決、ARCH-06（規則、違規樣本、凍結基線）、`api-spec.md` §3.7 與 §9.5、§10.1、§14.2 的回應說明、題目清單、草稿。
+   2. 建構 PR：第 4 點。
+
+### Relationship / Evidence
+
+- **起因**：D-088 第 8、9 點（程式不動、兩種列表並存，要不要改另立題目）；D-093 第 6 點（留在題目清單）。
+- **草案**：`docs/harness/45-response-dto-and-list-shape-draft.md`（main = `1244182`）。事實是讀程式、契約與文件，沒有實測；HTTP 的實際回應由 `http.yaml` 的比對閘門驗證。
+- **ARCH-06 的本機驗證**（2026-11-26，JDK 17）：違規樣本測試通過（3 個違規樣本被報出，2 個合規對照沒有）；基線建立後 `./gradlew test` 通過；暫時在 `SamplingPreviewResult` 加上 `@JsonInclude`，`ArchitectureRulesTest#arch06NoJacksonInApplicationOrReporting` 失敗，還原後通過。
+- **與既有裁決的關係**：結束 D-093 第 6 點；延伸 D-088 第 8、9 點；D-050 第 7 點、D-062 第 1 點不變。
+
+### Mapping
+
+- `services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/architecture/`（`ArchitectureRules`、`ArchitectureRulesTest`、`ArchitectureRuleSamplesTest`、`samples/jackson/`）
+- `services/quality-inspection-service/src/test/resources/archunit_store/`（ARCH-06 的基線）
+- `docs/03-contracts/api-spec.md` §3.7、§9.5、§10.1、§14.2
+- `docs/harness/45-response-dto-and-list-shape-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續：建構 PR（第 4 點）；題目清單「事件的 `detail` 改成結構化」
+
+---
+
+## D-097 — 建構不得先於它依據的裁決併入主線
+
+### Status
+
+`accepted`（2026-11-26，負責人對 `docs/harness/46-build-after-ruling-draft.md` 的 B-1～B-8 全部照建議裁決）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 B-n）。
+
+1. **用閘門擋（B-1 選 B）**：改到程式的建構 PR 必須宣告它依據的裁決，`law-check` 檢查宣告的裁決已經在 **base** 的 `decision-log.md` 生效。修法 PR 還沒合併時，它新增的裁決不在 base，依據它的建構 PR 過不了；修法合併之後自動放行。
+2. **宣告寫在提交訊息（B-2 選 A）**：
+   - 提交的**標題**裡出現的每一個裁決編號（`D-nnn`）都算宣告。沿用既有的慣例，例如 `build: D-095 逾期看目前階段的期限`。
+   - 位數與 `decision-log.md` 裡的編號不同的代號不算裁決（例如標題裡的批次「D-1」）。這一條是回放歷史時發現後補上的，見 Evidence。
+   - 標題沒有裁決編號時，提交訊息要有一行 `Ruling: none — <理由>`（第 3 點）。
+   - 提交訊息本文裡提到的裁決編號不算宣告。
+3. **沒有對應裁決的建構（B-3 選 A）**：允許。清理、純重構、升級相依套件在提交訊息寫 `Ruling: none — <理由>`，理由必填。`law-check` 通過，報告列為提醒，在 GitHub 上顯示為 warning，由負責人在合併前看。修缺陷有依據（程式不符合既有的規格），宣告那條規則所在的裁決，不是 `none`；這一點寫在給 AI 的指示，閘門不判斷。
+4. **範圍（B-4 選 A）**：差異裡有「律法與文件以外的檔案」的建構 PR。只改文件、只縮短基線的 PR 不需要宣告。修法 PR 不檢查（它本來就不能夾帶程式）。
+5. **以 PR 為單位（B-5 選 A）**：`merge-base..head` 之間所有非 merge 提交的宣告合起來看。至少要有一個宣告；宣告的每一個裁決都要生效。merge 提交的訊息不算。
+6. **「生效」的定義（B-6 選 B）**：裁決的標題在 base 的 `decision-log.md` 裡，而且狀態是 `accepted`。狀態是該裁決的段落中 `Status` 標題之後第一個非空行開頭、用反引號括起來的字。`superseded` 或讀不到狀態都算沒有生效。
+7. **啟用（B-7 選 A）**：`law/manifest.txt` 加上 `@build-ruling required`。沒有這一行時判決程式的行為不變。本裁決的修法 PR 合併之後，下一個 PR 起生效（CI 的判決程式與清冊都取自 base）。
+8. **分批（B-8）**：一個修法 PR，沒有建構 PR（`harness-core/` 整個是律法）：
+   - `harness-core/law_check.py` 與測試，版本 0.9.0；`harness-core/README.md`、`law/README.md`。
+   - `law/manifest.txt`（啟用）。
+   - 給 AI 的指示：`AGENTS.md` §5.0.1、`CLAUDE.md`。其他工具的指示檔（Copilot、Kiro 等）留給 `03-harness-plan.md` 的 2-4 期。
+   - `03-harness-plan.md` 義務對照表 P4 的現況、題目清單、草稿。
+
+### 這個機制擋不到的
+
+1. 宣告了不相干但存在的裁決編號。
+2. 把有依據的建構宣告成 `Ruling: none`（會出現在提醒裡）。
+3. 改了行為、但沒有範例涵蓋那個行為的建構。要靠擴大範例的涵蓋。
+4. 直接推送到 `main`，或用管理員權限繞過保護規則。
+5. 裁決已在 base，但建構做的事超出裁決的範圍。
+
+### Relationship / Evidence
+
+- **起因**：D-096 的修法 PR #194 等簽章時先做了建構（#195）。#195 被擋下是因為分支刻意疊在 #194 上；負責人 2026-11-26 指出應該由閘門擋，並把這題排在題目清單最前。
+- **草案**：`docs/harness/46-build-after-ruling-draft.md`（main = `5d1f462`）。
+- **缺口的實測**（2026-11-26，本機）：把 #195 的修改做成一個從 `main` 開出來的提交（不疊在 #194 上，標題是 `build: D-096 第 4 點…`）。0.8.0 的判決程式判為建構 PR、通過；同一個提交在啟用新規則之後未通過，理由是「D-096 不在 base 的 docs/01-requirements/decision-log.md」。這個提交沒有推送。
+- **回放歷史**（2026-11-26，本機，淺層複製看得到的 53 個已合併 PR）：把新規則套到每一個 PR 合併前的 base 與 head。
+  - 修法 PR 27 個：不檢查，結果不變。
+  - 建構 PR 24 個：2 個只改文件，不需要宣告；21 個有宣告而且裁決都已在當時的 base 生效，通過；1 個未通過（#175，清理沒有使用的 dto，沒有宣告），依第 3 點應該寫 `Ruling: none`。
+  - 2 個無法評估（#142、#143，淺層複製的邊界找不到 merge-base）。
+  - 第一次回放有 2 個誤判（#169、#172）：標題「D-088 D-1 …」「D-088 D-2 …」的批次代號被當成裁決編號。因此補上第 2 點的位數規則，重跑後消失。
+- **測試**：`python3 -m unittest discover -s harness-core/tests`，227 個通過（原本 203 個，新增 `BuildRulingTest` 24 個）。
+- **`decision-log.md` 的狀態**：96 個裁決都讀得出狀態（`accepted` 93、`superseded` 3）。草稿事實 12 說 D-013～D-016 的寫法不同，查證後只是 `Status` 標題與狀態之間沒有空行，不需要整理。
+- **與既有裁決的關係**：延伸 D-060（涵蓋清單的啟用方式）；對應 MGD 的 P4、P6。
+
+### Mapping
+
+- `harness-core/law_check.py`、`harness-core/tests/test_law_check.py`、`harness-core/VERSION`、`harness-core/README.md`
+- `law/manifest.txt`、`law/README.md`
+- `AGENTS.md` §5.0.1、`CLAUDE.md`
+- `docs/harness/03-harness-plan.md` 第三節、`docs/harness/46-build-after-ruling-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續：其他工具的指示檔（2-4 期）；訂定 harness 的有界主張時引用「擋不到的」五項
+
+---
+
+## D-098 — 事件的 `detail` 改成結構化，序列化移到稽核的寫入端
+
+### Status
+
+`accepted`（2026-11-27，負責人對 `docs/harness/47-event-detail-draft.md` 的 E-1～E-8 全部照建議裁決；第 6 點的範圍在動工前再確定）
+
+### Decision
+
+點號對應草稿的題號（第 n 點是 E-n）。本裁決不改變任何對外的行為：稽核資料表、稽核查詢的回應、HTTP 契約、前端都不動；`specs/` 的規格與範例不動。
+
+1. **範圍（E-1 選 A）**：有 `detail` 的事件全部改成帶結構化的資料，不再自己產生 JSON 字串；序列化移到 `AuditTrailListener`。做完後 `domain` 不依賴 Jackson。起草時數到的是 27 個事件（17 個 `String.format`、4 個字串相加、5 個 `ObjectMapper`、1 個由 use case 組好字串傳入），以動工時的盤點為準。
+2. **型別（E-2 選 A）**：`DomainEvent` 的 `detail` 是 `Map<String, Object>`，保留建立的順序，基底存成不可變的副本。
+   - 「哪些資料進稽核紀錄、鍵叫什麼」留在 domain 的事件（D-070、D-071 裁決過的內容不變）；「怎麼變成字串」是 infrastructure 的事。
+   - 允許的值：字串、整數、`BigDecimal`、布林、`null`。不開放巢狀結構，需要時另外裁決。
+3. **輸出逐字相同（E-3 選 A）**：寫進稽核表的字串與現在逐字相同，包含鍵的順序、數字的格式（例如 `10.00`）、跳脫的寫法。唯一的例外：原本會寫出不合法 JSON 的情況（值裡有引號、反斜線、換行而沒有跳脫），改為合法的 JSON；這是修正。
+4. **特徵測試（E-4 選 A）**：動工前先補測試，對每一個有 `detail` 的事件建一個實例，把現在的 `detail` 字串寫成預期值；要包含有小數的分數、整數的分數、`null`、含引號與換行的文字。測試先在現在的程式上全綠，重構之後仍然全綠（第 3 點的例外另外寫明）。放在律法以外的測試目錄。
+5. **序列化（E-5 選 A）**：`AuditTrailListener` 用專屬的、設定固定的 `ObjectMapper`，不用 Spring 容器裡共用的那一個。稽核的格式不受 HTTP 輸出設定的影響。
+6. **基底建構子（E-6 選 A，範圍待定）**：方向是直接把參數的型別從 `String` 換成 `Map<String, Object>`，只留一個建構子，這樣律法裡的 `acceptance/AcceptanceWorldTest`（傳 `null`）不用改。**是否一次改完全部事件、PR 怎麼切，負責人 2026-11-27 指示在真的動工前再確定**；動工前由建構者提出範圍，負責人確認後才開始。若確認的範圍需要新舊建構子並存，`AcceptanceWorldTest` 要先以修法修改（D-092 第 6 點之 3 的作法）。
+   - `CaseClosedWithoutRereviewEvent` 改成由事件自己從 `finalScore` 建立 `detail`，不再由 `CloseWithoutRereviewUseCase` 傳字串。
+7. **閘門（E-7 選 A）**：建構完成後，ARCH-06（D-096）的範圍加上 `domain`：`domain`、`application`、`reporting` 都不得依賴 Jackson。另以修法 PR 處理。
+8. **分批（E-8）**：
+   1. 修法 PR 一：本裁決（`decision-log.md`、題目清單、草稿）。沒有規格、範例、閘門的修改。
+   2. 建構 PR：第 4 點的特徵測試先行；基底、事件、`CloseWithoutRereviewUseCase`、`AuditTrailListener`、受影響的測試；`docs/02-ddd/domain-events.md` 的說明。依 D-097，要等修法 PR 一合併。
+   3. 修法 PR 二：第 7 點。
+
+### 查到的潛在缺陷
+
+`SamplingBatchFailedEvent` 以 `String.format("{\"failureReason\":\"%s\"}", failureReason)` 產生 `detail`，`failureReason` 是自由文字，內容有引號、反斜線或換行時會寫出不合法的 JSON。目前沒有任何行為會產生失敗的批次（D-086 第 1、2 點），走不到；母體來源的介接之後會走到。負責人 2026-11-27 決定不另外止血，由本裁決的建構一併修正（第 3 點的例外）。**母體來源的介接若先於本裁決的建構，要先修這一處。**
+
+### Relationship / Evidence
+
+- **起因**：D-096 起草時查到 `domain` 有 5 個事件依賴 Jackson（`45-response-dto-and-list-shape-draft.md` 第六節）；D-096 第 2 點因此把 `domain` 留在 ARCH-06 的範圍之外。
+- **草案**：`docs/harness/47-event-detail-draft.md`（main = `5d1f462`）。事實是讀程式、規格與測試，沒有實測；事件的分類用字串樣式掃過，只打開看了其中 11 個檔案。沒有確認的項目在草稿第七節，動工時要確認。
+- **律法現況**：`specs/review-case/examples.yaml` 有 11 處直接比對 `detail` 的字串，涵蓋 8 種 action（`ASSIGNED`、`REOPENED`、`REASSIGNED`、`SUBMITTED`、`REREVIEW_SUBMITTED`、`CASE_CLOSED_WITHOUT_REREVIEW`、`RETURNED`、`CANCELLED`）。這些範例不動，重構後必須照常通過。
+- **與既有裁決的關係**：延伸 D-080 第 5 點（`detail` 以 JSON 序列化產生）；D-070、D-071、D-078 的 `detail` 內容與遮罩不變；第 7 點延伸 D-096 第 2 點；依 D-097 的順序（修法在前）。
+
+### Mapping
+
+- `docs/harness/47-event-detail-draft.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`
+- 後續（建構 PR）：`domain/common/DomainEvent.java`、`domain/**/event/`、`application/reviewcase/CloseWithoutRereviewUseCase.java`、`infrastructure/audit/AuditTrailListener.java`、`docs/02-ddd/domain-events.md`
+- 後續（修法 PR 二）：`architecture/ArchitectureRules.java` 的 ARCH-06、違規樣本

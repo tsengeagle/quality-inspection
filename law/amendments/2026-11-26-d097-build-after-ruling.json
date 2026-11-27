@@ -1,0 +1,18 @@
+{
+  "id": "2026-11-26-d097-build-after-ruling",
+  "decision": "D-097",
+  "reason": "建構不得先於它依據的裁決併入主線：law_check.py 0.9.0 新增建構依據的裁決的檢查（提交標題的 D-nnn 或 Ruling: none 與理由；裁決要在 base 的 decision-log 且狀態是 accepted），測試 24 個；清冊加上 @build-ruling required 啟用；harness-core 與 law 的 README；給 AI 的指示（AGENTS.md §5.0.1、CLAUDE.md）；義務對照表 P4、題目清單、草稿",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "harness-core/",
+    "law/manifest.txt",
+    "law/README.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "docs/harness/03-harness-plan.md",
+    "docs/harness/46-build-after-ruling-draft.md",
+    "docs/harness/25-topic-backlog.md",
+    "docs/harness/README.md"
+  ]
+}
