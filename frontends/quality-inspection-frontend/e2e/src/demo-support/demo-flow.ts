@@ -142,12 +142,12 @@ async function verifySamplingExecutePage(page: Page, payload: JsonObject, mode: 
   await expect(resultPanel.getByText(`完成時間：${DEMO_CONTRACT.finishedAt}`)).toBeVisible();
 
   if (strictApiUi) {
-    expect(payload.data.projectStatus).toBe(DEMO_CONTRACT.projectStatus);
-    expect(payload.data.versionNo).toBe(DEMO_CONTRACT.versionNo);
-    expect(payload.data.scoreSheetId).toBe(DEMO_CONTRACT.scoreSheetId);
-    expect(payload.data.qualityThreshold).toBe(DEMO_CONTRACT.qualityThreshold);
-    expect(payload.data.postExecuteSummary.startedAt).toBe(DEMO_CONTRACT.startedAt);
-    expect(payload.data.postExecuteSummary.finishedAt).toBe(DEMO_CONTRACT.finishedAt);
+    expect(payload['data'].projectStatus).toBe(DEMO_CONTRACT.projectStatus);
+    expect(payload['data'].versionNo).toBe(DEMO_CONTRACT.versionNo);
+    expect(payload['data'].scoreSheetId).toBe(DEMO_CONTRACT.scoreSheetId);
+    expect(payload['data'].qualityThreshold).toBe(DEMO_CONTRACT.qualityThreshold);
+    expect(payload['data'].postExecuteSummary.startedAt).toBe(DEMO_CONTRACT.startedAt);
+    expect(payload['data'].postExecuteSummary.finishedAt).toBe(DEMO_CONTRACT.finishedAt);
   }
 
   if (verifyReload) {
@@ -176,7 +176,7 @@ async function verifySamplingBatchListPage(page: Page, payload: JsonObject, mode
   await deliberatePause(page, mode, batchRow);
 
   if (strictApiUi) {
-    const batch = payload.data.content[0];
+    const batch = payload['data'].content[0];
     expect(batch.projectName).toBe(DEMO_CONTRACT.projectName);
     expect(batch.projectVersionNumber).toBe(DEMO_CONTRACT.versionNo);
     expect(batch.excludedCount).toBe(DEMO_CONTRACT.excludedCount);
@@ -229,11 +229,11 @@ async function verifyCaseAssignmentPage(page: Page, payloads: { context: JsonObj
   await expect(submitZone).toBeVisible();
 
   if (strictApiUi) {
-    expect(payloads.context.data.projectName).toBe(DEMO_CONTRACT.projectName);
-    expect(payloads.context.data.sourceCaseKey).toBe(DEMO_CONTRACT.sourceCaseKey);
-    expect(payloads.context.data.currentReviewer).toBeNull();
-    expect(payloads.reviewerCandidates.data.some((candidate: JsonObject) => candidate.userId === DEMO_CONTRACT.inactiveCandidateId && candidate.blockedReason === DEMO_CONTRACT.inactiveCandidateBlockedReason)).toBeTruthy();
-    expect(payloads.rereviewerCandidates.data.length).toBeGreaterThan(0);
+    expect(payloads.context['data'].projectName).toBe(DEMO_CONTRACT.projectName);
+    expect(payloads.context['data'].sourceCaseKey).toBe(DEMO_CONTRACT.sourceCaseKey);
+    expect(payloads.context['data'].currentReviewer).toBeNull();
+    expect(payloads.reviewerCandidates['data'].some((candidate: JsonObject) => candidate['userId'] === DEMO_CONTRACT.inactiveCandidateId && candidate['blockedReason'] === DEMO_CONTRACT.inactiveCandidateBlockedReason)).toBeTruthy();
+    expect(payloads.rereviewerCandidates['data'].length).toBeGreaterThan(0);
   }
 
   if (verifyReload) {
