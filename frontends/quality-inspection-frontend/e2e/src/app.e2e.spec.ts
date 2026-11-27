@@ -71,7 +71,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
           latestRereviewSubmissionId: 'SUB-011',
           projectionType: 'FULL',
           actorRole: 'HOSPITAL_MANAGER',
-          isOwner: false
+          owner: false
         }
       })
     });
@@ -97,7 +97,7 @@ async function mockWave3CasesApi(page: Parameters<typeof test>[0]['page']): Prom
           latestRereviewSubmissionId: 'SUB-014-2',
           projectionType: 'FULL',
           actorRole: 'REREVIEWER',
-          isOwner: true
+          owner: true
         }
       })
     });
