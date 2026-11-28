@@ -4,7 +4,7 @@
 > 事實的權威來源依序是：`docs/01-requirements/decision-log.md`、GitHub PR 與 CI 紀錄、`docs/harness/25-topic-backlog.md`。本文件與它們衝突時，以它們為準。
 > **2026-11-27 稍晚補充**：交接文件寫完之後又做了兩件不需要簽章的工作（及格線對新的偵測器重做、前端回應型別與 HTTP 契約的核對，#203）。結果在第 E-5、E-6 節；剩下還能做的事整理在第 J 節。第 A、D、E-3、H、I 節已跟著更新。
 > **第二次補充**：修了 F-1（#204），做了漏網紀錄的盤點（#205）。第 A、D-2、E-3、E-6、H、J 節已跟著更新；新增第 E-7 節。
-> **第三次補充（2026-11-28 台北時間，另一個 session 接手時寫）**：#202～#212、#214 都已合併，`main` = `02811a3`。等簽章的鏈多了兩個修法 PR：#213（D-099）、#215（D-100）。第 A、B、C、F、H、I、J 節已改成現況；第 D-1、D-2、E-3、E-6、E-7 節補上後續；新增第 E-8、E-9 節。第 D-3、E-1、E-2、E-4、E-5、G 節沒有動，內容仍是 2026-11-27 的版本。這次補充起初只依據 GitHub 的 PR 清單與各 PR 的說明；之後負責人要求核對 #205～#215，結果在第 D-1c 節（本機重跑了前後端的測試、重算了雜湊、查了 CI）。核對之後 #194 的分支已併入 `main`（`3d0fead`）。
+> **第三次補充（2026-11-28 台北時間，另一個 session 接手時寫）**：#202～#212、#214 都已合併，`main` = `02811a3`。等簽章的鏈多了兩個修法 PR：#213（D-099）、#215（D-100）。第 A、B、C、F、H、I、J 節已改成現況；第 D-1、D-2、E-3、E-6、E-7 節補上後續；新增第 E-8、E-9 節。第 D-3、E-1、E-2、E-4、E-5、G 節沒有動，內容仍是 2026-11-27 的版本。這次補充起初只依據 GitHub 的 PR 清單與各 PR 的說明；之後負責人要求核對 #205～#215，結果在第 D-1c 節（本機重跑了前後端的測試、重算了雜湊、查了 CI）。核對之後 #194 的分支已併入 `main`（`3d0fead`）。**第四次補充（同一天）**：補做了三項當時沒有核對的事，結果在第 D-1d 節：開實驗用的 PR #216 實測前端閘門的空殼（已關閉，沒有合併）、讀 #215 七個失敗範例的訊息、把前端接上本機的真實後端操作。
 > **還沒有簽章合併的裁決（D-096～D-100）不在 `main` 的 `decision-log.md` 裡（`main` 停在 D-095），尚未生效。** 本文件引用它們的地方，內容以各自 PR 的分支為準。
 
 ---
@@ -18,7 +18,7 @@
 | 開著的 PR | 6 個，全部在等簽章的鏈上：#194（D-096 修法）、#195（D-096 建構，draft）、#197（D-097 修法，draft）、#201（D-098 修法，draft）、#213（D-099 修法，批 0，draft）、#215（D-100 修法一，draft）。不需要簽章的 PR 都已合併 |
 | 下一個動作 | **負責人簽 #194（提交 `3d0fead`）並合併。** 分支已與 `main` 同步。之後的每一步見第 C 節 |
 | 不需要簽章的工作 | #191～#193、#196、#198～#200、#202～#212、#214 都已合併。還能做的列在第 J 節 |
-| 使用者會遇到的缺陷 | F-1、F-2、案件列表頁的 N-1、N-2 都已修好並合併（只有前端的測試，**沒有對真實的後端執行**）。還沒有修的：`SYSTEM_ADMIN` 的案件列表與匯出比白名單多（E-10、E-11），要等 #215 簽章合併之後才能建構 |
+| 使用者會遇到的缺陷 | F-1、F-2、案件列表頁的 N-1、N-2 都已修好並合併；2026-11-28 在本機對真實的後端（H2）操作過，行為正確（第 D-1d 節）。還沒有修的：`SYSTEM_ADMIN` 的案件列表與匯出比白名單多（E-10、E-11），要等 #215 簽章合併之後才能建構 |
 | 等負責人裁決的 | E-04～E-10 各筆「對 harness 的回應」裡還標著待裁決的（`12-escaped-defects.md`）；第 J-1 節的幾項小修 |
 | `main` 的閘門 | 2026-11-28 在 `02811a3` 上本機重跑（JDK 17）：後端 `./gradlew test` 1805 個測試、失敗 0、`BUILD SUCCESSFUL`；前端 typecheck 通過、單元測試 250 個、E2E 20 通過 3 略過；`spec_lint` 通過。CI 上 `02811a3` 的 `law-check`、`spec-check`、`frontend-check`、`law-selftest`、`backend-check` 都成功 |
 
@@ -61,7 +61,7 @@ graph LR
 
 ### CI
 
-下面是 #194、#195、#197、#201 在 2026-11-27 00:27～00:32 UTC 的執行，四個 PR 的結果相同。2026-11-28 查了 #213（`6954210`）、#215（`2c2a0e3`）：結果也相同。**#194 推上 `3d0fead` 之後的 CI 還沒有看。**
+下面是 #194、#195、#197、#201 在 2026-11-27 00:27～00:32 UTC 的執行，四個 PR 的結果相同。2026-11-28 查了 #213（`6954210`）、#215（`2c2a0e3`）：結果也相同。#194 推上 `3d0fead` 之後的 CI（2026-11-27 23:19 UTC）：同樣只有 `law-check` 失敗，其餘成功。
 
 | 檢查 | 結果 |
 |---|---|
@@ -175,7 +175,72 @@ python3 -I harness-core/law_approve.py --head origin/$BRANCH --signer tsengeagle
 - #215 的分支沒有包含 #208、#210、#214（落後 22 個提交）。直接拿它與 #213 的 `6954210` 比，會看到前端的檔案被「刪除」，那是落後造成的；#215 自己的修改是 `32692ed..2c2a0e3` 的 20 個檔案，沒有前端的程式。
 - 第一次跑 `./gradlew test` 時 Maven Central 回 429（Too Many Requests），重跑就通過。
 
-**沒有核對的**：#205～#212 各文件裡的事實（它們自己也寫明是讀程式得到的）；#215 的對照實驗與比對器的單元測試沒有單獨重做（含在 `./gradlew test` 裡）；#213「指令換成空殼之後 `frontend-check` 會是綠的」；所有前端的修正仍然**沒有對真實的後端執行**；#206～#212 各 PR 當時的 CI 沒有逐一查。
+**沒有核對的**：#205～#212 各文件裡其餘的事實（它們自己也寫明是讀程式得到的；E-10、E-11 與前端四個缺陷的部分已在第 D-1d 節實測）；#215 的對照實驗與比對器的單元測試沒有單獨重做（含在 `./gradlew test` 裡）；#206～#212 各 PR 當時的 CI 沒有逐一查（合併後 `main` 的 CI 是綠的）。
+
+### D-1d 補做的三項實測（2026-11-28）
+
+#### 1. 前端閘門的指令換成空殼（#216，已關閉，沒有合併）
+
+#213 的立法理由裡「`frontend-check` 會是綠的」原本是從 workflow 推得的。這個實驗在 #213 合併之後做不出來（`package.json` 會是律法），所以先做。負責人同意開實驗用的 PR。
+
+| 項目 | 內容 |
+|---|---|
+| 修改 | `package.json` 的 `typecheck`、`test:unit:ci`、`test:e2e` 都改成 `echo skipped`（提交 `9cb9bd2`，分支 `claude/experiment-fe-gate-empty-shell`） |
+| `frontend-check` | **成功**，51 秒（`main` 上約 2 分鐘）。紀錄裡 `npm run test:e2e` 這一步只印出 `skipped` |
+| `law-check` | **成功**（分類為建構 PR） |
+| 其餘 | `check`、`check (windows)`、`spec-check`、`law-selftest` 成功 |
+
+結論：#213 合併之前，一個建構 PR 可以把前端的三道檢查都換成空殼而 CI 全綠。只讀了紀錄的最後 70 行（看到 `test:e2e` 那一步），`typecheck`、`unit` 兩步沒有逐行讀。
+
+#### 2. #215 七個凍結範例的失敗訊息
+
+在 `2c2a0e3` 上重跑 `./gradlew test`，讀測試報告。失敗的原因都是預期的那一種，沒有別的斷言失敗：
+
+| 範例 | 失敗訊息 |
+|---|---|
+| `admin_list_is_a_whitelist`、`lists_a_closed_case_for_a_system_admin_over_http` | `content[*]` 有清單以外的屬性：`projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt` |
+| `lists_an_unassigned_case_for_a_system_admin_over_http` | 同上，沒有 `assignedAt`（還沒有分派） |
+| `admin_list_does_not_take_the_medical_record_type` | `content[caseId=…]` 選不到任何一筆（現在的程式照 `medicalRecordType` 篩掉了） |
+| `system_admin_export_has_no_scores`、`exports_masked_scores_for_a_system_admin_over_http`、`exports_an_unassigned_case_for_a_system_admin_over_http` | `rows[*]` 有清單以外的屬性：`projectId`、`maskedFields` |
+
+這等於是 E-10、E-11 的實測（原本是讀程式與契約得到的）。
+
+#### 3. 前端接上真實的後端
+
+**環境**：`main`（`02811a3`）的後端以 `./gradlew bootRun` 在本機啟動（`local` profile，H2 記憶體資料庫）；資料全部經由 HTTP 建立（建專案 → 建評分表、加一節、發布 → 綁定 → 發布專案、啟用 → 抽選，得到 20 筆案件 → 把一筆分派給 `rev-1`）。前端以 `ng serve --configuration=standalone` 經 `proxy.conf.js` 接上後端，Playwright 操作頁面並記下每一個 API 回應。
+
+直接打 API：
+
+| 檢查 | 結果 |
+|---|---|
+| 案件詳情，被分派的初審醫師 | 200；有 `owner: true`，沒有 `isOwner` |
+| 案件詳情，`HOSPITAL_MANAGER`、`AUDITOR` | 200；`owner: false` |
+| 案件詳情，別的初審醫師 | 403 `ACCESS_DENIED` |
+| 案件詳情，`SYSTEM_ADMIN` | 200；正好七欄：`caseId`、`caseStatus`、`hospitalId`、`projectName`、`reviewerId`、`rereviewerId`、`updatedAt` |
+| 列表 `status=PENDING`、`status=IN_PROGRESS` | 400 `BAD_REQUEST`（`Invalid status: …`） |
+| 列表帶 `batchId` | 該批次的 20 筆；不存在的批次 0 筆 |
+| 列表，`SYSTEM_ADMIN`（**E-10 在 `main` 上重現**） | 每一筆有 `projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt` |
+| 匯出，`SYSTEM_ADMIN`（**E-11 在 `main` 上重現**） | 每一列有 `projectId`、`createdAt`、`closedAt`、`maskedFields` |
+
+在瀏覽器操作前端：
+
+| 缺陷 | 角色 | 操作 | 結果 |
+|---|---|---|---|
+| N-2 | `HOSPITAL_MANAGER` | 開 `/cases?batchId=…` | 顯示「批次：…」；請求帶 `batchId`，200 |
+| N-1 | `HOSPITAL_MANAGER` | 逐一點七個篩選按鈕 | 七個請求的 `status` 都是後端的狀態值，全部 200，每一個都帶著 `batchId`；按「清除」之後的請求不帶 |
+| F-2 | `SYSTEM_ADMIN` | 開案件詳情 | 模式「控制中心（Metadata）」；metadata 區塊顯示專案、院區、初審醫師、複審醫師、最後更新；沒有錯誤 |
+| F-2 | `SYSTEM_ADMIN` | 點「Revision 歷程」 | 導到 `/cases/{id}/revisions`，顯示「Metadata 歷程」，兩個 API 都 200 |
+| F-1 | 被分派的初審醫師 | 開案件詳情 | 模式「受限檢視」（修正前會落到唯讀） |
+
+三個情境的瀏覽器主控台與頁面都沒有錯誤。
+
+**限制**：
+
+- standalone 模式的操作者寫死在 `standalone-mock-actor-context.source.ts`（`HOSPITAL_MANAGER`）。`SYSTEM_ADMIN` 與初審醫師兩個情境是**暫時在本機改這個檔**、同時用 `QI_DEMO_ROLE`、`QI_DEMO_USER_ID` 讓 proxy 帶對應身分的 `api-key` 做出來的。修改沒有提交，已還原。hosted（shell）模式沒有試。
+- 資料庫是 H2，不是 Oracle。
+- 只走了上表的路徑：案件還沒有任何提交，歷程是空的；F-3（提交明細的 `answers`）、F-4～F-6 沒有碰到。沒有測修正前的版本（F-1「修正前會落到唯讀」是 #204 的說明）。
+- 驅動腳本是一次性的，放在 session 的暫存目錄，沒有進 repo。要留下來的話，對應的是 D-099 的批 5（打真實後端的 E2E），還沒有起草。
+- `api-key` 只解碼不驗簽（由 gateway 驗），本機才能自己組。
 
 ### D-2 還沒合併（第 B 節）
 
@@ -403,7 +468,8 @@ D-098 的建構動工前要確認的（草稿 47 第七節）：
 | `claude/draft-51-admin-export-whitelist` | #211 已合併，可以刪 |
 | `claude/draft-50-fe-contract-gate` | #212 已合併，可以刪 |
 | `claude/build-fe-e2e-typecheck` | #214 已合併，可以刪 |
-| `claude/happy-newton-3vhuen` | 本文件第三次補充的分支 |
+| `claude/happy-newton-3vhuen` | 本文件第三、四次補充的分支 |
+| `claude/experiment-fe-gate-empty-shell` | #216（實驗，已關閉、沒有合併）。**不能合併**；可以刪 |
 
 2026-11-27 的版本另外列了 `claude/backlog-build-before-law`（#196）、`claude/build-shrink-arch-baseline`（#198）、`claude/docs-harness-status-refresh`（#199）、`claude/draft-47-event-detail`（#200）、`claude/draft-46-build-after-ruling`（沒有開 PR，內容在 #197）、`build/d095-overdue`（負責人的分支，內容已由 #191 合併）為可以刪；這次沒有核對它們還在不在。
 
