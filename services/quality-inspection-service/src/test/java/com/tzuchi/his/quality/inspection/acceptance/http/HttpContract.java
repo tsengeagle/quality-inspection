@@ -291,8 +291,18 @@ public final class HttpContract {
                     continue;
                 }
                 List<Variant> variants = new ArrayList<>();
+                // D-101：只有一種形狀的端點可以整個標 transition（還沒有建構的新端點）。有 variants 時寫在各個形狀上。
+                Object endpointTransition = success.get("transition");
+                if (success.containsKey("transition") && success.containsKey("variants")) {
+                    loadProblems.add(where + "：有 variants 時 transition 寫在各個形狀上，不寫在 success");
+                } else if (success.containsKey("transition")
+                        && !(endpointTransition instanceof String && ((String) endpointTransition).matches("D-\\d{3}"))) {
+                    loadProblems.add(where + "：transition 必須是裁決編號（例如 D-094）");
+                    endpointTransition = null;
+                }
                 if (success.containsKey("data")) {
-                    variants.add(variant(null, success.get("data"), where, en));
+                    variants.add(variant(null, success.get("data"), where, en,
+                            endpointTransition instanceof String ? (String) endpointTransition : null));
                 } else {
                     List<?> raw = list(success.get("variants"));
                     if (raw.size() < 2) {

@@ -6,3 +6,29 @@
 # 本清單只能縮短。測試變綠後，在同一個修改裡把它從清單移除。
 # 新增項目等於同意一個紅燈存在，需要人核准，並註明對應的決策。
 # 參數化測試有多次呼叫失敗時，在行尾加「 xN」，N 是失敗的呼叫次數。
+# ---- D-100：SYSTEM_ADMIN 的案件列表與匯出照白名單收斂。規格先立法，程式由建構 PR 配合（D-100 第 11、15 點）----
+# 現在的列表對 SYSTEM_ADMIN 多給 projectId、medicalRecordType、sourceCaseKey、createdAt、assignedAt，並採用 medicalRecordType 的篩選
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/admin_list_is_a_whitelist
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/admin_list_does_not_take_the_medical_record_type
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lists_a_closed_case_for_a_system_admin_over_http
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/lists_an_unassigned_case_for_a_system_admin_over_http
+# 現在的匯出對 SYSTEM_ADMIN 多給 projectId、maskedFields
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/system_admin_export_has_no_scores
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/exports_masked_scores_for_a_system_admin_over_http
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/exports_an_unassigned_case_for_a_system_admin_over_http
+# ---- D-101：案件的評分表（GetReviewCaseScoreSheet）。規格先立法，use case 由建構 PR 建立（D-101 第 9、12 點）----
+# 現在沒有這支 use case，14 個範例都是「找不到 use case GetReviewCaseScoreSheet」
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/assigned_reviewer_reads_the_case_score_sheet
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/case_score_sheet_lists_every_item_with_its_condition
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/current_rereviewer_reads_the_case_score_sheet
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/auditor_reads_the_score_sheet_of_a_closed_case
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/manager_reads_the_score_sheet_of_a_cancelled_case
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/reading_the_case_score_sheet_does_not_block_a_later_rereview_assignment
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/a_rereviewer_in_another_role_still_reads_the_case_score_sheet
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_case_score_sheet_for_an_unassigned_reviewer
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_case_score_sheet_for_a_rereviewer_before_assignment
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_case_score_sheet_for_a_dual_role_actor
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_case_score_sheet_for_a_dual_role_actor_of_another_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_case_score_sheet_for_a_system_admin
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_case_score_sheet_of_another_hospital
+com.tzuchi.his.quality.inspection.acceptance.AcceptanceExamplesTest#review-case/rejects_case_score_sheet_of_a_missing_case

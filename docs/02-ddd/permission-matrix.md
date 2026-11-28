@@ -62,6 +62,10 @@ Legend: `Y` 可進入、`R` 僅唯讀/有限視角、`N` 不可進入
 | UI-012 初審作業頁 | N | N | Y (assigned/self) | N | N |
 | UI-013 複審作業頁 | N | N | N | Y (assigned/self) | N |
 | UI-014 Revision 歷程頁 | R (metadata) | Y | Y (合法範圍) | Y (合法範圍) | Y |
+| UI-015 儀表板 | R (aggregated) | Y | N | N | Y |
+| UI-017 報表匯出頁 | R (metadata) | Y | N | N | Y |
+
+補充（D-100）：UI-015 只有彙總的件數與比率，沒有逐案資料，不套用 §5.1 的白名單。UI-017 的逐案資料列套用 §5.1；統計摘要與 UI-015 相同。
 
 ---
 
@@ -78,6 +82,7 @@ Legend: `Y` 可進入、`R` 僅唯讀/有限視角、`N` 不可進入
 補充：
 - `SYSTEM_ADMIN` detail/revision 仍可進入，但必須 masked/metadata projection。
 - `REVIEWER` / `REREVIEWER` 不得查看超出 assignment/scope 的 case/submission。
+- 案件的評分表（章節與題目，`GET /review-cases/{caseId}/score-sheet`，D-101）：`HOSPITAL_MANAGER`、`AUDITOR`（院區內）與本案的 `REVIEWER`、`REREVIEWER` 可以讀；`SYSTEM_ADMIN` 不開放這一支（題目定義用 `GET /score-sheets/{scoreSheetId}/sections`，D-050 第 7 點）。題目定義不含任何人的作答、分數、評語，不受 D-033 的盲審限制，讀取不留讀取者紀錄。回應沒有專案的品質線與初審、複審的權重（D-051）。
 
 ---
 
@@ -105,9 +110,20 @@ metadata_whitelist_strategy:
       - submittedAt
       - submittedBy
       - isCurrentEffective
+    UI-017:          # D-100
+      - createdAt
+      - closedAt
 ```
 
 補充：`SYSTEM_ADMIN` 僅可見上述白名單集合，不得取得 full answers/comments/attachments。
+
+補充（D-100）：
+
+- 白名單是**上限**：端點可以只給其中一部分，不可以給清單以外的案件欄位。
+- 各端點實際輸出的欄位寫在 `specs/review-case/usecases.yaml` 的規則，並有以 `SYSTEM_ADMIN` 身分、用 `only` 封閉的範例：案件列表 RC-LST-03、案件詳情 RC-DTV-04、Revision 歷程 RC-VIS-05、提交明細 RC-SBV-02、匯出 RC-RPT-07。
+- 案件列表與匯出的狀態欄位叫 `status`，就是白名單的 `caseStatus`。
+- 視角的標記（列表的 `projectionType`）不是案件的資料，不受白名單管。
+- `SYSTEM_ADMIN` 不能用白名單以外的欄位篩選案件列表（`medicalRecordType` 不採用，RC-LST-05）；`projectId` 是參照，可以用來篩選。
 
 ## 6) Action Permission Matrix（主幹 + 最小 sampling）
 

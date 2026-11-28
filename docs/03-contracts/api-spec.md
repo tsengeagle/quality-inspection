@@ -74,8 +74,11 @@ Accept: application/json
 - page extension：
   - UI-009：`batchId`, `dueAt`
   - UI-014：`stage`, `revisionNo`, `submittedAt`, `submittedBy`, `isCurrentEffective`
+  - UI-017：`createdAt`, `closedAt`（D-100）
 
 超出白名單欄位視為 FULL-only，不得回傳於 metadata-only 視角。
+
+白名單是上限；各端點對 `SYSTEM_ADMIN` 實際輸出的欄位以 `specs/review-case/` 的規則與 HTTP 契約為準（D-100）。案件列表與匯出的狀態欄位叫 `status`，就是白名單的 `caseStatus`。
 
 ### 3.5 共用回應外殼
 
@@ -101,6 +104,35 @@ Accept: application/json
   }
 }
 ```
+
+### 3.7 列表的形狀（D-096）
+
+列表端點的 `data` 依有沒有分頁，只有兩種寫法：
+
+| 列表 | `data` 的形狀 | 端點 |
+|---|---|---|
+| 有分頁 | `{ content, page, size, totalElements, totalPages }` | `GET /review-cases`、`GET /sampling-batches`、`GET /audit-trails` |
+| 沒有分頁 | `{ items }`，一次回全部 | `GET /review-projects`、`GET /score-sheets` |
+
+有分頁的列表：
+
+```json
+{
+  "success": true,
+  "data": {
+    "content": [],
+    "page": 0,
+    "size": 20,
+    "totalElements": 0,
+    "totalPages": 0
+  }
+}
+```
+
+* `page` 從 0 起算；`content` 是當頁的資料，每一項的欄位見各端點。
+* 新的列表端點依有沒有分頁選其中一種，不新增第三種寫法。
+* 已知的例外（維持現況，不作為新端點的先例）：`POST /reports/export` 的 `rows` 與 `summary`（§15）；`GET /review-cases/{caseId}/assignment-candidates`、`GET /review-cases/{caseId}/lifecycle` 的 `data` 直接是陣列。
+* 欄位的權威在 `specs/*/http.yaml`。
 
 ---
 
@@ -657,7 +689,7 @@ Accept: application/json
 
 #### 權限
 
-與 8.4 相同（D-050 第 7 點）。`SYSTEM_ADMIN` 可以讀章節與題目定義（D-050 第 7 點：D-010 的「完整評分內容」不包括題目定義）。
+與 8.4 相同（D-050 第 7 點）。`SYSTEM_ADMIN` 可以讀章節與題目定義（D-050 第 7 點：D-010 的「完整評分內容」不包括題目定義）。`REVIEWER`／`REREVIEWER` 不開放這一支；他們從被指派的案件取得題目（§10.2.1，D-101）。
 
 #### Response（依 D-050 第 7 點）
 
@@ -899,6 +931,8 @@ Accept: application/json
 
 不是 `SYSTEM_ADMIN` 只看得到本院的批次，`hospitalId` 不採用；`SYSTEM_ADMIN` 可用 `hospitalId` 縮小範圍。依開始時間由新到舊；`size` 預設 20、上限 100。
 
+回應是有分頁的列表（§3.7）。
+
 規格：`specs/sampling-batch/`。
 
 ---
@@ -968,6 +1002,15 @@ Accept: application/json
 * `page`
 * `size`
 
+回應是有分頁的列表（§3.7）。
+
+#### `SYSTEM_ADMIN`（D-100）
+
+* 每一筆只有 `caseId`、`batchId`、`hospitalId`、`status`、`reviewerId`、`rereviewerId`、`dueAt` 與 `projectionType`（`METADATA_ONLY`）。沒有 `projectId`、`medicalRecordType`、`sourceCaseKey`、`createdAt`、`assignedAt`。
+* 列出所有院區的案件；帶 `hospitalId` 時只列出那個院區的。
+* `medicalRecordType` 不採用（當成沒有給）。`projectId` 照常採用。
+* 規格：`specs/review-case/`（`ListReviewCases` 的 RC-LST-03～05）；HTTP 契約的 `metadata` 形狀。
+
 ---
 
 ## 10.2 查詢案件詳情
@@ -1013,6 +1056,54 @@ Accept: application/json
   }
 }
 ```
+
+---
+
+## 10.2.1 查詢案件的評分表（D-101）
+
+### `GET /review-cases/{caseId}/score-sheet`
+
+審查醫師作答時的題目來源。回傳這筆案件要用的評分表的章節與題目。
+
+#### 權限
+
+- `HOSPITAL_MANAGER`、`AUDITOR`：院區內的案件。
+- `REVIEWER`：本案的初審醫師，或提交過本案初審的人。`REREVIEWER`：本案目前的複審醫師，或提交過本案複審的人。其他人 `403 ACCESS_DENIED`。
+- `SYSTEM_ADMIN`：`403 ROLE_DENIED`（題目定義用 §8.6）。
+- 同時具備兩個以上的角色：`403 ACCESS_DENIED`（院區先檢查）。
+- 不限案件的狀態；讀取不留讀取者紀錄。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "caseId": "CASE-001",
+    "scoreSheetVersionId": "SS-001:v1",
+    "sections": [
+      {
+        "sectionId": "S1",
+        "title": "完整性",
+        "items": [
+          {
+            "itemId": "I1",
+            "code": "record-complete",
+            "title": "病歷完整性",
+            "scoreType": "FIXED",
+            "maxScore": 20,
+            "weight": 1,
+            "requiredRule": "ALWAYS_REQUIRED",
+            "conditionExpression": null
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`sections` 的內容與 §8.6 相同。封閉的形狀在 `specs/review-case/http.yaml`。**這支端點還沒有建構**（D-101 第 12 點）；上面的範例值是示意。
 
 ---
 
@@ -1724,6 +1815,8 @@ SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白
 * `page`
 * `size`
 
+回應是有分頁的列表（§3.7）。
+
 #### `detail` 遮罩（D-071）
 
 * `SYSTEM_ADMIN` 或持有 `REREVIEWER`：所有紀錄都不含 `detail`。
@@ -1779,6 +1872,13 @@ SYSTEM_ADMIN 也遮罩這四個欄位，且只輸出 permission-matrix §5.1 白
 * 以上都不成立時照常輸出。
 * `SYSTEM_ADMIN` 任何狀態都不取得逐案分數。
 * 匯出不寫入初審讀取者紀錄，也不遞增案件版本。
+
+#### `SYSTEM_ADMIN` 的逐案資料列（D-100）
+
+* 每一列只有 `caseId`、`hospitalId`、`status`、`reviewerId`、`rereviewerId`、`createdAt`、`closedAt`。
+* 沒有 `projectId`、`initialScore`、`finalScore`、`maskedFields`：分數的欄位不輸出，不是輸出 `null` 加上 `maskedFields`。
+* 統計摘要 `summary` 與其他角色相同。
+* 規格：RC-RPT-07；HTTP 契約的 `metadata` 形狀。
 
 #### Response（分頁欄位、逐案列與遮罩相關的欄位）
 

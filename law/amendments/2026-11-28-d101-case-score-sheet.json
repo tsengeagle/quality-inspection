@@ -1,0 +1,26 @@
+{
+  "id": "2026-11-28-d101-case-score-sheet",
+  "decision": "D-101",
+  "reason": "審查醫師怎麼取得評分表的題目（前後端全流程實測的 X-01；草稿 52 的 R-1～R-8）。規格：新增 GetReviewCaseScoreSheet、RC-CSS-01～05、兩個輸出型別；範例新增 14 個、一個準備步驟，全部凍結。HTTP 契約：新增 GET /review-cases/{caseId}/score-sheet，整個端點標 transition。比對器：只有一種形狀的端點可以整個標 transition，過渡中的端點沒有成功回應不算涵蓋問題（草稿沒有，寫條文時發現新端點無法先立法）。coverage 登記兩個建構 PR 要建立的類別。權限矩陣、api-spec、UI-012、UI-013 補上這支查詢",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/examples.yaml",
+    "specs/review-case/http.yaml",
+    "specs/README.md",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/HttpContract.java",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/HttpContractEvaluator.java",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/HttpContractEvaluatorTest.java",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/HttpContractFilesTest.java",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/coverage.txt",
+    "docs/02-ddd/permission-matrix.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/05-ui/ui-page-spec-ui012初審作業頁.md",
+    "docs/05-ui/ui-page-spec-ui013複審作業頁.md",
+    "docs/harness/25-topic-backlog.md",
+    "docs/harness/README.md",
+    "docs/harness/52-reviewer-score-sheet-items-draft.md"
+  ]
+}

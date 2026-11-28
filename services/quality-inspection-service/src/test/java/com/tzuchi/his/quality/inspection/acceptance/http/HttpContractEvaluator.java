@@ -90,11 +90,15 @@ public final class HttpContractEvaluator {
     /**
      * 成功回應：只有一種形狀時照常比對。有幾種形狀時（D-088），回應必須剛好符合其中一種，
      * 觀察到的東西只算進符合的那一種；一種都不符合時，列出最接近的那一種的問題。
+     * 例外（D-100）：符合的幾種形狀只差在這筆回應裡是空的陣列的項目時，不算違反，也不計入觀察。
      */
     private void checkSuccess(HttpContract.Endpoint e, JsonNode body, Map<String, Set<String>> enums, List<String> out) {
         List<HttpContract.Variant> variants = e.variants();
         if (variants.size() == 1) {
-            JsonShape.check(contract.successEnvelope(), body, "$", variants.get(0).shape(), enums, out, seen.get(seenKey(e, variants.get(0))));
+            JsonShape.Seen only = seen.get(seenKey(e, variants.get(0)));
+            int before = out.size();
+            JsonShape.check(contract.successEnvelope(), body, "$", variants.get(0).shape(), enums, out, only);
+            if (out.size() == before) only.observed++;  // D-101：過渡中的端點在報告列出符合形狀的次數
             return;
         }
         List<HttpContract.Variant> matched = new ArrayList<>();
@@ -122,6 +126,16 @@ public final class HttpContractEvaluator {
             return;
         }
         if (matched.size() > 1) {
+            // D-100：這幾種形狀只差在這筆回應裡是空的陣列的項目（例如空的一頁）：分不出來，也不需要分。
+            // 不算違反，也不計入任何一種形狀的觀察。
+            Object first = JsonShape.eraseEmptyArrays(contract.successEnvelope(), body, matched.get(0).shape());
+            boolean sameOutsideEmptyArrays = matched.stream()
+                    .allMatch(v -> first.equals(JsonShape.eraseEmptyArrays(contract.successEnvelope(), body, v.shape())));
+            // 形狀本身完全相同的不在此列：那是契約寫了兩種分不出來的形狀。
+            boolean identical = matched.stream().allMatch(v -> matched.get(0).shape().equals(v.shape()));
+            if (sameOutsideEmptyArrays && !identical) {
+                return;
+            }
             out.add("同時符合不只一種形狀（" + matched.stream().map(HttpContract.Variant::name).collect(java.util.stream.Collectors.joining("、"))
                     + "），無法判斷是哪一種");
             return;
@@ -153,7 +167,9 @@ public final class HttpContractEvaluator {
         List<String> all = new ArrayList<>();
         for (HttpContract.Endpoint e : contract.endpoints()) {
             if (counts.get(e.key())[0] == 0) {
-                all.add(e.key() + "：沒有觀察到任何成功回應");
+                // D-101：每一種形狀都在過渡中的端點（還沒有建構的新端點），沒有成功回應不算涵蓋問題；它列在 transitions()
+                boolean allInTransition = e.variants().stream().allMatch(v -> v.transition() != null);
+                if (!allInTransition) all.add(e.key() + "：沒有觀察到任何成功回應");
                 continue;
             }
             for (HttpContract.Variant v : e.variants()) {

@@ -495,6 +495,69 @@ class HttpContractEvaluatorTest {
         assertTrue(extra.loadProblems().stream().anyMatch(p -> p.contains("可以另有 transition")), extra.loadProblems().toString());
     }
 
+    // ---------- D-100：幾種形狀只差在陣列的項目時，空的陣列兩種都符合，不算違反 ----------
+
+    private static String listVariants(String full, String meta) {
+        return String.join("\n",
+                "spec_version: 1",
+                "kind: http",
+                "endpoints:",
+                "  - usecase: GetThing",
+                "    method: GET",
+                "    path: /things/{thingId}",
+                "    success:",
+                "      status: 200",
+                "      variants:",
+                "        - name: full",
+                "          data: " + full,
+                "        - name: meta",
+                "          data: " + meta);
+    }
+
+    private static final String LIST_VARIANT_HTTP = listVariants(
+            "{ items: [ { id: id, secret: text } ], total: int }",
+            "{ items: [ { id: id } ], total: int }");
+
+    @Test
+    void anEmptyArrayMatchingSeveralVariantsIsNotAViolationAndCountsForNone() {
+        HttpContract c = contract(LIST_VARIANT_HTTP, USECASES);
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[],\"total\":0}")));
+        assertTrue(e.problems().stream().noneMatch(p -> p.contains("同時符合")), e.problems().toString());
+        assertProblem(e, "GET /things/{thingId}（full）：沒有觀察到這種形狀的成功回應");
+        assertProblem(e, "GET /things/{thingId}（meta）：沒有觀察到這種形狀的成功回應");
+    }
+
+    @Test
+    void aNonEmptyArrayIsStillMatchedToExactlyOneVariant() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(LIST_VARIANT_HTTP, USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[],\"total\":0}")));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[{\"id\":\"a\"}],\"total\":1}")));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[{\"id\":\"a\",\"secret\":\"s\"}],\"total\":1}")));
+        assertTrue(problemsOf(e, "GET /things/{thingId}").isEmpty(), e.problems().toString());
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[{\"id\":\"a\",\"other\":1}],\"total\":1}")));
+        assertProblem(e, "不符合任何一種形狀");
+    }
+
+    @Test
+    void anEmptyArrayDoesNotExcuseVariantsThatAlsoDifferElsewhere() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(listVariants(
+                "{ items: [ { id: id, secret: text } ], note: text }",
+                "{ items: [ { id: id } ], note: 'text?' }"), USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"items\":[],\"note\":\"n\"}")));
+        assertProblem(e, "同時符合不只一種形狀（full、meta）");
+    }
+
+    @Test
+    void anEmptyArrayInsideAnArrayItemIsNotExcused() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(listVariants(
+                "{ groups: [ { items: [ { id: id, secret: text } ] } ] }",
+                "{ groups: [ { items: [ { id: id } ] } ] }"), USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"groups\":[{\"items\":[]}]}")));
+        assertProblem(e, "同時符合不只一種形狀（full、meta）");
+    }
+
     @Test
     void ambiguousVariantsAreAProblem() {
         HttpContract c = contract(VARIANT_HTTP.replace("{ thingId: id, maskedFields: [ text ] }", "{ thingId: id, secret: text, note: 'text?' }"), USECASES);
@@ -522,5 +585,49 @@ class HttpContractEvaluatorTest {
         HttpContract bad = HttpContract.parse(COMMON, Map.of("thing", HTTP.replace("spec_version: 1", "spec_version: 2")),
                 Map.of("thing", USECASES), Map.of("thing", MODEL));
         assertTrue(bad.loadProblems().stream().anyMatch(p -> p.contains("thing/http.yaml：spec_version 必須是 1")), bad.loadProblems().toString());
+    }
+
+    // ---------- D-101：還沒有建構的新端點，整個端點標 transition，沒有觀察到成功回應不算涵蓋問題 ----------
+
+    private static final String NEW_ENDPOINT_HTTP = HTTP.replace(
+            "    success: { status: 200, data: { thingId: id } }",
+            "    success: { status: 200, transition: D-101, data: { thingId: id, parts: [ { partId: id } ], note: 'text?' } }");
+
+    @Test
+    void anEndpointInTransitionNeedsNoObservationButIsListed() {
+        HttpContract c = contract(NEW_ENDPOINT_HTTP, USECASES);
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST));
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST_WITH_NOTE));
+        e.observe(new HttpObservation("GET", "/things/T1/parts", 200, GOOD_PARTS));
+        assertTrue(e.coverageProblems().isEmpty(), e.coverageProblems().toString());
+        assertEquals(List.of("GET /things/{thingId}：D-101 過渡中，涵蓋沒有評估（觀察到 0 次）"), e.transitions());
+    }
+
+    @Test
+    void anEndpointInTransitionIsStillCheckedWhenObserved() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(NEW_ENDPOINT_HTTP, USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"parts\":[],\"note\":null,\"extra\":1}")));
+        assertProblem(e, "extra");
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"parts\":[],\"note\":null}")));
+        // 過渡中不評估涵蓋：陣列是空的、note 只觀察到 null，都不列為涵蓋問題
+        assertTrue(e.coverageProblems().stream().noneMatch(p -> p.startsWith("GET /things/{thingId}：")), e.coverageProblems().toString());
+        assertEquals(List.of("GET /things/{thingId}：D-101 過渡中，涵蓋沒有評估（觀察到 1 次）"), e.transitions());
+    }
+
+    @Test
+    void anEndpointWithoutTransitionStillNeedsAnObservation() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract());
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST));
+        assertTrue(e.coverageProblems().contains("GET /things/{thingId}：沒有觀察到任何成功回應"), e.coverageProblems().toString());
+    }
+
+    @Test
+    void anEndpointTransitionMustNameADecisionAndCannotBeCombinedWithVariants() {
+        HttpContract bad = contract(NEW_ENDPOINT_HTTP.replace("transition: D-101", "transition: soon"), USECASES);
+        assertTrue(bad.loadProblems().stream().anyMatch(p -> p.contains("transition 必須是裁決編號")), bad.loadProblems().toString());
+        HttpContract both = contract(VARIANT_HTTP.replace("      variants:", "      transition: D-101\n      variants:"), USECASES);
+        assertTrue(both.loadProblems().stream().anyMatch(p -> p.contains("有 variants 時 transition 寫在各個形狀上")), both.loadProblems().toString());
     }
 }

@@ -1,0 +1,27 @@
+{
+  "id": "2026-11-27-d100-admin-whitelist",
+  "decision": "D-100",
+  "reason": "SYSTEM_ADMIN 的案件列表與匯出照白名單收斂（漏網紀錄 E-10、E-11；草稿 49 的 W-1～W-9、草稿 51 的 X-1～X-8）。規格：ListReviewCases 補齊輸入、新增 RC-LST-03～05，RC-RPT-07 改寫；範例新增 12 個、改寫 2 個，其中 7 個凍結；HTTP 契約兩個端點改用 variants，新的 metadata 形狀標 transition。比對器：幾種形狀只差在陣列的項目時，空的陣列不算同時符合（草稿沒有，寫條文時發現）。coverage 登記四個建構 PR 要建立的類別。權限矩陣補上 UI-015、UI-017 與 UI-017 的白名單延伸",
+  "drafted_by": "claude-code",
+  "paths": [
+    "docs/01-requirements/decision-log.md",
+    "specs/review-case/usecases.yaml",
+    "specs/review-case/examples.yaml",
+    "specs/review-case/http.yaml",
+    "specs/README.md",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/HttpContractEvaluator.java",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/JsonShape.java",
+    "services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/HttpContractEvaluatorTest.java",
+    "services/quality-inspection-service/known-test-failures.txt",
+    "law/coverage.txt",
+    "docs/02-ddd/permission-matrix.md",
+    "docs/03-contracts/api-spec.md",
+    "docs/05-ui/ui-page-spec-ui009案件列表頁.md",
+    "docs/05-ui/ui-page-spec-ui017報表匯出頁.md",
+    "docs/harness/12-escaped-defects.md",
+    "docs/harness/25-topic-backlog.md",
+    "docs/harness/README.md",
+    "docs/harness/49-admin-case-list-whitelist-draft.md",
+    "docs/harness/51-admin-export-whitelist-draft.md"
+  ]
+}

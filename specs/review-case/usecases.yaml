@@ -121,6 +121,40 @@ output_types:
     - { name: createdAt,    type: datetime }
     - { name: closedAt,     type: datetime }
     - { name: maskedFields, type: "list<text>" }
+  # D-100：SYSTEM_ADMIN 的匯出列（RC-RPT-07）。
+  ExportRowMetadata:
+    - { name: caseId,       type: id }
+    - { name: hospitalId,   type: id }
+    - { name: status,       type: enum CaseStatus }
+    - { name: reviewerId,   type: id }
+    - { name: rereviewerId, type: id }
+    - { name: createdAt,    type: datetime }
+    - { name: closedAt,     type: datetime }
+  # D-101：案件的評分表（GetReviewCaseScoreSheet）。欄位與 score-sheet 的章節查詢相同；
+  # scoreType、requiredRule 的值是 specs/score-sheet/model.yaml 的 ScoreType、RequiredRule。
+  CaseScoreSheetSection:
+    - { name: sectionId, type: id }
+    - { name: title,     type: text }
+    - { name: items,     type: "list<CaseScoreSheetItem>" }
+  CaseScoreSheetItem:
+    - { name: itemId,              type: id }
+    - { name: code,                type: text }
+    - { name: title,               type: text }
+    - { name: scoreType,           type: text }
+    - { name: maxScore,            type: decimal(2) }
+    - { name: weight,              type: decimal(4) }
+    - { name: requiredRule,        type: text }
+    - { name: conditionExpression, type: text }
+  # D-100：SYSTEM_ADMIN 的列表項目（RC-LST-03）。
+  CaseSummaryMetadata:
+    - { name: caseId,         type: id }
+    - { name: batchId,        type: id }
+    - { name: hospitalId,     type: id }
+    - { name: status,         type: enum CaseStatus }
+    - { name: reviewerId,     type: id }
+    - { name: rereviewerId,   type: id }
+    - { name: dueAt,          type: datetime }
+    - { name: projectionType, type: text }
   CaseSummary:
     - { name: caseId,        type: id }
     - { name: batchId,       type: id }
@@ -194,9 +228,17 @@ usecases:
     kind: query
     summary: 列出操作者院區範圍內的案件
     actor: { roles: [HOSPITAL_MANAGER, REVIEWER, REREVIEWER, AUDITOR, SYSTEM_ADMIN] }
+    # D-100 第 8 點：輸入照程式補齊。page、size 的預設值與上限沒有規則，也沒有範例。
     input:
-      - { name: batchId, type: id,              required: false }
-      - { name: status,  type: enum CaseStatus, required: false }
+      - { name: hospitalId,        type: id,              required: false }
+      - { name: projectId,         type: id,              required: false }
+      - { name: batchId,           type: id,              required: false }
+      - { name: status,            type: enum CaseStatus, required: false }
+      - { name: reviewerId,        type: id,              required: false }
+      - { name: rereviewerId,      type: id,              required: false }
+      - { name: medicalRecordType, type: text,            required: false }
+      - { name: page,              type: int,             required: false }
+      - { name: size,              type: int,             required: false }
     guards: [RC-G-01]
     rules:
       - id: RC-LST-01
@@ -210,10 +252,29 @@ usecases:
         outcome: { result: REJECTED, code: BAD_REQUEST }
         status: decided
         source: [{ decision: D-088 }]
+      - id: RC-LST-03
+        when: 操作者是 SYSTEM_ADMIN
+        text: 每一筆只有 caseId、batchId、hospitalId、status、reviewerId、rereviewerId、dueAt 與 projectionType（值是 METADATA_ONLY）。status 就是白名單的 caseStatus；projectionType 是視角的標記，不是案件的資料，不受白名單管
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-036 }, { doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { decision: D-100 }]
+      - id: RC-LST-04
+        when: 操作者是 SYSTEM_ADMIN
+        text: 列出所有院區的案件；輸入有 hospitalId 時只列出那個院區的
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-047 }, { decision: D-100 }]
+      - id: RC-LST-05
+        when: 操作者是 SYSTEM_ADMIN，輸入有 medicalRecordType
+        text: medicalRecordType 不採用（當成沒有給）：它不在白名單裡，用它篩選會透露它的值。projectId 照常採用。其他角色的 medicalRecordType 照常採用
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-100 }]
     output:
       status: decided
       source: [{ doc: docs/03-contracts/api-spec.md }]
       fields:
+        # 操作者是 SYSTEM_ADMIN 時每一項是 CaseSummaryMetadata（RC-LST-03）。
         - { name: content, type: "list<CaseSummary>" }
 
   # ---------- 分派 ----------
@@ -1218,6 +1279,50 @@ usecases:
         - { name: initialReviewContext,       type: ReviewPageContext }
         - { name: rereviewContext,            type: ReviewPageContext }
 
+  - name: GetReviewCaseScoreSheet
+    kind: query
+    summary: 查詢一個案件要用的評分表：章節與題目。審查醫師作答時的題目來源（D-101）
+    actor: { roles: [HOSPITAL_MANAGER, REVIEWER, REREVIEWER, AUDITOR] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-CSS-01
+        when: 操作者同時具備兩個以上的角色（院區範圍先檢查）
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-101 }, { rule: RC-DET-01 }]
+      - id: RC-CSS-02
+        when: 操作者是 REVIEWER，但不是本案的初審醫師，也沒有提交過本案的初審；或是 REREVIEWER，但不是本案目前的複審醫師，也沒有提交過本案的複審
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-101 }, { rule: RC-DET-02 }]
+      - id: RC-CSS-03
+        when: 通過前面的檢查，不論案件的狀態
+        text: caseId 等於輸入；scoreSheetVersionId 是案件的評分表版本；sections 是那份評分表的章節與題目，內容與 score-sheet 的 GetScoreSheetSections 相同
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-101 }, { decision: D-094 }]
+      - id: RC-CSS-04
+        when: 任何成功的讀取
+        text: 不寫入讀取者紀錄；讀過題目的人之後仍然可以被指派為本案的複審醫師
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-101 }, { decision: D-055 }]
+      - id: RC-CSS-05
+        when: 操作者是 HOSPITAL_MANAGER、AUDITOR 或 REVIEWER，而且是本案目前或曾經的複審醫師
+        text: 照常成功。題目裡沒有任何初審的資訊，RC-DET-03 不適用於這支查詢
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-101 }, { decision: D-033 }]
+    output:
+      status: decided
+      source: [{ decision: D-101 }]
+      fields:
+        - { name: caseId,              type: id }
+        - { name: scoreSheetVersionId, type: id }
+        - { name: sections,            type: "list<CaseScoreSheetSection>" }
+
   - name: GetSubmissionDetail
     kind: query
     summary: 查詢一份提交的明細；內容依角色遮罩
@@ -1607,10 +1712,10 @@ usecases:
         source: [{ decision: D-057 }, { decision: D-087 }]
       - id: RC-RPT-07
         when: 操作者是 SYSTEM_ADMIN
-        text: 每一列的 initialScore、finalScore 都是 null，maskedFields 列出這兩個欄位
+        text: 每一列只有 caseId、hospitalId、status、reviewerId、rereviewerId、createdAt、closedAt；沒有 projectId、initialScore、finalScore、maskedFields。RC-RPT-08～11 不適用。status 就是白名單的 caseStatus
         outcome: { result: SUCCESS }
         status: decided
-        source: [{ decision: D-055 }, { rule: RC-INV-02 }]
+        source: [{ decision: D-036 }, { decision: D-055 }, { doc: docs/02-ddd/permission-matrix.md, section: "§5.1" }, { decision: D-100 }, { rule: RC-INV-02 }]
       - id: RC-RPT-08
         when: 某一列的案件 status 不是 REREVIEW_IN_PROGRESS、CLOSED、CANCELLED（之後還可能指派或改派複審醫師）
         text: 這一列的 initialScore、finalScore 是 null，maskedFields 列出這兩個欄位
@@ -1652,6 +1757,7 @@ usecases:
       source: [{ doc: docs/03-contracts/api-spec.md, section: "§15.2" }, { decision: D-057 }]
       fields:
         - { name: reportType,    type: text }
+        # 操作者是 SYSTEM_ADMIN 時每一項是 ExportRowMetadata（RC-RPT-07）。
         - { name: rows,          type: "list<ExportRow>" }
         - { name: summary,       type: DashboardSummary }
         - { name: page,          type: int }
