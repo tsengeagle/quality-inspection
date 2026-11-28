@@ -1,6 +1,6 @@
 # 模式語言的四形式盤點
 
-狀態：**草稿，待裁決**（2026-11-28，main = `02811a3`）。本文件不是律法；題號 M-1～M-7 是本草稿自己的編號。負責人 2026-11-28 同意先做盤點；盤點之後要不要立法、怎麼立，都還沒有裁決。
+狀態：**負責人已口頭裁決，M-1～M-5、M-7 照建議；M-6 照建議先查證，查證結果在第九節，待裁決**（2026-11-28）。M-7 要簽章，條文還沒有寫。下面第一到八節是起草時的版本（main = `02811a3`）。本文件不是律法；題號 M-1～M-7 是本草稿自己的編號。
 
 對應 `03-harness-plan.md` 第六節的第 6 期（「把在地傳統寫成模式語言」，義務 P3，狀態「未動工」）。
 
@@ -221,3 +221,36 @@ D-048（2026-11-14）的 Pending 原文列了五條：
 ## 八、順帶發現
 
 `03-harness-plan.md` 第六節「不在這 7 期裡」的表寫「正式資料庫與 migration 工具｜未決定。卡住樂觀鎖（D-045）」。D-045 在 2026-11-16 已經補上裁決（Oracle 19c 以上、Flyway），狀態寫明「解除 BLOCKED」；`ReviewCaseRepositoryImpl` 也已經用版本欄位做樂觀鎖。計畫文件的這一列過期了，這次沒有改。
+
+## 九、裁決之後的補充（2026-11-28）
+
+負責人 2026-11-28 對 M-1～M-7 回覆「同意建議」。照做的：
+
+| 題 | 做了什麼 |
+|---|---|
+| M-1、M-2 | 建立根目錄 `patterns/`，後端在 `patterns/backend/`。沒有列入 `law/manifest.txt`；`patterns/README.md` 第一行寫明是試行、不是律法 |
+| M-3 | 三個模式各寫了準則與禁則：`command-use-case/`、`query-use-case/`、`domain-event/`。事件的那一份依 #201 的條文起草，標為草稿（D-098 尚未生效） |
+| M-4、M-5 | 範本還沒有。等第一支建構的成品 |
+| M-7 | 沒有動。要簽章，與 D-098 的修法二併在一起 |
+
+### M-6 的查證
+
+逐一打開 9 支查詢 use case 的 `execute`（明細在 `patterns/backend/query-use-case/doctrine.md` 第四節）：
+
+- 9 支都是用 id 載入單一 aggregate（`GetRevisionHistoryUseCase` 另外載入該案件底下的提交）。
+- 5 支只為了檢查存在、院區或狀態，資料來自查詢埠或別的埠；4 支直接從載入的 aggregate 組出 view。
+- 沒有一支用寫入側的 repository 做清單或搜尋。
+
+所以 M-6 的選項 B（修改 D-048：允許用 id 載入單一 aggregate，清單與投影必須走查詢埠）套上去是 0 支不符；選項 A（照原文）是 9 支凍結在基線。**建議 B**：A 要把 9 支都改成經過查詢埠，換來的只是多一層轉手；D-048 擔心的「讀取另走一條路徑、漏掉院區範圍」發生在清單與報表，不在用 id 載入。B 要修改 D-048 的 Pending 文字，要簽章。
+
+查證時另外看到：
+
+- 第二節 2.2 寫「其餘 4 支裡 … 另外 3 支沒有看」。看過了：`GetReviewCaseDetailUseCase`、`GetSubmissionDetailUseCase` 與 `GetRevisionHistoryUseCase` 一樣，類別上有註解引用 D-055 第 5 點；`PreviewSamplingPopulationUseCase` 沒有 `@Transactional`，也沒有說明。
+- 查詢用 `actor.requireReadScope`，命令用 `requireHospitalScope`。這個分別沒有寫在任何準則裡，已寫進查詢的準則。
+- D-048 的 Pending 第 4 條寫「帶授權註解」，程式的寫法是在 `execute` 裡呼叫 `requireAnyRole`，沒有註解。條文與現況不一致，沒有裁決。
+- `SaveInitialReviewDraftUseCase` 的事件發布寫在第一個 `save` 之前，其他 29 支發布事件的 use case 是先存檔。沒有打開確認原因。
+- `SubmitInitialReviewUseCase` 在 use case 裡檢查狀態並丟例外，不是呼叫 aggregate 的方法。「狀態的檢查寫在哪一層」沒有裁決，列在命令的準則第五節。
+
+### 寫禁則時發現的
+
+D-098 第 7 點的閘門（ARCH-06 加上 `domain`）只擋 Jackson。17 個事件現在用的 `String.format` 拼 JSON，改完之後沒有閘門防止它再出現（`patterns/backend/domain-event/prohibitions.md` 的 DE-P4）。要不要另外加規則，建議在 D-098 的修法二一起裁決。
