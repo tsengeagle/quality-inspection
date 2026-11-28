@@ -75,7 +75,7 @@
 
 找不到任何範本。全 repo（不含前端）檔名帶 `template` 的只有 `docs/04-testing/test-scenario-template-and-guidelines.md`，是測試情境的格式，不是程式骨架。
 
-最接近範本的是架構規則的合規對照樣本（`architecture/samples/` 底下名稱以 `Allowed` 開頭的 4 個檔案）。它們會被編譯、被測試執行，但只示範「這樣不算違規」，不是完整的骨架。
+最接近範本的是架構規則的合規對照樣本（`architecture/samples/` 底下名稱以 `Allowed` 開頭的 5 個檔案）。它們會被編譯、被測試執行，但只示範「這樣不算違規」，不是完整的骨架。
 
 ### 2.6 D-048 列出、還沒有寫成閘門的規則
 
