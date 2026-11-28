@@ -1,0 +1,4 @@
+Class <com.tzuchi.his.quality.inspection.application.reviewcase.query.WhitelistedSubmissionDetailView> is annotated with <com.fasterxml.jackson.annotation.JsonIgnoreProperties> in (WhitelistedSubmissionDetailView.java:0)
+Method <com.tzuchi.his.quality.inspection.application.reviewcase.query.CaseDetailMetadataView.metadata()> is annotated with <com.fasterxml.jackson.annotation.JsonValue> in (CaseDetailMetadataView.java:0)
+Method <com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView.getUpdatedAt()> is annotated with <com.fasterxml.jackson.annotation.JsonIgnore> in (ReviewCaseDetailView.java:0)
+Method <com.tzuchi.his.quality.inspection.application.reviewcase.query.ReviewCaseDetailView.isInitialReviewFixed()> is annotated with <com.fasterxml.jackson.annotation.JsonIgnore> in (ReviewCaseDetailView.java:0)

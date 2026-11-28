@@ -48,24 +48,24 @@ public class ScoreSheetController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createDraft(@CurrentActor ActorContext actor,
-                                          @RequestBody CreateScoreSheetDraftRequest request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> createDraft(@CurrentActor ActorContext actor,
+                                                                         @RequestBody CreateScoreSheetDraftRequest request) {
         String scoreSheetId = createDraftUseCase.execute(actor, request.getProjectId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(Map.of("scoreSheetId", scoreSheetId)));
     }
 
     @PostMapping("/{id}/publish")
-    public ResponseEntity<?> publishVersion(@CurrentActor ActorContext actor,
-                                             @PathVariable("id") String scoreSheetId) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> publishVersion(@CurrentActor ActorContext actor,
+                                                                            @PathVariable("id") String scoreSheetId) {
         PublishScoreSheetVersionResult result = publishVersionUseCase.execute(actor, scoreSheetId);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("scoreSheetVersionId", result.getScoreSheetVersionId())));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateDraft(@CurrentActor ActorContext actor,
-                                          @PathVariable("id") String scoreSheetId,
-                                          @RequestBody UpdateScoreSheetDraftRequest request) {
+    public ResponseEntity<ApiResponse<Void>> updateDraft(@CurrentActor ActorContext actor,
+                                                          @PathVariable("id") String scoreSheetId,
+                                                          @RequestBody UpdateScoreSheetDraftRequest request) {
         updateDraftUseCase.execute(actor, scoreSheetId,
                 toSet(request.getRemoveSectionIds()),
                 toSet(request.getRemoveItemIds()),
@@ -112,8 +112,8 @@ public class ScoreSheetController {
     }
 
     @GetMapping
-    public ResponseEntity<?> list(@CurrentActor ActorContext actor,
-                                  @RequestParam(required = false) String hospitalId) {
+    public ResponseEntity<ApiResponse<ScoreSheetListResponse>> list(@CurrentActor ActorContext actor,
+                                                                    @RequestParam(required = false) String hospitalId) {
         List<ScoreSheetSummary> summaries = listUseCase.execute(actor, hospitalId).getItems();
         List<ScoreSheetSummaryResponse> items = summaries.stream()
                 .map(this::toSummaryResponse)
@@ -122,15 +122,15 @@ public class ScoreSheetController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> detail(@CurrentActor ActorContext actor,
-                                     @PathVariable("id") String scoreSheetId) {
+    public ResponseEntity<ApiResponse<ScoreSheetSummaryResponse>> detail(@CurrentActor ActorContext actor,
+                                                                          @PathVariable("id") String scoreSheetId) {
         ScoreSheetSummary summary = detailUseCase.execute(actor, scoreSheetId);
         return ResponseEntity.ok(ApiResponse.ok(toSummaryResponse(summary)));
     }
 
     @GetMapping("/{id}/version")
-    public ResponseEntity<?> version(@CurrentActor ActorContext actor,
-                                      @PathVariable("id") String scoreSheetId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> version(@CurrentActor ActorContext actor,
+                                                                     @PathVariable("id") String scoreSheetId) {
         ScoreSheetVersionInfo info = versionUseCase.execute(actor, scoreSheetId);
         Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("version", info.getVersionNo());
@@ -140,8 +140,8 @@ public class ScoreSheetController {
     }
 
     @GetMapping("/{id}/sections")
-    public ResponseEntity<?> sections(@CurrentActor ActorContext actor,
-                                       @PathVariable("id") String scoreSheetId) {
+    public ResponseEntity<ApiResponse<ScoreSheetSectionsResponse>> sections(@CurrentActor ActorContext actor,
+                                                                             @PathVariable("id") String scoreSheetId) {
         ScoreSheetSectionsView view = sectionsUseCase.execute(actor, scoreSheetId);
         List<ScoreSheetSectionResponse> sections = view.getSections().stream()
                 .map(this::toSectionResponse)
