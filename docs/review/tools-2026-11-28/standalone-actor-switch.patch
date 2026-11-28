@@ -1,0 +1,16 @@
+diff --git a/frontends/quality-inspection-frontend/src/app/core/actor-context/standalone-mock-actor-context.source.ts b/frontends/quality-inspection-frontend/src/app/core/actor-context/standalone-mock-actor-context.source.ts
+index 8a31124..83055e0 100644
+--- a/frontends/quality-inspection-frontend/src/app/core/actor-context/standalone-mock-actor-context.source.ts
++++ b/frontends/quality-inspection-frontend/src/app/core/actor-context/standalone-mock-actor-context.source.ts
+@@ -14,7 +14,10 @@ const STANDALONE_MOCK_STATE: RawShellContextState = {
+ };
+ 
+ export class StandaloneMockActorContextSource implements ActorContextSource {
+-  private readonly rawStateSubject = new BehaviorSubject<RawShellContextState>(STANDALONE_MOCK_STATE);
++  // TEMP (local e2e only, never commit): actor from localStorage
++  private readonly rawStateSubject = new BehaviorSubject<RawShellContextState>(
++    (() => { try { const v = window.localStorage.getItem('qi-e2e-actor'); return v ? JSON.parse(v) as RawShellContextState : STANDALONE_MOCK_STATE; } catch { return STANDALONE_MOCK_STATE; } })()
++  );
+ 
+   readonly rawState$ = this.rawStateSubject.asObservable();
+ 

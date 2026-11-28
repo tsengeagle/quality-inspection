@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { expect, Page, test } from '@playwright/test';
 
 async function mockAssignmentCase(
-  page: Parameters<typeof test>[0]['page'],
+  page: Page,
   options?: {
     caseId?: string;
     mode?: 'ASSIGN_INITIAL' | 'REASSIGN_INITIAL' | 'MIXED_ASSIGNMENT' | 'READONLY_BLOCKED';
@@ -141,7 +141,7 @@ async function mockAssignmentCase(
 }
 
 async function mockInitialReviewCase(
-  page: Parameters<typeof test>[0]['page'],
+  page: Page,
   options?: {
     caseId?: string;
     allowedActions?: string[];
@@ -246,7 +246,7 @@ async function mockInitialReviewCase(
 }
 
 async function mockRereviewCase(
-  page: Parameters<typeof test>[0]['page'],
+  page: Page,
   options?: {
     caseId?: string;
     allowedActions?: string[];
