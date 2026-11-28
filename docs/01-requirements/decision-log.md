@@ -4190,3 +4190,63 @@ PR #33 在 `law/allowed_signers` 為負責人 `tsengeagle` 新增第二把公鑰
 - `docs/02-ddd/permission-matrix.md` §4、§5.1；`docs/03-contracts/api-spec.md` §3.6、§10.1、§15.2；`docs/05-ui/` 的 UI-009、UI-017
 - `docs/harness/12-escaped-defects.md`、`docs/harness/25-topic-backlog.md`、`docs/harness/README.md`、兩份草稿
 - 後續：建構 PR、修法 PR 二；題目清單「專案的選擇器」「`SYSTEM_ADMIN` 讀得到的查詢必須有封閉的範例（`spec_lint.py`）」
+
+---
+
+## D-101 — 審查醫師從案件取得評分表的題目
+
+### Status
+
+`accepted`（2026-11-28，負責人對 `docs/harness/52-reviewer-score-sheet-items-draft.md` 的 R-1～R-8 全部照建議裁決。裁決前負責人指示先讀 D-033 確認：D-033 保護的是初審的答案、分數、評語與可以反推的衍生資訊，題目定義不在內，題目的 `weight` 沒有被討論過，沒有新的發現）
+
+**第 7 點的五項不在草稿裡，是寫條文時才決定的，待負責人確認。** 簽章就是確認；不同意其中任何一項時，本修法 PR 要先改。
+
+### Decision
+
+點號 1～6 對應草稿的 R-1～R-6。規則是 `RC-CSS-01`～`RC-CSS-05`。
+
+1. **題目從哪裡給（R-1 選 A）**：新增一支以案件為範圍的查詢 `GetReviewCaseScoreSheet`，HTTP 是 `GET /review-cases/{caseId}/score-sheet`。後端用案件的評分表版本找到評分表，回傳章節與題目。**不做 snapshot**：不開放改版之後（D-094 第 1、3 點），評分表目前的版本就是案件建立時的版本。
+2. **誰可以讀（R-2）**：`HOSPITAL_MANAGER`、`AUDITOR`（院區內）；`REVIEWER` 要是本案的初審醫師或提交過本案的初審；`REREVIEWER` 要是本案目前的複審醫師或提交過本案的複審，否則 `ACCESS_DENIED`（`RC-CSS-02`，條件與案件詳情的 `RC-DET-02` 相同）。`SYSTEM_ADMIN` 不在這支查詢的角色裡，得到 `ROLE_DENIED`；它要看題目定義用既有的章節查詢（D-050 第 7 點）。
+3. **給哪些欄位（R-3 選 A）**：與章節查詢相同——章節的 `sectionId`、`title`，題目的 `itemId`、`code`、`title`、`scoreType`、`maxScore`、`weight`、`requiredRule`、`conditionExpression`。題目的 `weight` 照給：D-033 保護的是初審的作答、分數、評語與衍生資訊，題目定義不含任何人的作答；D-051 擔心的專案品質線與初審、複審的權重不在這支查詢的回應裡。
+4. **不算讀過完整初審（R-4）**：這支查詢不寫入讀取者紀錄（`RC-CSS-04`）。讀過題目的人之後仍然可以被指派為本案的複審醫師，不會得到 `REREVIEWER_HAS_READ_INITIAL`。
+5. **不限案件的狀態（R-5）**：還沒有分派、已結案、已取消的案件都可以讀（`RC-CSS-03`）。結案之後顯示已提交的內容仍然需要題目的名稱。
+6. **回應（R-6）**：`{ caseId, scoreSheetVersionId, sections }`。`scoreSheetVersionId` 是案件的評分表版本，與案件詳情作業情境裡的同名欄位是同一個值。
+7. **草稿沒有、寫條文時才決定的（待負責人確認）**：
+   1. **多角色**：操作者同時具備兩個以上的角色時 `ACCESS_DENIED`，院區先檢查（`RC-CSS-01`）。與案件詳情的 `RC-DET-01` 相同，理由是一致：多角色的人本來就讀不到案件詳情，做不了審查。
+   2. **`RC-DET-03` 不適用**：案件詳情拒絕「以其他角色登入、但是本案目前或曾經的複審醫師」的人（D-035、D-055），因為完整的詳情會洩漏初審。題目裡沒有初審的資訊，所以這支查詢照常成功（`RC-CSS-05`）。
+   3. **新的端點在 HTTP 契約裡怎麼先立法**：比對閘門原本要求每個端點至少觀察到一次成功回應，`transition`（D-094 第 10 點）只能標在已有端點的某一種形狀上，所以全新的端點沒有辦法先於程式寫進契約。改比對器（它是 gate）：只有一種形狀的端點，`success` 可以整個標 `transition: D-nnn`；每一種形狀都在過渡中的端點，沒有觀察到成功回應不算涵蓋問題；觀察到的每一筆回應仍然要符合契約；報告列出它與符合形狀的次數。有 `variants` 的端點照舊寫在各個形狀上。沒有採用的作法：契約等建構之後才補（那樣建構的時候端點沒有契約，違反先立法）。
+   4. **走 HTTP 的範例延到修法 PR 二**：端點還沒有建構時，對它發請求得到的是框架的 404，本文不是 JSON，比對器判為「回應不是單一 JSON 文件」。所以本修法 PR 只有 use case 層的範例；修法 PR 二拿掉 `transition` 時，加上走 HTTP 的範例（用 `two_item_sheet_case`，讓 `conditionExpression` 的 null 與非 null、兩層陣列的非空都被觀察到）。
+   5. **找不到評分表不立規則**：案件一定有評分表版本（專案要綁定評分表、發布、啟用才能抽選）。找不到屬於資料毀損，沒有任何行為做得出來，不寫規則、不加錯誤代碼。
+8. **既有裁決的註記**：D-050 第 7 點「`REVIEWER`／`REREVIEWER` 不開放（審查時用案件的 snapshot）」、D-051「評分依據來自案件的 snapshot（D-011）」——醫師的題目來源改為本裁決的查詢。兩個裁決的其他內容不變：章節查詢仍然不開放給醫師，醫師仍然不能讀專案與抽選批次。
+9. **範例**：14 個，都在 use case 層。成功的 7 個（本案的初審醫師、兩題的評分表逐欄比對、目前的複審醫師、結案的案件由稽核讀、取消的案件由管理者讀、讀過題目之後仍可被指派複審、以其他角色登入的複審醫師）；拒絕的 7 個（沒有被指派的初審醫師、還沒有被指派的複審醫師、多角色、別的院區的多角色、`SYSTEM_ADMIN`、別的院區、案件不存在）。現在沒有這支 use case，14 個都凍結在 `known-test-failures.txt`。
+10. **涵蓋清單**：登記建構 PR 要建立的兩個類別（`GetReviewCaseScoreSheetUseCase`、`ReviewCaseScoreSheetView`）。HTTP 的入口加在已立法的 `ReviewCaseController`。類別怎麼寫沒有試寫過；沒有用到的在修法 PR 二刪掉。
+11. **文件**：`permission-matrix.md` §5 的補充、`api-spec.md` 新增 §10.2.1 並在 §8.6 加註、UI-012 與 UI-013 的頁面規格把「透過 snapshot 呈現」改成這支查詢並列進對應的 API、`specs/README.md` 第七節。
+12. **分批**：修法 PR 一（本裁決）→ 建構 PR（後端：use case、controller 的入口，解凍 14 個範例；依 D-097 要等本裁決併入主線）→ 修法 PR 二（`http.yaml` 拿掉 `transition`、加上走 HTTP 的範例、刪掉沒有用到的涵蓋清單項目）。前端的作業頁（題目區、唯讀時顯示已提交的內容）要先寫頁面規格，另立一題。
+13. **題目清單**：本題列入進行中。
+
+### Relationship / Evidence
+
+- **起因**：2026-11-28 前後端全流程實測的 X-01（`docs/review/e2e-live-backend-run-2026-11-28.md`）。在真實的後端上，初審醫師開始初審之後畫面沒有題目，提交得到 422 `REQUIRED_ITEMS_NOT_ANSWERED`；初審醫師呼叫 `GET /score-sheets/{id}/sections` 得到 403 `ROLE_DENIED`。
+- **原因**：D-050 第 7 點、D-051 都假設醫師從案件的 snapshot 取得評分依據；snapshot 沒有實作，D-094 第 2、4 點裁決不做。假設落空之後沒有人回頭補。這不是程式違反律法，是律法缺一塊。
+- **草稿**：`docs/harness/52-reviewer-score-sheet-items-draft.md`（main = `02811a3`）。事實來自讀裁決、規格、頁面規格，加上一次實測。
+- **本機驗證**（2026-11-28，JDK 17）：
+  - 比對器，先寫測試：加上 4 個單元測試後有 3 個失敗（沒有 `transition` 的支援時，新端點被判為「沒有觀察到任何成功回應」，過渡中的端點被要求陣列非空與 null 的涵蓋）；改完之後全過。原有的「沒有標 `transition` 的端點仍然要有成功回應」另有一個測試看著。
+  - `./gradlew test`：1843 個測試，失敗的 21 個與 `known-test-failures.txt` 完全相同（D-100 的 7 個加上本裁決的 14 個），建置成功。14 個新範例的失敗訊息都是「找不到 use case GetReviewCaseScoreSheet」。
+  - HTTP 契約的報告：契約端點 53 個，問題 0；過渡中 3 項，其中「`GET /review-cases/{caseId}/score-sheet`：D-101 過渡中，涵蓋沒有評估（觀察到 0 次）」。
+  - 第 7 點第 4 項的事實：把兩個走 HTTP 的範例放進來跑過一次，HTTP 契約的報告擋下 2 個問題（「404 … 回應不是單一 JSON 文件」），所以拿掉。
+  - `spec_lint.py` 通過。
+- **沒有驗證的**：建構怎麼寫（第 10 點的兩個類別、後端怎麼由案件的版本找到評分表）；14 個範例在建構之後是否如預期通過（現在只知道它們讀得進來、因為沒有 use case 而失敗）；兩題的範例裡 `maxScore`、`weight` 的比對寫法（`"0.5"` 對四位小數）沒有對真實的輸出驗證過；前端；對執行中的系統的行為。
+- **與既有裁決的關係**：
+  - **改動 D-050 第 7 點、D-051** 的題目來源（第 8 點）。
+  - **延伸 D-094 第 10 點**的 `transition`：從「一種形狀」擴大到「整個端點」。
+  - D-033（盲審）、D-055（讀取者紀錄）、D-035（歷史身分）不變；本裁決說明它們為什麼不適用於題目定義。
+  - 依 D-097：建構 PR 要等本裁決併入主線。
+
+### Mapping
+
+- `specs/review-case/usecases.yaml`（`GetReviewCaseScoreSheet`、`output_types`）、`specs/review-case/examples.yaml`、`specs/review-case/http.yaml`、`specs/README.md` 第七節
+- `services/quality-inspection-service/src/test/java/com/tzuchi/his/quality/inspection/acceptance/http/`（`HttpContract`、`HttpContractEvaluator`、`HttpContractEvaluatorTest`、`HttpContractFilesTest`）
+- `services/quality-inspection-service/known-test-failures.txt`、`law/coverage.txt`
+- `docs/02-ddd/permission-matrix.md` §5；`docs/03-contracts/api-spec.md` §8.6、§10.2.1；`docs/05-ui/` 的 UI-012、UI-013
+- `docs/harness/25-topic-backlog.md`、`docs/harness/README.md`、草稿 52
+- 後續：建構 PR、修法 PR 二；前端的作業頁另立一題

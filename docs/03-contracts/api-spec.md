@@ -689,7 +689,7 @@ Accept: application/json
 
 #### 權限
 
-與 8.4 相同（D-050 第 7 點）。`SYSTEM_ADMIN` 可以讀章節與題目定義（D-050 第 7 點：D-010 的「完整評分內容」不包括題目定義）。
+與 8.4 相同（D-050 第 7 點）。`SYSTEM_ADMIN` 可以讀章節與題目定義（D-050 第 7 點：D-010 的「完整評分內容」不包括題目定義）。`REVIEWER`／`REREVIEWER` 不開放這一支；他們從被指派的案件取得題目（§10.2.1，D-101）。
 
 #### Response（依 D-050 第 7 點）
 
@@ -1056,6 +1056,54 @@ Accept: application/json
   }
 }
 ```
+
+---
+
+## 10.2.1 查詢案件的評分表（D-101）
+
+### `GET /review-cases/{caseId}/score-sheet`
+
+審查醫師作答時的題目來源。回傳這筆案件要用的評分表的章節與題目。
+
+#### 權限
+
+- `HOSPITAL_MANAGER`、`AUDITOR`：院區內的案件。
+- `REVIEWER`：本案的初審醫師，或提交過本案初審的人。`REREVIEWER`：本案目前的複審醫師，或提交過本案複審的人。其他人 `403 ACCESS_DENIED`。
+- `SYSTEM_ADMIN`：`403 ROLE_DENIED`（題目定義用 §8.6）。
+- 同時具備兩個以上的角色：`403 ACCESS_DENIED`（院區先檢查）。
+- 不限案件的狀態；讀取不留讀取者紀錄。
+
+#### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "caseId": "CASE-001",
+    "scoreSheetVersionId": "SS-001:v1",
+    "sections": [
+      {
+        "sectionId": "S1",
+        "title": "完整性",
+        "items": [
+          {
+            "itemId": "I1",
+            "code": "record-complete",
+            "title": "病歷完整性",
+            "scoreType": "FIXED",
+            "maxScore": 20,
+            "weight": 1,
+            "requiredRule": "ALWAYS_REQUIRED",
+            "conditionExpression": null
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`sections` 的內容與 §8.6 相同。封閉的形狀在 `specs/review-case/http.yaml`。**這支端點還沒有建構**（D-101 第 12 點）；上面的範例值是示意。
 
 ---
 

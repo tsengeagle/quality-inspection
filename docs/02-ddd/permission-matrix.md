@@ -82,6 +82,7 @@ Legend: `Y` 可進入、`R` 僅唯讀/有限視角、`N` 不可進入
 補充：
 - `SYSTEM_ADMIN` detail/revision 仍可進入，但必須 masked/metadata projection。
 - `REVIEWER` / `REREVIEWER` 不得查看超出 assignment/scope 的 case/submission。
+- 案件的評分表（章節與題目，`GET /review-cases/{caseId}/score-sheet`，D-101）：`HOSPITAL_MANAGER`、`AUDITOR`（院區內）與本案的 `REVIEWER`、`REREVIEWER` 可以讀；`SYSTEM_ADMIN` 不開放這一支（題目定義用 `GET /score-sheets/{scoreSheetId}/sections`，D-050 第 7 點）。題目定義不含任何人的作答、分數、評語，不受 D-033 的盲審限制，讀取不留讀取者紀錄。回應沒有專案的品質線與初審、複審的權重（D-051）。
 
 ---
 

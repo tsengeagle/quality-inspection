@@ -259,3 +259,7 @@ services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspect
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportMetadataRow.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseListItem.java  legislated  specs/review-case/
 services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/reporting/ExportRowView.java  legislated  specs/review-case/
+
+# ---- 已立法：案件的評分表（D-101 第 10 點）。檔案由建構 PR 建立；建構沒有用到的在收尾的修法 PR 刪掉 ----
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/GetReviewCaseScoreSheetUseCase.java  legislated  specs/review-case/
+services/quality-inspection-service/src/main/java/com/tzuchi/his/quality/inspection/application/reviewcase/query/ReviewCaseScoreSheetView.java  legislated  specs/review-case/

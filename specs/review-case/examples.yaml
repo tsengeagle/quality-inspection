@@ -132,6 +132,52 @@ fixtures:
         as: reviewer_h1
         input: { caseId: "${c}" }
 
+  # D-101：評分表有兩題，其中一題是 CONDITIONAL（有 conditionExpression）。案件還沒有分派。
+  two_item_sheet_case:
+    steps:
+      - run: review-project.CreateReviewProject
+        as: manager_h1
+        input: { name: "住院品質審查", description: "2026 年度", medicalRecordTypes: [OUTPATIENT], qualityThreshold: 5 }
+        save: { p: projectId }
+      - run: score-sheet.CreateScoreSheetDraft
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { s: scoreSheetId }
+      - run: score-sheet.UpdateScoreSheetDraft
+        as: manager_h1
+        input:
+          scoreSheetId: "${s}"
+          addSections:
+            - sectionId: S1
+              title: "完整性"
+              items:
+                - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: BOOLEAN, maxScore: "10", weight: "1", requiredRule: ALWAYS_REQUIRED }
+                - { itemId: I2, code: follow-up, title: "追蹤紀錄", scoreType: RANGE, maxScore: "20", weight: "0.5", requiredRule: CONDITIONAL, conditionExpression: "I1 == true" }
+      - run: score-sheet.PublishScoreSheetVersion
+        as: manager_h1
+        input: { scoreSheetId: "${s}" }
+        save: { sv: scoreSheetVersionId }
+      - run: review-project.BindScoreSheetToProject
+        as: manager_h1
+        input: { projectId: "${p}", scoreSheetVersionId: "${sv}" }
+      - run: review-project.PublishReviewProjectVersion
+        as: manager_h1
+        input: { projectId: "${p}" }
+      - run: review-project.ActivateReviewProject
+        as: manager_h1
+        input: { projectId: "${p}" }
+      - port: sampling-batch.CandidateSource.queryCandidates
+        returns:
+          - { sourceCaseKey: MR-003, hospitalId: H-01, medicalRecordType: OUTPATIENT }
+      - run: sampling-batch.ExecuteSampling
+        as: manager_h1
+        input: { projectId: "${p}" }
+        save: { b: batchId }
+      - run: ListReviewCases
+        as: manager_h1
+        input: { batchId: "${b}" }
+        save: { c: "content[0].caseId" }
+
   low_score_fixed_case:
     steps:
       - use: low_score_completed_case
@@ -1835,6 +1881,120 @@ examples:
     given: [{ use: rereview_submitted }]
     when: { run: GetReviewCaseDetail, as: manager_h1, input: { caseId: missing-case } }
     then: { result: REJECTED, code: CASE_NOT_FOUND }
+
+  # ---------- 讀取：案件的評分表（D-101） ----------
+  # review-project 的評分表只有一節一題（S1／I1，FIXED，滿分 20，權重 1，必答）。
+
+  - name: assigned_reviewer_reads_the_case_score_sheet
+    basis: [RC-CSS-03]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: reviewer_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        caseId: "${c}"
+        scoreSheetVersionId: "${sv}"
+        sections:
+          - sectionId: S1
+            title: "完整性"
+            items:
+              - { itemId: I1, code: record-complete, title: "病歷完整性", scoreType: FIXED, maxScore: "20", weight: "1", requiredRule: ALWAYS_REQUIRED }
+
+  - name: case_score_sheet_lists_every_item_with_its_condition
+    basis: [RC-CSS-03]
+    given: [{ use: two_item_sheet_case }]
+    when: { run: GetReviewCaseScoreSheet, as: manager_h1, input: { caseId: "${c}" } }
+    then:
+      result: SUCCESS
+      output:
+        scoreSheetVersionId: "${sv}"
+        sections:
+          - sectionId: S1
+            items:
+              - { itemId: I1, scoreType: BOOLEAN, maxScore: "10", weight: "1", requiredRule: ALWAYS_REQUIRED }
+              - { itemId: I2, scoreType: RANGE, maxScore: "20", weight: "0.5", requiredRule: CONDITIONAL, conditionExpression: "I1 == true" }
+
+  - name: current_rereviewer_reads_the_case_score_sheet
+    basis: [RC-CSS-03]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: GetReviewCaseScoreSheet, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS, output: { caseId: "${c}", scoreSheetVersionId: "${sv}" } }
+
+  - name: auditor_reads_the_score_sheet_of_a_closed_case
+    basis: [RC-CSS-03]
+    given: [{ use: case_in_CLOSED }]
+    when: { run: GetReviewCaseScoreSheet, as: auditor_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS, output: { caseId: "${c}", scoreSheetVersionId: "${sv}" } }
+
+  - name: manager_reads_the_score_sheet_of_a_cancelled_case
+    basis: [RC-CSS-03]
+    given: [{ use: case_in_CANCELLED }]
+    when: { run: GetReviewCaseScoreSheet, as: manager_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS, output: { caseId: "${c}", scoreSheetVersionId: "${sv}" } }
+
+  # 對照 rejects_reassigning_to_a_rereviewer_who_read_the_submission：讀提交明細會留下讀取者紀錄，讀題目不會。
+  - name: reading_the_case_score_sheet_does_not_block_a_later_rereview_assignment
+    basis: [RC-CSS-04]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: rr2_as_auditor_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS }
+    observe:
+      - run: AssignRereviewer
+        as: manager_h1
+        input: { caseId: "${c}", rereviewerId: u-rr2, dueAt: "2026-12-03T23:59:59Z" }
+        expect: { result: SUCCESS }
+
+  # 對照 rejects_case_detail_for_a_historical_rereviewer_in_another_role（RC-DET-03）。
+  - name: a_rereviewer_in_another_role_still_reads_the_case_score_sheet
+    basis: [RC-CSS-05]
+    given: [{ use: rereviewer_assigned }]
+    when: { run: GetReviewCaseScoreSheet, as: rr1_as_auditor_h1, input: { caseId: "${c}" } }
+    then: { result: SUCCESS, output: { caseId: "${c}" } }
+
+  - name: rejects_case_score_sheet_for_an_unassigned_reviewer
+    basis: [RC-CSS-02]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: reviewer2_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_case_score_sheet_for_a_rereviewer_before_assignment
+    basis: [RC-CSS-02]
+    given: [{ use: case_in_PENDING_REREVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: rereviewer_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_case_score_sheet_for_a_dual_role_actor
+    basis: [RC-CSS-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: dual_role_h1, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ACCESS_DENIED }
+
+  - name: rejects_case_score_sheet_for_a_dual_role_actor_of_another_hospital
+    basis: [RC-G-03, RC-CSS-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: dual_role_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_case_score_sheet_for_a_system_admin
+    basis: [RC-G-01]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: admin, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: ROLE_DENIED }
+
+  - name: rejects_case_score_sheet_of_another_hospital
+    basis: [RC-G-03]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: manager_h2, input: { caseId: "${c}" } }
+    then: { result: REJECTED, code: HOSPITAL_SCOPE_MISMATCH }
+
+  - name: rejects_case_score_sheet_of_a_missing_case
+    basis: [RC-G-02]
+    given: [{ use: case_in_PENDING_INITIAL_REVIEW }]
+    when: { run: GetReviewCaseScoreSheet, as: manager_h1, input: { caseId: missing-case } }
+    then: { result: REJECTED, code: CASE_NOT_FOUND }
+
+  # HTTP 的範例在修法 PR 二才加（D-101 第 7 點）：端點還沒有建構時，請求得到的是框架的 404，不是契約的回應。
+  # 到時候用 two_item_sheet_case：一筆回應裡 conditionExpression 同時有 null 與非 null，章節與題目的陣列都非空。
 
   # ---------- 讀取：提交明細（D-084） ----------
 

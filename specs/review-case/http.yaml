@@ -157,6 +157,30 @@ endpoints:
             rereviewerId: 'id?'
             updatedAt: 'text?'
 
+  - usecase: GetReviewCaseScoreSheet
+    method: GET
+    path: /review-cases/{caseId}/score-sheet
+    # D-101：審查醫師作答時的題目來源。新的端點，程式由建構 PR 建立；建構完成後的修法 PR 拿掉 transition。
+    # scoreType、requiredRule 的值是 specs/score-sheet/model.yaml 的列舉，本目錄沒有這兩個列舉，所以寫 text。
+    success:
+      status: 200
+      transition: D-101
+      data:
+        caseId: id
+        scoreSheetVersionId: id
+        sections:
+          - sectionId: id
+            title: text
+            items:
+              - itemId: id
+                code: text
+                title: text
+                scoreType: text
+                maxScore: decimal
+                weight: decimal
+                requiredRule: text
+                conditionExpression: 'text?'
+
   - usecase: GetCaseAssignmentContext
     method: GET
     path: /review-cases/{caseId}/assignment-context

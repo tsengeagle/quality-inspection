@@ -586,4 +586,48 @@ class HttpContractEvaluatorTest {
                 Map.of("thing", USECASES), Map.of("thing", MODEL));
         assertTrue(bad.loadProblems().stream().anyMatch(p -> p.contains("thing/http.yaml：spec_version 必須是 1")), bad.loadProblems().toString());
     }
+
+    // ---------- D-101：還沒有建構的新端點，整個端點標 transition，沒有觀察到成功回應不算涵蓋問題 ----------
+
+    private static final String NEW_ENDPOINT_HTTP = HTTP.replace(
+            "    success: { status: 200, data: { thingId: id } }",
+            "    success: { status: 200, transition: D-101, data: { thingId: id, parts: [ { partId: id } ], note: 'text?' } }");
+
+    @Test
+    void anEndpointInTransitionNeedsNoObservationButIsListed() {
+        HttpContract c = contract(NEW_ENDPOINT_HTTP, USECASES);
+        assertTrue(c.loadProblems().isEmpty(), c.loadProblems().toString());
+        HttpContractEvaluator e = new HttpContractEvaluator(c);
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST));
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST_WITH_NOTE));
+        e.observe(new HttpObservation("GET", "/things/T1/parts", 200, GOOD_PARTS));
+        assertTrue(e.coverageProblems().isEmpty(), e.coverageProblems().toString());
+        assertEquals(List.of("GET /things/{thingId}：D-101 過渡中，涵蓋沒有評估（觀察到 0 次）"), e.transitions());
+    }
+
+    @Test
+    void anEndpointInTransitionIsStillCheckedWhenObserved() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract(NEW_ENDPOINT_HTTP, USECASES));
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"parts\":[],\"note\":null,\"extra\":1}")));
+        assertProblem(e, "extra");
+        e.observe(new HttpObservation("GET", "/things/T1", 200, ok("{\"thingId\":\"T1\",\"parts\":[],\"note\":null}")));
+        // 過渡中不評估涵蓋：陣列是空的、note 只觀察到 null，都不列為涵蓋問題
+        assertTrue(e.coverageProblems().stream().noneMatch(p -> p.startsWith("GET /things/{thingId}：")), e.coverageProblems().toString());
+        assertEquals(List.of("GET /things/{thingId}：D-101 過渡中，涵蓋沒有評估（觀察到 1 次）"), e.transitions());
+    }
+
+    @Test
+    void anEndpointWithoutTransitionStillNeedsAnObservation() {
+        HttpContractEvaluator e = new HttpContractEvaluator(contract());
+        e.observe(new HttpObservation("GET", "/things", 200, GOOD_LIST));
+        assertTrue(e.coverageProblems().contains("GET /things/{thingId}：沒有觀察到任何成功回應"), e.coverageProblems().toString());
+    }
+
+    @Test
+    void anEndpointTransitionMustNameADecisionAndCannotBeCombinedWithVariants() {
+        HttpContract bad = contract(NEW_ENDPOINT_HTTP.replace("transition: D-101", "transition: soon"), USECASES);
+        assertTrue(bad.loadProblems().stream().anyMatch(p -> p.contains("transition 必須是裁決編號")), bad.loadProblems().toString());
+        HttpContract both = contract(VARIANT_HTTP.replace("      variants:", "      transition: D-101\n      variants:"), USECASES);
+        assertTrue(both.loadProblems().stream().anyMatch(p -> p.contains("有 variants 時 transition 寫在各個形狀上")), both.loadProblems().toString());
+    }
 }

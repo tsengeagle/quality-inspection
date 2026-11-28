@@ -130,6 +130,21 @@ output_types:
     - { name: rereviewerId, type: id }
     - { name: createdAt,    type: datetime }
     - { name: closedAt,     type: datetime }
+  # D-101：案件的評分表（GetReviewCaseScoreSheet）。欄位與 score-sheet 的章節查詢相同；
+  # scoreType、requiredRule 的值是 specs/score-sheet/model.yaml 的 ScoreType、RequiredRule。
+  CaseScoreSheetSection:
+    - { name: sectionId, type: id }
+    - { name: title,     type: text }
+    - { name: items,     type: "list<CaseScoreSheetItem>" }
+  CaseScoreSheetItem:
+    - { name: itemId,              type: id }
+    - { name: code,                type: text }
+    - { name: title,               type: text }
+    - { name: scoreType,           type: text }
+    - { name: maxScore,            type: decimal(2) }
+    - { name: weight,              type: decimal(4) }
+    - { name: requiredRule,        type: text }
+    - { name: conditionExpression, type: text }
   # D-100：SYSTEM_ADMIN 的列表項目（RC-LST-03）。
   CaseSummaryMetadata:
     - { name: caseId,         type: id }
@@ -1263,6 +1278,50 @@ usecases:
         - { name: actorRole,                  type: text }
         - { name: initialReviewContext,       type: ReviewPageContext }
         - { name: rereviewContext,            type: ReviewPageContext }
+
+  - name: GetReviewCaseScoreSheet
+    kind: query
+    summary: 查詢一個案件要用的評分表：章節與題目。審查醫師作答時的題目來源（D-101）
+    actor: { roles: [HOSPITAL_MANAGER, REVIEWER, REREVIEWER, AUDITOR] }
+    input:
+      - { name: caseId, type: id, required: true }
+    guards: [RC-G-01, RC-G-02, RC-G-03]
+    rules:
+      - id: RC-CSS-01
+        when: 操作者同時具備兩個以上的角色（院區範圍先檢查）
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-101 }, { rule: RC-DET-01 }]
+      - id: RC-CSS-02
+        when: 操作者是 REVIEWER，但不是本案的初審醫師，也沒有提交過本案的初審；或是 REREVIEWER，但不是本案目前的複審醫師，也沒有提交過本案的複審
+        outcome: { result: REJECTED, code: ACCESS_DENIED }
+        status: decided
+        source: [{ decision: D-101 }, { rule: RC-DET-02 }]
+      - id: RC-CSS-03
+        when: 通過前面的檢查，不論案件的狀態
+        text: caseId 等於輸入；scoreSheetVersionId 是案件的評分表版本；sections 是那份評分表的章節與題目，內容與 score-sheet 的 GetScoreSheetSections 相同
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-101 }, { decision: D-094 }]
+      - id: RC-CSS-04
+        when: 任何成功的讀取
+        text: 不寫入讀取者紀錄；讀過題目的人之後仍然可以被指派為本案的複審醫師
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-101 }, { decision: D-055 }]
+      - id: RC-CSS-05
+        when: 操作者是 HOSPITAL_MANAGER、AUDITOR 或 REVIEWER，而且是本案目前或曾經的複審醫師
+        text: 照常成功。題目裡沒有任何初審的資訊，RC-DET-03 不適用於這支查詢
+        outcome: { result: SUCCESS }
+        status: decided
+        source: [{ decision: D-101 }, { decision: D-033 }]
+    output:
+      status: decided
+      source: [{ decision: D-101 }]
+      fields:
+        - { name: caseId,              type: id }
+        - { name: scoreSheetVersionId, type: id }
+        - { name: sections,            type: "list<CaseScoreSheetSection>" }
 
   - name: GetSubmissionDetail
     kind: query

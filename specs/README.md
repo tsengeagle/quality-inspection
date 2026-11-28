@@ -157,6 +157,7 @@ specs/
    - 一個端點有幾種形狀時，`success` 用 `variants` 取代 `data`：至少兩項，每項有 `name` 與 `data`。每筆成功回應必須剛好符合其中一種（D-088 第 6 點）。
    - 例外（D-100 第 10 點）：幾種形狀只差在陣列的項目，而這筆回應的那個陣列是空的（例如列表空的一頁），它會同時符合這幾種形狀。這不算違反，也不計入任何一種形狀的觀察。只認物件欄位底下的陣列；陣列項目裡面的陣列不適用。形狀完全相同的兩種、或除了空的陣列以外還有別處分不出來的，仍然算違反。
    - 形狀可以另有 `transition: D-nnn`（D-094 第 10 點）：這種形狀在該裁決的過渡期間，不檢查涵蓋，但每筆回應仍要剛好符合其中一種形狀；報告列出過渡中的形狀與觀察次數。用在增刪回應欄位：修法 PR 加上新的形狀，新舊兩種都標 `transition`；建構 PR 改程式；下一個修法 PR 刪除舊的形狀、拿掉標記。過渡中的形狀要在建構 PR 合併後的修法 PR 裡收掉，不能一直留著。
+   - 還沒有建構的新端點（D-101 第 7 點）：只有一種形狀的端點，`success` 可以另有 `transition: D-nnn`，與 `status`、`data` 並列。過渡期間這個端點不檢查涵蓋，包括「沒有觀察到任何成功回應」；觀察到的每一筆回應仍然要符合契約；報告列出它與符合形狀的次數。用在先立法、後建構的新端點：修法 PR 加上端點與 `transition`，建構 PR 讓程式回應，收尾的修法 PR 拿掉 `transition`。有 `variants` 的端點寫在各個形狀上，不寫在 `success`。**注意**：端點還沒有建構時，對它發請求會得到框架的 404（不是 JSON），比對器判為違反；所以走 HTTP 的範例要等收尾的修法 PR 才加。
 3. **錯誤回應。** 錯誤代碼先查 `transport_codes`，再查該 aggregate `usecases.yaml` 的 `error_codes`，以分類對應狀態碼。兩邊都找不到的代碼算違反。
 4. **比對（B-1 觀察）。** 測試期間經過 MockMvc 的每一個回應，都用契約比對；本文必須是單一 JSON 文件。比對器在 `services/quality-inspection-service/src/test/java/.../acceptance/http/`（律法，gate），以 `application-test.yml` 的 `context.initializer.classes` 掛進每個測試 context。
 5. **涵蓋。** 每個端點至少觀察到一次成功回應（有 `variants` 時每一種都要，標 `transition` 的除外）；data 形狀裡的每個陣列至少觀察到一次非空；data 形狀裡可為 null 的欄位，null 與非 null 都要觀察到。有 `variants` 時依形狀分開計算。共用層的外殼不寫可為 null 的欄位（錯誤回應的 `message` 一律要有值）。
@@ -172,7 +173,7 @@ specs/
 |---|---|---|
 | `ScoreSheetDefinition` | `specs/score-sheet/http.yaml` | 7 |
 | `ReviewProject` | `specs/review-project/http.yaml` | 9（含列表與版本查詢，D-062） |
-| `ReviewCase` | `specs/review-case/http.yaml` | 29（含提交明細、稽核、報表，D-088） |
+| `ReviewCase` | `specs/review-case/http.yaml` | 30（含提交明細、稽核、報表，D-088；案件的評分表，D-101） |
 | `SamplingBatch` | `specs/sampling-batch/http.yaml` | 7（D-088） |
 
 ## 八、欄位表（D-063，v1.1）

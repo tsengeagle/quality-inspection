@@ -36,10 +36,11 @@
 ### 對應 domain objects
 - `ReviewCase`
 - `ReviewSubmission`
-- `ScoreSheetDefinition` [透過 snapshot 呈現]
+- `ScoreSheetDefinition` [章節與題目由 `GET /review-cases/{caseId}/score-sheet` 取得（D-101）；snapshot 不做（D-094）]
 - `ScoreSheetSnapshotRef`
 
 ### 對應主要 API
+- `GET /review-cases/{caseId}/score-sheet`（題目的來源，D-101；後端尚未建構）
 - `POST /review-cases/{caseId}/initial-review/start`
 - `POST /review-cases/{caseId}/initial-review/draft`
 - `POST /review-cases/{caseId}/initial-review/submit`
