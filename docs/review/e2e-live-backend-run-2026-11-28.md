@@ -58,7 +58,7 @@ standalone 模式的操作者寫死成 `HOSPITAL_MANAGER`，proxy 帶的 `api-ke
 
 | # | 發現 | 證據 | 類別 |
 |---|---|---|---|
-| X-01 | **初審、複審醫師沒有任何 API 可以讀到要作答的題目。** `GET /score-sheets/{id}/sections` 只開放給 `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR`；案件詳情的 `initialReviewContext`、`rereviewContext` 只有 `scoreSheetVersionId`，沒有題目。即使前端把表單做出來，也拿不到題目的名稱、型別、滿分 | 初審醫師呼叫 `/score-sheets/{id}/sections` 回 403 `ROLE_DENIED`；`specs/score-sheet/usecases.yaml` 的 `GetScoreSheetSections` 角色是那三種；UI-012 頁面規格要求「每個 section 下列出 score items」 | 新 |
+| X-01 | **初審、複審醫師沒有任何 API 可以讀到要作答的題目。** `GET /score-sheets/{id}/sections` 只開放給 `SYSTEM_ADMIN`、`HOSPITAL_MANAGER`、`AUDITOR`；案件詳情的 `initialReviewContext`、`rereviewContext` 只有 `scoreSheetVersionId`，沒有題目。即使前端把表單做出來，也拿不到題目的名稱、型別、滿分 | 初審醫師呼叫 `/score-sheets/{id}/sections` 回 403 `ROLE_DENIED`；`specs/score-sheet/usecases.yaml` 的 `GetScoreSheetSections` 角色是那三種；UI-012 頁面規格要求「每個 section 下列出 score items」 | 新。原因與選項見草稿 52 |
 | X-02 | **初審、複審作業頁沒有題目可以填。** 頁面只會顯示草稿裡已經有的答案列；剛開始的草稿沒有答案，所以畫面是「目前沒有可編輯 answer rows」。按提交，後端回 422 `REQUIRED_ITEMS_NOT_ANSWERED` | 第 7、13 步。用 API 先存一次答案之後，頁面才出現輸入框，而且只顯示題目代號（`I1`、`I2`、`I3`） | 已知的後果（`docs/06-frontend/` 多處寫明 score item 是 STUB） |
 | X-03 | **提交之後的內容在畫面上看不到。** 固定或結案之後，初審、複審作業頁不再讀取提交明細，答案區是空的、評語是空的；歷程頁只有版次、狀態、提交者、時間。管理者與稽核人員沒有任何畫面能看到作答與評語 | 固定初審之後以初審醫師、管理者、稽核開初審作業頁：沒有 `/review-submissions/{id}` 的請求，評語欄是空的 | 新 |
 | X-04 | **五個案件的命令後端有、前端沒有呼叫。** 取消（`/cancel`）、退回（`/initial-review/return`）、重開（`/reopen`）、不經複審結案（`/close-without-rereview`）、送複審（`/send-to-rereview`）。頁面規格提到退回、重開、取消，前端的程式裡找不到 | 比對後端 controller 的路徑與前端所有的 HTTP 呼叫 | 新 |
@@ -112,7 +112,7 @@ standalone 模式的操作者寫死成 `HOSPITAL_MANAGER`，proxy 帶的 `api-ke
 
 只是建議。
 
-1. **X-01 要先裁決。** 醫師怎麼拿到題目，是後端契約的問題（開放既有的端點給醫師，還是放進案件詳情的作業情境）。它要修法，而且沒有它 X-02 做不出來。
+1. **X-01 要先裁決。** 醫師怎麼拿到題目，是後端契約的問題。它要修法，而且沒有它 X-02 做不出來。**已起草**：`docs/harness/52-reviewer-score-sheet-items-draft.md`（R-1～R-8，待裁決）。查證後的原因：D-050 第 7 點、D-051 都寫明醫師「審查時用案件的 snapshot」，但 snapshot 沒有實作，D-094 又裁決不做；這個假設落空之後沒有人回頭補。草稿建議新增一支以案件為範圍的查詢。
 2. **X-02、X-03** 是同一件事的兩半：作業頁的題目區。要先寫頁面規格（題目怎麼呈現、唯讀時怎麼呈現）。這是目前離「系統可以用」最遠的地方。
 3. **X-04** 先決定五個命令各自放在哪一頁，再排進頁面的工作。
 4. **X-05、X-06、X-07、X-09、X-10** 是純前端的小修，不需要簽章。X-05 是展示時第一眼就會遇到的。
